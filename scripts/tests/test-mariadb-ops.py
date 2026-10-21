@@ -185,5 +185,89 @@ class RestoreResourceGuards(unittest.TestCase):
             self.assertFalse(rejected.exists())
 
 
+class ServerContour(unittest.TestCase):
+    ADDRESS = '203.0.113.10'
+
+    def answers(self, label, default='', check=None, hidden=False):
+        if label.startswith('Контур'):
+            return 'server'
+        if label.startswith('IP-адрес'):
+            self.assertEqual(default, self.ADDRESS)
+            return self.ADDRESS
+        return default
+
+    def system(self, busy):
+        def output(arguments, **options):
+            if arguments[0] == 'hostname':
+                return self.ADDRESS + ' 172.17.0.1'
+            if arguments[0] == 'ss' and arguments[-1] in busy:
+                return 'LISTEN 0 4096 0.0.0.0:' + arguments[-1].rsplit(':', 1)[1] + ' 0.0.0.0:*'
+            return ''
+        return output
+
+    def test_address_and_certificate_subject(self):
+        self.assertEqual(installer.server_address(self.ADDRESS), self.ADDRESS)
+        self.assertEqual(installer.server_address('club.example.ru'), 'club.example.ru')
+        for value in ('127.0.0.1', '0.0.0.0', '224.0.0.1', 'localhost', 'a.ru:9443', 'https://a.ru'):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                installer.server_address(value)
+        self.assertEqual(installer.subject(self.ADDRESS), 'IP:' + self.ADDRESS)
+        self.assertEqual(installer.subject('localhost'), 'DNS:localhost')
+        self.assertEqual(installer.public_url(self.ADDRESS, 9443), 'https://' + self.ADDRESS + ':9443')
+        self.assertEqual(installer.public_url('club.example.ru', 443), 'https://club.example.ru')
+        with self.assertRaises(ValueError):
+            installer.contour('4')
+
+    def test_busy_port_stops_before_system_changes(self):
+        with tempfile.TemporaryDirectory() as temp, \
+                patch.dict(installer.HELPERS, {'prompt': self.answers}), \
+                patch.object(installer, 'output', side_effect=self.system({'sport = :9443'})), \
+                patch.object(installer, 'run') as run, \
+                patch.object(installer, 'create_database') as create:
+            with self.assertRaisesRegex(ValueError, '9443'):
+                installer.install(pathlib.Path(temp).resolve() / 'club', False)
+            run.assert_not_called()
+            create.assert_not_called()
+
+    def test_server_contour_publishes_chosen_ports_with_own_certificate(self):
+        def certificate(tls, address, authority):
+            for name in ('privkey.pem', 'fullchain.pem'):
+                (tls / name).write_text('synthetic')
+            authority.write_text('synthetic')
+
+        def folder(path, *arguments):
+            path = pathlib.Path(path)
+            path.mkdir(parents=True, exist_ok=True)
+            return path
+
+        with tempfile.TemporaryDirectory() as temp, \
+                patch.dict(installer.HELPERS, {'prompt': self.answers}), \
+                patch.object(installer, 'output', side_effect=self.system(set())), \
+                patch.object(installer, 'run'), \
+                patch.object(installer, 'sql', return_value='0'), \
+                patch.object(installer, 'create_database'), \
+                patch.object(installer, 'directory', side_effect=folder), \
+                patch.object(installer.os, 'chown'), \
+                patch.object(installer, 'self_signed', side_effect=certificate) as signed, \
+                patch.object(installer, 'Context'), \
+                patch.object(maintenance, 'deploy'), \
+                patch('builtins.print'):
+            config = pathlib.Path(temp).resolve() / 'club'
+            installer.install(config, False)
+            signed.assert_called_once_with(config / 'data' / 'tls', self.ADDRESS, config / 'local-ca.crt')
+            compose = common.read_env(config / 'compose.env')
+            runtime = common.read_env(config / 'runtime.env')
+            metadata = json.loads((config / 'install.json').read_text())
+        self.assertEqual(metadata['mode'], 'server')
+        self.assertEqual(runtime['PUBLIC_URL'], 'https://' + self.ADDRESS + ':9443')
+        self.assertEqual(compose['PUBLIC_URL'], runtime['PUBLIC_URL'])
+        self.assertEqual(compose['CLUB_BIND_ADDRESS'], '0.0.0.0')
+        self.assertEqual((compose['CLUB_HTTPS_PORT'], compose['CLUB_HTTP_PORT']), ('9443', '9080'))
+        self.assertEqual(compose['HTTPS_CA_FILE'], str(config / 'local-ca.crt'))
+        self.assertEqual(compose['COMPOSE_PROFILES'], 'local')
+        self.assertEqual(runtime['APP_ENV'], 'production')
+        self.assertEqual(runtime['SEED_DEMO'], 'false')
+
+
 if __name__ == '__main__':
     unittest.main()
