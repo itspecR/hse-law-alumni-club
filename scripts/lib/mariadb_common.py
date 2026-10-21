@@ -9,6 +9,7 @@ import pathlib
 import re
 import runpy
 import shlex
+import socket
 import ssl
 import subprocess
 import tarfile
@@ -195,14 +196,15 @@ class Context:
     def verify_http(self):
         context = ssl.create_default_context(cafile=self.values.get("HTTPS_CA_FILE") or None)
         base = urlsplit(self.runtime["PUBLIC_URL"])
+        address = self.values.get("CLUB_BIND_ADDRESS", "127.0.0.1")
+        host = "127.0.0.1" if ipaddress.ip_address(address).is_unspecified else address
+        target = (host, int(self.values.get("CLUB_HTTPS_PORT", "8443")))
         for attempt in range(20):
             route, status = "/api/ready", None
             try:
                 for route in ("/api/ready", "/"):
                     status = None
-                    connection = http.client.HTTPSConnection(
-                        base.hostname, base.port or 443, context=context, timeout=10
-                    )
+                    connection = https_connection(target, base, context)
                     try:
                         connection.request("GET", route)
                         response = connection.getresponse()
@@ -227,6 +229,17 @@ class Context:
                         + failure_detail(error, status)
                     ) from None
                 time.sleep(2)
+
+
+def https_connection(target, base, context):
+    raw = socket.create_connection(target, timeout=10)
+    connection = http.client.HTTPSConnection(base.hostname, base.port or 443, context=context, timeout=10)
+    try:
+        connection.sock = context.wrap_socket(raw, server_hostname=base.hostname)
+    except BaseException:
+        raw.close()
+        raise
+    return connection
 
 
 def failure_detail(error, status):
