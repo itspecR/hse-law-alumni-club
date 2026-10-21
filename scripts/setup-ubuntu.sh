@@ -5,10 +5,10 @@ source /etc/os-release
 [[ "$ID" = ubuntu && "$VERSION_ID" = 24.04 ]] || { echo 'Поддерживается Ubuntu 24.04 LTS' >&2; exit 1; }
 APT_LOCK_TIMEOUT_SECONDS=600
 apt_get() {
-  apt-get -o DPkg::Lock::Timeout="$APT_LOCK_TIMEOUT_SECONDS" "$@"
+  NEEDRESTART_MODE=l apt-get -o DPkg::Lock::Timeout="$APT_LOCK_TIMEOUT_SECONDS" "$@"
 }
 apt_get update
-apt_get install -y --no-install-recommends git curl ca-certificates openssl tar gzip python3 util-linux rclone jq rsync gnupg
+apt_get install -y --no-install-recommends --no-upgrade git curl ca-certificates openssl tar gzip python3 util-linux rclone jq rsync gnupg
 installed() {
   dpkg-query -W -f '${Status}' "$1" 2>/dev/null | grep -qx 'install ok installed'
 }
@@ -40,7 +40,7 @@ EOF
 }
 if ! command -v docker >/dev/null || ! docker compose version >/dev/null 2>&1 || ! docker buildx version >/dev/null 2>&1; then
   if installed docker.io; then
-    apt_get install -y --no-install-recommends docker-buildx docker-compose-v2
+    apt_get install -y --no-install-recommends --no-upgrade docker-buildx docker-compose-v2
   else
     install_docker_ce
   fi

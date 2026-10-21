@@ -84,7 +84,7 @@ def decrypt_snapshot(snapshot, destination, key):
             raise
 
 
-def backup(context):
+def backup(context, resume=True):
     commit = image_revision(context)
     previous = context.state / "last-deploy.json"
     operator_image = json.loads(previous.read_text()).get("operator_image") if previous.exists() else None
@@ -114,6 +114,7 @@ def backup(context):
     if remote and not shutil.which("rclone"):
         raise ValueError("Для offsite нужен rclone")
     stopped = context.stop_writers()
+    completed = False
     try:
         with tempfile.TemporaryDirectory(prefix=".backup-", dir=context.backups) as temporary:
             work = pathlib.Path(temporary)
@@ -224,9 +225,10 @@ def backup(context):
                 ):
                     old.unlink()
             print("Снимок создан: " + str(final) + "; offsite: " + ("проверен" if remote else "не настроен"))
+            completed = True
             return final
     finally:
-        if stopped:
+        if stopped and (resume or not completed):
             context.resume()
 
 

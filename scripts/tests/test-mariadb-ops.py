@@ -3,6 +3,7 @@ import io
 import json
 import pathlib
 import os
+import ssl
 import subprocess
 import sys
 import tarfile
@@ -115,9 +116,11 @@ class NativeDatabaseGuards(unittest.TestCase):
                 (config / name).chmod(0o600)
             before = {name: (config / name).read_bytes() for name in installer.FILES}
             context = type('Stand', (), {'runtime': {'PUBLIC_URL': 'https://localhost:9443'}, 'lock': lambda self: __import__('contextlib').nullcontext()})()
-            with patch.object(installer, 'Context', return_value=context), patch.object(maintenance, 'deploy') as deploy, patch('builtins.print'):
+            with patch.object(installer, 'Context', return_value=context), patch.object(maintenance, 'deploy') as deploy, \
+                    patch.object(installer, 'refresh_self_signed') as refresh, patch('builtins.print'):
                 installer.install(config, True)
                 deploy.assert_called_once_with(context)
+                refresh.assert_called_once_with(config)
             self.assertEqual(before, {name: (config / name).read_bytes() for name in installer.FILES})
 
 
@@ -202,6 +205,8 @@ class ServerContour(unittest.TestCase):
                 return self.ADDRESS + ' 172.17.0.1'
             if arguments[0] == 'ss' and arguments[-1] in busy:
                 return 'LISTEN 0 4096 0.0.0.0:' + arguments[-1].rsplit(':', 1)[1] + ' 0.0.0.0:*'
+            if arguments[0] == 'ss' and arguments[-1] == 'sport = :3306':
+                return 'LISTEN 0 80 127.0.0.1:3306 0.0.0.0:*'
             return ''
         return output
 
@@ -302,6 +307,151 @@ class PackageLockWait(unittest.TestCase):
                 self.hold(lock, 30)
                 with patch.object(installer, 'APT_WAIT_SECONDS', 0.2), self.assertRaisesRegex(ValueError, '10 минут'):
                     installer.wait_for_apt()
+
+
+class SelfSignedCertificate(unittest.TestCase):
+    def issue(self, directory, address):
+        tls = pathlib.Path(directory) / 'tls'
+        tls.mkdir(exist_ok=True)
+        installer.self_signed(tls, address, pathlib.Path(directory) / 'local-ca.crt')
+        return tls
+
+    def test_certificate_matches_only_its_address_and_validity(self):
+        with tempfile.TemporaryDirectory() as temp:
+            certificate = self.issue(temp, '192.0.2.10') / 'fullchain.pem'
+            renew = installer.CERTIFICATE_RENEW_SECONDS
+            text = subprocess.check_output(['openssl', 'x509', '-in', str(certificate), '-noout', '-text'], text=True)
+            self.assertIn('CA:FALSE', text)
+            self.assertIn('TLS Web Server Authentication', text)
+            self.assertTrue(common.certificate_current(certificate, '192.0.2.10', renew))
+            self.assertFalse(common.certificate_current(certificate, '127.0.0.1', renew))
+            self.assertFalse(common.certificate_current(certificate, 'club.example.ru', renew))
+            self.assertFalse(common.certificate_current(certificate, '192.0.2.10', 400 * 24 * 3600))
+            localhost = self.issue(temp, 'localhost') / 'fullchain.pem'
+            self.assertTrue(common.certificate_current(localhost, 'localhost', renew))
+            self.assertFalse(common.certificate_current(pathlib.Path(temp) / 'missing.pem', 'localhost', renew))
+
+    def test_repeat_install_reissues_certificate_for_public_url(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config = pathlib.Path(temp).resolve()
+            tls = self.issue(config, '127.0.0.1')
+            (config / 'compose.env').write_text('PUBLIC_URL="https://192.0.2.10:9443"\nCLUB_TLS_DIR="' + str(tls) + '"\n')
+            (config / 'compose.env').chmod(0o600)
+            with patch.object(installer, 'protect_tls') as protect, patch('builtins.print'):
+                installer.refresh_self_signed(config)
+                protect.assert_called_once_with(tls)
+                before = (tls / 'fullchain.pem').read_bytes()
+                installer.refresh_self_signed(config)
+                self.assertEqual((tls / 'fullchain.pem').read_bytes(), before)
+            self.assertTrue(common.certificate_current(tls / 'fullchain.pem', '192.0.2.10', installer.CERTIFICATE_RENEW_SECONDS))
+            self.assertEqual((config / 'local-ca.crt').read_bytes(), before)
+
+    def test_certificate_error_names_the_reason_and_is_not_retried(self):
+        error = ssl.SSLCertVerificationError()
+        error.verify_message = "IP address mismatch, certificate is not valid for '192.0.2.10'."
+        self.assertEqual(common.failure_detail(error, None), 'сертификат: ' + error.verify_message)
+        self.assertEqual(common.failure_detail(OSError(), 502), 'OSError (HTTP 502)')
+        self.assertEqual(common.failure_detail(ValueError('API не готов'), 200), 'API не готов (HTTP 200)')
+        context = Mock(values={'HTTPS_CA_FILE': ''}, runtime={'PUBLIC_URL': 'https://192.0.2.10:9443'})
+        connection = Mock()
+        connection.request.side_effect = error
+        with patch.object(common.http.client, 'HTTPSConnection', return_value=connection), \
+                patch.object(common.time, 'sleep') as sleep:
+            with self.assertRaisesRegex(ValueError, 'IP address mismatch'):
+                common.Context.verify_http(context)
+        sleep.assert_not_called()
+
+
+class DeployOrder(unittest.TestCase):
+    def test_images_are_fetched_before_backup_and_api_stays_stopped_until_migrations(self):
+        calls = []
+        context = Mock(values={'COMPOSE_PROFILES': 'local', 'CLUB_OPERATOR_IMAGE': 'operator'}, project='club-mariadb-test')
+        context.capture.side_effect = lambda *args: 'container' if args[:2] == ('ps', '--status') else ''
+        context.execute.side_effect = lambda *args, **options: calls.append(('execute',) + args[:2])
+        context.stop_writers.side_effect = lambda: calls.append(('stop',))
+        context.operator_command.side_effect = lambda command: calls.append(('operator', command))
+        context.verify_http.side_effect = lambda: calls.append(('verify',))
+        with tempfile.TemporaryDirectory() as temp:
+            context.state = pathlib.Path(temp)
+            with patch.object(maintenance, 'revision', return_value='a' * 40), \
+                    patch.object(maintenance, 'preflight', side_effect=lambda c: calls.append(('preflight',))), \
+                    patch.object(maintenance, 'prefetch_images', side_effect=lambda c: calls.append(('prefetch',))), \
+                    patch.object(maintenance, 'backup', side_effect=lambda c, resume: calls.append(('backup', resume))), \
+                    patch.object(maintenance, 'output', return_value='sha256:operator'), \
+                    patch.object(maintenance, 'record'), patch.object(maintenance.os, 'geteuid', return_value=0), \
+                    patch('builtins.print'):
+                maintenance.deploy(context)
+        kinds = [call[0] for call in calls]
+        self.assertLess(kinds.index('preflight'), kinds.index('prefetch'))
+        self.assertLess(kinds.index('prefetch'), kinds.index('backup'))
+        self.assertLess(kinds.index('backup'), kinds.index('operator'))
+        self.assertIn(('backup', False), calls)
+        self.assertEqual(kinds[-1], 'verify')
+
+    def test_missing_runtime_image_is_pulled_with_retries_before_changes(self):
+        configuration = {'services': {'api': {'build': {}, 'image': 'api'}, 'mailpit': {'image': 'mailpit:1@sha256:abc'}}}
+        context = Mock()
+        context.capture.return_value = json.dumps(configuration)
+        context.execute.side_effect = [subprocess.CalledProcessError(1, ['docker']), None]
+        with patch.object(maintenance, 'image_present', return_value=False) as present, \
+                patch.object(common.time, 'sleep') as sleep, patch('builtins.print'):
+            maintenance.prefetch_images(context)
+        present.assert_called_once_with('mailpit:1@sha256:abc')
+        self.assertEqual(context.execute.call_count, 2)
+        context.execute.assert_called_with('pull', '--quiet', 'mailpit')
+        sleep.assert_called_once_with(common.NETWORK_PAUSE_SECONDS)
+
+    def test_retries_stop_after_limit(self):
+        action = Mock(side_effect=subprocess.CalledProcessError(1, ['docker']))
+        with patch.object(common.time, 'sleep') as sleep, patch('builtins.print'):
+            with self.assertRaises(subprocess.CalledProcessError):
+                common.with_retries(action, 'Сборка')
+        self.assertEqual(action.call_count, common.NETWORK_ATTEMPTS)
+        self.assertEqual(sleep.call_count, common.NETWORK_ATTEMPTS - 1)
+
+    def test_preflight_certificate_must_match_public_url(self):
+        with tempfile.TemporaryDirectory() as temp:
+            tls = pathlib.Path(temp) / 'tls'
+            tls.mkdir()
+            installer.self_signed(tls, '192.0.2.10', pathlib.Path(temp) / 'local-ca.crt')
+            context = Mock(values={'CLUB_TLS_DIR': str(tls)}, runtime={'PUBLIC_URL': 'https://192.0.2.10:9443'})
+            maintenance.verify_certificate(context, 0)
+            context.runtime = {'PUBLIC_URL': 'https://192.0.2.11:9443'}
+            with self.assertRaisesRegex(ValueError, '192.0.2.11'):
+                maintenance.verify_certificate(context, 0)
+
+
+class SharedMariaDB(unittest.TestCase):
+    def packages(self, installed):
+        def output(arguments, **options):
+            if arguments[0] == 'dpkg-query':
+                if arguments[-1] in installed:
+                    return 'install ok installed'
+                raise subprocess.CalledProcessError(1, arguments)
+            return ''
+        return output
+
+    def test_running_mariadb_is_not_reinstalled_or_upgraded(self):
+        with patch.object(installer, 'output', side_effect=self.packages({'mariadb-server'})), \
+                patch.object(installer, 'run') as run, patch.object(installer, 'wait_for_apt') as wait:
+            installer.ensure_mariadb()
+        run.assert_called_once_with(['systemctl', 'enable', '--now', 'mariadb'])
+        wait.assert_not_called()
+
+    def test_missing_mariadb_is_installed_without_service_restarts(self):
+        with patch.object(installer, 'output', side_effect=self.packages(set())), \
+                patch.object(installer, 'run') as run, patch.object(installer, 'wait_for_apt'):
+            installer.ensure_mariadb()
+        arguments, options = run.call_args_list[0]
+        self.assertIn('mariadb-server', arguments[0])
+        self.assertEqual(options['env']['NEEDRESTART_MODE'], 'l')
+
+    def test_existing_mysql_is_not_replaced(self):
+        with patch.object(installer, 'output', side_effect=self.packages({'mysql-server-8.0'})), \
+                patch.object(installer, 'run') as run, patch.object(installer, 'wait_for_apt'):
+            with self.assertRaisesRegex(ValueError, 'MySQL'):
+                installer.ensure_mariadb()
+        run.assert_not_called()
 
 
 if __name__ == '__main__':

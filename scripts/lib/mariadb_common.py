@@ -2,6 +2,7 @@ import contextlib
 import fcntl
 import hashlib
 import http.client
+import ipaddress
 import json
 import os
 import pathlib
@@ -23,6 +24,10 @@ IDENTIFIER = re.compile(r"club_[a-z0-9_]{1,48}")
 REVISION = re.compile(r"[a-f0-9]{40}")
 
 FILES = ("runtime.env", "operator.env", "compose.env", "operations.env", "initial-admin.txt", "install.json")
+
+NETWORK_ATTEMPTS = 3
+
+NETWORK_PAUSE_SECONDS = 15
 
 
 def read_env(path):
@@ -214,12 +219,55 @@ class Context:
                         connection.close()
                 return
             except (OSError, ValueError, http.client.HTTPException) as error:
-                if attempt == 19:
-                    detail = "HTTP " + str(status) if status is not None else type(error).__name__
+                if attempt == 19 or isinstance(error, ssl.SSLCertVerificationError):
                     raise ValueError(
-                        "Не удалось проверить TLS, сайт и готовность API: " + route + ", " + detail
+                        "Не удалось проверить TLS, сайт и готовность API: "
+                        + route
+                        + ", "
+                        + failure_detail(error, status)
                     ) from None
                 time.sleep(2)
+
+
+def failure_detail(error, status):
+    if isinstance(error, ssl.SSLCertVerificationError):
+        reason = "сертификат: " + str(error.verify_message)
+    elif isinstance(error, ValueError):
+        reason = str(error)
+    else:
+        reason = type(error).__name__
+    return reason if status is None else reason + " (HTTP " + str(status) + ")"
+
+
+def is_ip(address):
+    try:
+        ipaddress.IPv4Address(address)
+    except ValueError:
+        return False
+    return True
+
+
+def certificate_current(certificate, address, seconds):
+    check = ["openssl", "x509", "-in", str(certificate), "-noout"]
+    try:
+        matches = output([*check, "-checkip" if is_ip(address) else "-checkhost", address])
+        output([*check, "-checkend", str(seconds)])
+    except (OSError, subprocess.CalledProcessError):
+        return False
+    return "does match" in matches
+
+
+def with_retries(action, label):
+    for attempt in range(1, NETWORK_ATTEMPTS + 1):
+        try:
+            return action()
+        except subprocess.CalledProcessError:
+            if attempt == NETWORK_ATTEMPTS:
+                raise
+            print(
+                label + ": попытка " + str(attempt) + " не удалась, повтор через " + str(NETWORK_PAUSE_SECONDS) + " с"
+            )
+            time.sleep(NETWORK_PAUSE_SECONDS)
 
 
 def record(context, name, values):

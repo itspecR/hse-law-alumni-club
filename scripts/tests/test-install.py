@@ -72,6 +72,15 @@ class InstallationGuards(unittest.TestCase):
             self.assertNotIn('ADMIN_PASSWORD', deploy_env)
             self.assertNotIn('COMPOSE_PROJECT_NAME', deploy_env)
 
+    def test_failure_message_names_cause_without_command_arguments(self):
+        error = subprocess.CalledProcessError(17, ['docker', 'compose', '--env-file', '/etc/club/compose.env', 'run'])
+        message = installer.failure_message(error)
+        self.assertIn('docker compose --env-file', message)
+        self.assertIn('17', message)
+        self.assertNotIn('/etc/club', message)
+        self.assertEqual(installer.failure_message(ValueError('Порт занят')), 'Порт занят')
+        self.assertIn('повторный запуск', installer.failure_message(KeyboardInterrupt()))
+
     def test_compose_preserves_smtp_password_and_local_isolation(self):
         with tempfile.TemporaryDirectory() as temp:
             config = pathlib.Path(temp) / 'runtime.env'
