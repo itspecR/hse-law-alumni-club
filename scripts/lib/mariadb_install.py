@@ -54,8 +54,46 @@ def server_address(value):
     return str(address)
 
 
-def subject(address):
-    return ("IP:" if is_ip(address) else "DNS:") + address
+def subjects(addresses):
+    return ", ".join(("IP:" if is_ip(address) else "DNS:") + address for address in addresses)
+
+
+def public_address(value):
+    parts = urlsplit(value)
+    if (
+        parts.scheme != "https"
+        or not parts.hostname
+        or parts.username
+        or parts.password
+        or parts.path not in ("", "/")
+        or parts.query
+        or parts.fragment
+    ):
+        raise ValueError("Нужен адрес вида https://IP-или-домен:порт")
+    return public_url(server_address(parts.hostname), parts.port or 443)
+
+
+def certificate_names(values):
+    extra = [name for name in values.get("CLUB_TLS_NAMES", "").split(",") if name]
+    return [urlsplit(values["PUBLIC_URL"]).hostname, *extra]
+
+
+def set_env_value(path, name, value):
+    kept = [line for line in path.read_text().splitlines(keepends=True) if not line.startswith(name + "=")]
+    temporary = path.with_name(path.name + ".partial")
+    temporary.unlink(missing_ok=True)
+    HELPERS["write_new"](temporary, "".join(kept) + HELPERS["dotenv"]({name: value}))
+    os.replace(temporary, path)
+
+
+def change_public_url(config, url):
+    values = read_env(config / "compose.env")
+    target = urlsplit(url).hostname
+    names = sorted(set(certificate_names(values)) - {target})
+    for name in ("runtime.env", "operator.env", "compose.env"):
+        set_env_value(config / name, "PUBLIC_URL", url)
+    set_env_value(config / "compose.env", "CLUB_TLS_NAMES", ",".join(names))
+    print("Адрес сайта: " + url + ("; сертификат также для " + ", ".join(names) if names else ""))
 
 
 def public_url(address, port):
@@ -89,20 +127,20 @@ def wait_for_apt():
         time.sleep(APT_POLL_SECONDS)
 
 
-def certificate_settings(address):
+def certificate_settings(addresses):
     return (
         "[req]\ndistinguished_name = name\nx509_extensions = leaf\nprompt = no\n"
-        "[name]\nCN = " + address + "\n"
+        "[name]\nCN = " + addresses[0] + "\n"
         "[leaf]\nbasicConstraints = critical, CA:FALSE\n"
         "keyUsage = critical, digitalSignature, keyEncipherment\n"
         "extendedKeyUsage = serverAuth\nsubjectKeyIdentifier = hash\n"
-        "subjectAltName = " + subject(address) + "\n"
+        "subjectAltName = " + subjects(addresses) + "\n"
     )
 
 
-def self_signed(tls, address, authority):
+def self_signed(tls, addresses, authority):
     with tempfile.NamedTemporaryFile("w", suffix=".cnf") as settings:
-        settings.write(certificate_settings(address))
+        settings.write(certificate_settings(addresses))
         settings.flush()
         run(
             [
@@ -135,12 +173,12 @@ def protect_tls(tls):
 
 def refresh_self_signed(config):
     values = read_env(config / "compose.env")
-    address = urlsplit(values["PUBLIC_URL"]).hostname
+    names = certificate_names(values)
     tls = pathlib.Path(values["CLUB_TLS_DIR"])
-    if certificate_current(tls / "fullchain.pem", address, CERTIFICATE_RENEW_SECONDS):
+    if all(certificate_current(tls / "fullchain.pem", name, CERTIFICATE_RENEW_SECONDS) for name in names):
         return
-    print("Самоподписанный сертификат не подходит к адресу " + address + " или скоро истекает; выпускаем новый")
-    self_signed(tls, address, config / "local-ca.crt")
+    print("Самоподписанный сертификат не подходит к " + ", ".join(names) + " или скоро истекает; выпускаем новый")
+    self_signed(tls, names, config / "local-ca.crt")
     protect_tls(tls)
 
 
@@ -192,7 +230,7 @@ def ask_server(values):
     if https == http:
         raise ValueError("HTTPS и HTTP должны использовать разные порты")
     values["PUBLIC_URL"] = public_url(address, https)
-    return address, https, http
+    return [address, *([suggested] if is_ip(suggested) and suggested != address else [])], https, http
 
 
 def ask_public(values):
@@ -209,7 +247,7 @@ def ask_public(values):
     return certificate, key
 
 
-def install(config, local):
+def install(config, local, public=None):
     from mariadb_native import deploy
 
     HELPERS["config_directory"](config)
@@ -222,14 +260,20 @@ def install(config, local):
             raise ValueError("Неизвестная установка; автоматическая смена базы запрещена")
         if local and metadata["mode"] != "local":
             raise ValueError("--local не меняет существующую установку")
+        if public and metadata["mode"] != "server":
+            raise ValueError("--public-url меняет адрес только в контуре «сервер по IP»")
         print(
             "Конфигурация уже существует: "
             + CONTOUR_TITLES[metadata["mode"]]
             + "; секреты и доступ администратора сохраняются"
         )
+        if public:
+            change_public_url(config, public_address(public))
         if metadata["mode"] != "public":
             refresh_self_signed(config)
     else:
+        if public:
+            raise ValueError("--public-url применяется к уже установленному контуру; сначала выполните установку")
         if config.exists() and any(config.iterdir()):
             raise ValueError("Каталог содержит прежнюю конфигурацию; файлы не перезаписаны")
         mode = "local"
@@ -241,10 +285,10 @@ def install(config, local):
             )
         values = HELPERS["configuration"](True)
         bind, https, http = LISTENERS[mode]
-        address = "localhost"
+        names = ["localhost"]
         certificate = key = None
         if mode == "server":
-            address, https, http = ask_server(values)
+            names, https, http = ask_server(values)
         if mode == "public":
             certificate, key = ask_public(values)
         busy = busy_ports((https, http) if mode == "public" else (https, http, MAIL_PORT))
@@ -272,7 +316,7 @@ def install(config, local):
             shutil.copyfile(key, tls / "privkey.pem")
             shutil.copyfile(certificate, tls / "fullchain.pem")
         else:
-            self_signed(tls, address, config / "local-ca.crt")
+            self_signed(tls, names, config / "local-ca.crt")
         protect_tls(tls)
         create_database(database, operator, operator_password)
         runtime = {
@@ -312,6 +356,7 @@ def install(config, local):
             "CLUB_UPLOADS_DIR": str(uploads),
             "CLUB_TRANSFER_DIR": str(transfer),
             "CLUB_TLS_DIR": str(tls),
+            "CLUB_TLS_NAMES": ",".join(names[1:]),
             "CLUB_STATE_DIR": "/var/lib/club-ops" if config == pathlib.Path("/etc/club") else str(config / "state"),
             "CLUB_BACKUP_DIR": "/var/backups/club" if config == pathlib.Path("/etc/club") else str(config / "backups"),
             "CLUB_API_IMAGE": project + "-api:local",
@@ -431,9 +476,9 @@ def prepare_restore(context, config, port, mail_port):
         "COMPOSE_PROFILES": "local",
     }
     tls = directory(config / "tls", 0, 101, 0o750)
-    self_signed(tls, "localhost", config / "local-ca.crt")
+    self_signed(tls, ["localhost"], config / "local-ca.crt")
     protect_tls(tls)
-    values.update(CLUB_TLS_DIR=str(tls), HTTPS_CA_FILE=str(config / "local-ca.crt"))
+    values.update(CLUB_TLS_DIR=str(tls), CLUB_TLS_NAMES="", HTTPS_CA_FILE=str(config / "local-ca.crt"))
     for name, payload in (("runtime.env", runtime), ("operator.env", operator_values), ("compose.env", values)):
         HELPERS["write_new"](config / name, HELPERS["dotenv"](payload))
     print("Пустой изолированный контур подготовлен: " + str(config / "compose.env"))

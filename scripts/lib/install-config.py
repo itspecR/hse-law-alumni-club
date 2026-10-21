@@ -205,15 +205,18 @@ def main():
     parser = argparse.ArgumentParser(description='Настройка и запуск Клуба на Ubuntu')
     parser.add_argument('--local', action='store_true', help='локальная репетиция без интерактивных вопросов')
     parser.add_argument('--config-dir', type=pathlib.Path, default=pathlib.Path('/etc/club'))
+    parser.add_argument('--public-url', help='новый адрес сайта контура 3, например https://203.0.113.10:9443')
     args = parser.parse_args()
     os.umask(0o077)
     try:
         previous = args.config_dir / 'install.json'
         if previous.is_file() and json.loads(previous.read_text()).get('version') == 1:
+            if args.public_url:
+                raise ValueError('--public-url поддерживается только установками MariaDB')
             install(args.config_dir, args.local)
         else:
             from mariadb_native import install as install_mariadb
-            install_mariadb(args.config_dir, args.local)
+            install_mariadb(args.config_dir, args.local, args.public_url)
     except (ValueError, OSError, KeyError, EOFError, KeyboardInterrupt, subprocess.CalledProcessError) as error:
         print('Установка прервана: ' + failure_message(error), file=sys.stderr)
         return 1

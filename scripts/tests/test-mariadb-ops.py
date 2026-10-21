@@ -216,8 +216,12 @@ class ServerContour(unittest.TestCase):
         for value in ('127.0.0.1', '0.0.0.0', '224.0.0.1', 'localhost', 'a.ru:9443', 'https://a.ru'):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 installer.server_address(value)
-        self.assertEqual(installer.subject(self.ADDRESS), 'IP:' + self.ADDRESS)
-        self.assertEqual(installer.subject('localhost'), 'DNS:localhost')
+        self.assertEqual(installer.subjects([self.ADDRESS, 'localhost']), 'IP:' + self.ADDRESS + ', DNS:localhost')
+        self.assertEqual(installer.public_address('https://203.0.113.7:9443/'), 'https://203.0.113.7:9443')
+        self.assertEqual(installer.public_address('https://club.example.ru'), 'https://club.example.ru')
+        for value in ('http://203.0.113.7:9443', 'https://127.0.0.1:9443', 'https://a.ru/path', 'https://u:p@a.ru', '203.0.113.7'):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                installer.public_address(value)
         self.assertEqual(installer.public_url(self.ADDRESS, 9443), 'https://' + self.ADDRESS + ':9443')
         self.assertEqual(installer.public_url('club.example.ru', 443), 'https://club.example.ru')
         with self.assertRaises(ValueError):
@@ -260,7 +264,7 @@ class ServerContour(unittest.TestCase):
                 patch('builtins.print'):
             config = pathlib.Path(temp).resolve() / 'club'
             installer.install(config, False)
-            signed.assert_called_once_with(config / 'data' / 'tls', self.ADDRESS, config / 'local-ca.crt')
+            signed.assert_called_once_with(config / 'data' / 'tls', [self.ADDRESS], config / 'local-ca.crt')
             compose = common.read_env(config / 'compose.env')
             runtime = common.read_env(config / 'runtime.env')
             metadata = json.loads((config / 'install.json').read_text())
@@ -313,7 +317,7 @@ class SelfSignedCertificate(unittest.TestCase):
     def issue(self, directory, address):
         tls = pathlib.Path(directory) / 'tls'
         tls.mkdir(exist_ok=True)
-        installer.self_signed(tls, address, pathlib.Path(directory) / 'local-ca.crt')
+        installer.self_signed(tls, [address] if isinstance(address, str) else address, pathlib.Path(directory) / 'local-ca.crt')
         return tls
 
     def test_certificate_matches_only_its_address_and_validity(self):
@@ -352,14 +356,16 @@ class SelfSignedCertificate(unittest.TestCase):
         self.assertEqual(common.failure_detail(error, None), 'сертификат: ' + error.verify_message)
         self.assertEqual(common.failure_detail(OSError(), 502), 'OSError (HTTP 502)')
         self.assertEqual(common.failure_detail(ValueError('API не готов'), 200), 'API не готов (HTTP 200)')
-        context = Mock(values={'HTTPS_CA_FILE': ''}, runtime={'PUBLIC_URL': 'https://192.0.2.10:9443'})
-        connection = Mock()
-        connection.request.side_effect = error
-        with patch.object(common.http.client, 'HTTPSConnection', return_value=connection), \
+        context = Mock(values={'HTTPS_CA_FILE': '', 'CLUB_BIND_ADDRESS': '0.0.0.0', 'CLUB_HTTPS_PORT': '9443'},
+                       runtime={'PUBLIC_URL': 'https://192.0.2.10:9443'})
+        with patch.object(common, 'https_connection', side_effect=error) as connect, \
                 patch.object(common.time, 'sleep') as sleep:
             with self.assertRaisesRegex(ValueError, 'IP address mismatch'):
                 common.Context.verify_http(context)
         sleep.assert_not_called()
+        target, base, _ = connect.call_args.args
+        self.assertEqual(target, ('127.0.0.1', 9443))
+        self.assertEqual(base.hostname, '192.0.2.10')
 
 
 class DeployOrder(unittest.TestCase):
@@ -413,7 +419,7 @@ class DeployOrder(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             tls = pathlib.Path(temp) / 'tls'
             tls.mkdir()
-            installer.self_signed(tls, '192.0.2.10', pathlib.Path(temp) / 'local-ca.crt')
+            installer.self_signed(tls, ['192.0.2.10'], pathlib.Path(temp) / 'local-ca.crt')
             context = Mock(values={'CLUB_TLS_DIR': str(tls)}, runtime={'PUBLIC_URL': 'https://192.0.2.10:9443'})
             maintenance.verify_certificate(context, 0)
             context.runtime = {'PUBLIC_URL': 'https://192.0.2.11:9443'}
@@ -452,6 +458,63 @@ class SharedMariaDB(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'MySQL'):
                 installer.ensure_mariadb()
         run.assert_not_called()
+
+
+class PublicAddressChange(unittest.TestCase):
+    def config(self, temp):
+        config = pathlib.Path(temp).resolve()
+        tls = config / 'tls'
+        tls.mkdir()
+        installer.self_signed(tls, ['192.168.3.155'], config / 'local-ca.crt')
+        files = {
+            'runtime.env': {'PUBLIC_URL': 'https://192.168.3.155:9443', 'SMTP_PASS': 'synthetic $pass "q"'},
+            'operator.env': {'PUBLIC_URL': 'https://192.168.3.155:9443', 'DATABASE_URL': 'mariadb://x'},
+            'compose.env': {'PUBLIC_URL': 'https://192.168.3.155:9443', 'CLUB_TLS_DIR': str(tls), 'CLUB_HTTPS_PORT': '9443'},
+        }
+        for name, values in files.items():
+            (config / name).write_text(installer.HELPERS['dotenv'](values))
+            (config / name).chmod(0o600)
+        return config, tls
+
+    def test_external_address_keeps_lan_name_and_other_settings(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config, tls = self.config(temp)
+            with patch('builtins.print'), patch.object(installer, 'protect_tls'):
+                installer.change_public_url(config, installer.public_address('https://62.112.123.10:9443'))
+                installer.refresh_self_signed(config)
+            runtime = common.read_env(config / 'runtime.env')
+            compose = common.read_env(config / 'compose.env')
+            for name in ('runtime.env', 'operator.env', 'compose.env'):
+                self.assertEqual(common.read_env(config / name)['PUBLIC_URL'], 'https://62.112.123.10:9443')
+                self.assertEqual(os.stat(config / name).st_mode & 0o777, 0o600)
+            self.assertEqual(runtime['SMTP_PASS'], 'synthetic $pass "q"')
+            self.assertEqual(common.read_env(config / 'operator.env')['DATABASE_URL'], 'mariadb://x')
+            self.assertEqual(compose['CLUB_TLS_NAMES'], '192.168.3.155')
+            for name in ('62.112.123.10', '192.168.3.155'):
+                self.assertTrue(common.certificate_current(tls / 'fullchain.pem', name, installer.CERTIFICATE_RENEW_SECONDS))
+            self.assertFalse(list(config.glob('*.partial')))
+
+    def test_public_url_is_refused_for_other_contours_and_new_installs(self):
+        with tempfile.TemporaryDirectory() as temp:
+            config = pathlib.Path(temp).resolve()
+            for name in installer.FILES:
+                (config / name).write_text(json.dumps({'version': 2, 'stack': 'mariadb', 'mode': 'local'}) if name == 'install.json' else '')
+                (config / name).chmod(0o600)
+            with patch('builtins.print'), self.assertRaisesRegex(ValueError, 'контуре'):
+                installer.install(config, False, 'https://62.112.123.10:9443')
+        with tempfile.TemporaryDirectory() as temp, self.assertRaisesRegex(ValueError, 'сначала'):
+            installer.install(pathlib.Path(temp).resolve() / 'club', False, 'https://62.112.123.10:9443')
+
+    def test_new_server_install_adds_lan_address_when_external_is_chosen(self):
+        answers = {'IP-адрес': '62.112.123.10'}
+        def prompt(label, default='', check=None, hidden=False):
+            return next((value for key, value in answers.items() if label.startswith(key)), default)
+        values = {}
+        with patch.dict(installer.HELPERS, {'prompt': prompt}), \
+                patch.object(installer, 'output', return_value='192.168.3.155 172.17.0.1 fe80::1'):
+            names, https, http = installer.ask_server(values)
+        self.assertEqual(names, ['62.112.123.10', '192.168.3.155'])
+        self.assertEqual(values['PUBLIC_URL'], 'https://62.112.123.10:9443')
 
 
 if __name__ == '__main__':
