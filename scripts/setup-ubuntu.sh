@@ -5,9 +5,12 @@ source /etc/os-release
 [[ "$ID" = ubuntu && "$VERSION_ID" = 24.04 ]] || { echo 'Поддерживается Ubuntu 24.04 LTS' >&2; exit 1; }
 apt-get update
 apt-get install -y --no-install-recommends git curl ca-certificates openssl tar gzip python3 util-linux rclone jq rsync gnupg
-if ! command -v docker >/dev/null || ! docker compose version >/dev/null 2>&1 || ! docker buildx version >/dev/null 2>&1; then
-  if dpkg-query -W docker.io podman-docker 2>/dev/null | grep -q .; then
-    echo 'Обнаружен другой Docker-пакет; согласуйте его миграцию по docs.docker.com' >&2
+installed() {
+  dpkg-query -W -f '${Status}' "$1" 2>/dev/null | grep -qx 'install ok installed'
+}
+install_docker_ce() {
+  if installed podman-docker; then
+    echo 'Обнаружен podman-docker; согласуйте его миграцию по docs.docker.com' >&2
     exit 1
   fi
   install -m 0755 -d /etc/apt/keyrings
@@ -30,6 +33,13 @@ EOF
   fi
   apt-get update
   apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+}
+if ! command -v docker >/dev/null || ! docker compose version >/dev/null 2>&1 || ! docker buildx version >/dev/null 2>&1; then
+  if installed docker.io; then
+    apt-get install -y --no-install-recommends docker-buildx docker-compose-v2
+  else
+    install_docker_ce
+  fi
 fi
 systemctl enable --now docker
 docker version --format '{{.Server.Version}}'

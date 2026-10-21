@@ -9,6 +9,96 @@ from urllib.parse import urlsplit
 
 from mariadb_common import FILES, HELPERS, REPO, Context, connection_url, create_database, directory, output, run, sql
 
+CONTOURS = {"1": "local", "2": "public", "3": "server"}
+LISTENERS = {"local": ("127.0.0.1", 9443, 9080), "public": ("0.0.0.0", 443, 80), "server": ("0.0.0.0", 9443, 9080)}
+MAIL_PORT = 8025
+
+
+def contour(value):
+    if value not in CONTOURS:
+        raise ValueError("Выберите 1, 2 или 3")
+    return CONTOURS[value]
+
+
+def server_address(value):
+    try:
+        address = ipaddress.IPv4Address(value)
+    except ValueError:
+        return HELPERS["hostname"](value)
+    if address.is_loopback or address.is_unspecified or address.is_multicast:
+        raise ValueError("Нужен адрес, по которому сервер открывается из сети")
+    return str(address)
+
+
+def subject(address):
+    try:
+        return "IP:" + str(ipaddress.IPv4Address(address))
+    except ValueError:
+        return "DNS:" + address
+
+
+def public_url(address, port):
+    return "https://" + address + ("" if port == 443 else ":" + str(port))
+
+
+def busy_ports(ports):
+    return [port for port in ports if output(["ss", "-H", "-lnt", "sport = :" + str(port)])]
+
+
+def self_signed(tls, address, authority):
+    run(
+        [
+            "openssl",
+            "req",
+            "-x509",
+            "-newkey",
+            "rsa:3072",
+            "-nodes",
+            "-days",
+            "365",
+            "-subj",
+            "/CN=" + address,
+            "-addext",
+            "subjectAltName=" + subject(address),
+            "-keyout",
+            str(tls / "privkey.pem"),
+            "-out",
+            str(tls / "fullchain.pem"),
+        ],
+        capture_output=True,
+    )
+    shutil.copyfile(tls / "fullchain.pem", authority)
+    authority.chmod(0o644)
+
+
+def ask_server(values):
+    def port(value):
+        return str(HELPERS["port"](value))
+
+    _, https, http = LISTENERS["server"]
+    suggested = (output(["hostname", "-I"]).split() or [""])[0]
+    address = HELPERS["prompt"]("IP-адрес или домен сервера для браузера", suggested, server_address)
+    https = int(HELPERS["prompt"]("HTTPS-порт сайта", str(https), port))
+    http = int(HELPERS["prompt"]("HTTP-порт перехода на HTTPS", str(http), port))
+    if https == http:
+        raise ValueError("HTTPS и HTTP должны использовать разные порты")
+    values["PUBLIC_URL"] = public_url(address, https)
+    return address, https, http
+
+
+def ask_public(values):
+    values["PUBLIC_URL"] = "https://" + HELPERS["prompt"]("Домен сайта", check=HELPERS["hostname"])
+    values["ADMIN_EMAIL"] = HELPERS["prompt"]("Email первого администратора", check=HELPERS["email"])
+    values["SMTP_HOST"] = HELPERS["prompt"]("Сервер SMTP", check=HELPERS["hostname"])
+    values["SMTP_PORT"] = HELPERS["prompt"]("Порт SMTP", "587", lambda value: str(HELPERS["port"](value)))
+    values["SMTP_USER"] = HELPERS["prompt"]("Логин SMTP")
+    values["SMTP_PASS"] = HELPERS["prompt"]("Пароль SMTP", hidden=True)
+    values["SMTP_FROM"] = HELPERS["prompt"]("Разрешённый SMTP-отправитель", check=HELPERS["email"])
+    values["OFFICE_EMAIL"] = HELPERS["prompt"]("Email получателя заявок", check=HELPERS["email"])
+    certificate = pathlib.Path(HELPERS["prompt"]("Абсолютный путь к fullchain.pem")).resolve(strict=True)
+    key = pathlib.Path(HELPERS["prompt"]("Абсолютный путь к privkey.pem")).resolve(strict=True)
+    return certificate, key
+
 
 def install(config, local):
     from mariadb_native import deploy
@@ -27,23 +117,24 @@ def install(config, local):
     else:
         if config.exists() and any(config.iterdir()):
             raise ValueError("Каталог содержит прежнюю конфигурацию; файлы не перезаписаны")
+        mode = "local"
         if not local:
-            choice = HELPERS["prompt"]("Контур: 1 – локальная репетиция, 2 – публичный HTTPS", "1", HELPERS["mode"])
-            local = choice == "1"
+            mode = HELPERS["prompt"](
+                "Контур: 1 – локальная репетиция, 2 – публичный HTTPS, 3 – сервер по IP с самоподписанным сертификатом",
+                "1",
+                contour,
+            )
         values = HELPERS["configuration"](True)
+        bind, https, http = LISTENERS[mode]
+        address = "localhost"
         certificate = key = None
-        if not local:
-            domain = HELPERS["prompt"]("Домен сайта", check=HELPERS["hostname"])
-            values["PUBLIC_URL"] = "https://" + domain
-            values["ADMIN_EMAIL"] = HELPERS["prompt"]("Email первого администратора", check=HELPERS["email"])
-            values["SMTP_HOST"] = HELPERS["prompt"]("Сервер SMTP", check=HELPERS["hostname"])
-            values["SMTP_PORT"] = HELPERS["prompt"]("Порт SMTP", "587", lambda value: str(HELPERS["port"](value)))
-            values["SMTP_USER"] = HELPERS["prompt"]("Логин SMTP")
-            values["SMTP_PASS"] = HELPERS["prompt"]("Пароль SMTP", hidden=True)
-            values["SMTP_FROM"] = HELPERS["prompt"]("Разрешённый SMTP-отправитель", check=HELPERS["email"])
-            values["OFFICE_EMAIL"] = HELPERS["prompt"]("Email получателя заявок", check=HELPERS["email"])
-            certificate = pathlib.Path(HELPERS["prompt"]("Абсолютный путь к fullchain.pem")).resolve(strict=True)
-            key = pathlib.Path(HELPERS["prompt"]("Абсолютный путь к privkey.pem")).resolve(strict=True)
+        if mode == "server":
+            address, https, http = ask_server(values)
+        if mode == "public":
+            certificate, key = ask_public(values)
+        busy = busy_ports((https, http) if mode == "public" else (https, http, MAIL_PORT))
+        if busy:
+            raise ValueError("Порты уже заняты другим сервисом: " + ", ".join(map(str, busy)))
         run(["bash", str(REPO / "scripts/setup-ubuntu.sh")])
         run(["apt-get", "install", "-y", "--no-install-recommends", "mariadb-server", "mariadb-client"])
         run(["systemctl", "enable", "--now", "mariadb"])
@@ -67,33 +158,11 @@ def install(config, local):
         uploads = directory(data / "uploads", 1000, 1000)
         transfer = directory(data / "transfer", 1000, 1000)
         tls = directory(data / "tls", 0, 101, 0o750)
-        if local:
-            run(
-                [
-                    "openssl",
-                    "req",
-                    "-x509",
-                    "-newkey",
-                    "rsa:3072",
-                    "-nodes",
-                    "-days",
-                    "365",
-                    "-subj",
-                    "/CN=localhost",
-                    "-addext",
-                    "subjectAltName=DNS:localhost",
-                    "-keyout",
-                    str(tls / "privkey.pem"),
-                    "-out",
-                    str(tls / "fullchain.pem"),
-                ],
-                capture_output=True,
-            )
-            shutil.copyfile(tls / "fullchain.pem", config / "local-ca.crt")
-            (config / "local-ca.crt").chmod(0o644)
-        else:
+        if mode == "public":
             shutil.copyfile(key, tls / "privkey.pem")
             shutil.copyfile(certificate, tls / "fullchain.pem")
+        else:
+            self_signed(tls, address, config / "local-ca.crt")
         os.chown(tls / "privkey.pem", 0, 101)
         (tls / "privkey.pem").chmod(0o640)
         (tls / "fullchain.pem").chmod(0o644)
@@ -142,19 +211,19 @@ def install(config, local):
             "CLUB_OPERATOR_IMAGE": project + "-operator:local",
             "CLUB_NGINX_IMAGE": project + "-nginx:local",
             "PUBLIC_URL": values["PUBLIC_URL"],
-            "CLUB_BIND_ADDRESS": "127.0.0.1" if local else "0.0.0.0",
-            "CLUB_HTTP_PORT": "9080" if local else "80",
-            "CLUB_HTTPS_PORT": "9443" if local else "443",
-            "COMPOSE_PROFILES": "local" if local else "",
+            "CLUB_BIND_ADDRESS": bind,
+            "CLUB_HTTP_PORT": str(http),
+            "CLUB_HTTPS_PORT": str(https),
+            "COMPOSE_PROFILES": "" if mode == "public" else "local",
             "BACKUP_ENCRYPTION_KEY": values["BACKUP_ENCRYPTION_KEY"],
             "BACKUP_KEEP_DAYS": "14",
             "BACKUP_OFFSITE_REMOTE": "",
-            "HTTPS_CA_FILE": str(config / "local-ca.crt") if local else "",
+            "HTTPS_CA_FILE": "" if mode == "public" else str(config / "local-ca.crt"),
         }
         metadata = {
             "version": 2,
             "stack": "mariadb",
-            "mode": "local" if local else "public",
+            "mode": mode,
             "database": database,
             "operator": operator,
             "api": api,
@@ -177,6 +246,9 @@ def install(config, local):
     print("Первичные данные администратора: sudo cat " + shlex.quote(str(config / "initial-admin.txt")))
     if metadata["mode"] == "local":
         print("Локальная CA: " + str(config / "local-ca.crt") + "; письма: http://localhost:8025")
+    if metadata["mode"] == "server":
+        print("Самоподписанный сертификат: браузер один раз попросит подтвердить исключение")
+        print("CA для доверия на компьютерах: " + str(config / "local-ca.crt"))
 
 
 def prepare_restore(context, config, port, mail_port):
@@ -249,32 +321,10 @@ def prepare_restore(context, config, port, mail_port):
         "COMPOSE_PROFILES": "local",
     }
     tls = directory(config / "tls", 0, 101, 0o750)
-    run(
-        [
-            "openssl",
-            "req",
-            "-x509",
-            "-newkey",
-            "rsa:3072",
-            "-nodes",
-            "-days",
-            "365",
-            "-subj",
-            "/CN=localhost",
-            "-addext",
-            "subjectAltName=DNS:localhost",
-            "-keyout",
-            str(tls / "privkey.pem"),
-            "-out",
-            str(tls / "fullchain.pem"),
-        ],
-        capture_output=True,
-    )
+    self_signed(tls, "localhost", config / "local-ca.crt")
     os.chown(tls / "privkey.pem", 0, 101)
     (tls / "privkey.pem").chmod(0o640)
     (tls / "fullchain.pem").chmod(0o644)
-    shutil.copyfile(tls / "fullchain.pem", config / "local-ca.crt")
-    (config / "local-ca.crt").chmod(0o644)
     values.update(CLUB_TLS_DIR=str(tls), HTTPS_CA_FILE=str(config / "local-ca.crt"))
     for name, payload in (("runtime.env", runtime), ("operator.env", operator_values), ("compose.env", values)):
         HELPERS["write_new"](config / name, HELPERS["dotenv"](payload))

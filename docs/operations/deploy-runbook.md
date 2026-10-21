@@ -69,8 +69,11 @@ sudoedit /etc/club/runtime.env
 ```
 
 `setup-ubuntu.sh` ставит системные утилиты и при необходимости Docker Engine,
-Buildx и Compose из официального APT-источника. Конфликтующий runtime или отличный
-существующий Docker source требует разбора; скрипт не удаляет его автоматически.
+Buildx и Compose из официального APT-источника. Если Docker уже установлен
+пакетом Ubuntu `docker.io`, скрипт дополняет его пакетами Ubuntu `docker-buildx`
+и `docker-compose-v2` без замены Engine и перезапуска чужих контейнеров.
+`podman-docker` или отличный существующий Docker source требует разбора;
+скрипт не удаляет их автоматически.
 Проверка: `sudo systemctl is-active docker`, `sudo docker compose version`.
 Источник процедуры – [Docker для Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
 
