@@ -249,6 +249,7 @@ class ServerContour(unittest.TestCase):
                 patch.object(installer, 'directory', side_effect=folder), \
                 patch.object(installer.os, 'chown'), \
                 patch.object(installer, 'self_signed', side_effect=certificate) as signed, \
+                patch.object(installer, 'wait_for_apt'), \
                 patch.object(installer, 'Context'), \
                 patch.object(maintenance, 'deploy'), \
                 patch('builtins.print'):
@@ -267,6 +268,40 @@ class ServerContour(unittest.TestCase):
         self.assertEqual(compose['COMPOSE_PROFILES'], 'local')
         self.assertEqual(runtime['APP_ENV'], 'production')
         self.assertEqual(runtime['SEED_DEMO'], 'false')
+
+
+class PackageLockWait(unittest.TestCase):
+    HOLD = 'import fcntl,sys,time;h=open(sys.argv[1],"a");fcntl.lockf(h,fcntl.LOCK_EX);print("held",flush=True);time.sleep(float(sys.argv[2]))'
+
+    def hold(self, path, seconds):
+        process = subprocess.Popen([sys.executable, '-c', self.HOLD, str(path), str(seconds)], stdout=subprocess.PIPE, text=True)
+        self.assertEqual(process.stdout.readline().strip(), 'held')
+        self.addCleanup(process.wait)
+        self.addCleanup(process.kill)
+        return process
+
+    def test_lock_held_by_another_process_is_detected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            lock = pathlib.Path(temp) / 'lock-frontend'
+            lock.touch()
+            with patch.object(installer, 'APT_LOCKS', (lock, pathlib.Path(temp) / 'missing')):
+                self.assertFalse(installer.apt_busy())
+                self.hold(lock, 30)
+                self.assertTrue(installer.apt_busy())
+            self.assertFalse((pathlib.Path(temp) / 'missing').exists())
+
+    def test_wait_returns_after_release_and_stops_after_deadline(self):
+        with tempfile.TemporaryDirectory() as temp:
+            lock = pathlib.Path(temp) / 'lock'
+            lock.touch()
+            with patch.object(installer, 'APT_LOCKS', (lock,)), patch.object(installer, 'APT_POLL_SECONDS', 0.05), \
+                    patch('builtins.print'):
+                self.hold(lock, 0.5)
+                installer.wait_for_apt()
+                self.assertFalse(installer.apt_busy())
+                self.hold(lock, 30)
+                with patch.object(installer, 'APT_WAIT_SECONDS', 0.2), self.assertRaisesRegex(ValueError, '10 минут'):
+                    installer.wait_for_apt()
 
 
 if __name__ == '__main__':
