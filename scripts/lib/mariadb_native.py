@@ -6,20 +6,57 @@ import shutil
 import subprocess
 import sys
 import time
+from urllib.parse import urlsplit
 
 from mariadb_backup import backup, restore
 from mariadb_common import (
+    HELPERS,
     Context,
+    certificate_current,
     output,
     read_env,
     record,
     revision,
     sql,
+    with_retries,
 )
 from mariadb_install import install as install
 from mariadb_install import prepare_restore
 
 MIN_BUILD_FREE_BYTES = 5 * 1024**3
+CERTIFICATE_WARNING_SECONDS = 14 * 24 * 3600
+DEPLOY_STEPS = 7
+
+
+def step(number, text):
+    print("[" + str(number) + "/" + str(DEPLOY_STEPS) + "] " + text, flush=True)
+
+
+def verify_certificate(context, seconds):
+    address = urlsplit(context.runtime["PUBLIC_URL"]).hostname
+    if not certificate_current(pathlib.Path(context.values["CLUB_TLS_DIR"]) / "fullchain.pem", address, seconds):
+        raise ValueError(
+            "Сертификат nginx не подходит к адресу "
+            + address
+            + " или истекает; для самоподписанного повторите установщик, публичный замените у поставщика"
+        )
+
+
+def prefetch_images(context):
+    configuration = json.loads(context.capture("config", "--format", "json"))
+    for name, service in configuration["services"].items():
+        if "build" in service or not service.get("image"):
+            continue
+        if not image_present(service["image"]):
+            with_retries(lambda name=name: context.execute("pull", "--quiet", name), "Загрузка образа " + name)
+
+
+def image_present(image):
+    try:
+        output(["docker", "image", "inspect", "--format", "{{.Id}}", image])
+    except subprocess.CalledProcessError:
+        return False
+    return True
 
 
 def verify_build_space():
@@ -39,11 +76,13 @@ def preflight(context):
     verify_build_space()
     output(["systemctl", "is-active", "mariadb"])
     sql("SELECT 1", context.database)
-    print("Preflight: закрытая конфигурация, локальная база и чистый checkout проверены")
+    verify_certificate(context, 0)
+    print("Preflight: закрытая конфигурация, локальная база, сертификат и чистый checkout проверены")
 
 
 def monitor(context):
     context.verify_http()
+    verify_certificate(context, CERTIFICATE_WARNING_SECONDS)
     for service in ("api", "web", "nginx"):
         container = context.capture("ps", "-q", service)
         if not container or output(["docker", "inspect", "-f", "{{.State.Health.Status}}", container]) != "healthy":
@@ -58,6 +97,7 @@ def deploy(context):
     commit = revision()
     if os.geteuid() != 0:
         raise ValueError("Обслуживание нативной MariaDB выполняется через sudo")
+    step(1, "Проверяем конфигурацию, базу, место на диске и сертификат")
     preflight(context)
     previous = context.state / "last-deploy.json"
     if previous.exists():
@@ -71,8 +111,12 @@ def deploy(context):
                 context.project + "-operator:retained-" + deployed["commit"],
             ]
         )
-    context.execute(
-        "--profile", "operator", "build", "--build-arg", "VCS_REF=" + commit, "api", "web", "operator", "nginx"
+    step(2, "Собираем образы: первая сборка – несколько минут, обновление только кода – секунды")
+    with_retries(
+        lambda: context.execute(
+            "--profile", "operator", "build", "--build-arg", "VCS_REF=" + commit, "api", "web", "operator", "nginx"
+        ),
+        "Сборка образов",
     )
     context.execute(
         "run",
@@ -86,18 +130,24 @@ def deploy(context):
         'e += [] if s.APP_ENV == "production" else ["Нужен production"]; '
         'assert not e, "\\n".join(e)',
     )
+    step(3, "Загружаем вспомогательные образы до остановки сайта")
+    prefetch_images(context)
     running = bool(context.capture("ps", "--status", "running", "-q", "api"))
+    step(4, "Создаём резервную копию" if running else "Резервная копия не нужна: API ещё не запущен")
     if running:
-        backup(context)
+        backup(context, resume=False)
     context.stop_writers()
     try:
+        step(5, "Применяем миграции, права базы и начальные данные")
         context.operator_command("migrate")
         context.operator_command("configure-mariadb-role")
         context.operator_command("bootstrap")
+        step(6, "Запускаем API, сайт и nginx")
         if context.values.get("COMPOSE_PROFILES") == "local":
             context.execute("up", "-d", "mailpit")
         context.execute("up", "-d", "--wait", "api", "web")
         context.execute("up", "-d", "--wait", "--force-recreate", "nginx")
+        step(7, "Проверяем TLS, сайт и /api/ready")
         context.verify_http()
         operator_image = output(["docker", "image", "inspect", "-f", "{{.Id}}", context.values["CLUB_OPERATOR_IMAGE"]])
         output(["docker", "image", "tag", operator_image, context.project + "-operator:retained-" + commit])
@@ -109,6 +159,7 @@ def deploy(context):
     except BaseException:
         record(context, "last-deploy-attempt", {"commit": commit, "finished_at": int(time.time()), "status": "failed"})
         context.stop_writers()
+        print("API остановлен, чтобы не принимать записи в непроверенной версии; исправьте причину ниже и повторите")
         raise
     print("Обновление проверено: TLS, сайт и /api/ready; ревизия " + commit)
 
@@ -147,10 +198,8 @@ def main():
                 prepare_restore(context, args.config_dir, args.port, args.mail_port)
             else:
                 restore(context, args.snapshot, args.target_env)
-    except (ValueError, OSError, KeyError, subprocess.CalledProcessError):
-        print(
-            "Операция не завершена; проверьте закрытую конфигурацию, права и журнал предыдущего этапа", file=sys.stderr
-        )
+    except (ValueError, OSError, KeyError, subprocess.CalledProcessError) as error:
+        print("Операция не завершена: " + HELPERS["failure_message"](error), file=sys.stderr)
         return 1
     return 0
 

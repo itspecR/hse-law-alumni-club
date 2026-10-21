@@ -190,6 +190,17 @@ def install(directory, local):
         print('Доступ с другого компьютера – через SSH-туннель; инструкция в README, раздел установки.')
 
 
+def failure_message(error):
+    if isinstance(error, ValueError):
+        return str(error)
+    if isinstance(error, KeyboardInterrupt):
+        return 'прервано вручную; повторный запуск продолжит с сохранённой конфигурацией'
+    if isinstance(error, subprocess.CalledProcessError):
+        command = error.cmd if isinstance(error.cmd, (list, tuple)) else [str(error.cmd)]
+        return 'команда «' + ' '.join(map(str, command[:3])) + '» завершилась с кодом ' + str(error.returncode)
+    return type(error).__name__ + ' ' + str(error)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Настройка и запуск Клуба на Ubuntu')
     parser.add_argument('--local', action='store_true', help='локальная репетиция без интерактивных вопросов')
@@ -204,8 +215,7 @@ def main():
             from mariadb_native import install as install_mariadb
             install_mariadb(args.config_dir, args.local)
     except (ValueError, OSError, KeyError, EOFError, KeyboardInterrupt, subprocess.CalledProcessError) as error:
-        message = str(error) if isinstance(error, ValueError) else 'Установка прервана; проверьте предыдущий этап и повторите команду'
-        print(message, file=sys.stderr)
+        print('Установка прервана: ' + failure_message(error), file=sys.stderr)
         return 1
     return 0
 

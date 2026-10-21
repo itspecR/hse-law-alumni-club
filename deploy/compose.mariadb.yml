@@ -4,6 +4,13 @@ x-logging: &logging
   driver: json-file
   options: {max-size: "10m", max-file: "3"}
 
+x-health-timing: &health-timing
+  interval: 10s
+  timeout: 5s
+  retries: 10
+  start_period: 60s
+  start_interval: 1s
+
 services:
   mailpit:
     profiles: [local]
@@ -56,9 +63,7 @@ services:
     stop_grace_period: 30s
     healthcheck:
       test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3000/ready', timeout=3)"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      <<: *health-timing
 
   web:
     logging: *logging
@@ -80,9 +85,7 @@ services:
     mem_limit: 256m
     healthcheck:
       test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1/health', timeout=3)"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      <<: *health-timing
 
   nginx:
     logging: *logging
@@ -112,9 +115,7 @@ services:
     mem_limit: 128m
     healthcheck:
       test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8080/health]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      <<: *health-timing
 
 networks:
   default:

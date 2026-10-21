@@ -73,7 +73,10 @@ Buildx и Compose из официального APT-источника. Если
 пакетом Ubuntu `docker.io`, скрипт дополняет его пакетами Ubuntu `docker-buildx`
 и `docker-compose-v2` без замены Engine и перезапуска чужих контейнеров.
 `podman-docker` или отличный существующий Docker source требует разбора;
-скрипт не удаляет их автоматически.
+скрипт не удаляет их автоматически. Уже установленные пакеты не обновляются
+(`--no-upgrade`), а `needrestart` только перечисляет службы
+(`NEEDRESTART_MODE=l`), поэтому соседние сайты не перезапускаются. Если
+MariaDB уже установлена, установщик её не переустанавливает и не обновляет.
 Проверка: `sudo systemctl is-active docker`, `sudo docker compose version`.
 Источник процедуры – [Docker для Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
 

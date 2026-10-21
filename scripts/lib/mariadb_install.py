@@ -6,17 +6,36 @@ import pathlib
 import secrets
 import shlex
 import shutil
+import subprocess
+import tempfile
 import time
 from urllib.parse import urlsplit
 
-from mariadb_common import FILES, HELPERS, REPO, Context, connection_url, create_database, directory, output, run, sql
+from mariadb_common import (
+    FILES,
+    HELPERS,
+    REPO,
+    Context,
+    certificate_current,
+    connection_url,
+    create_database,
+    directory,
+    is_ip,
+    output,
+    read_env,
+    run,
+    sql,
+)
 
 CONTOURS = {"1": "local", "2": "public", "3": "server"}
+CONTOUR_TITLES = {"local": "локальная репетиция", "public": "публичный HTTPS", "server": "сервер по IP"}
 LISTENERS = {"local": ("127.0.0.1", 9443, 9080), "public": ("0.0.0.0", 443, 80), "server": ("0.0.0.0", 9443, 9080)}
 MAIL_PORT = 8025
 APT_LOCKS = (pathlib.Path("/var/lib/dpkg/lock-frontend"), pathlib.Path("/var/lib/apt/lists/lock"))
 APT_WAIT_SECONDS = 600
 APT_POLL_SECONDS = 5
+CERTIFICATE_RENEW_SECONDS = 30 * 24 * 3600
+MYSQL_PACKAGES = ("mysql-server", "mysql-server-8.0", "mysql-server-core-8.0", "percona-server-server")
 
 
 def contour(value):
@@ -36,10 +55,7 @@ def server_address(value):
 
 
 def subject(address):
-    try:
-        return "IP:" + str(ipaddress.IPv4Address(address))
-    except ValueError:
-        return "DNS:" + address
+    return ("IP:" if is_ip(address) else "DNS:") + address
 
 
 def public_url(address, port):
@@ -73,30 +89,95 @@ def wait_for_apt():
         time.sleep(APT_POLL_SECONDS)
 
 
-def self_signed(tls, address, authority):
-    run(
-        [
-            "openssl",
-            "req",
-            "-x509",
-            "-newkey",
-            "rsa:3072",
-            "-nodes",
-            "-days",
-            "365",
-            "-subj",
-            "/CN=" + address,
-            "-addext",
-            "subjectAltName=" + subject(address),
-            "-keyout",
-            str(tls / "privkey.pem"),
-            "-out",
-            str(tls / "fullchain.pem"),
-        ],
-        capture_output=True,
+def certificate_settings(address):
+    return (
+        "[req]\ndistinguished_name = name\nx509_extensions = leaf\nprompt = no\n"
+        "[name]\nCN = " + address + "\n"
+        "[leaf]\nbasicConstraints = critical, CA:FALSE\n"
+        "keyUsage = critical, digitalSignature, keyEncipherment\n"
+        "extendedKeyUsage = serverAuth\nsubjectKeyIdentifier = hash\n"
+        "subjectAltName = " + subject(address) + "\n"
     )
+
+
+def self_signed(tls, address, authority):
+    with tempfile.NamedTemporaryFile("w", suffix=".cnf") as settings:
+        settings.write(certificate_settings(address))
+        settings.flush()
+        run(
+            [
+                "openssl",
+                "req",
+                "-x509",
+                "-newkey",
+                "rsa:3072",
+                "-nodes",
+                "-days",
+                "365",
+                "-config",
+                settings.name,
+                "-keyout",
+                str(tls / "privkey.pem"),
+                "-out",
+                str(tls / "fullchain.pem"),
+            ],
+            capture_output=True,
+        )
     shutil.copyfile(tls / "fullchain.pem", authority)
     authority.chmod(0o644)
+
+
+def protect_tls(tls):
+    os.chown(tls / "privkey.pem", 0, 101)
+    (tls / "privkey.pem").chmod(0o640)
+    (tls / "fullchain.pem").chmod(0o644)
+
+
+def refresh_self_signed(config):
+    values = read_env(config / "compose.env")
+    address = urlsplit(values["PUBLIC_URL"]).hostname
+    tls = pathlib.Path(values["CLUB_TLS_DIR"])
+    if certificate_current(tls / "fullchain.pem", address, CERTIFICATE_RENEW_SECONDS):
+        return
+    print("Самоподписанный сертификат не подходит к адресу " + address + " или скоро истекает; выпускаем новый")
+    self_signed(tls, address, config / "local-ca.crt")
+    protect_tls(tls)
+
+
+def package_installed(name):
+    try:
+        return output(["dpkg-query", "-W", "-f=${Status}", name]) == "install ok installed"
+    except subprocess.CalledProcessError:
+        return False
+
+
+def ensure_mariadb():
+    if not package_installed("mariadb-server"):
+        if any(package_installed(name) for name in MYSQL_PACKAGES):
+            raise ValueError("На сервере установлен MySQL; установщик не заменяет его на MariaDB автоматически")
+        wait_for_apt()
+        run(
+            [
+                "apt-get",
+                "-o",
+                "DPkg::Lock::Timeout=" + str(APT_WAIT_SECONDS),
+                "install",
+                "-y",
+                "--no-install-recommends",
+                "mariadb-server",
+                "mariadb-client",
+            ],
+            env={**os.environ, "NEEDRESTART_MODE": "l"},
+        )
+    run(["systemctl", "enable", "--now", "mariadb"])
+    require_loopback_mariadb()
+
+
+def require_loopback_mariadb():
+    for line in output(["ss", "-H", "-lnt", "sport = :3306"]).splitlines():
+        listener = line.split()[3].rsplit(":", 1)[0].strip("[]")
+        if not ipaddress.ip_address(listener).is_loopback:
+            raise ValueError("MariaDB слушает внешний адрес; настройте loopback перед установкой")
 
 
 def ask_server(values):
@@ -141,7 +222,13 @@ def install(config, local):
             raise ValueError("Неизвестная установка; автоматическая смена базы запрещена")
         if local and metadata["mode"] != "local":
             raise ValueError("--local не меняет существующую установку")
-        print("Конфигурация уже существует; секреты и доступ администратора сохраняются")
+        print(
+            "Конфигурация уже существует: "
+            + CONTOUR_TITLES[metadata["mode"]]
+            + "; секреты и доступ администратора сохраняются"
+        )
+        if metadata["mode"] != "public":
+            refresh_self_signed(config)
     else:
         if config.exists() and any(config.iterdir()):
             raise ValueError("Каталог содержит прежнюю конфигурацию; файлы не перезаписаны")
@@ -165,25 +252,7 @@ def install(config, local):
             raise ValueError("Порты уже заняты другим сервисом: " + ", ".join(map(str, busy)))
         wait_for_apt()
         run(["bash", str(REPO / "scripts/setup-ubuntu.sh")])
-        wait_for_apt()
-        run(
-            [
-                "apt-get",
-                "-o",
-                "DPkg::Lock::Timeout=" + str(APT_WAIT_SECONDS),
-                "install",
-                "-y",
-                "--no-install-recommends",
-                "mariadb-server",
-                "mariadb-client",
-            ]
-        )
-        run(["systemctl", "enable", "--now", "mariadb"])
-        addresses = output(["ss", "-H", "-lnt", "sport = :3306"]).splitlines()
-        for line in addresses:
-            address = line.split()[3].rsplit(":", 1)[0].strip("[]")
-            if not ipaddress.ip_address(address).is_loopback:
-                raise ValueError("MariaDB слушает внешний адрес; настройте loopback перед установкой")
+        ensure_mariadb()
         suffix = secrets.token_hex(6)
         database = "club_" + suffix
         operator, api = database + "_ops", database + "_api"
@@ -204,9 +273,7 @@ def install(config, local):
             shutil.copyfile(certificate, tls / "fullchain.pem")
         else:
             self_signed(tls, address, config / "local-ca.crt")
-        os.chown(tls / "privkey.pem", 0, 101)
-        (tls / "privkey.pem").chmod(0o640)
-        (tls / "fullchain.pem").chmod(0o644)
+        protect_tls(tls)
         create_database(database, operator, operator_password)
         runtime = {
             name: value
@@ -283,13 +350,15 @@ def install(config, local):
     context = Context(config / "compose.env")
     with context.lock():
         deploy(context)
+    print("Сайт: " + context.runtime["PUBLIC_URL"])
     print("Офис: " + context.runtime["PUBLIC_URL"] + "/admin")
     print("Первичные данные администратора: sudo cat " + shlex.quote(str(config / "initial-admin.txt")))
     if metadata["mode"] == "local":
         print("Локальная CA: " + str(config / "local-ca.crt") + "; письма: http://localhost:8025")
     if metadata["mode"] == "server":
-        print("Самоподписанный сертификат: браузер один раз попросит подтвердить исключение")
-        print("CA для доверия на компьютерах: " + str(config / "local-ca.crt"))
+        print("Браузер один раз предупредит о самоподписанном сертификате: «Дополнительно» → «Перейти»")
+        print("Для офлайн-режима и push-уведомлений добавьте в доверенные сертификат " + str(config / "local-ca.crt"))
+        print("Письма в этом контуре не отправляются: Mailpit без TLS разрешён только для localhost")
 
 
 def prepare_restore(context, config, port, mail_port):
@@ -363,9 +432,7 @@ def prepare_restore(context, config, port, mail_port):
     }
     tls = directory(config / "tls", 0, 101, 0o750)
     self_signed(tls, "localhost", config / "local-ca.crt")
-    os.chown(tls / "privkey.pem", 0, 101)
-    (tls / "privkey.pem").chmod(0o640)
-    (tls / "fullchain.pem").chmod(0o644)
+    protect_tls(tls)
     values.update(CLUB_TLS_DIR=str(tls), HTTPS_CA_FILE=str(config / "local-ca.crt"))
     for name, payload in (("runtime.env", runtime), ("operator.env", operator_values), ("compose.env", values)):
         HELPERS["write_new"](config / name, HELPERS["dotenv"](payload))
