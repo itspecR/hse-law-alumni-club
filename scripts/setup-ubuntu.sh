@@ -3,8 +3,12 @@ set -euo pipefail
 [[ "$(id -u)" = 0 ]] || { echo 'Запустите через sudo' >&2; exit 1; }
 source /etc/os-release
 [[ "$ID" = ubuntu && "$VERSION_ID" = 24.04 ]] || { echo 'Поддерживается Ubuntu 24.04 LTS' >&2; exit 1; }
-apt-get update
-apt-get install -y --no-install-recommends git curl ca-certificates openssl tar gzip python3 util-linux rclone jq rsync gnupg
+APT_LOCK_TIMEOUT_SECONDS=600
+apt_get() {
+  apt-get -o DPkg::Lock::Timeout="$APT_LOCK_TIMEOUT_SECONDS" "$@"
+}
+apt_get update
+apt_get install -y --no-install-recommends git curl ca-certificates openssl tar gzip python3 util-linux rclone jq rsync gnupg
 installed() {
   dpkg-query -W -f '${Status}' "$1" 2>/dev/null | grep -qx 'install ok installed'
 }
@@ -31,12 +35,12 @@ EOF
   else
     install -m 0644 "$source_file" /etc/apt/sources.list.d/docker.sources
   fi
-  apt-get update
-  apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  apt_get update
+  apt_get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 }
 if ! command -v docker >/dev/null || ! docker compose version >/dev/null 2>&1 || ! docker buildx version >/dev/null 2>&1; then
   if installed docker.io; then
-    apt-get install -y --no-install-recommends docker-buildx docker-compose-v2
+    apt_get install -y --no-install-recommends docker-buildx docker-compose-v2
   else
     install_docker_ce
   fi

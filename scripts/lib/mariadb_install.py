@@ -1,3 +1,4 @@
+import fcntl
 import ipaddress
 import json
 import os
@@ -5,6 +6,7 @@ import pathlib
 import secrets
 import shlex
 import shutil
+import time
 from urllib.parse import urlsplit
 
 from mariadb_common import FILES, HELPERS, REPO, Context, connection_url, create_database, directory, output, run, sql
@@ -12,6 +14,9 @@ from mariadb_common import FILES, HELPERS, REPO, Context, connection_url, create
 CONTOURS = {"1": "local", "2": "public", "3": "server"}
 LISTENERS = {"local": ("127.0.0.1", 9443, 9080), "public": ("0.0.0.0", 443, 80), "server": ("0.0.0.0", 9443, 9080)}
 MAIL_PORT = 8025
+APT_LOCKS = (pathlib.Path("/var/lib/dpkg/lock-frontend"), pathlib.Path("/var/lib/apt/lists/lock"))
+APT_WAIT_SECONDS = 600
+APT_POLL_SECONDS = 5
 
 
 def contour(value):
@@ -43,6 +48,29 @@ def public_url(address, port):
 
 def busy_ports(ports):
     return [port for port in ports if output(["ss", "-H", "-lnt", "sport = :" + str(port)])]
+
+
+def apt_busy():
+    for path in APT_LOCKS:
+        if not path.exists():
+            continue
+        with path.open("a") as handle:
+            try:
+                fcntl.lockf(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                return True
+            fcntl.lockf(handle, fcntl.LOCK_UN)
+    return False
+
+
+def wait_for_apt():
+    deadline = time.monotonic() + APT_WAIT_SECONDS
+    if apt_busy():
+        print("Ждём завершения другой установки пакетов, например автоматических обновлений Ubuntu")
+    while apt_busy():
+        if time.monotonic() > deadline:
+            raise ValueError("Другая установка пакетов не завершилась за 10 минут; повторите команду позже")
+        time.sleep(APT_POLL_SECONDS)
 
 
 def self_signed(tls, address, authority):
@@ -135,8 +163,21 @@ def install(config, local):
         busy = busy_ports((https, http) if mode == "public" else (https, http, MAIL_PORT))
         if busy:
             raise ValueError("Порты уже заняты другим сервисом: " + ", ".join(map(str, busy)))
+        wait_for_apt()
         run(["bash", str(REPO / "scripts/setup-ubuntu.sh")])
-        run(["apt-get", "install", "-y", "--no-install-recommends", "mariadb-server", "mariadb-client"])
+        wait_for_apt()
+        run(
+            [
+                "apt-get",
+                "-o",
+                "DPkg::Lock::Timeout=" + str(APT_WAIT_SECONDS),
+                "install",
+                "-y",
+                "--no-install-recommends",
+                "mariadb-server",
+                "mariadb-client",
+            ]
+        )
         run(["systemctl", "enable", "--now", "mariadb"])
         addresses = output(["ss", "-H", "-lnt", "sport = :3306"]).splitlines()
         for line in addresses:
