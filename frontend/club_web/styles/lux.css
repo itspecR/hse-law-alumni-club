@@ -10,6 +10,8 @@ html.lux {
   --lux-ink-2: #d2d2d7;
   --lux-mute: #a1a1a6;
   --lux-quiet: #86868b;
+  --lux-hairline: #424245;
+  --lux-hover: #1d1d1f;
   --c-bg: var(--lux-black);
   --c-bg-raised: var(--lux-raised);
   --c-bg-sunken: var(--lux-sunken);
@@ -52,6 +54,26 @@ html.lux :focus-visible { outline-color: var(--lux-ink); }
 html.lux button { border-radius: 999px; }
 html.lux :is(input, select, textarea) { border-radius: 12px; background: var(--lux-raised); border-color: var(--c-line-control); color: var(--c-text); }
 html.lux ::selection { background: var(--p-ohra); color: #111; }
+
+.lux-nobr { white-space: nowrap; }
+.lux-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.lux-btn {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 26px;
+  border: 0; border-radius: 999px; background: var(--c-accent); color: var(--c-on-accent);
+  font: 600 17px/1 var(--f-body); letter-spacing: -0.01em; text-decoration: none; white-space: nowrap; cursor: pointer;
+  transition: transform 160ms var(--ease-out), background-color 160ms ease;
+}
+.lux-btn:active { transform: scale(0.97); }
+.lux-btn--ghost { background: transparent; color: var(--c-text); box-shadow: inset 0 0 0 1px var(--lux-hairline); }
+.lux-btn--sm { min-height: 44px; padding: 0 18px; font-size: 15px; font-weight: 500; }
+.save-material.lux-btn { align-self: flex-start; justify-self: start; }
+.lux-btn--ghost[aria-pressed="true"] { background: var(--c-text); color: var(--c-text-inverse); box-shadow: none; }
+.lux-more {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--c-text); font-size: 17px; text-decoration: underline 1px transparent; text-underline-offset: 5px;
+  transition: text-decoration-color 160ms ease, transform 160ms var(--ease-out);
+}
+.lux-more:active { transform: scale(0.97); }
+.lux-more__arrow { display: inline-block; font-size: 20px; line-height: 1; transition: transform 160ms var(--ease-out); }
 html.lux.vis :is(h1, h2, h3, .lux-hero__next, .lux-voice blockquote p, .club-menu a) { font-weight: 400; }
 
 html.lux .club-header { background: var(--lux-black); border-bottom: 0; backdrop-filter: none; -webkit-backdrop-filter: none; animation: none; box-shadow: none; }
@@ -103,6 +125,11 @@ html.lux .site-notice { background: var(--lux-raised); color: var(--lux-ink-2); 
   html.lux .club-header__tools .club-chrome-icon-btn:hover,
   html.lux .club-footer :is(a, button):hover { color: var(--lux-ink); text-decoration: none; }
   html.lux .club-header__cta:hover { background: var(--p-ohra-hover); }
+  .lux-btn:hover { background: var(--p-ohra-hover); }
+  .lux-btn--ghost:hover { background: var(--lux-hover); }
+  .lux-btn--ghost[aria-pressed="true"]:hover { background: var(--c-text); }
+  .lux-more:hover { text-decoration-color: currentColor; }
+  .lux-more:hover .lux-more__arrow { transform: translateX(3px); }
 }
 
 @media (min-width: 1101px) {

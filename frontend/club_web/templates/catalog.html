@@ -70,6 +70,8 @@
 <a href="/{{ kind }}/{{ item.slug }}" class="site-card-media site-card-media--{{ 'program' if kind=='dpo' else 'product' }}">
 <img src="{{ image|media }}" alt="{{ item.title }}" loading="lazy" decoding="async" width="560" height="380">
 </a>
+{% else %}
+<div class="site-card-media site-card-media--{{ 'program' if kind=='dpo' else 'product' }} site-card-media--empty" aria-hidden="true"></div>
 {% endif %}
 <div>
 <span class="club-caps">{{ item.direction if kind=='dpo' else item.category }}</span>
@@ -77,14 +79,13 @@
 <a href="/{{ kind }}/{{ item.slug }}">{{ item.title }}</a>
 </h2>
 {% if kind=='dpo' %}
-<p>{{ format_labels.get(item.format,item.format) }} · {{ item.duration }}</p>
-<p>{{ 'Набор закрыт' if item.enrollment=='nonactual' else 'Набор открыт' }}</p>
+<p>{{ [(format_labels.get(item.format,item.format) or '')|capitalize, item.duration, 'набор закрыт' if item.enrollment=='nonactual' else 'набор открыт']|select|join(' · ') }}</p>
 {% endif %}
 <p class="site-price">{{ item.price|rub }}</p>
 <div class="site-actions">
-<a href="/{{ kind }}/{{ item.slug }}" class="site-primary">Подробнее</a>{{ save('/'+kind+'/'+item.slug,item.title,kind) }}{% if kind=='dpo' and not item.source_url and item.enrollment!='nonactual' %}{{ add_cart(item,kind) }}{% endif %}
+<a href="/{{ kind }}/{{ item.slug }}" class="foc lux-more">Подробнее<span class="lux-sr"> — {{ item.title }}</span> <span class="lux-more__arrow" aria-hidden="true">›</span></a>{{ save('/'+kind+'/'+item.slug,item.title,kind) }}{% if kind=='dpo' and not item.source_url and item.enrollment!='nonactual' %}{{ add_cart(item,kind) }}{% endif %}
 {% if kind=='dpo' %}
-<button data-action="compare" data-id="{{ item.id }}" aria-pressed="false">Сравнить</button>
+<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="compare" data-id="{{ item.id }}" aria-pressed="false">Сравнить</button>
 {% endif %}
 </div>
 </div>

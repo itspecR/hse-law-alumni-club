@@ -249,6 +249,27 @@ def test_catalog_filters_search_compare_and_cart(page, site):
 
 
 @pytest.mark.parametrize("width", [390, 1440])
+def test_catalog_card_states_and_targets(page, site, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/dpo")
+    card = page.locator(".site-catalog-card").filter(has_text=PROGRAM["title"])
+    expect(card.locator(".site-card-media--empty")).to_have_attribute("aria-hidden", "true")
+    expect(card.get_by_role("link", name="Подробнее — " + PROGRAM["title"], exact=True)).to_have_attribute(
+        "href", "/dpo/" + PROGRAM["slug"]
+    )
+    compare = card.get_by_role("button", name="Сравнить", exact=True)
+    idle = compare.evaluate("node => getComputedStyle(node).backgroundColor")
+    compare.click()
+    expect(compare).to_have_attribute("aria-pressed", "true")
+    page.wait_for_function(
+        "([node, idle]) => getComputedStyle(node).backgroundColor !== idle", arg=[compare.element_handle(), idle]
+    )
+    for target in card.locator(".site-actions :is(a, button)").all():
+        assert target.bounding_box()["height"] >= 44
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
 def test_dpo_finder_starts_and_shareable_comparison(page, site, width):
     page.set_viewport_size({"width": width, "height": 900})
     rows = [
