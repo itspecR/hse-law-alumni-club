@@ -18,7 +18,7 @@ html.lux .site-event img { border-radius: var(--r-lg); }
 html.lux .site-event:not(:has(> img)) { grid-template-columns: minmax(0, 1fr); }
 html.lux .site-event:not(:has(> img)) > div { max-width: 68ch; }
 html.lux .site-event time { font-size: 15px; color: var(--c-text-3); }
-html.lux .site-event h2 { margin: 6px 0 10px; font: 400 clamp(22px, 2.2cqi, 28px)/1.25 var(--f-body); letter-spacing: -0.02em; }
+html.lux .site-event h2 { margin: 8px 0 12px; font: 400 clamp(22px, 2.2cqi, 28px)/1.25 var(--f-body); letter-spacing: -0.02em; }
 html.lux .site-event p { margin: 4px 0; color: var(--c-text-3); }
 html.lux .site-event .site-actions { gap: 8px 20px; margin-top: 16px; }
 html.lux .site-event .site-actions > a:not(.site-primary) { display: inline-flex; align-items: center; min-height: 44px; color: var(--c-text); text-decoration: none; }
@@ -43,7 +43,7 @@ html.lux .site-lead { font-size: clamp(19px, 1.6cqi, 23px); line-height: 1.45; l
 html.lux .site-article .site-prose { margin-top: 28px; font-size: 18px; line-height: 1.65; color: var(--c-text-2); }
 html.lux .site-article .site-prose p { margin: 0 0 1em; }
 html.lux .site-player { margin: 24px 0; padding: 20px; border-radius: var(--r-lg); background: var(--c-bg-raised); }
-html.lux .site-player .site-actions { gap: 8px; margin: 14px 0 0; }
+html.lux .site-player .site-actions { gap: 8px; margin: 16px 0 0; }
 html.lux .site-player .site-actions label { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; color: var(--c-text-3); }
 html.lux .site-player .site-actions select { width: auto; margin: 0; }
 

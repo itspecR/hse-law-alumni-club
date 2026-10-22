@@ -47,7 +47,7 @@
 .lux-hero__word--r { left: calc(50% + var(--fig-w) * (1 - var(--fig-axis)) + var(--word-gap)); align-items: flex-start; transform: translateX(calc(var(--p) * 9cqi)); }
 .lux-hero__line { display: block; overflow: clip; padding: 0.04em 0.06em 0.12em; margin: -0.04em -0.06em -0.12em; }
 .lux-hero__line > span { display: block; }
-.lux-hero__foot { position: absolute; left: 0; right: 0; bottom: max(4svh, 28px); display: grid; justify-items: center; gap: 18px; padding-inline: var(--lux-gutter); text-align: center; opacity: calc(1 - var(--p) / var(--far)); transform: translateY(calc(var(--p) * 28px)); }
+.lux-hero__foot { position: absolute; left: 0; right: 0; bottom: max(4svh, 28px); display: grid; justify-items: center; gap: 16px; padding-inline: var(--lux-gutter); text-align: center; opacity: calc(1 - var(--p) / var(--far)); transform: translateY(calc(var(--p) * 28px)); }
 .lux-hero__foot:focus-within { opacity: 1; transform: none; }
 .lux-hero__lede { margin: 0; font-size: 21px; line-height: 1.3; letter-spacing: -0.015em; color: var(--c-text-3); text-wrap: balance; }
 .lux-hero__acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 32px; }
@@ -89,7 +89,7 @@ html.vis .lux-calc__levels { position: static; }
 html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px solid var(--vis-fg); outline-offset: -2px; font-weight: 700; }
 .lux-calc__sub { margin: 40px 0 0; font: 600 15px/1.3 var(--f-body); color: var(--c-text-3); letter-spacing: 0; }
 .lux-progs { margin: 8px -16px 0; padding: 0; list-style: none; }
-.lux-prog__link { display: grid; grid-template-columns: 150px 1fr auto; align-items: baseline; gap: 24px; padding: 18px 16px; border-radius: 12px; color: inherit; text-decoration: none; transition: background-color 160ms ease; }
+.lux-prog__link { display: grid; grid-template-columns: 150px 1fr auto; align-items: baseline; gap: 24px; padding: 16px; border-radius: 12px; color: inherit; text-decoration: none; transition: background-color 160ms ease; }
 .lux-prog__date { font-size: 15px; color: var(--c-text-3); }
 .lux-prog__main { display: grid; gap: 4px; }
 .lux-prog__name { font-size: 19px; line-height: 1.3; letter-spacing: -0.01em; text-wrap: balance; }
@@ -107,7 +107,7 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
 .lux-agenda a span:not(.lux-agenda__place) { font-size: 21px; letter-spacing: -0.015em; }
 .lux-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 56px; align-items: start; }
 .lux-pair figure { margin: 0; }
-.lux-pair figcaption { margin-top: 14px; font-size: 15px; color: var(--c-text-3); }
+.lux-pair figcaption { margin-top: 16px; font-size: 15px; color: var(--c-text-3); }
 .lux-voice { display: grid; grid-template-columns: 5fr 7fr; grid-template-areas: "photo quote" "photo cap"; gap: 24px clamp(32px, 6cqi, 96px); align-items: center; margin-top: clamp(88px, 9cqi, 128px); margin-bottom: 0; }
 .lux-voice__photo { grid-area: photo; max-width: 576px; }
 .lux-voice__quote { grid-area: quote; align-self: end; margin: 0; }
@@ -119,7 +119,7 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
 .lux-news { margin-top: clamp(72px, 7cqi, 112px); }
 .lux-news h3 { margin: 0 0 8px; font: 600 15px/1.3 var(--f-body); color: var(--c-text-3); letter-spacing: 0; }
 .lux-news ul { margin: 0 0 12px; padding: 0; list-style: none; }
-.lux-news a:not(.lux-more) { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: baseline; padding: 14px 0; color: inherit; text-decoration: none; }
+.lux-news a:not(.lux-more) { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: baseline; padding: 16px 0; color: inherit; text-decoration: none; }
 .lux-news time { color: var(--c-text-3); font-size: 15px; }
 .lux-news li span { font-size: 19px; letter-spacing: -0.01em; text-wrap: balance; }
 
@@ -133,13 +133,13 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
 .lux-tile__title { margin: 0; font: 200 var(--lux-h3)/1.1 var(--f-display); letter-spacing: -0.03em; text-wrap: balance; }
 .lux-tile__lede { margin: 12px 0 0; color: var(--c-text-3); text-wrap: pretty; }
 .lux-acts, .lux-eps { display: grid; gap: 4px; width: 100%; margin: 24px 0 28px; padding: 0; list-style: none; }
-.lux-acts a { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 16px; padding: 10px 0; color: inherit; font-size: 15px; text-decoration: none; }
+.lux-acts a { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 16px; padding: 12px 0; color: inherit; font-size: 15px; text-decoration: none; }
 .lux-acts time { color: var(--c-text-3); white-space: nowrap; }
 .lux-acts__text { display: grid; gap: 4px; overflow-wrap: anywhere; }
 .lux-bento > * { min-width: 0; }
 .lux-acts b { font-weight: 500; }
 .lux-acts__text span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--c-text-3); }
-.lux-eps a { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; color: inherit; text-decoration: none; }
+.lux-eps a { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; color: inherit; text-decoration: none; }
 .lux-eps a span:last-child { color: var(--c-text-3); white-space: nowrap; }
 .lux-tile__end { margin-top: auto; }
 

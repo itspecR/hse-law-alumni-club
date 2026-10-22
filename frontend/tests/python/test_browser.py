@@ -39,6 +39,10 @@ WORDS_UNBROKEN = """selector => {
 }"""
 
 
+def is_cart_change(response):
+    return response.url.endswith("/api/cart") and response.request.method == "PATCH"
+
+
 @pytest.fixture(scope="module")
 def chromium():
     with sync_playwright() as browser:
@@ -1311,12 +1315,12 @@ def test_cart_changes_include_type_when_slugs_match(page, site, width):
     page.goto("/cart")
     row = page.locator(".site-cart-row").filter(has=page.get_by_role("heading", name=PRODUCT["title"], exact=True))
     row.get_by_role("spinbutton", name="Количество").fill("3")
-    with page.expect_response("**/api/cart"):
+    with page.expect_response(is_cart_change):
         row.get_by_role("button", name="Обновить", exact=True).click()
     assert writes[-1]["body"] == {"type": "merch", "ref_id": PROGRAM["slug"], "variant_sku": None, "qty": 3}
     records["/cart"] = {"items": items, "subtotal": 20000, "count": 2}
     page.goto("/cart")
-    with page.expect_response("**/api/cart"):
+    with page.expect_response(is_cart_change):
         row.get_by_role("button", name="Удалить", exact=True).click()
     assert writes[-1]["body"] == {"type": "merch", "ref_id": PROGRAM["slug"], "variant_sku": None, "qty": 0}
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
@@ -1542,6 +1546,28 @@ def test_mini_app_sign_pauses_off_screen(chromium, site):
     glint = page.locator(".mini-welcome .lux-glint")
     expect(glint).to_have_css("animation-play-state", "paused")
     context.close()
+
+
+SPACING_STEP = 4
+
+
+@pytest.mark.parametrize(
+    "path,selector",
+    [
+        ("/join", "[data-registration]"),
+        ("/forgot", ".club-auth__card form"),
+        ("/lk", ".cabinet-gate__form"),
+        ("/dpo/course-one", "aside.site-panel form[data-cart]"),
+        ("/dpo", ".dpo-starts-grid article"),
+    ],
+)
+def test_block_spacing_follows_grid(page, site, path, selector):
+    site[1]["/programs"] = [{**PROGRAM, "dates": {"start": "24 октября 2099"}}]
+    page.goto(path)
+    for value in page.locator(selector).first.evaluate(
+        "node => { const style = getComputedStyle(node); return [style.rowGap, style.marginTop, style.marginBottom]; }"
+    ):
+        assert value == "normal" or float(value.removesuffix("px")) % SPACING_STEP == 0
 
 
 @pytest.mark.parametrize("width", [390, 1440])
