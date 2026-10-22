@@ -2,6 +2,7 @@
 {% block content %}
 <main id="main" class="mini-home">
 <section class="mini-welcome">
+{% include 'themis.html' %}
 <p class="mini-eyebrow">Сообщество выпускников</p>
 <h1>Свои люди.<br>
 <em>Новые возможности.</em>
@@ -9,8 +10,8 @@
 <p>Вышка объединяет. Клуб продолжает.</p>
 </section>
 <section class="mini-agenda">
-<img src="{{ base }}assets/photos/alumni-meeting.jpg" alt="Встреча клуба выпускников" width="1100" height="330">
-<a href="/events" class="mini-agenda__link">Есть повод встретиться →</a>
+<img src="{{ base }}assets/photos/club/meeting-800.webp" srcset="{{ base }}assets/photos/club/meeting-800.webp 800w, {{ base }}assets/photos/club/meeting-1083.webp 1083w" sizes="(max-width: 680px) calc(100vw - 32px), 640px" alt="Выпускники факультета права на встрече 27 февраля 2026 года" width="800" height="527" loading="lazy" decoding="async">
+<a href="/events" class="foc mini-agenda__link">Есть повод встретиться <span aria-hidden="true">›</span></a>
 </section>
 <p data-mini-preview>Предпросмотр мини-приложения</p>
 <a class="site-primary" href="/?site=1" data-action="leave-mini">Вернуться на сайт</a>
@@ -22,7 +23,7 @@
 </section>
 <section class="site-catalog">
 {% for href,label in nav %}
-<a class="site-panel" href="{{ href }}">{{ label }} →</a>
+<a class="foc site-panel" href="{{ href }}">{{ label }}</a>
 {% endfor %}
 </section>
 </main>

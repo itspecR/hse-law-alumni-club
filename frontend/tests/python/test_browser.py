@@ -570,6 +570,22 @@ def test_pwa_page_titles_use_column_width(page):
     expect(page.locator("main h1").first).to_have_css("font-size", "40px")
 
 
+def test_mini_home_sections_and_photo(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto("/tg")
+    image = page.locator(".mini-agenda img")
+    image.scroll_into_view_if_needed()
+    image.evaluate("image => image.decode()")
+    assert image.evaluate(
+        "image => image.clientWidth <= image.naturalWidth + 1 && Math.abs(image.clientWidth / image.clientHeight - image.naturalWidth / image.naturalHeight) < .02"
+    )
+    links = page.locator(".mini-home > .site-catalog a").all()
+    assert links
+    for link in links:
+        assert link.bounding_box()["height"] >= 44
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
 def test_corrupt_reading_data_is_not_overwritten(page):
     page.add_init_script("localStorage.setItem('club-reading-v1','broken-json');")
     page.goto("/news/news-one")
