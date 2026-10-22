@@ -4,6 +4,15 @@ export function miniStartRoute(value) {
   return /^p_[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value || "") ? "dpo/" + value.slice(2) : null;
 }
 
+function hexColor(value) {
+  const channels = (value.match(/\d+/g) || []).slice(0, 3);
+  return "#" + channels.map(channel => Number(channel).toString(16).padStart(2, "0")).join("");
+}
+
+function surfaceColor(selector) {
+  return hexColor(getComputedStyle(document.querySelector(selector) || document.body).backgroundColor);
+}
+
 export function prepareMini(path, url) {
   if (path === "/admin" || path.startsWith("/admin/")) return;
   const query = new URLSearchParams(location.search);
@@ -36,8 +45,9 @@ export function prepareMini(path, url) {
   function connected() {
     const app = window.Telegram?.WebApp;
     if (!app?.initData) return;
-    app.ready?.(); app.expand?.(); app.setHeaderColor?.("#ffffff"); app.setBackgroundColor?.("#ffffff");
-    if (!app.isVersionAtLeast || app.isVersionAtLeast("7.10")) app.setBottomBarColor?.("#ffffff");
+    const page = surfaceColor("body");
+    app.ready?.(); app.expand?.(); app.setHeaderColor?.(page); app.setBackgroundColor?.(page);
+    if (!app.isVersionAtLeast || app.isVersionAtLeast("7.10")) app.setBottomBarColor?.(surfaceColor(".mobile-tabs"));
     const applyInsets = () => {
       for (const [name, edge] of [["--mini-top", "top"], ["--mini-bottom", "bottom"]]) {
         const size = (Number(app.safeAreaInset?.[edge]) || 0) + (Number(app.contentSafeAreaInset?.[edge]) || 0);

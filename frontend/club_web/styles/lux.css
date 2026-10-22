@@ -34,7 +34,7 @@ html.lux, html.lux .club-dark {
   --c-line-strong: rgb(255 255 255 / 0.24);
   --c-on-accent: #111;
   --f-display: "HSE Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --t-h1-page: clamp(40px, 5vw, 72px);
+  --t-h1-page: clamp(40px, 5cqi, 72px);
   --r-sm: 12px;
   --r-md: 12px;
   --r-lg: 20px;
@@ -46,6 +46,7 @@ html.lux, html.lux .club-dark {
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   background: var(--c-bg);
 }
+html.lux { scroll-padding-top: calc(var(--lux-header) + 20px); }
 html.lux body { background: var(--c-bg); color: var(--c-text); -webkit-font-smoothing: antialiased; }
 html.lux h1 { font-weight: 200; letter-spacing: -0.035em; }
 html.lux :is(h2, h3) { letter-spacing: -0.02em; }
@@ -53,8 +54,7 @@ html.lux :is(h1, .lux-h2, .lux-hero__title, .lux-step h3, .lux-tile__title, .lux
 html.lux .club-caps { text-transform: none; letter-spacing: -0.01em; font-weight: 400; font-size: 14px; }
 html.lux :focus-visible { outline-color: var(--lux-ink); }
 html.lux button { border-radius: 999px; }
-html.lux :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]), select, textarea) { border-radius: 12px; background: var(--lux-raised); border-color: var(--c-line-control); color: var(--c-text); }
-html.lux ::selection { background: var(--p-ohra); color: #111; }
+html.lux :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]), select, textarea) { border-radius: var(--r-sm); background: var(--lux-raised); border-color: var(--c-line-control); color: var(--c-text); }
 
 .lux-nobr { white-space: nowrap; }
 .lux-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -114,12 +114,12 @@ html.lux .mobile-tabs { background: var(--lux-sunken); border-top: 0; }
 html.lux .mobile-tabs a { color: var(--lux-mute); }
 html.lux .mobile-tabs a[aria-current="page"] { color: var(--lux-ink); }
 
-html.lux .club-cookie-banner { background: var(--lux-raised); color: var(--lux-ink-2); border: 0; border-radius: 20px; box-shadow: none; }
+html.lux .club-cookie-banner { background: var(--lux-raised); color: var(--lux-ink-2); border: 0; border-radius: var(--r-lg); box-shadow: none; }
 html.lux .club-cookie-banner__btn { border-radius: 999px; }
 html.lux .club-cookie-banner__btn--primary { background: var(--c-accent); border-color: var(--c-accent); color: var(--c-on-accent); }
 html.lux .club-cookie-banner__btn--secondary { background: var(--lux-control); border-color: transparent; color: var(--lux-ink); }
 html.lux #install-app { border: 0; border-radius: 999px; background: var(--lux-ink); color: var(--lux-black); box-shadow: none; }
-html.lux :is(#site-dialog, #support-bot, #search-dialog) { border: 0; border-radius: 20px; background: var(--lux-raised); color: var(--lux-ink); box-shadow: none; }
+html.lux :is(#site-dialog, #support-bot, #search-dialog) { border: 0; border-radius: var(--r-lg); background: var(--lux-raised); color: var(--lux-ink); box-shadow: none; }
 html.lux :is(#site-dialog, #support-bot, #search-dialog)::backdrop { background: rgb(0 0 0 / 0.64); }
 html.lux #toast { border-radius: 999px; background: var(--lux-ink); color: var(--lux-black); box-shadow: none; }
 html.lux .site-notice { background: var(--lux-raised); color: var(--lux-ink-2); }

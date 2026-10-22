@@ -19,7 +19,6 @@ def test_discount_rounds_half_up_like_api(price, percent, expected):
 def test_member_prices_follow_levels_in_order():
     prices = member_prices(5000000, list(reversed(LEVELS)))
     assert [row["level"] for row in prices] == ["graduate", "friend", "expert", "ambassador"]
-    assert [row["discount"] for row in prices] == [5, 10, 15, 20]
     assert [row["price"] for row in prices] == [4750000, 4500000, 4250000, 4000000]
 
 

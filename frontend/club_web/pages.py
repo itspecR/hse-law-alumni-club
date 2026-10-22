@@ -5,7 +5,7 @@ from pathlib import Path
 from urllib.parse import quote, urlencode
 
 from club_web.calendar import google_calendar, instant, month_view
-from club_web.catalog import prepare_catalog
+from club_web.catalog import UPCOMING_LIMIT, prepare_catalog
 from club_web.changes import parse_changes, select_changes
 from club_web.client import ApiFailure
 from club_web.formatting import page_items, rub
@@ -13,7 +13,7 @@ from club_web.office import DESCRIPTIONS, FIELDS, GROUPS, ICONS, LABELS, METRICS
 from club_web.pricing import member_prices
 from club_web.search import search_groups
 
-HOME_PROGRAMS = 6
+HOME_EPISODES = 4
 PUBLIC_PAGES = {
     "/": ("home.html", "Клуб выпускников факультета права"),
     "/tg": ("mini.html", "Клуб выпускников"),
@@ -119,7 +119,7 @@ def with_member_prices(program, levels):
 def home_programs(programs, levels, today=None):
     catalog = prepare_catalog([item for item in programs if item.get("price") is not None], {}, today)
     starts = catalog["upcoming"]
-    shown = starts or [item for item in catalog["items"] if item.get("enrollment") == "actual"][:HOME_PROGRAMS]
+    shown = starts or [item for item in catalog["items"] if item.get("enrollment") == "actual"][:UPCOMING_LIMIT]
     return {
         "levels": sorted(levels, key=lambda level: level["sort"]),
         "home_starts": bool(starts),
@@ -194,7 +194,7 @@ async def context(api, path, params, authorized=False):
             key=lambda item: instant(item["starts_at"]),
         )[:2]
         data.update(home_programs(data["programs"], data["domain"]["levels"]))
-        data["episodes"] = page_items(data["podcasts"])
+        data["episodes"] = page_items(data["podcasts"])[:HOME_EPISODES]
         snapshot = parse_changes(resource("changes.json"))
         data["recent_changes"] = select_changes(
             snapshot["items"], {"view": "digest" if snapshot["mode"] == "channel" else "all"}

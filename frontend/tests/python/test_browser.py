@@ -553,6 +553,23 @@ def test_telegram_back_returns_to_previous_catalog(page):
     expect(page.get_by_role("searchbox", name="Поиск", exact=True)).to_have_value("Правовая")
 
 
+def test_telegram_colors_follow_dark_theme(page):
+    page.add_init_script(
+        "window.telegramColors={};window.Telegram={WebApp:{initData:'test',"
+        "setHeaderColor:c=>telegramColors.header=c,setBackgroundColor:c=>telegramColors.background=c,"
+        "setBottomBarColor:c=>telegramColors.bar=c,BackButton:{onClick(){}}}};"
+    )
+    page.goto("/tg")
+    page.wait_for_function("() => window.telegramColors.bar")
+    assert page.evaluate("window.telegramColors") == {"header": "#000000", "background": "#000000", "bar": "#0b0b0c"}
+
+
+def test_pwa_page_titles_use_column_width(page):
+    page.goto("/saved?pwa=1")
+    expect(page.locator("#site-stage")).to_have_css("width", "430px")
+    expect(page.locator("main h1").first).to_have_css("font-size", "40px")
+
+
 def test_corrupt_reading_data_is_not_overwritten(page):
     page.add_init_script("localStorage.setItem('club-reading-v1','broken-json');")
     page.goto("/news/news-one")

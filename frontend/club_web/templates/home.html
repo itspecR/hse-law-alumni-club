@@ -10,7 +10,7 @@
 <div class="lux-hero__stage">
 <h1 class="lux-hero__title" id="lux-hero-title" style="--hero-chars:{{ hero_chars }}">
 <span class="lux-hero__word lux-hero__word--l">{% for word in title_pre.split() %}<span class="lux-hero__line"><span style="--i:{{ loop.index0 }}">{{ word }}</span></span> {% endfor %}</span>
-<span class="lux-hero__word lux-hero__word--r">{% for word in title_accent.split() %}<span class="lux-hero__line"><span style="--i:{{ loop.index0 + 2 }}">{{ word }}</span></span> {% endfor %}</span>
+<span class="lux-hero__word lux-hero__word--r">{% for word in title_accent.split() %}<span class="lux-hero__line"><span style="--i:{{ loop.index0 + title_pre.split()|length }}">{{ word }}</span></span> {% endfor %}</span>
 </h1>
 <div class="lux-hero__figure">{% include 'themis.html' %}</div>
 <div class="lux-hero__foot">
@@ -49,7 +49,7 @@
 <div class="lux-tile lux-calc lux-reveal" style="--d:2">
 <fieldset class="lux-calc__levels">
 <legend class="lux-calc__label">Уровень в&nbsp;клубе</legend>
-<div class="lux-seg">
+<div class="lux-seg" style="--seg-n:{{ levels|length }}">
 <span class="lux-seg__thumb" aria-hidden="true"></span>
 {% for level in levels %}
 <label class="lux-seg__opt"><input type="radio" name="member-level" value="{{ level.key }}" data-level-title="{{ level.title }}" data-level-discount="{{ level.discount_percent }}"{% if loop.first %} checked{% endif %}><span>{{ level.title }} <b>{{ level.discount_percent }}%</b></span></label>
@@ -144,7 +144,7 @@
 <h3 class="lux-tile__title" id="lux-pod-title">Подкасты клуба</h3>
 <p class="lux-tile__lede">Пробный выпуск открыт всем, остальные&nbsp;— по&nbsp;подписке: <span class="lux-nobr">{{ domain.limits.podcast_year_price|rub }}</span> за&nbsp;12&nbsp;месяцев.</p>
 <ul class="lux-eps">
-{% for episode in episodes[:4] %}
+{% for episode in episodes %}
 <li><a class="foc" href="/podcasts/{{ episode.id }}"><span>{{ episode.title }}</span><span>{{ episode.duration or '' }}{% if episode.is_free %} · открыт{% endif %}</span></a></li>
 {% endfor %}
 </ul>

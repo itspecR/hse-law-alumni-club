@@ -805,6 +805,5 @@ button[aria-disabled="true"],
 @media(max-width:768px) { .alumni-opportunities__grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:480px) { .alumni-opportunities__grid { grid-template-columns:minmax(0,1fr); } .alumni-opportunities { margin:28px 0; } }
 
-.home .alumni-opportunities { width: calc(100% - 40px); max-width: var(--container); margin: 48px auto; }
 
 @media (max-width: 600px) { .club-support-page { padding-inline: var(--page-gutter); } }

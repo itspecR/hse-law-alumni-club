@@ -1,10 +1,10 @@
 import { hidePastStarts } from "./catalog.js";
 
-const FAR_FROM = 0.42;
 const REVEAL_MARGIN = "0px 0px -8% 0px";
 const FOCUS_GAP = 8;
 const reduce = matchMedia("(prefers-reduced-motion: reduce)");
 let hero = null;
+let farFrom = 1;
 let queued = false;
 let revealer = null;
 let watcher = null;
@@ -20,7 +20,7 @@ function paintHero() {
   if (!hero?.isConnected) return;
   const progress = reduce.matches ? 0 : heroProgress();
   hero.style.setProperty("--p", progress.toFixed(4));
-  hero.classList.toggle("is-far", progress > FAR_FROM);
+  hero.classList.toggle("is-far", progress > farFrom);
 }
 
 function requestHero() {
@@ -54,8 +54,9 @@ function swap(node, text) {
   node.classList.add("is-swap");
 }
 
-function showLevel(rows, input) {
+function showLevel(rows, input, inputs) {
   rows.forEach(row => swap(row.querySelector("[data-member-price]"), JSON.parse(row.dataset.memberPrices)[input.value]));
+  input.closest(".lux-seg")?.style.setProperty("--seg-i", String(inputs.indexOf(input)));
 }
 
 function prepareLevels(root) {
@@ -63,11 +64,11 @@ function prepareLevels(root) {
   const status = root.querySelector("[data-level-status]");
   const inputs = [...root.querySelectorAll("input[name='member-level']")];
   inputs.forEach(input => input.addEventListener("change", () => {
-    showLevel(rows, input);
+    showLevel(rows, input, inputs);
     if (status) status.textContent = "Уровень «" + input.dataset.levelTitle + "»: скидка " + input.dataset.levelDiscount + "%, цены выпускника пересчитаны.";
   }));
   const chosen = inputs.find(input => input.checked);
-  if (chosen) showLevel(rows, chosen);
+  if (chosen) showLevel(rows, chosen, inputs);
 }
 
 function keepRowsVisible(root) {
@@ -88,6 +89,7 @@ function watchHero() {
 export function prepareHome() {
   const root = document.querySelector(".lux-home");
   hero = root?.querySelector(".lux-hero") || null;
+  if (hero) farFrom = parseFloat(getComputedStyle(hero).getPropertyValue("--far")) || farFrom;
   if (!root || root.dataset.homeReady) { requestHero(); return; }
   root.dataset.homeReady = "true";
   hidePastStarts(root);
