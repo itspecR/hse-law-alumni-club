@@ -92,6 +92,19 @@ html.vis .lux-disclosure > summary::after { color: var(--vis-fg); font-weight: 4
 html.lux.vis .lux-btn.lux-btn--ghost[aria-pressed="true"] { background-color: var(--vis-fg) !important; color: var(--vis-bg) !important; }
 html.vis :is(.site-checkbox, .dpo-starts-grid article):has(:focus-visible) { outline-color: var(--vis-fg); }
 
+html.lux :is(.cabinet-page, .cart-page, .program-page, .product-page) .site-two-col > aside.site-panel { padding: clamp(24px, 2.6cqi, 32px); border: 0; border-radius: var(--r-lg); background: var(--c-bg-raised); }
+html.lux :is(.cabinet-page, .cart-page, .program-page, .product-page) .site-two-col > aside.site-panel h2, html.lux .mini-membership h2 { font: 200 28px/1.1 var(--f-display); letter-spacing: -0.03em; }
+html.lux :is(.cart-page, .program-page, .product-page) .site-two-col > aside.site-panel :is(.lux-price, .site-price) { font-size: 32px; font-weight: 400; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+html.lux :is(.cabinet-page .site-two-col > div > section > h2, :is(.program-page, .product-page) .site-two-col > div > section h2) { font: 200 clamp(26px, 2.6cqi, 34px)/1.12 var(--f-display); letter-spacing: -0.03em; font-kerning: none; }
+html.lux :is(.cabinet-gate__form, .club-auth__card, .cart-page .site-two-col > aside.site-panel, .mini-membership) .site-primary, html.lux .mini-home > .site-primary[data-action="leave-mini"] { width: 100%; min-height: 48px; }
+html.lux :is(.cabinet-gate__form .site-actions a, .club-auth__card .site-actions a, :is(.catalog-page, .saved-page) .site-filters > a) { display: inline-flex; align-items: center; min-height: 44px; color: var(--c-text-3); text-decoration: none; }
+@media (hover: hover) and (pointer: fine) {
+  html.lux .cabinet-gate__form .site-actions a:hover { color: var(--c-text); }
+}
+@container club-layout (min-width: 901px) {
+  html.lux :is(.cart-page, .program-page, .product-page) .site-two-col > aside.site-panel, html.lux .club-auth__aside--photo { position: sticky; top: calc(var(--lux-header) + 24px); }
+}
+
 html.lux .site-container { max-width: var(--container); }
 html.lux .club-header { background: var(--lux-black); border-bottom: 0; backdrop-filter: none; -webkit-backdrop-filter: none; animation: none; box-shadow: none; }
 html.lux .club-header__inner { max-width: var(--container); height: var(--lux-header); padding: 0 var(--page-gutter); gap: 28px; }

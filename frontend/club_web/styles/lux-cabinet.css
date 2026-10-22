@@ -10,9 +10,8 @@ html.lux .cabinet-gate__form { display: grid; align-content: start; gap: 14px; p
 html.lux .cabinet-gate__form h1 { margin: 0; font-size: clamp(28px, 3cqi, 36px); }
 html.lux .cabinet-gate__form > p { margin: 0 0 6px; color: var(--c-text-3); }
 html.lux .cabinet-gate__form > label { font-size: 15px !important; letter-spacing: 0 !important; text-transform: none !important; color: var(--c-text-3); }
-html.lux .cabinet-gate__form .site-primary { width: 100%; min-height: 48px; margin-top: 6px; }
+html.lux .cabinet-gate__form .site-primary { margin-top: 6px; }
 html.lux .cabinet-gate__form .site-actions { justify-content: space-between; margin: 4px 0 0; }
-html.lux .cabinet-gate__form .site-actions a { display: inline-flex; align-items: center; min-height: 44px; color: var(--c-text-3); text-decoration: none; }
 
 html.lux .club-auth__aside h2 { font: 200 clamp(32px, 3.6cqi, 48px)/1.06 var(--f-display); letter-spacing: -0.04em; font-kerning: none; }
 
@@ -25,15 +24,14 @@ html.lux .cabinet-stats dd { margin: 0; font: 200 32px/1.05 var(--f-display); le
 html.lux .cabinet-stats .cabinet-stats__wide { grid-column: 1 / -1; }
 html.lux .cabinet-stats__next { display: block; margin-top: 6px; font: 400 14px/1.3 var(--f-body); letter-spacing: 0; color: var(--c-text-3); }
 html.lux .cabinet-stats .cabinet-stats__code dd { font: 500 19px/1.3 var(--f-body); letter-spacing: 0.04em; }
-html.lux .cabinet-page aside.site-panel { padding: clamp(24px, 2.6cqi, 32px); border: 0; border-radius: var(--r-lg); background: var(--c-bg-raised); }
-html.lux .cabinet-page aside.site-panel h2 { margin: 0 0 18px; font: 200 28px/1.1 var(--f-display); letter-spacing: -0.03em; }
+html.lux .cabinet-page aside.site-panel h2 { margin: 0 0 18px; }
 html.lux .cabinet-page aside.site-panel h3 { margin: 28px 0 12px; font: 600 15px/1.3 var(--f-body); color: var(--c-text-3); }
 html.lux .cabinet-page aside.site-panel > p { color: var(--c-text-3); font-size: 15px; }
 html.lux .cabinet-page aside.site-panel > button { margin: 8px 8px 0 0; }
 html.lux .cabinet-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; padding: 0; }
 html.lux .cabinet-nav a { display: inline-flex; align-items: center; flex: none; min-height: 44px; padding: 0 18px; border-radius: 999px; background: var(--lux-control); color: var(--c-text); font-size: 15px; text-decoration: none; }
 html.lux .cabinet-page .site-two-col > div > section { margin-top: clamp(40px, 5cqi, 56px); }
-html.lux .cabinet-page .site-two-col > div > section > h2 { margin: 0 0 18px; font: 200 clamp(26px, 2.6cqi, 34px)/1.12 var(--f-display); letter-spacing: -0.03em; font-kerning: none; }
+html.lux .cabinet-page .site-two-col > div > section > h2 { margin: 0 0 18px; }
 html.lux .cabinet-page .site-two-col > div > section > h3 { margin: 28px 0 12px; font: 600 15px/1.3 var(--f-body); color: var(--c-text-3); }
 html.lux .cabinet-page .site-two-col > div .site-panel { padding: 20px 24px; border: 0; border-radius: var(--r-lg); background: var(--c-bg-raised); }
 html.lux .cabinet-page .site-two-col > div .site-panel h3 { margin: 0 0 6px; font: 500 19px/1.3 var(--f-body); }
@@ -44,7 +42,6 @@ html.lux .cabinet-page .site-two-col > div a:not(.lux-btn) { color: var(--c-text
 @media (hover: hover) and (pointer: fine) {
   html.lux .cabinet-nav a:hover { background: var(--lux-hover); }
   html.lux .cabinet-page .site-two-col > div a:not(.lux-btn):hover { text-decoration-color: currentColor; }
-  html.lux .cabinet-gate__form .site-actions a:hover { color: var(--c-text); }
 }
 @media (max-width: 700px) {
   html.lux .cabinet-gate { margin: 16px 0 32px; }
@@ -56,7 +53,7 @@ html.lux .club-auth { padding: clamp(32px, 5cqi, 72px) var(--page-gutter) 96px; 
 html.lux .club-auth:not(.club-auth--split) .club-auth__card { max-width: var(--lux-form); }
 html.lux .club-auth:not(.club-auth--split) .club-auth__card h1 { font-size: clamp(32px, 4cqi, 44px); }
 html.lux .club-auth--split { gap: clamp(32px, 4cqi, 64px); max-width: var(--container); margin: 0 auto; }
-html.lux .club-auth__aside--photo { position: sticky; top: calc(var(--lux-header) + 24px); background: none; overflow: visible; }
+html.lux .club-auth__aside--photo { background: none; overflow: visible; }
 html.lux .club-auth__aside--photo img { position: static; border-radius: var(--r-tile); }
 html.lux .club-auth__aside-copy { padding: 32px 0 0; }
 html.lux .club-auth__aside li { border-color: var(--c-line); color: var(--c-text-2); }
@@ -66,13 +63,8 @@ html.lux .club-auth__card .site-panel { width: 100%; padding: clamp(28px, 4cqi, 
 html.lux .club-auth__card h1 { margin: 0 0 12px; }
 html.lux .club-auth__card .site-panel > p { color: var(--c-text-3); }
 html.lux .club-auth__card form { display: grid; gap: 14px; }
-html.lux .club-auth__card .site-primary { width: 100%; min-height: 48px; }
 html.lux .club-auth__card .site-actions { justify-content: space-between; margin-top: 20px; }
-html.lux .club-auth__card .site-actions a { display: inline-flex; align-items: center; min-height: 44px; color: var(--c-text-3); text-decoration: none; }
 html.lux .club-auth__card details { margin-top: 12px; color: var(--c-text-3); }
-@media (max-width: 900px) {
-  html.lux .club-auth__aside--photo { position: relative; top: auto; }
-}
 
 html.lux :is(.club-auth__card, .profile-page) fieldset { margin: 6px 0 0; padding: 0; border: 0; }
 html.lux :is(.club-auth__card, .profile-page) legend { margin-bottom: 10px; padding: 0; font-size: 15px; color: var(--c-text-3); }
@@ -98,13 +90,9 @@ html.lux .cart-page .site-cart-row h2 { margin: 0 0 6px; font: 400 21px/1.3 var(
 html.lux .cart-page .site-cart-row p { margin: 0; color: var(--c-text-3); font-variant-numeric: tabular-nums; }
 html.lux .cart-page .site-cart-row form label { font-size: 13px; color: var(--c-text-3); }
 html.lux .cart-page .site-two-col > div > button { margin-top: 16px; }
-html.lux .cart-page .site-two-col > aside.site-panel { display: grid; gap: 10px; padding: clamp(24px, 2.6cqi, 32px); border: 0; border-radius: var(--r-lg); background: var(--c-bg-raised); }
-html.lux .cart-page .site-two-col > aside.site-panel h2 { margin: 0; font: 200 28px/1.1 var(--f-display); letter-spacing: -0.03em; }
-html.lux .cart-page .site-two-col > aside.site-panel .site-price { margin: 4px 0; font-size: 32px; font-weight: 400; letter-spacing: -0.02em; }
+html.lux .cart-page .site-two-col > aside.site-panel { display: grid; gap: 10px; }
+html.lux .cart-page .site-two-col > aside.site-panel h2 { margin: 0; }
+html.lux .cart-page .site-two-col > aside.site-panel .site-price { margin: 4px 0; }
 html.lux .cart-page .site-two-col > aside.site-panel > p { margin: 0; color: var(--c-text-3); font-size: 15px; }
 html.lux .cart-page .site-two-col > aside.site-panel form { display: grid; gap: 14px; margin-top: 12px; }
-html.lux .cart-page .site-two-col > aside.site-panel .site-primary { width: 100%; min-height: 48px; }
 html.lux .cart-page .site-empty + .site-actions { gap: 12px 28px; }
-@media (min-width: 901px) {
-  html.lux .cart-page .site-two-col > aside.site-panel { position: sticky; top: calc(var(--lux-header) + 24px); }
-}

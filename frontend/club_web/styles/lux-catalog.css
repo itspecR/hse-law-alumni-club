@@ -23,7 +23,6 @@ html.lux .dpo-starts-grid p { margin: 0; font-size: 17px; font-weight: 400; font
 html.lux :is(.catalog-page, .saved-page) .site-filters { gap: 12px 16px; padding: 24px 0; border-color: var(--c-line); }
 html.lux :is(.catalog-page, .saved-page) .site-filters label { font-size: 13px; color: var(--c-text-3); }
 html.lux :is(.catalog-page, .saved-page) .site-filters :is(input, select) { margin-top: 6px; font-size: 16px; }
-html.lux :is(.catalog-page, .saved-page) .site-filters > a { display: inline-flex; align-items: center; min-height: 44px; color: var(--c-text-3); text-decoration: none; }
 
 html.lux .catalog-page .site-catalog { gap: 56px 24px; margin: 28px 0 64px; }
 html.lux .catalog-page .site-catalog-card { display: flex; flex-direction: column; border-top: 0; overflow: visible; }

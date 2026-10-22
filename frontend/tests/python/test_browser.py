@@ -1440,6 +1440,7 @@ def test_program_panel_actions_have_gap(page, site, width):
     link = panel.locator(".site-primary").bounding_box()
     save = panel.locator(".save-material").bounding_box()
     assert save["y"] - (link["y"] + link["height"]) >= 8
+    expect(panel).to_have_css("position", "sticky" if width > 900 else "static")
 
 
 def test_pwa_column_uses_phone_gutter(page):
@@ -1448,6 +1449,8 @@ def test_pwa_column_uses_phone_gutter(page):
     main = page.locator("#main").bounding_box()
     expect(page.locator(".mini-home")).to_have_css("padding-left", "16px")
     assert main["width"] <= 430
+    page.goto("/dpo/course-one?pwa=1")
+    expect(page.locator(".site-two-col > aside.site-panel")).to_have_css("position", "static")
     page.goto("/join?pwa=1")
     assert page.evaluate(
         "document.querySelector('#site-stage').scrollWidth <= document.querySelector('#site-stage').clientWidth + 1"
