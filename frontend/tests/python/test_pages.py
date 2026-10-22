@@ -3,7 +3,7 @@ import re
 import httpx
 import pytest
 
-from club_web.formatting import payment_url, safe_url
+from club_web.formatting import payment_url, rub, safe_url
 from club_web.main import create_app
 from club_web.pages import OFFICE_NAV, PUBLIC_PAGES
 
@@ -317,6 +317,11 @@ async def test_home_uses_only_sourced_photos(browser_client):
     response = await browser_client.get("/")
     photos = set(re.findall(r"assets/photos/club/([a-z]+)-", response.text))
     assert photos == {"graduates", "meeting", "conversation", "voice"}
+
+
+async def test_cart_line_has_no_empty_variant(browser_client):
+    response = await browser_client.get("/cart", headers={"x-cart-session": "cart-test"})
+    assert f"<p>{rub(PRODUCT['price'])}</p>" in response.text
 
 
 async def test_office_keeps_light_theme(browser_client):

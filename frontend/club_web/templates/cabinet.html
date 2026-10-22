@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import login,empty %}
 {% block content %}
-<main id="main" class="site-container">
+<main id="main" class="site-container cabinet-page">
 {% if not me or access_error %}{{ login(next=query.get('next','')) }}{% else %}
 <header class="site-masthead">
 <h1>{{ me.alumni.fio or 'Личный кабинет' }}</h1>
 <p>Выпуск {{ me.alumni.cohort }} · {{ me.alumni.edu_program or '' }}</p>
 <div class="site-actions">
-<a href="/lk/profile">Профиль</a>
-<button data-action="logout">Выйти</button>
+<a href="/lk/profile" class="foc lux-btn lux-btn--ghost lux-btn--sm">Профиль</a>
+<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="logout">Выйти</button>
 </div>
 </header>
 {% if me.alumni.verification_status != 'verified' %}
@@ -22,22 +22,14 @@
 <div class="site-two-col">
 <aside class="site-panel">
 <h2>Участие в клубе</h2>
-<dl>
-<dt>Уровень</dt>
-<dd>{{ me.level.level_title }}</dd>
-<dt>Баллы</dt>
-<dd>{{ me.level.points }}</dd>
-<dt>Скидка на ДПО</dt>
-<dd>{{ me.level.discount }}%</dd>
-{% if me.level.next_level %}
-<dt>До «{{ me.level.next_level }}»</dt>
-<dd>{{ me.level.to_next }} баллов</dd>
-{% endif %}
-<dt>Код приглашения</dt>
-<dd>{{ me.alumni.referral_code }}</dd>
+<dl class="cabinet-stats">
+<div class="cabinet-stats__wide"><dt>Уровень</dt><dd>{{ me.level.level_title }}{% if me.level.next_level %}<span class="cabinet-stats__next">До «{{ me.level.next_level }}» — {{ me.level.to_next }}&nbsp;баллов</span>{% endif %}</dd></div>
+<div><dt>Баллы</dt><dd>{{ me.level.points }}</dd></div>
+<div><dt>Скидка на ДПО</dt><dd>{{ me.level.discount }}%</dd></div>
+<div class="cabinet-stats__wide cabinet-stats__code"><dt>Код приглашения</dt><dd>{{ me.alumni.referral_code }}</dd></div>
 </dl>
 <p>По вашему приглашению: подтверждено {{ me.alumni.referrals_verified or 0 }}, на проверке {{ me.alumni.referrals_pending or 0 }}.</p>
-<button data-action="copy-invite" data-code="{{ me.alumni.referral_code }}">Скопировать приглашение</button>
+<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="copy-invite" data-code="{{ me.alumni.referral_code }}">Скопировать приглашение</button>
 {% if me.activity %}
 <h3>Активность за полгода</h3>
 <div class="site-chart">
@@ -52,10 +44,10 @@
 <p>{{ '★' if achievement.earned else '○' }} {{ achievement.title }} · {{ achievement.current }}/{{ achievement.target }}</p>
 {% endfor %}
 {% endif %}
-<button data-action="push-subscribe">Включить уведомления</button>
+<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="push-subscribe">Включить уведомления</button>
 </aside>
 <div>
-<nav class="site-actions" aria-label="Разделы кабинета">
+<nav class="cabinet-nav" aria-label="Разделы кабинета">
 <a href="#club-overview">Обзор</a><a href="#orders">Мои заявки</a><a href="#community">Сообщество</a><a href="#achievements">Достижения</a>
 </nav>
 <section id="club-overview">

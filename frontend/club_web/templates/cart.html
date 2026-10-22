@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import field,consent,empty %}
 {% block content %}
-<main id="main" class="site-container">
+<main id="main" class="site-container cart-page">
 <header class="site-masthead">
 <h1>Корзина</h1>
 <p>Заявки на программы ДПО и мерч клуба.</p>
@@ -13,7 +13,7 @@
 <article class="site-cart-row">
 <div>
 <h2>{{ item.title }}</h2>
-<p>{{ item.variant_sku or '' }} · {{ item.price|rub }}</p>
+<p>{{ [item.variant_sku, item.price|rub]|select|join(' · ') }}</p>
 </div>
 <form data-api="/cart" data-method="PATCH" data-cart>
 <input type="hidden" name="type" value="{{ item.type }}">
@@ -50,7 +50,7 @@
 </div>
 {% else %}{{ empty('В корзине пока ничего нет.') }}<div class="site-actions">
 <a href="/dpo" class="site-primary">Выбрать программу</a>
-<a href="/merch">Мерч клуба</a>
+<a href="/merch" class="foc lux-more">Мерч клуба <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </div>
 {% endif %}
 </main>

@@ -1293,6 +1293,33 @@ def test_header_navigation_follows_layout_width(chromium, site, zoom, nav):
     context.close()
 
 
+@pytest.mark.parametrize("width", [390, 1440])
+def test_cabinet_stats_and_sections(page, site, width):
+    site[1]["/me"] = {**PROFILE, "level": {**PROFILE["level"], "next_level": "Друг клуба", "to_next": 100}}
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk")
+    stats = page.locator(".cabinet-stats")
+    expect(stats.locator("dt")).to_have_text(["Уровень", "Баллы", "Скидка на ДПО", "Код приглашения"])
+    expect(stats.locator(".cabinet-stats__next")).to_have_text("До «Друг клуба» — 100\u00a0баллов")
+    for link in page.get_by_role("navigation", name="Разделы кабинета").get_by_role("link").all():
+        assert link.bounding_box()["height"] >= 44
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_login_and_join_layout(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/lk")
+    expect(page.get_by_text("Почта", exact=True)).to_have_css("text-transform", "none")
+    expect(page.get_by_role("heading", name="Ваше место в клубе", exact=True)).to_be_visible()
+    page.goto("/join")
+    photo = page.locator(".club-auth__aside img").bounding_box()
+    copy = page.locator(".club-auth__aside-copy").bounding_box()
+    assert copy["y"] >= photo["y"] + photo["height"] - 1
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
 def test_home_without_javascript_shows_graduate_prices(chromium, site):
     context = chromium.new_context(base_url=site[0], viewport={"width": 390, "height": 844}, java_script_enabled=False)
     page = context.new_page()
