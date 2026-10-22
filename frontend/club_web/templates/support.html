@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import field %}
 {% block content %}
-<main id="main" class="site-article">
+<main id="main" class="site-article support-page">
 <header class="site-masthead">
 <h1>Поддержка клуба</h1>
 <p>Ответы на частые вопросы и обращение в учебный офис.</p>
 </header>
-<button data-action="support">Спросить бота</button>
+<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="support">Спросить бота</button>
 <section>
 <h2>Частые вопросы</h2>
 {% for answer in faq.answers %}

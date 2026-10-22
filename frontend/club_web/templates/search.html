@@ -5,7 +5,7 @@
 <form role="search">
 <label>Программа, новость или изменение в праве<input type="search" name="q" minlength="2" maxlength="200" value="{{ query.get('q','') }}" autofocus>
 </label>
-<button>Найти</button>
+<button class="lux-btn">Найти</button>
 </form>
 {% if query.get('q','')|length < 2 %}
 <p>Введите хотя бы две буквы.</p>

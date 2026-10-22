@@ -49,6 +49,7 @@ html.lux, html.lux .club-dark {
 html.lux { scroll-padding-top: calc(var(--lux-header) + 20px); }
 html.lux body { background: var(--c-bg); color: var(--c-text); -webkit-font-smoothing: antialiased; }
 html.lux h1 { font-weight: 200; letter-spacing: -0.035em; }
+html.lux :is(h1, h2, h3) a:not(.lux-btn) { color: var(--c-text); text-decoration: underline 1px transparent; text-underline-offset: 5px; transition: text-decoration-color 160ms ease; }
 html.lux :is(h2, h3) { letter-spacing: -0.02em; }
 html.lux :is(h1, .lux-h2, .lux-hero__title, .lux-step h3, .lux-tile__title, .lux-voice blockquote p, .lux-hero__next, .club-menu a, .club-menu button) { font-kerning: none; }
 html.lux .club-caps { text-transform: none; letter-spacing: -0.01em; font-weight: 400; font-size: 14px; }
@@ -136,6 +137,7 @@ html.lux .site-notice { background: var(--lux-raised); color: var(--lux-ink-2); 
   .lux-more:hover { text-decoration-color: currentColor; }
   .lux-more:hover .lux-more__arrow { transform: translateX(3px); }
   .lux-back:hover { color: var(--c-text); }
+  html.lux :is(h1, h2, h3) a:not(.lux-btn):hover { text-decoration-color: currentColor; }
 }
 
 @container club-layout (min-width: 1101px) {

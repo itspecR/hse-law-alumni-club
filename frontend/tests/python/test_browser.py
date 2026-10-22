@@ -586,6 +586,39 @@ def test_mini_home_sections_and_photo(page):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
+@pytest.mark.parametrize("width", [390, 1440])
+def test_feed_calendar_events_and_headings(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/events?month=2026-11")
+    day = page.get_by_role("link", name=EVENT["title"], exact=True).first
+    box = day.bounding_box()
+    assert box["width"] >= 44 and box["height"] >= 44
+    event = page.locator(".site-event").first
+    assert event.locator(":scope > div").bounding_box()["width"] > event.bounding_box()["width"] / 2
+    heading = event.get_by_role("link", name=EVENT["title"], exact=True)
+    expect(heading).to_have_css("color", "rgb(245, 245, 247)")
+    page.goto("/news/news-one")
+    expect(page.get_by_role("link", name="Новости", exact=True).first).to_have_attribute("href", "/news")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_search_page_row_and_support_questions(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/search?q=право")
+    field = page.locator("#main").get_by_role("searchbox").bounding_box()
+    button = page.locator("#main").get_by_role("button", name="Найти", exact=True).bounding_box()
+    heading = page.get_by_role("heading", level=1).bounding_box()
+    assert abs(field["y"] + field["height"] / 2 - (button["y"] + button["height"] / 2)) < 2
+    assert heading["x"] >= 16 and button["x"] + button["width"] <= width - 16
+    page.goto("/support")
+    question = page.locator(".support-page details summary").first
+    assert question.bounding_box()["height"] >= 56
+    question.click()
+    expect(page.locator(".support-page details").first).to_have_attribute("open", "")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
 def test_corrupt_reading_data_is_not_overwritten(page):
     page.add_init_script("localStorage.setItem('club-reading-v1','broken-json');")
     page.goto("/news/news-one")
@@ -1135,6 +1168,7 @@ def test_changes_reader_navigation_preserves_list_return(page):
     second.click()
     page.get_by_role("link", name="← Все материалы", exact=True).click()
     expect(page.locator('[data-change-open="' + identifier + '"]')).to_be_focused()
+
 
 
 def test_mirror_reader_back_restores_focus(chromium, mirror_site):

@@ -8,13 +8,13 @@ html.lux :is(.program-page, .product-page) .site-two-col > div > section > ul > 
 html.lux :is(.program-page, .product-page) .site-two-col > div > section > ul > li:last-child { border-bottom: 1px solid var(--c-line); }
 html.lux :is(.program-page, .product-page) .site-program-cover { border-radius: var(--r-lg); }
 
-html.lux .program-page details { border-top: 1px solid var(--c-line); }
-html.lux .program-page details:last-of-type { border-bottom: 1px solid var(--c-line); }
-html.lux .program-page details summary { justify-content: space-between; gap: 16px; min-height: 56px; padding: 8px 0; font-size: 17px; font-weight: 500; list-style: none; }
-html.lux .program-page details summary::-webkit-details-marker { display: none; }
-html.lux .program-page details summary::after { content: "+"; flex: none; font: 200 26px/1 var(--f-display); color: var(--c-text-3); transition: transform 200ms var(--ease-out); }
-html.lux .program-page details[open] summary::after { transform: rotate(45deg); }
-html.lux .program-page details > :not(summary) { color: var(--c-text-3); }
+html.lux :is(.program-page, .support-page) details { border-top: 1px solid var(--c-line); }
+html.lux :is(.program-page, .support-page) details:last-of-type { border-bottom: 1px solid var(--c-line); }
+html.lux :is(.program-page, .support-page) details summary { justify-content: space-between; gap: 16px; min-height: 56px; padding: 8px 0; font-size: 17px; font-weight: 500; list-style: none; }
+html.lux :is(.program-page, .support-page) details summary::-webkit-details-marker { display: none; }
+html.lux :is(.program-page, .support-page) details summary::after { content: "+"; flex: none; font: 200 26px/1 var(--f-display); color: var(--c-text-3); transition: transform 200ms var(--ease-out); }
+html.lux :is(.program-page, .support-page) details[open] summary::after { transform: rotate(45deg); }
+html.lux :is(.program-page, .support-page) details > :not(summary) { color: var(--c-text-3); }
 
 html.lux .lux-teachers { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 32px 24px; }
 html.lux .lux-teachers article { display: grid; align-content: start; gap: 6px; }
