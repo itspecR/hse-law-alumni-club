@@ -1170,6 +1170,17 @@ def test_changes_reader_navigation_preserves_list_return(page):
     expect(page.locator('[data-change-open="' + identifier + '"]')).to_be_focused()
 
 
+def test_changes_return_focuses_item_opened_before_scripts(page):
+    page.goto("/changes?view=all")
+    page.locator("[data-change-open]").first.click()
+    expect(page.locator(".changes-page--reading[data-prepared]")).to_be_attached()
+    second = page.locator("[data-change-open]").nth(1)
+    identifier = second.get_attribute("data-change-open")
+    page.goto(second.get_attribute("href"))
+    expect(page.locator(".changes-page--reading[data-prepared]")).to_be_attached()
+    page.get_by_role("link", name="← Все материалы", exact=True).click()
+    expect(page.locator('[data-change-open="' + identifier + '"]')).to_be_focused()
+
 
 def test_mirror_reader_back_restores_focus(chromium, mirror_site):
     context = chromium.new_context(viewport={"width": 1440, "height": 1000})

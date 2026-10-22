@@ -1,5 +1,6 @@
 const normalized = value => String(value || "").toLocaleLowerCase("ru").replace(/ё/g, "е").trim();
 let searchReady = false;
+const CHANGES_RETURN = "club-changes-return";
 
 function prepareSearch(url, mirror) {
   const dialog = document.querySelector("#search-dialog");
@@ -78,6 +79,14 @@ function prepareSearch(url, mirror) {
   });
 }
 
+function rememberReadingItem(page) {
+  const current = page.querySelector("[data-change-open][aria-current='page']");
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(CHANGES_RETURN) || "null");
+    if (saved && current) sessionStorage.setItem(CHANGES_RETURN, JSON.stringify({ ...saved, focus: current.dataset.changeOpen }));
+  } catch {}
+}
+
 function prepareChanges(url) {
   const page = document.querySelector(".changes-page");
   if (!page || page.dataset.prepared) return;
@@ -109,22 +118,22 @@ function prepareChanges(url) {
   page.querySelectorAll("[data-change-open]").forEach(link => link.addEventListener("click", () => {
     try {
       const listURL = url("changes") + location.search;
-      const previous = JSON.parse(sessionStorage.getItem("club-changes-return") || "null");
-      sessionStorage.setItem("club-changes-return", JSON.stringify({ url: listURL, scroll: page.classList.contains("changes-page--reading") && previous?.url === listURL ? previous.scroll : scrollY, focus: link.dataset.changeOpen, unread: !!page.querySelector("[data-unread-filter]")?.checked }));
+      const previous = JSON.parse(sessionStorage.getItem(CHANGES_RETURN) || "null");
+      sessionStorage.setItem(CHANGES_RETURN, JSON.stringify({ url: listURL, scroll: page.classList.contains("changes-page--reading") && previous?.url === listURL ? previous.scroll : scrollY, focus: link.dataset.changeOpen, unread: !!page.querySelector("[data-unread-filter]")?.checked }));
     } catch {}
   }));
   if (!page.classList.contains("changes-page--reading")) {
     try {
-      const saved = JSON.parse(sessionStorage.getItem("club-changes-return") || "null");
+      const saved = JSON.parse(sessionStorage.getItem(CHANGES_RETURN) || "null");
       if (saved?.url?.replace(/\/(?=\?|$)/, "") === (location.pathname + location.search).replace(/\/(?=\?|$)/, "")) {
-        sessionStorage.removeItem("club-changes-return");
+        sessionStorage.removeItem(CHANGES_RETURN);
         const link = [...page.querySelectorAll("[data-change-open]")].find(link => link.dataset.changeOpen === saved.focus);
         if (link) requestAnimationFrame(() => { link.focus({ preventScroll: true }); scrollTo(0, Number(saved.scroll) || 0); });
         const unread = page.querySelector("[data-unread-filter]");
         if (unread) unread.checked = !!saved.unread;
       }
     } catch {}
-  }
+  } else rememberReadingItem(page);
   const copy = page.querySelector("[data-changes-copy]");
   copy?.addEventListener("click", async () => {
     const text = page.querySelector("[data-changes-text]").innerText;
