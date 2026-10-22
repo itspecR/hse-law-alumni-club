@@ -79,6 +79,7 @@ html.lux ::selection { background: var(--p-ohra); color: #111; }
 html.lux .lux-back + .site-masthead { padding-top: clamp(24px, 3cqi, 40px); }
 html.lux.vis :is(h1, h2, h3, .lux-hero__next, .lux-voice blockquote p, .club-menu a) { font-weight: 400; }
 
+html.lux .site-container { max-width: var(--container); }
 html.lux .club-header { background: var(--lux-black); border-bottom: 0; backdrop-filter: none; -webkit-backdrop-filter: none; animation: none; box-shadow: none; }
 html.lux .club-header__inner { max-width: var(--container); height: var(--lux-header); padding: 0 var(--page-gutter); gap: 28px; }
 html.lux .club-header__brand { gap: 12px; min-height: 44px; }
@@ -101,7 +102,7 @@ html.lux .club-menu [data-member-link] { justify-content: center; min-height: 48
 html.lux .club-menu button[data-action="vision"] { font-size: 17px; font-weight: 400; letter-spacing: 0; color: var(--lux-mute); }
 
 html.lux .club-footer { background: var(--lux-sunken); color: var(--lux-quiet); border-top: 0; }
-html.lux .club-footer__inner { max-width: var(--container); }
+html.lux .club-footer__inner { max-width: calc(var(--container) - 2 * var(--page-gutter)); }
 html.lux .club-footer__brand strong { font-family: var(--f-body); font-weight: 600; font-size: 15px; color: var(--lux-ink); letter-spacing: -0.01em; }
 html.lux .club-footer__brand p { color: var(--lux-quiet); font-size: 14px; }
 html.lux .club-footer__brand img { width: 40px; height: 40px; border-radius: 9px; }
@@ -136,7 +137,7 @@ html.lux .site-notice { background: var(--lux-raised); color: var(--lux-ink-2); 
   .lux-back:hover { color: var(--c-text); }
 }
 
-@media (min-width: 1101px) {
+@container club-layout (min-width: 1101px) {
   html.lux:not(.pwa-shell):not(.telegram-mini) .club-header__nav { display: flex; }
   html.lux:not(.pwa-shell):not(.telegram-mini) .club-header__burger { display: none; }
 }

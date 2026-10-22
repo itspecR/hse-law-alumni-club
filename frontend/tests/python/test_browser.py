@@ -1279,6 +1279,20 @@ def test_home_hero_stays_usable_without_scroll_scene(chromium, site, viewport, v
     context.close()
 
 
+@pytest.mark.parametrize("zoom,nav", [(None, "flex"), (1.4, "none")])
+def test_header_navigation_follows_layout_width(chromium, site, zoom, nav):
+    context = chromium.new_context(base_url=site[0], viewport={"width": 1280, "height": 900})
+    script = "localStorage.setItem('club_cookie_consent','essential');"
+    if zoom:
+        script += f"localStorage.setItem('club_vision', JSON.stringify({{on:true,zoom:{zoom},scheme:'bw'}}));"
+    context.add_init_script(script)
+    page = context.new_page()
+    page.goto("/dpo")
+    expect(page.locator(".club-header__nav")).to_have_css("display", nav)
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    context.close()
+
+
 def test_home_without_javascript_shows_graduate_prices(chromium, site):
     context = chromium.new_context(base_url=site[0], viewport={"width": 390, "height": 844}, java_script_enabled=False)
     page = context.new_page()
@@ -1297,7 +1311,7 @@ def test_home_photos_keep_people_in_frame(page, width, pwa):
     page.set_viewport_size({"width": width, "height": 1000})
     page.goto("/?pwa=1" if pwa else "/")
     expect(page.locator(".lux-themis")).to_be_visible()
-    for selector in (".lux-join__photo", ".lux-pair .lux-frame", ".lux-voice__photo", ".lux-law .lux-tile__media"):
+    for selector in (".lux-join__photo", ".lux-pair .lux-frame", ".lux-voice__photo"):
         frames = page.locator(selector).all()
         assert frames
         for frame in frames:

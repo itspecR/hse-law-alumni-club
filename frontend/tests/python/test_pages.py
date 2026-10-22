@@ -1,3 +1,5 @@
+import re
+
 import httpx
 import pytest
 
@@ -291,6 +293,30 @@ async def test_failed_home_data_is_not_saved_offline():
     assert "Программы не&nbsp;загрузились" in response.text
     assert "Программ в&nbsp;каталоге" not in response.text
     assert "data-starts-empty" not in response.text
+
+
+@pytest.mark.parametrize(
+    "hero,chars",
+    [({}, 8), ({"title_pre": "Клуб выпускников", "title_accent": "факультета права"}, 11)],
+)
+async def test_home_hero_words_fit_longest_word(hero, chars):
+    async def upstream(request):
+        if request.url.path == "/pages/home":
+            return httpx.Response(200, json={"blocks": {"hero": hero}})
+        return httpx.Response(200, json=[])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            response = await client.get("/")
+    assert f'style="--hero-chars:{chars}"' in response.text
+
+
+async def test_home_uses_only_sourced_photos(browser_client):
+    response = await browser_client.get("/")
+    photos = set(re.findall(r"assets/photos/club/([a-z]+)-", response.text))
+    assert photos == {"graduates", "meeting", "conversation", "voice"}
 
 
 async def test_office_keeps_light_theme(browser_client):

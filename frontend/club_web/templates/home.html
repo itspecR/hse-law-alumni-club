@@ -3,10 +3,12 @@
 {% set title_pre = hero.title_pre or 'Свои люди' %}
 {% set title_accent = hero.title_accent or 'после выпуска.' %}
 {% set join_label = cta.button or 'Вступить в клуб' %}
+{% set hero_word_floor = 8 %}
+{% set hero_chars = ([hero_word_floor] + (title_pre ~ ' ' ~ title_accent).split()|map('length')|list)|max %}
 <main id="main" class="lux-home">
 <section class="lux-hero" aria-labelledby="lux-hero-title">
 <div class="lux-hero__stage">
-<h1 class="lux-hero__title" id="lux-hero-title">
+<h1 class="lux-hero__title" id="lux-hero-title" style="--hero-chars:{{ hero_chars }}">
 <span class="lux-hero__word lux-hero__word--l">{% for word in title_pre.split() %}<span class="lux-hero__line"><span style="--i:{{ loop.index0 }}">{{ word }}</span></span> {% endfor %}</span>
 <span class="lux-hero__word lux-hero__word--r">{% for word in title_accent.split() %}<span class="lux-hero__line"><span style="--i:{{ loop.index0 + 2 }}">{{ word }}</span></span> {% endfor %}</span>
 </h1>
@@ -24,8 +26,8 @@
 
 <section class="lux-section lux-join" id="join-steps" aria-labelledby="lux-join-title">
 <div class="lux-wrap lux-join__head">
-<h2 class="lux-h2 lux-reveal" id="lux-join-title">{{ cta.title or 'Три шага, и вы в клубе.' }}</h2>
-<p class="lux-lede lux-reveal" style="--d:1">{{ cta.text or 'Проверка выпуска обычно занимает 1–2 рабочих дня.' }}</p>
+<h2 class="lux-h2 lux-reveal" id="lux-join-title">{{ cta.title or 'Три шага, и вы в клубе.' }}</h2>
+<p class="lux-lede lux-reveal" style="--d:1">{{ cta.text or 'Учебный офис сверит выпуск с реестром факультета. Обычно это 1–2 рабочих дня.' }}</p>
 </div>
 <figure class="lux-wrap lux-frame lux-join__photo lux-reveal" style="--d:2">
 <img src="{{ base }}assets/photos/club/graduates-1440.webp" srcset="{{ base }}assets/photos/club/graduates-900.webp 900w, {{ base }}assets/photos/club/graduates-1440.webp 1440w" sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 1180px) calc(100vw - 56px), 1124px" width="1440" height="960" alt="Выпускники факультета права на выпускном 2026 года" loading="lazy" decoding="async">
@@ -57,7 +59,7 @@
 {% if 'programs' in load_errors %}
 <p class="lux-calc__error" role="status">Программы не&nbsp;загрузились. Обновите страницу или откройте каталог.</p>
 {% else %}
-<h3 class="lux-calc__sub">{{ 'Ближайшие старты' if home_starts else 'Программы с открытым набором' }}</h3>
+<h3 class="lux-calc__sub">{{ 'Ближайшие старты' if home_starts else 'Программы с открытым набором' }}</h3>
 {% if home_programs %}
 <ul class="lux-progs">
 {% for program in home_programs %}
@@ -75,7 +77,7 @@
 {% endif %}
 <p class="lux-sr" role="status" data-level-status></p>
 <div class="lux-calc__foot">
-<p>Уровни: {% for level in levels[1:] %}{{ level.title }}&nbsp;— с&nbsp;{{ level.min_points }} баллов{{ ', ' if not loop.last else '' }}{% endfor %}. Личная скидка&nbsp;— ещё до&nbsp;{{ domain.limits.personal_discount_max }}%, всего не&nbsp;больше {{ domain.limits.member_discount_cap }}%. Итог считается при&nbsp;оформлении.</p>
+<p>Уровни: {% for level in levels[1:] %}{{ level.title }}&nbsp;— с&nbsp;{{ level.min_points }}&nbsp;баллов{{ ', ' if not loop.last else '' }}{% endfor %}. Личная скидка&nbsp;— ещё до&nbsp;{{ domain.limits.personal_discount_max }}%, всего не&nbsp;больше {{ domain.limits.member_discount_cap }}%. Итог считается при&nbsp;оформлении.</p>
 <a href="/dpo" class="foc lux-more">Весь каталог <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </div>
 </div>
@@ -86,7 +88,7 @@
 <div class="lux-wrap lux-split">
 <h2 class="lux-h2 lux-reveal" id="lux-meet-title">Встречи выпускников.</h2>
 <div class="lux-reveal" style="--d:1">
-<p class="lux-lede">27&nbsp;февраля 2026&nbsp;года выпускники разных лет собрались на&nbsp;первую встречу клуба и&nbsp;договорились о&nbsp;главном: сообщество, связь со&nbsp;студентами, поддержка карьеры.</p>
+<p class="lux-lede">27&nbsp;февраля 2026&nbsp;года на&nbsp;традиционной встрече выпускников обсудили развитие клуба на&nbsp;ближайшие 5–10&nbsp;лет. Лучшие идеи выбрали общим голосованием.</p>
 <div class="lux-links">
 <a href="https://pravo.hse.ru/news/1133936920.html" class="foc lux-more" target="_blank" rel="noopener noreferrer">Репортаж на&nbsp;pravo.hse.ru <span class="lux-more__arrow" aria-hidden="true">↗</span><span class="lux-sr">, откроется в&nbsp;новой вкладке</span></a>
 <a href="/events" class="foc lux-more">Все встречи <span class="lux-more__arrow" aria-hidden="true">›</span></a>
@@ -101,7 +103,7 @@
 </ul>
 {% endif %}
 <div class="lux-wrap lux-pair">
-<figure class="lux-reveal"><div class="lux-frame"><img src="{{ base }}assets/photos/club/meeting-1083.webp" srcset="{{ base }}assets/photos/club/meeting-800.webp 800w, {{ base }}assets/photos/club/meeting-1083.webp 1083w" sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 760px) calc(100vw - 56px), 552px" width="1083" height="714" alt="Выпускники факультета права на первой встрече клуба" loading="lazy" decoding="async"></div><figcaption>Первая встреча клуба, 27&nbsp;февраля 2026</figcaption></figure>
+<figure class="lux-reveal"><div class="lux-frame"><img src="{{ base }}assets/photos/club/meeting-1083.webp" srcset="{{ base }}assets/photos/club/meeting-800.webp 800w, {{ base }}assets/photos/club/meeting-1083.webp 1083w" sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 760px) calc(100vw - 56px), 552px" width="1083" height="714" alt="Выпускники факультета права на встрече 27 февраля 2026 года" loading="lazy" decoding="async"></div><figcaption>Встреча выпускников, 27&nbsp;февраля 2026</figcaption></figure>
 <figure class="lux-reveal" style="--d:1"><div class="lux-frame"><img src="{{ base }}assets/photos/club/conversation-1280.webp" srcset="{{ base }}assets/photos/club/conversation-800.webp 800w, {{ base }}assets/photos/club/conversation-1280.webp 1280w" sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 760px) calc(100vw - 56px), 552px" width="1280" height="853" alt="Выпускники факультета права общаются на встрече 15 февраля 2025 года" loading="lazy" decoding="async"></div><figcaption>Встреча выпускников, 15&nbsp;февраля 2025</figcaption></figure>
 </div>
 <figure class="lux-wrap lux-voice">
@@ -112,7 +114,7 @@
 </figure>
 {% if news %}
 <div class="lux-wrap lux-news">
-<h3 class="lux-reveal">Новости клуба</h3>
+<h3 class="lux-reveal">Новости</h3>
 <ul>
 {% for item in news %}
 <li class="lux-reveal" style="--d:{{ loop.index }}"><a class="foc" href="/news/{{ item.slug }}"><time>{{ item.published_at|date }}</time><span>{{ item.title }}</span></a></li>
@@ -127,7 +129,7 @@
 <div class="lux-wrap"><h2 class="lux-h2 lux-reveal" id="lux-read-title">Право и&nbsp;подкасты.</h2></div>
 <div class="lux-wrap lux-bento">
 <article class="lux-tile lux-law lux-reveal" aria-labelledby="lux-law-title">
-<div class="lux-tile__media"><img src="{{ base }}assets/photos/club/facade-1600.webp" srcset="{{ base }}assets/photos/club/facade-900.webp 900w, {{ base }}assets/photos/club/facade-1600.webp 1600w" sizes="(max-width: 760px) 100vw, 560px" width="1600" height="1000" alt="Бронзовая Фемида с весами у входа в здание Высшей школы экономики" loading="lazy" decoding="async"></div>
+<div class="lux-tile__media lux-cover lux-cover--law" aria-hidden="true"><span>§</span></div>
 <h3 class="lux-tile__title" id="lux-law-title">Изменения в&nbsp;праве</h3>
 <p class="lux-tile__lede">Справки, обзоры и&nbsp;опубликованные правовые акты.</p>
 <ul class="lux-acts">
@@ -138,7 +140,7 @@
 <a href="/changes" class="foc lux-more lux-tile__end">Все изменения <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </article>
 <article class="lux-tile lux-pod lux-reveal" style="--d:1" id="podcasts-preview" aria-labelledby="lux-pod-title">
-<div class="lux-tile__media lux-pod__cover"><img src="{{ base }}assets/themis-figure.svg" width="313" height="549" alt="" loading="lazy" decoding="async"></div>
+<div class="lux-tile__media lux-cover"><img src="{{ base }}assets/themis-figure.svg" width="313" height="549" alt="" loading="lazy" decoding="async"></div>
 <h3 class="lux-tile__title" id="lux-pod-title">Подкасты клуба</h3>
 <p class="lux-tile__lede">Пробный выпуск открыт всем, остальные&nbsp;— по&nbsp;подписке: <span class="lux-nobr">{{ domain.limits.podcast_year_price|rub }}</span> за&nbsp;12&nbsp;месяцев.</p>
 <ul class="lux-eps">
