@@ -51,7 +51,7 @@ html.lux .cabinet-page .site-two-col > div a:not(.lux-btn) { color: var(--c-text
 
 html.lux .club-auth { padding: clamp(32px, 5cqi, 72px) var(--page-gutter) 96px; }
 html.lux .club-auth:not(.club-auth--split) .club-auth__card { max-width: var(--lux-form); }
-html.lux .club-auth:not(.club-auth--split) .club-auth__card h1 { font-size: clamp(32px, 4cqi, 44px); }
+html.lux .club-auth:not(.club-auth--split) .club-auth__card h1 { font-size: min(var(--t-h1-page), clamp(32px, 4cqi, 44px)); }
 html.lux .club-auth--split { gap: clamp(32px, 4cqi, 64px); max-width: var(--container); margin: 0 auto; }
 html.lux .club-auth__aside--photo { background: none; overflow: visible; }
 html.lux .club-auth__aside--photo img { position: static; border-radius: var(--r-tile); }
@@ -78,7 +78,7 @@ html.lux .profile-page .site-masthead { padding-bottom: 24px; }
 html.lux .profile-page form { display: grid; gap: 16px; margin-bottom: 8px; }
 html.lux .profile-page form > button { justify-self: start; }
 html.lux .profile-page section { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--c-line); }
-html.lux .profile-page section h2 { margin: 0 0 12px; font: 200 clamp(26px, 2.6cqi, 32px)/1.12 var(--f-display); letter-spacing: -0.03em; font-kerning: none; }
+html.lux .profile-page section > h2 { margin: 0 0 12px; }
 html.lux .profile-page section > p { color: var(--c-text-3); }
 html.lux .profile-page details summary { margin-top: 20px; color: var(--c-danger-text); }
 html.lux .site-avatar { border-radius: 50%; }

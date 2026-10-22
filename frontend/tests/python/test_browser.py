@@ -28,8 +28,8 @@ TELEGRAM_COLORS = (
     "setHeaderColor:c=>telegramColors.header=c,setBackgroundColor:c=>telegramColors.background=c,"
     "setBottomBarColor:c=>telegramColors.bar=c,BackButton:{onClick(){}}}};"
 )
-WORDS_UNBROKEN = """selector => {
-    const text = document.querySelector(selector).firstChild;
+WORDS_UNBROKEN = """node => {
+    const text = node.firstChild;
     return [...text.textContent.matchAll(/\\S+/g)].every(word => {
         const range = document.createRange();
         range.setStart(text, word.index);
@@ -625,7 +625,7 @@ def test_feed_calendar_events_and_headings(page, width):
     heading = event.get_by_role("link", name=EVENT["title"], exact=True)
     expect(heading).to_have_css("color", "rgb(245, 245, 247)")
     page.goto("/news/news-one")
-    expect(page.get_by_role("link", name="Новости", exact=True).first).to_have_attribute("href", "/news")
+    expect(page.locator("#main").get_by_role("link", name="Новости", exact=True)).to_have_attribute("href", "/news")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
@@ -1427,8 +1427,9 @@ def test_catalog_styles_stay_on_catalog_pages(page, site, width):
     field = filters.get_by_label("Поиск", exact=True).bounding_box()
     assert field["x"] - filters.bounding_box()["x"] >= 16
     page.goto("/dpo")
-    empty = page.locator(".site-card-media--empty").first.bounding_box()
-    assert abs(empty["width"] / empty["height"] - 4 / 3) < 0.02
+    for node in page.locator(".site-card-media--empty").all():
+        empty = node.bounding_box()
+        assert abs(empty["width"] / empty["height"] - 4 / 3) < 0.02
     page.goto("/podcasts")
     card = page.locator(".site-catalog-card").first
     gap = card.locator(".save-material").bounding_box()["y"] - card.locator("p").last.bounding_box()["y"]
@@ -1548,6 +1549,103 @@ def test_mini_app_sign_pauses_off_screen(chromium, site):
     context.close()
 
 
+def test_touch_opens_peeking_ribbon_items(chromium, site):
+    site[1]["/programs"] = [
+        {**PROGRAM, "id": f"program-{i}", "slug": f"course-{i}", "dates": {"start": f"2{i} октября 2099"}}
+        for i in range(4)
+    ]
+    context = chromium.new_context(
+        base_url=site[0], viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True
+    )
+    context.add_init_script(
+        "localStorage.setItem('club_cookie_consent','essential');localStorage.setItem('club_token','member-qa');"
+    )
+    page = context.new_page()
+    page.goto("/dpo")
+    page.locator(".dpo-starts-grid").scroll_into_view_if_needed()
+    peeking = page.locator(".dpo-starts-grid article").nth(1).bounding_box()
+    page.touchscreen.tap(min(peeking["x"] + 40, 380), peeking["y"] + peeking["height"] / 2)
+    expect(page).to_have_url(re.compile("/dpo/course-1$"))
+    page.goto("/lk")
+    nav = page.get_by_role("navigation", name="Разделы кабинета")
+    nav.scroll_into_view_if_needed()
+    last = nav.get_by_role("link").last.bounding_box()
+    page.touchscreen.tap(min(last["x"] + last["width"] - 4, 386), last["y"] + last["height"] / 2)
+    expect(page).to_have_url(re.compile("#achievements$"))
+    context.close()
+
+
+def test_changes_list_keeps_its_own_rows(page):
+    page.goto("/changes?view=all")
+    page.locator("[data-change-open]").first.click()
+    selected = page.locator(".changes-row.is-selected")
+    expect(selected).to_have_css("border-left-color", "rgb(234, 104, 6)")
+    expect(selected.locator("h2")).to_have_css("font-weight", "500")
+    reset = page.locator("#main .site-filters > a").first
+    assert reset.bounding_box()["height"] >= 44
+
+
+def test_podcast_cards_keep_focus_ring_and_muted_text(page):
+    page.goto("/podcasts")
+    card = page.locator(".site-catalog-card").first
+    expect(card).to_have_css("overflow", "visible")
+    expect(card.locator("p").last).to_have_css("color", "rgb(161, 161, 166)")
+
+
+@pytest.mark.parametrize("width", [390, 700, 1024, 1440])
+def test_calendar_days_stay_readable_and_reachable(page, site, width):
+    site[1]["/events"] = [EVENT, {**EVENT, "id": "event-2", "title": "Открытая лекция и нетворкинг"}]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/events?month=2026-11")
+    expect(page.locator(".site-calendar")).to_have_css("overflow", "visible")
+    links = page.locator(".site-calendar-grid a")
+    if links.first.evaluate("node => getComputedStyle(node).fontSize") == "0px":
+        expect(links.nth(1)).to_be_hidden()
+        box = links.first.bounding_box()
+        target = page.evaluate(
+            f"document.elementFromPoint({box['x'] + box['width'] / 2}, {box['y'] + box['height'] / 2}).closest('a')?.textContent"
+        )
+        assert target == EVENT["title"]
+        links.first.focus()
+        assert links.first.evaluate("node => getComputedStyle(node.parentElement).zIndex") == "1"
+    else:
+        for index in range(links.count()):
+            assert links.nth(index).evaluate(WORDS_UNBROKEN)
+    header = page.locator(".site-calendar > header a")
+    assert abs(header.first.bounding_box()["y"] - header.last.bounding_box()["y"]) < 1
+
+
+@pytest.mark.parametrize("width", [320, 360])
+def test_vision_mode_feed_and_account_details(page, site, width):
+    page.add_init_script("localStorage.setItem('club_vision', JSON.stringify({on:true,zoom:1.4,scheme:'bb'}));")
+    page.set_viewport_size({"width": width, "height": 800})
+    page.goto("/events?month=2026-11")
+    header = page.locator(".site-calendar > header a")
+    assert abs(header.first.bounding_box()["y"] - header.last.bounding_box()["y"]) < 1
+    dot = page.locator(".site-calendar-grid a").first
+    assert dot.evaluate("node => getComputedStyle(node, '::after').backgroundColor") == "rgb(10, 42, 102)"
+    for path in ("/forgot", "/confirm"):
+        page.goto(path)
+        assert page.locator(".club-auth__card h1").evaluate(WORDS_UNBROKEN)
+    page.goto("/join")
+    step = page.locator(".club-auth__aside li").first
+    assert step.evaluate("node => getComputedStyle(node, '::before').fontWeight") == "400"
+
+
+def test_disclosure_names_and_vision_focus_rings(page, site):
+    site[1]["/programs"] = [{**PROGRAM, "dates": {"start": "24 октября 2099"}}]
+    page.goto("/support")
+    summary = page.locator(".lux-disclosure > summary").first
+    name = summary.evaluate("node => node.textContent.trim()")
+    expect(summary).to_have_accessible_name(name)
+    for heading in page.locator("#main section > h2").all():
+        expect(heading).to_have_css("font-weight", "200")
+    page.add_init_script("localStorage.setItem('club_vision', JSON.stringify({on:true,scheme:'bw'}));")
+    page.goto("/dpo")
+    page.locator(".dpo-starts-grid article a").first.focus()
+    expect(page.locator(".dpo-starts-grid article").first).to_have_css("outline-color", "rgb(0, 0, 0)")
+
+
 SPACING_STEP = 4
 
 
@@ -1559,6 +1657,7 @@ SPACING_STEP = 4
         ("/lk", ".cabinet-gate__form"),
         ("/dpo/course-one", "aside.site-panel form[data-cart]"),
         ("/dpo", ".dpo-starts-grid article"),
+        ("/events?month=2026-11", ".site-calendar-grid a"),
     ],
 )
 def test_block_spacing_follows_grid(page, site, path, selector):
@@ -1591,7 +1690,7 @@ def test_account_forms_keep_form_width(page, width, path):
     card = page.locator(".club-auth__card .site-panel").bounding_box()
     assert card["width"] <= 480
     assert abs(card["x"] + card["width"] / 2 - width / 2) <= 1
-    assert page.evaluate(WORDS_UNBROKEN, ".club-auth__card h1")
+    assert page.locator(".club-auth__card h1").evaluate(WORDS_UNBROKEN)
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
@@ -1599,7 +1698,7 @@ def test_account_forms_keep_form_width(page, width, path):
 def test_page_headings_keep_words_whole_on_small_phone(page, path):
     page.set_viewport_size({"width": 320, "height": 700})
     page.goto(path)
-    assert page.evaluate(WORDS_UNBROKEN, "#main h1")
+    assert page.locator("#main h1").evaluate(WORDS_UNBROKEN)
 
 
 def test_home_without_javascript_shows_graduate_prices(chromium, site):

@@ -60,7 +60,7 @@ html.lux :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not
 
 html.lux .lux-disclosure > summary { list-style: none; }
 html.lux .lux-disclosure > summary::-webkit-details-marker { display: none; }
-html.lux .lux-disclosure > summary::after { content: "+"; flex: none; font: 200 var(--lux-disclosure-size, 26px)/1 var(--f-display); color: var(--c-text-3); }
+html.lux .lux-disclosure > summary::after { content: "+"; content: "+" / ""; flex: none; font: 200 var(--lux-disclosure-size, 26px)/1 var(--f-display); color: var(--c-text-3); }
 html.lux .lux-disclosure[open] > summary::after { transform: rotate(45deg); }
 @media (prefers-reduced-motion: no-preference) {
   html.lux .lux-disclosure > summary::after { transition: transform 200ms var(--ease-out); }
@@ -90,14 +90,16 @@ html.lux .lux-back + .site-masthead { padding-top: clamp(24px, 3cqi, 40px); }
 html.lux.vis :is(h1, h2, h3, .cabinet-stats dd, .lux-hero__next, .lux-voice blockquote p, .club-menu a) { font-weight: 400 !important; }
 html.vis .lux-disclosure > summary::after { color: var(--vis-fg); font-weight: 400; }
 html.lux.vis .lux-btn.lux-btn--ghost[aria-pressed="true"] { background-color: var(--vis-fg) !important; color: var(--vis-bg) !important; }
-html.vis :is(.site-checkbox, .dpo-starts-grid article):has(:focus-visible) { outline-color: var(--vis-fg); }
+html.lux.vis :is(.dpo-starts-grid article:has(a:focus-visible), .site-checkbox:has(input:focus-visible)) { outline-color: var(--vis-fg); }
+html.lux.vis .club-auth__aside li::before { font-weight: 400; color: var(--vis-fg); }
 
 html.lux :is(.cabinet-page, .cart-page, .program-page, .product-page) .site-two-col > aside.site-panel { padding: clamp(24px, 2.6cqi, 32px); border: 0; border-radius: var(--r-lg); background: var(--c-bg-raised); }
 html.lux :is(.cabinet-page, .cart-page, .program-page, .product-page) .site-two-col > aside.site-panel h2, html.lux .mini-membership h2 { font: 200 28px/1.1 var(--f-display); letter-spacing: -0.03em; }
 html.lux :is(.cart-page, .program-page, .product-page) .site-two-col > aside.site-panel :is(.lux-price, .site-price) { font-size: 32px; font-weight: 400; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-html.lux :is(.cabinet-page .site-two-col > div > section > h2, :is(.program-page, .product-page) .site-two-col > div > section h2) { font: 200 clamp(26px, 2.6cqi, 34px)/1.12 var(--f-display); letter-spacing: -0.03em; font-kerning: none; }
+html.lux :is(.cabinet-page .site-two-col > div > section > h2, :is(.program-page, .product-page) .site-two-col > div > section h2, :is(.profile-page, .support-page, .saved-page) section > h2, .site-calendar > header h2) { font: 200 clamp(26px, 2.6cqi, 34px)/1.12 var(--f-display); letter-spacing: -0.03em; font-kerning: none; }
 html.lux :is(.cabinet-gate__form, .club-auth__card, .cart-page .site-two-col > aside.site-panel, .mini-membership) .site-primary, html.lux .mini-home > .site-primary[data-action="leave-mini"] { width: 100%; min-height: 48px; }
-html.lux :is(.cabinet-gate__form .site-actions a, .club-auth__card .site-actions a, :is(.catalog-page, .saved-page) .site-filters > a) { display: inline-flex; align-items: center; min-height: 44px; color: var(--c-text-3); text-decoration: none; }
+html.lux :is(.cabinet-gate__form .site-actions a, .club-auth__card .site-actions a, .site-filters > a) { display: inline-flex; align-items: center; min-height: 44px; color: var(--c-text-3); text-decoration: none; }
+html.lux :is(.site-event .site-actions > a:not(.site-primary), .mini-membership > a) { display: inline-flex; align-items: center; min-height: 44px; color: var(--c-text); text-decoration: none; }
 @media (hover: hover) and (pointer: fine) {
   html.lux .cabinet-gate__form .site-actions a:hover { color: var(--c-text); }
 }

@@ -645,7 +645,9 @@ async function subscribePush() {
 }
 
 document.addEventListener("input", event => { if (event.target.matches("[data-reading-search]")) renderReading(); });
-document.addEventListener("focusin", event => event.target.closest?.(".dpo-starts-grid article, .cabinet-nav a")?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" }));
+document.addEventListener("focusin", event => {
+  if (event.target.matches?.(":focus-visible")) event.target.closest(".dpo-starts-grid article, .cabinet-nav a")?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+});
 document.addEventListener("change", event => {
   if (event.target.matches("[data-audio-rate]")) event.target.closest(".site-player").querySelector("audio").playbackRate = Number(event.target.value);
   if (event.target.matches("[data-unread-filter],[data-reading-kind]")) renderReading();

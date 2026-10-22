@@ -13,7 +13,6 @@ html.lux .mini-home > .site-primary[data-action="leave-mini"] { margin-bottom: 1
 html.lux .mini-membership { display: grid; gap: 8px; padding: 20px; border-radius: var(--r-lg); background: var(--c-bg-raised); color: var(--c-text); }
 html.lux .mini-membership h2 { margin: 0; }
 html.lux .mini-membership p { margin: 0 0 8px; font-size: 15px; color: var(--c-text-3); }
-html.lux .mini-membership > a { display: inline-flex; align-items: center; min-height: 44px; color: var(--c-text); text-decoration: none; }
 html.lux .mini-home > .site-catalog { display: grid; grid-template-columns: 1fr; gap: 0; margin: 24px 0 0; border-radius: var(--r-lg); background: var(--c-bg-raised); }
 html.lux .mini-home > .site-catalog > .site-panel { display: flex; align-items: center; justify-content: space-between; min-height: 52px; margin: 0; padding: 0 20px; border: 0; border-bottom: 1px solid var(--c-line); border-radius: 0; background: none; color: var(--c-text); font-size: 17px; text-decoration: none; }
 html.lux .mini-home > .site-catalog > .site-panel:last-child { border-bottom: 0; }
