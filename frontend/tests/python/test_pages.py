@@ -324,10 +324,10 @@ async def test_cart_line_has_no_empty_variant(browser_client):
     assert f"<p>{rub(PRODUCT['price'])}</p>" in response.text
 
 
-async def test_office_keeps_light_theme(browser_client):
+async def test_office_uses_dark_theme(browser_client):
     response = await browser_client.get("/admin", headers={"authorization": "Bearer admin-test"})
-    assert '<html lang="ru">' in response.text
-    assert 'class="lux"' not in response.text
+    assert '<html lang="ru" class="lux">' in response.text
+    assert "assets/themis-club.svg" in response.text
 
 
 async def test_office_page_failure_does_not_render_empty_edit_form():

@@ -118,6 +118,7 @@ html.lux .club-cookie-banner { background: var(--lux-raised); color: var(--lux-i
 html.lux .club-cookie-banner__btn { border-radius: 999px; }
 html.lux .club-cookie-banner__btn--primary { background: var(--c-accent); border-color: var(--c-accent); color: var(--c-on-accent); }
 html.lux .club-cookie-banner__btn--secondary { background: var(--lux-control); border-color: transparent; color: var(--lux-ink); }
+html.lux .support-launcher { border: 0; border-radius: 999px; background: var(--lux-control); color: var(--c-text); }
 html.lux #install-app { border: 0; border-radius: 999px; background: var(--lux-ink); color: var(--lux-black); box-shadow: none; }
 html.lux :is(#site-dialog, #support-bot, #search-dialog) { border: 0; border-radius: var(--r-lg); background: var(--lux-raised); color: var(--lux-ink); box-shadow: none; }
 html.lux :is(#site-dialog, #support-bot, #search-dialog)::backdrop { background: rgb(0 0 0 / 0.64); }
