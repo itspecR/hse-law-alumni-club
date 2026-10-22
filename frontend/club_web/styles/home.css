@@ -41,7 +41,7 @@
   transform: translateY(calc(var(--p) * -2svh)) scale(calc(1 + var(--p) * 0.04)); transform-origin: 50% 42%;
 }
 .lux-themis { display: block; width: 100%; height: 100%; overflow: visible; }
-.lux-hero__title { --hero-fit: calc((50cqi - var(--fig-w) * (1 - var(--fig-axis)) - var(--word-gap) - var(--lux-gutter)) / (var(--hero-chars, 8) * var(--hero-glyph))); position: absolute; inset: 0; margin: 0; font: 200 min(7.2cqi, 12svh, var(--hero-fit))/0.98 var(--f-display); letter-spacing: -0.045em; pointer-events: none; }
+.lux-hero__title { --hero-fit: calc((50cqi - var(--fig-w) * (1 - var(--fig-axis)) - var(--word-gap) - var(--lux-gutter)) / (var(--hero-chars) * var(--hero-glyph))); position: absolute; inset: 0; margin: 0; font: 200 min(7.2cqi, 12svh, var(--hero-fit))/0.98 var(--f-display); letter-spacing: -0.045em; pointer-events: none; }
 .lux-hero__word { position: absolute; top: calc(3svh + var(--fig-h) * 0.27); display: flex; flex-direction: column; opacity: calc(1 - var(--p) * 1.7); }
 .lux-hero__word--l { right: calc(50% + var(--fig-w) * var(--fig-axis) + var(--word-gap)); align-items: flex-end; transform: translateX(calc(var(--p) * -9cqi)); }
 .lux-hero__word--r { left: calc(50% + var(--fig-w) * (1 - var(--fig-axis)) + var(--word-gap)); align-items: flex-start; transform: translateX(calc(var(--p) * 9cqi)); }
@@ -202,7 +202,7 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
   .lux-hero__acts { animation-delay: 900ms; }
   .lux-scales { animation: lux-sway 7s var(--ease-in-out, ease-in-out) 1.6s 4 alternate both; }
   .lux-glint { animation: lux-glint 9s var(--ease-in-out, ease-in-out) 1.9s infinite; }
-  .lux-hero.is-off :is(.lux-scales, .lux-glint) { animation-play-state: paused; }
+  :is(.lux-hero, .mini-welcome).is-off :is(.lux-scales, .lux-glint) { animation-play-state: paused; }
   .lux-reveal { opacity: 0; transform: translateY(24px); transition: opacity 600ms var(--ease-out), transform 600ms var(--ease-out); transition-delay: calc(var(--d, 0) * 60ms); }
   .lux-reveal.is-in, .lux-reveal:focus-within { opacity: 1; transform: none; }
   .lux-reveal:focus-within { transition: none; }

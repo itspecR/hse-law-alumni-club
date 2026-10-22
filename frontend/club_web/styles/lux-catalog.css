@@ -3,10 +3,8 @@ html.lux .site-masthead h1 { margin: 0; }
 html.lux .site-masthead p { max-width: 44ch; margin: 20px 0 0; font-size: clamp(19px, 1.6cqi, 23px); line-height: 1.4; letter-spacing: -0.015em; color: var(--c-text-3); text-wrap: pretty; }
 
 html.lux .dpo-picker { margin: 0 0 56px; padding: 0; border: 0; border-radius: var(--r-lg); background: var(--c-bg-raised); }
-html.lux .dpo-picker summary { justify-content: space-between; gap: 16px; min-height: 64px; padding: 0 24px; font-size: 19px; font-weight: 500; letter-spacing: -0.01em; list-style: none; }
-html.lux .dpo-picker summary::-webkit-details-marker { display: none; }
-html.lux .dpo-picker summary::after { content: "+"; font: 200 30px/1 var(--f-display); color: var(--c-text-3); transition: transform 200ms var(--ease-out); }
-html.lux .dpo-picker[open] summary::after { transform: rotate(45deg); }
+html.lux .dpo-picker { --lux-disclosure-size: 30px; }
+html.lux .dpo-picker summary { justify-content: space-between; gap: 16px; min-height: 64px; padding: 0 24px; font-size: 19px; font-weight: 500; letter-spacing: -0.01em; }
 html.lux .dpo-picker form { padding: 0 24px 24px; }
 html.lux .dpo-picker label { font-size: 15px; color: var(--c-text-3); }
 
@@ -22,26 +20,29 @@ html.lux .dpo-starts-grid h3 a { color: var(--c-text); text-decoration: none; ou
 html.lux .dpo-starts-grid h3 a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
 html.lux .dpo-starts-grid p { margin: 0; font-size: 17px; font-weight: 400; font-variant-numeric: tabular-nums; }
 
-html.lux .site-filters { gap: 12px 16px; padding: 24px 0; border-color: var(--c-line); }
-html.lux .site-filters label { font-size: 13px; color: var(--c-text-3); }
-html.lux .site-filters :is(input, select) { margin-top: 6px; font-size: 16px; }
-html.lux .site-filters > a { display: inline-flex; align-items: center; min-height: 44px; color: var(--c-text-3); text-decoration: none; }
+html.lux :is(.catalog-page, .saved-page) .site-filters { gap: 12px 16px; padding: 24px 0; border-color: var(--c-line); }
+html.lux :is(.catalog-page, .saved-page) .site-filters label { font-size: 13px; color: var(--c-text-3); }
+html.lux :is(.catalog-page, .saved-page) .site-filters :is(input, select) { margin-top: 6px; font-size: 16px; }
+html.lux :is(.catalog-page, .saved-page) .site-filters > a { display: inline-flex; align-items: center; min-height: 44px; color: var(--c-text-3); text-decoration: none; }
 
-html.lux .site-catalog { gap: 56px 24px; margin: 28px 0 64px; }
-html.lux .site-catalog-card { display: flex; flex-direction: column; border-top: 0; overflow: visible; }
-html.lux .site-catalog-card > div { display: flex; flex: 1 0 auto; flex-direction: column; padding: 20px 0 0; }
+html.lux .catalog-page .site-catalog { gap: 56px 24px; margin: 28px 0 64px; }
+html.lux .catalog-page .site-catalog-card { display: flex; flex-direction: column; border-top: 0; overflow: visible; }
+html.lux .catalog-page .site-catalog-card > div:not(.site-card-media) { display: flex; flex: 1 0 auto; flex-direction: column; padding: 20px 0 0; }
 html.lux .site-card-media { flex: none; border-radius: var(--r-lg); background: var(--c-bg-raised); }
 html.lux .site-card-media--empty::before { content: ""; position: absolute; inset: 18% 0; background: url("themis-figure.svg") center / contain no-repeat; }
-html.lux .site-catalog-card .club-caps { font-size: 13px; color: var(--c-text-3); }
-html.lux .site-catalog-card h2 { margin: 8px 0; font: 400 21px/1.28 var(--f-body); letter-spacing: -0.015em; text-wrap: pretty; }
-html.lux .site-catalog-card p { margin: 0; font-size: 15px; color: var(--c-text-3); }
-html.lux .site-catalog-card .site-price { margin-top: 14px; font-size: 21px; color: var(--c-text); }
-html.lux .site-catalog-card .site-actions { margin: auto 0 0; padding-top: 18px; gap: 8px; }
-html.lux .site-catalog-card .site-actions > .lux-more { margin-right: auto; }
-html.lux .site-catalog-card .site-actions form { display: flex; flex-basis: 100%; flex-wrap: wrap; align-items: end; gap: 8px; }
-html.lux .site-catalog-card .site-actions form .site-field { flex: 0 0 96px; font-size: 13px; color: var(--c-text-3); }
-html.lux .site-filters ~ p[role="status"] { color: var(--c-text-3); font-size: 15px; }
+html.lux .catalog-page .site-catalog-card .club-caps { font-size: 13px; color: var(--c-text-3); }
+html.lux .catalog-page .site-catalog-card h2 { margin: 8px 0; font: 400 21px/1.28 var(--f-body); letter-spacing: -0.015em; text-wrap: pretty; }
+html.lux .catalog-page .site-catalog-card p { margin: 0; font-size: 15px; color: var(--c-text-3); }
+html.lux .catalog-page .site-catalog-card .site-price { margin-top: 14px; font-size: 21px; color: var(--c-text); }
+html.lux .catalog-page .site-catalog-card .site-actions { margin: auto 0 0; padding-top: 18px; gap: 8px; }
+html.lux .catalog-page .site-catalog-card .site-actions > .lux-more { margin-right: auto; }
+html.lux .catalog-page .site-catalog-card .site-actions form { display: flex; flex-basis: 100%; flex-wrap: wrap; align-items: end; gap: 8px; }
+html.lux .catalog-page .site-catalog-card .site-actions form .site-field { flex: 0 0 96px; font-size: 13px; color: var(--c-text-3); }
+html.lux :is(.catalog-page, .saved-page) .site-filters ~ p[role="status"] { color: var(--c-text-3); font-size: 15px; }
 
+@media (hover: hover) and (pointer: fine) {
+  html.lux .dpo-starts-grid article:hover { background: var(--lux-hover); }
+}
 @media (max-width: 600px) {
   html.lux .dpo-picker summary { min-height: 56px; padding: 0 20px; font-size: 17px; }
   html.lux .dpo-picker form { padding: 0 20px 20px; }
@@ -52,5 +53,5 @@ html.lux .site-filters ~ p[role="status"] { color: var(--c-text-3); font-size: 1
   }
   html.lux .dpo-starts-grid::-webkit-scrollbar { display: none; }
   html.lux .dpo-starts-grid article { min-height: 168px; scroll-snap-align: start; }
-  html.lux .site-catalog { gap: 48px; }
+  html.lux .catalog-page .site-catalog { gap: 48px; }
 }

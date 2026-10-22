@@ -10,10 +10,7 @@ html.lux :is(.program-page, .product-page) .site-program-cover { border-radius: 
 
 html.lux :is(.program-page, .support-page) details { border-top: 1px solid var(--c-line); }
 html.lux :is(.program-page, .support-page) details:last-of-type { border-bottom: 1px solid var(--c-line); }
-html.lux :is(.program-page, .support-page) details summary { justify-content: space-between; gap: 16px; min-height: 56px; padding: 8px 0; font-size: 17px; font-weight: 500; list-style: none; }
-html.lux :is(.program-page, .support-page) details summary::-webkit-details-marker { display: none; }
-html.lux :is(.program-page, .support-page) details summary::after { content: "+"; flex: none; font: 200 26px/1 var(--f-display); color: var(--c-text-3); transition: transform 200ms var(--ease-out); }
-html.lux :is(.program-page, .support-page) details[open] summary::after { transform: rotate(45deg); }
+html.lux :is(.program-page, .support-page) details summary { justify-content: space-between; gap: 16px; min-height: 56px; padding: 8px 0; font-size: 17px; font-weight: 500; }
 html.lux :is(.program-page, .support-page) details > :not(summary) { color: var(--c-text-3); }
 
 html.lux .lux-teachers { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 32px 24px; }
@@ -31,6 +28,7 @@ html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel .lux
 html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel > p:last-child { margin: 20px 0 0; font-size: 14px; color: var(--c-text-3); }
 html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel form[data-cart] { display: grid; gap: 14px; margin-bottom: 10px; }
 html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel :is(.site-primary, .save-material) { width: 100%; }
+html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel > .save-material { margin-top: 10px; }
 
 @media (min-width: 901px) {
   html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel { position: sticky; top: calc(var(--lux-header) + 24px); }

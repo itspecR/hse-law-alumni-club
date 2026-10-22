@@ -3,8 +3,8 @@
 {% block content %}
 <main id="main" class="site-article profile-page">
 {% if not me or access_error %}{{ login(next=query.get('next','')) }}{% else %}
-<header class="site-masthead">
 <a href="/lk" class="foc lux-back"><span aria-hidden="true">‹</span> Кабинет</a>
+<header class="site-masthead">
 <h1>Профиль</h1>
 </header>
 {% if me.alumni.avatar %}

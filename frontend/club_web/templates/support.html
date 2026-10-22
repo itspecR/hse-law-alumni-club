@@ -10,7 +10,7 @@
 <section>
 <h2>Частые вопросы</h2>
 {% for answer in faq.answers %}
-<details>
+<details class="lux-disclosure">
 <summary>{{ answer.triggers[0]|capitalize }}</summary>
 <p>{{ answer.text }}</p>
 {% if answer.anchor|safe_url %}
@@ -31,7 +31,7 @@
 </select>
 </label>{{ field('message','Сообщение',type='textarea') }}<input type="hidden" name="consentVersion" value="{{ support.version }}">
 <input type="text" name="website" class="site-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true">
-<details>
+<details class="lux-disclosure">
 <summary>Согласие на обработку данных</summary>
 <p>{{ support.consent }}</p>
 </details>

@@ -79,14 +79,16 @@ function keepRowsVisible(root) {
   });
 }
 
-function watchHero() {
+function watchSign() {
   watcher?.disconnect();
-  if (!hero || !("IntersectionObserver" in window)) return;
-  watcher = new IntersectionObserver(([entry]) => hero.classList.toggle("is-off", !entry.isIntersecting));
-  watcher.observe(hero);
+  const stage = document.querySelector(".lux-hero, .mini-welcome");
+  if (!stage || !("IntersectionObserver" in window)) return;
+  watcher = new IntersectionObserver(([entry]) => stage.classList.toggle("is-off", !entry.isIntersecting));
+  watcher.observe(stage);
 }
 
 export function prepareHome() {
+  watchSign();
   const root = document.querySelector(".lux-home");
   hero = root?.querySelector(".lux-hero") || null;
   if (hero) farFrom = parseFloat(getComputedStyle(hero).getPropertyValue("--far")) || farFrom;
@@ -96,6 +98,5 @@ export function prepareHome() {
   prepareReveal(root);
   prepareLevels(root);
   keepRowsVisible(root);
-  watchHero();
   requestHero();
 }

@@ -33,7 +33,7 @@
 <section>
 <h2>Программа обучения</h2>
 {% for module in item.modules %}
-<details>
+<details class="lux-disclosure">
 <summary>{{ module if module is string else module.title }}</summary>
 <p class="site-prose">{{ module.description or module.content or '' }}</p>
 <ul>

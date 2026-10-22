@@ -1,12 +1,12 @@
-html.lux .cabinet-gate { max-width: 1040px; margin: clamp(32px, 5cqi, 72px) auto; border: 0; border-radius: var(--r-tile); box-shadow: none; }
-html.lux .cabinet-gate__intro { display: grid; align-content: start; padding: clamp(28px, 4cqi, 56px); }
+html.lux .cabinet-gate { max-width: 1040px; margin: clamp(32px, 5cqi, 72px) auto; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
+html.lux .cabinet-gate__intro { display: grid; align-content: start; padding: clamp(28px, 4cqi, 56px); background: none; }
 html.lux .cabinet-gate__intro > a { display: inline-flex; flex-direction: column; min-height: 44px; color: var(--c-text); font-size: 15px; font-weight: 600; text-decoration: none; }
 html.lux .cabinet-gate__intro > a small { margin-top: 2px; font-size: 13px; font-weight: 400; color: var(--c-text-3); }
 html.lux .cabinet-gate__intro h2 { margin: clamp(32px, 5cqi, 64px) 0 16px; font: 200 clamp(36px, 4cqi, 52px)/1.04 var(--f-display); letter-spacing: -0.04em; font-kerning: none; }
 html.lux .cabinet-gate__intro h2 em, html.lux .club-auth__aside h2 em { font-style: normal; color: inherit; }
 html.lux .cabinet-gate__intro p { color: var(--c-text-3); font-size: 17px; }
 html.lux .cabinet-gate__benefits span { padding: 14px 0; border-color: var(--c-line); font-size: 15px; color: var(--c-text-2); }
-html.lux .cabinet-gate__form { display: grid; align-content: start; gap: 14px; padding: clamp(28px, 4cqi, 56px); background: var(--c-bg-raised); }
+html.lux .cabinet-gate__form { display: grid; align-content: start; gap: 14px; padding: clamp(28px, 4cqi, 56px); border-radius: var(--r-tile); background: var(--c-bg-raised); }
 html.lux .cabinet-gate__form h1 { margin: 0; font-size: clamp(28px, 3cqi, 36px); }
 html.lux .cabinet-gate__form > p { margin: 0 0 6px; color: var(--c-text-3); }
 html.lux .cabinet-gate__form > label { font-size: 15px !important; letter-spacing: 0 !important; text-transform: none !important; color: var(--c-text-3); }
@@ -47,8 +47,9 @@ html.lux .cabinet-page .site-two-col > div a:not(.lux-btn) { color: var(--c-text
   html.lux .cabinet-gate__form .site-actions a:hover { color: var(--c-text); }
 }
 @media (max-width: 700px) {
-  html.lux .cabinet-gate { margin: 16px 0 32px; border-radius: var(--r-lg); }
-  html.lux .cabinet-nav { flex-wrap: nowrap; margin-inline: calc(-1 * var(--page-gutter)); padding-inline: var(--page-gutter); overflow-x: auto; scrollbar-width: none; }
+  html.lux .cabinet-gate { margin: 16px 0 32px; }
+  html.lux .cabinet-gate__form { border-radius: var(--r-lg); }
+  html.lux .cabinet-nav { flex-wrap: nowrap; margin: -8px calc(-1 * var(--page-gutter)) 0; padding: 8px var(--page-gutter); overflow-x: auto; scroll-padding-inline: var(--page-gutter); scrollbar-width: none; }
 }
 
 html.lux .club-auth { padding: clamp(32px, 5cqi, 72px) var(--page-gutter) 96px; }
