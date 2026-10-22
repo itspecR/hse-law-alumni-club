@@ -2,6 +2,7 @@ import { crowMascotApi } from "./crow-mascot.js";
 import { prepareMini } from "./mini.js";
 import { prepareDiscovery } from "./discovery.js";
 import { prepareCatalog } from "./catalog.js";
+import { prepareHome } from "./home.js";
 
 const base = document.body.dataset.base || "/";
 const mirror = document.body.dataset.mirror === "true";
@@ -359,6 +360,7 @@ function openCabinetSection() {
 function setupPage() {
   prepareDiscovery(url, mirror);
   prepareCatalog(url, notice);
+  prepareHome();
   alignOfficeNavigation();
   openCabinetSection();
   const recent = document.querySelector("[data-reading-title]");

@@ -17,6 +17,7 @@ from playwright.sync_api import expect, sync_playwright
 from test_pages import EPISODE, EVENT, NEWS, PRODUCT, PROFILE, PROGRAM
 
 from club_web.build import build_public
+from club_web.formatting import rub
 from club_web.main import create_app
 from club_web.mirror import export, fixtures
 from club_web.pages import OFFICE_NAV, PUBLIC_PAGES
@@ -273,6 +274,7 @@ def test_dpo_finder_starts_and_shareable_comparison(page, site, width):
     picker.get_by_label("3. Как вам удобно учиться?").select_option("online")
     picker.get_by_role("button").click()
     expect(page.locator("[data-catalog-row]")).to_have_count(2)
+    expect(page.locator("#main")).to_have_attribute("data-catalog-ready", "true")
     page.locator("[data-action='compare']").first.click()
     expect(page).to_have_url(re.compile("compare=program-1"))
     page.reload()
@@ -473,9 +475,7 @@ def test_pwa_uses_phone_layout_and_preserves_navigation(page):
     page.goto("/?pwa=1")
     assert page.locator("#site-stage").bounding_box()["width"] == 430
     expect(page.get_by_role("button", name="Открыть меню", exact=True)).to_be_visible()
-    assert page.locator(".home-hero").evaluate("node => getComputedStyle(node).gridTemplateColumns").split() == [
-        "430px"
-    ]
+    assert page.locator(".lux-hero").bounding_box()["width"] == 430
     page.get_by_role("navigation", name="Основные разделы").get_by_role("link", name="Кабинет", exact=True).click()
     expect(page.locator("html")).to_have_class(re.compile("pwa-shell"))
     expect(page.get_by_role("heading", name="Вход для выпускников", exact=True)).to_be_visible()
@@ -489,7 +489,7 @@ def test_telegram_preview_safe_start_and_return(page):
     expect(page.get_by_text("Предпросмотр мини-приложения", exact=True)).to_be_visible()
     expect(page.get_by_role("button", name="Войти через Telegram", exact=True)).to_be_hidden()
     page.get_by_role("link", name="Вернуться на сайт", exact=True).click()
-    expect(page.locator(".home-hero")).to_be_visible()
+    expect(page.locator(".lux-hero")).to_be_visible()
     page.goto("/tg?startapp=admin")
     expect(page.locator(".mini-home")).to_be_visible()
 
@@ -648,7 +648,7 @@ def test_mirror_mobile_preview_navigation_and_exit(chromium, mirror_site, width)
     page.get_by_role("navigation", name="Просмотр зеркала").get_by_role("link", name="Обычный сайт").click()
     expect(page).to_have_url(mirror_site + "?site=1")
     expect(page.locator("html")).not_to_have_class(re.compile("pwa-shell|telegram-mini"))
-    expect(page.locator(".home-hero")).to_be_visible()
+    expect(page.locator(".lux-hero")).to_be_visible()
     page.get_by_role("navigation", name="Просмотр зеркала").get_by_role("link", name="Панель офиса").click()
     expect(page.locator(".office-page-header")).to_be_visible()
     assert (
@@ -1205,18 +1205,33 @@ def test_product_editor_retains_gallery_during_title_edit(page, site, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
+@pytest.mark.parametrize("width", [1440, 390])
+def test_home_member_price_follows_selected_level(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/")
+    price = page.locator(".lux-prog").filter(has_text=PROGRAM["title"]).locator("[data-member-price]")
+    expect(price).to_have_text(rub(285000))
+    page.get_by_role("radio", name=re.compile("^Амбассадор")).check()
+    expect(price).to_have_text(rub(240000))
+    expect(page.locator("[data-level-status]")).to_have_text(
+        "Уровень «Амбассадор»: скидка 20%, цены выпускника пересчитаны."
+    )
+    page.get_by_role("radio", name=re.compile("^Друг клуба")).check()
+    expect(price).to_have_text(rub(270000))
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
 @pytest.mark.parametrize(
     "width,pwa", [(320, False), (390, False), (768, False), (1024, False), (1440, False), (1440, True)]
 )
 def test_home_photos_keep_people_in_frame(page, width, pwa):
     page.set_viewport_size({"width": width, "height": 1000})
     page.goto("/?pwa=1" if pwa else "/")
-    hero = page.locator(".home-hero__photo img")
-    expect(hero).to_be_visible()
-    hero.evaluate("image => image.decode()")
-    assert hero.evaluate("image => image.currentSrc.endsWith('.avif')")
-    for selector in (".home-agenda__photo", ".home-meeting__photo", ".home-voice__photo"):
-        for frame in page.locator(selector).all():
+    expect(page.locator(".lux-themis")).to_be_visible()
+    for selector in (".lux-join__photo", ".lux-pair .lux-frame", ".lux-voice__photo", ".lux-law .lux-tile__media"):
+        frames = page.locator(selector).all()
+        assert frames
+        for frame in frames:
             frame.scroll_into_view_if_needed()
             image = frame.locator("img")
             image.evaluate("image => image.decode()")
@@ -1250,7 +1265,6 @@ def test_catalog_and_detail_photos_keep_shape_without_enlargement(page, site, wi
     records["/products"] = [{**PRODUCT, "images": ["/assets/merch-hoodie.webp"]}]
     page.set_viewport_size({"width": width, "height": 1000})
     for path, selector in (
-        ("/", ".site-card-media img"),
         ("/dpo", ".site-card-media img"),
         ("/merch", ".site-card-media img"),
         ("/dpo/course-one", ".site-program-cover, .site-teacher-photo"),
@@ -1265,7 +1279,7 @@ def test_catalog_and_detail_photos_keep_shape_without_enlargement(page, site, wi
             assert image.evaluate("image => image.clientWidth > 0 && image.clientHeight > 0")
             assert image.evaluate("image => image.clientWidth <= image.naturalWidth + 1")
             assert image.evaluate("image => image.clientHeight <= image.naturalHeight + 1")
-            if path in ("/", "/dpo", "/merch"):
+            if path in ("/dpo", "/merch"):
                 assert image.evaluate(
                     "image => image.clientWidth <= image.parentElement.clientWidth + 1 && image.clientHeight <= image.parentElement.clientHeight + 1"
                 )

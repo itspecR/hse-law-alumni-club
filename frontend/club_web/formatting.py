@@ -18,6 +18,11 @@ MONTHS = (
     "декабря",
 )
 FORMAT_LABELS = {"online": "онлайн", "offline": "очно", "blended": "смешанный"}
+LEADING_SYMBOLS = re.compile(r"^[^\w«\"№(]+")
+
+
+def plain_title(value):
+    return LEADING_SYMBOLS.sub("", value or "")
 
 
 def rub(value):

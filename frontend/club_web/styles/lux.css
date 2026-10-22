@@ -1,0 +1,111 @@
+html.lux {
+  color-scheme: dark;
+  --p-ohra: #ea6806;
+  --p-ohra-hover: #f47a1c;
+  --lux-black: #000;
+  --lux-raised: #161617;
+  --lux-sunken: #0b0b0c;
+  --lux-control: #262628;
+  --lux-ink: #f5f5f7;
+  --lux-ink-2: #d2d2d7;
+  --lux-mute: #a1a1a6;
+  --lux-quiet: #86868b;
+  --c-bg: var(--lux-black);
+  --c-bg-raised: var(--lux-raised);
+  --c-bg-sunken: var(--lux-sunken);
+  --c-bg-inverse: var(--lux-ink);
+  --c-text: var(--lux-ink);
+  --c-text-2: var(--lux-ink-2);
+  --c-text-3: var(--lux-mute);
+  --c-text-inverse: var(--lux-black);
+  --c-accent: var(--p-ohra);
+  --c-accent-text: #ff8c42;
+  --c-anchor: var(--p-blue-light);
+  --c-link: var(--p-blue-light);
+  --c-status: var(--p-brass-light);
+  --c-status-text: var(--p-brass-light);
+  --c-ok-text: var(--p-green-light);
+  --c-danger-text: var(--p-karmin-light);
+  --c-line: rgb(255 255 255 / 0.12);
+  --c-line-control: rgb(255 255 255 / 0.36);
+  --c-line-strong: rgb(255 255 255 / 0.24);
+  --c-on-accent: #111;
+  --f-display: "HSE Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --t-h1-page: clamp(40px, 5vw, 72px);
+  --r-sm: 12px;
+  --r-md: 12px;
+  --r-lg: 20px;
+  --r-tile: 28px;
+  --shadow-ambient: none;
+  --shadow-ambient-lift: none;
+  --shadow-accent: none;
+  --container: 1180px;
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  background: var(--c-bg);
+}
+html.lux body { background: var(--c-bg); color: var(--c-text); -webkit-font-smoothing: antialiased; }
+html.lux h1 { font-weight: 200; letter-spacing: -0.035em; }
+html.lux :is(h2, h3) { letter-spacing: -0.02em; }
+html.lux :is(h1, .lux-h2, .lux-hero__title, .lux-step h3, .lux-tile__title, .lux-voice blockquote p, .lux-hero__next, .club-menu a, .club-menu button) { font-kerning: none; }
+html.lux .club-caps { text-transform: none; letter-spacing: -0.01em; font-weight: 400; font-size: 14px; }
+html.lux :focus-visible { outline-color: var(--lux-ink); }
+html.lux button { border-radius: 999px; }
+html.lux :is(input, select, textarea) { border-radius: 12px; background: var(--lux-raised); border-color: var(--c-line-control); color: var(--c-text); }
+html.lux ::selection { background: var(--p-ohra); color: #111; }
+html.lux.vis :is(h1, h2, h3, .lux-hero__next, .lux-voice blockquote p, .club-menu a) { font-weight: 400; }
+
+html.lux .club-header { background: var(--lux-black); border-bottom: 0; backdrop-filter: none; -webkit-backdrop-filter: none; animation: none; box-shadow: none; }
+html.lux .club-header__inner { max-width: var(--container); height: 52px; padding: 0 var(--page-gutter); gap: 28px; }
+html.lux .club-header__brand { gap: 12px; min-height: 44px; }
+html.lux .club-header__emblem { width: 26px; height: 26px; border-radius: 6px; }
+html.lux .club-header__lockup { font-size: 14px; font-weight: 600; letter-spacing: -0.015em; }
+html.lux .club-header__lockup small { display: none; }
+html.lux .club-header__nav { gap: 26px; }
+html.lux .club-header__link { display: inline-flex; align-items: center; min-height: 44px; padding: 0; font-size: 14px; color: var(--lux-mute); text-decoration: none; transition: color 160ms ease; }
+html.lux .club-header__link[aria-current="page"] { color: var(--lux-ink); text-decoration: none; }
+html.lux .club-header__tools { gap: 0; margin-left: 4px; }
+html.lux .club-header__tools .club-chrome-icon-btn { width: 40px; height: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--lux-mute); transition: color 160ms ease; }
+html.lux .club-header__cta { position: relative; min-height: 32px; margin-left: 4px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--c-accent); color: var(--c-on-accent); font: 600 14px/1 var(--f-body); letter-spacing: -0.01em; text-transform: none; box-shadow: none; transition: transform 160ms var(--ease-out), background-color 160ms ease; }
+html.lux .club-header__cta::after { content: ""; position: absolute; inset: -6px -2px; }
+html.lux .club-header__cta:active { transform: scale(0.97); }
+html.lux .club-header__burger { width: 44px; height: 44px; border: 0; border-radius: 999px; background: transparent; color: var(--lux-ink); font-size: 20px; }
+html.lux .club-menu { padding: 8px var(--page-gutter) 32px; border-top: 0; background: var(--lux-black); }
+html.lux .club-menu a, html.lux .club-menu button { min-height: 52px; padding: 6px 0; border: 0; background: none; color: var(--lux-ink); font: 200 28px/1.15 var(--f-display); letter-spacing: -0.03em; }
+html.lux .club-menu a[aria-current="page"] { padding-inline: 0; background: none; color: var(--lux-ink); }
+html.lux .club-menu [data-member-link] { justify-content: center; min-height: 48px; margin-top: 20px; border-radius: 999px; background: var(--c-accent); color: var(--c-on-accent); font: 600 17px/1 var(--f-body); letter-spacing: -0.01em; }
+html.lux .club-menu button[data-action="vision"] { font-size: 17px; font-weight: 400; letter-spacing: 0; color: var(--lux-mute); }
+
+html.lux .club-footer { background: var(--lux-sunken); color: var(--lux-quiet); border-top: 0; }
+html.lux .club-footer__inner { max-width: var(--container); }
+html.lux .club-footer__brand strong { font-family: var(--f-body); font-weight: 600; font-size: 15px; color: var(--lux-ink); letter-spacing: -0.01em; }
+html.lux .club-footer__brand p { color: var(--lux-quiet); font-size: 14px; }
+html.lux .club-footer__brand img { width: 40px; height: 40px; border-radius: 9px; }
+html.lux .club-footer h2 { color: var(--lux-ink); font-size: 14px; font-weight: 600; text-transform: none; letter-spacing: -0.01em; }
+html.lux .club-footer :is(a, button) { min-height: 36px; padding: 0; border: 0; background: none; color: var(--lux-quiet); font-size: 14px; text-decoration: none; transition: color 160ms ease; }
+html.lux .club-footer__legal { border-top: 0; color: var(--lux-quiet); font-size: 13px; }
+
+html.lux .mobile-tabs { background: var(--lux-sunken); border-top: 0; }
+html.lux .mobile-tabs a { color: var(--lux-mute); }
+html.lux .mobile-tabs a[aria-current="page"] { color: var(--lux-ink); }
+
+html.lux .club-cookie-banner { background: var(--lux-raised); color: var(--lux-ink-2); border: 0; border-radius: 20px; box-shadow: none; }
+html.lux .club-cookie-banner__btn { border-radius: 999px; }
+html.lux .club-cookie-banner__btn--primary { background: var(--c-accent); border-color: var(--c-accent); color: var(--c-on-accent); }
+html.lux .club-cookie-banner__btn--secondary { background: var(--lux-control); border-color: transparent; color: var(--lux-ink); }
+html.lux #install-app { border: 0; border-radius: 999px; background: var(--lux-ink); color: var(--lux-black); box-shadow: none; }
+html.lux :is(#site-dialog, #support-bot, #search-dialog) { border: 0; border-radius: 20px; background: var(--lux-raised); color: var(--lux-ink); box-shadow: none; }
+html.lux :is(#site-dialog, #support-bot, #search-dialog)::backdrop { background: rgb(0 0 0 / 0.64); }
+html.lux #toast { border-radius: 999px; background: var(--lux-ink); color: var(--lux-black); box-shadow: none; }
+html.lux .site-notice { background: var(--lux-raised); color: var(--lux-ink-2); }
+
+@media (hover: hover) and (pointer: fine) {
+  html.lux .club-header__link:hover,
+  html.lux .club-header__tools .club-chrome-icon-btn:hover,
+  html.lux .club-footer :is(a, button):hover { color: var(--lux-ink); text-decoration: none; }
+  html.lux .club-header__cta:hover { background: var(--p-ohra-hover); }
+}
+
+@media (min-width: 1101px) {
+  html.lux:not(.pwa-shell):not(.telegram-mini) .club-header__nav { display: flex; }
+  html.lux:not(.pwa-shell):not(.telegram-mini) .club-header__burger { display: none; }
+}

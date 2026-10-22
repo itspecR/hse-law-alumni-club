@@ -64,10 +64,3 @@
 </p>
 </form>
 {% endmacro %}
-{% macro photo(base,name,alt,width,height) %}
-<picture>
-<source type="image/avif" srcset="{{ base }}assets/photos/{{ name }}.avif">
-<source type="image/webp" srcset="{{ base }}assets/photos/{{ name }}.webp">
-<img src="{{ base }}assets/photos/{{ name }}.jpg" alt="{{ alt }}" width="{{ width }}" height="{{ height }}" loading="lazy" decoding="async">
-</picture>
-{% endmacro %}
