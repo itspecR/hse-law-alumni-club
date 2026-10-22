@@ -23,6 +23,16 @@ from club_web.mirror import export, fixtures
 from club_web.pages import OFFICE_NAV, PUBLIC_PAGES
 from club_web.views import PUBLIC
 
+WORDS_UNBROKEN = """selector => {
+    const text = document.querySelector(selector).firstChild;
+    return [...text.textContent.matchAll(/\\S+/g)].every(word => {
+        const range = document.createRange();
+        range.setStart(text, word.index);
+        range.setEnd(text, word.index + word[0].length);
+        return range.getClientRects().length === 1;
+    });
+}"""
+
 
 @pytest.fixture(scope="module")
 def chromium():
@@ -1396,6 +1406,25 @@ def test_login_and_join_layout(page, width):
     copy = page.locator(".club-auth__aside-copy").bounding_box()
     assert copy["y"] >= photo["y"] + photo["height"] - 1
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+@pytest.mark.parametrize("path", ["/forgot", "/reset", "/confirm"])
+def test_account_forms_keep_form_width(page, width, path):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto(path)
+    card = page.locator(".club-auth__card .site-panel").bounding_box()
+    assert card["width"] <= 480
+    assert abs(card["x"] + card["width"] / 2 - width / 2) <= 1
+    assert page.evaluate(WORDS_UNBROKEN, ".club-auth__card h1")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("path", ["/confidential", "/terms"])
+def test_page_headings_keep_words_whole_on_small_phone(page, path):
+    page.set_viewport_size({"width": 320, "height": 700})
+    page.goto(path)
+    assert page.evaluate(WORDS_UNBROKEN, "#main h1")
 
 
 def test_home_without_javascript_shows_graduate_prices(chromium, site):

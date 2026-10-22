@@ -13,6 +13,7 @@ html.lux, html.lux .club-dark {
   --lux-hairline: #424245;
   --lux-hover: #1d1d1f;
   --lux-header: 52px;
+  --lux-form: 480px;
   --c-bg: var(--lux-black);
   --c-bg-raised: var(--lux-raised);
   --c-bg-sunken: var(--lux-sunken);
@@ -34,7 +35,7 @@ html.lux, html.lux .club-dark {
   --c-line-strong: rgb(255 255 255 / 0.24);
   --c-on-accent: #111;
   --f-display: "HSE Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --t-h1-page: clamp(40px, 5cqi, 72px);
+  --t-h1-page: clamp(min(40px, 10cqi), 5cqi, 72px);
   --r-sm: 12px;
   --r-md: 12px;
   --r-lg: 20px;

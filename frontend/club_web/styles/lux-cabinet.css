@@ -52,6 +52,8 @@ html.lux .cabinet-page .site-two-col > div a:not(.lux-btn) { color: var(--c-text
 }
 
 html.lux .club-auth { padding: clamp(32px, 5cqi, 72px) var(--page-gutter) 96px; }
+html.lux .club-auth:not(.club-auth--split) .club-auth__card { max-width: var(--lux-form); }
+html.lux .club-auth:not(.club-auth--split) .club-auth__card h1 { font-size: clamp(32px, 4cqi, 44px); }
 html.lux .club-auth--split { gap: clamp(32px, 4cqi, 64px); max-width: var(--container); margin: 0 auto; }
 html.lux .club-auth__aside--photo { position: sticky; top: calc(var(--lux-header) + 24px); background: none; overflow: visible; }
 html.lux .club-auth__aside--photo img { position: static; border-radius: var(--r-tile); }
