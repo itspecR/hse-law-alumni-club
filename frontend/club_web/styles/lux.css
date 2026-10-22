@@ -106,7 +106,7 @@ html.lux .club-footer__brand strong { font-family: var(--f-body); font-weight: 6
 html.lux .club-footer__brand p { color: var(--lux-quiet); font-size: 14px; }
 html.lux .club-footer__brand img { width: 40px; height: 40px; border-radius: 9px; }
 html.lux .club-footer h2 { color: var(--lux-ink); font-size: 14px; font-weight: 600; text-transform: none; letter-spacing: -0.01em; }
-html.lux .club-footer :is(a, button) { min-height: 36px; padding: 0; border: 0; background: none; color: var(--lux-quiet); font-size: 14px; text-decoration: none; transition: color 160ms ease; }
+html.lux .club-footer :is(a, button) { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; color: var(--lux-quiet); font-size: 14px; text-decoration: none; transition: color 160ms ease; }
 html.lux .club-footer__legal { border-top: 0; color: var(--lux-quiet); font-size: 13px; }
 
 html.lux .mobile-tabs { background: var(--lux-sunken); border-top: 0; }

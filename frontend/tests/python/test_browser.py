@@ -1246,6 +1246,8 @@ def test_home_member_price_follows_selected_level(page, width):
     page.goto("/")
     price = page.locator(".lux-prog").filter(has_text=PROGRAM["title"]).locator("[data-member-price]")
     expect(price).to_have_text(rub(285000))
+    expect(page.locator(".lux-home")).to_have_attribute("data-home-ready", "true")
+    expect(page.locator("[data-starts-empty]")).to_be_hidden()
     page.get_by_role("radio", name=re.compile("^Амбассадор")).check()
     expect(price).to_have_text(rub(240000))
     expect(page.locator("[data-level-status]")).to_have_text(
@@ -1254,6 +1256,38 @@ def test_home_member_price_follows_selected_level(page, width):
     page.get_by_role("radio", name=re.compile("^Друг клуба")).check()
     expect(price).to_have_text(rub(270000))
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize(
+    "viewport,vision", [({"width": 844, "height": 390}, False), ({"width": 390, "height": 844}, True)]
+)
+def test_home_hero_stays_usable_without_scroll_scene(chromium, site, viewport, vision):
+    context = chromium.new_context(base_url=site[0], viewport=viewport, is_mobile=True, has_touch=True)
+    script = "localStorage.setItem('club_cookie_consent','essential');"
+    if vision:
+        script += "localStorage.setItem('club_vision', JSON.stringify({on:true,scheme:'bw'}));"
+    context.add_init_script(script)
+    page = context.new_page()
+    page.goto("/")
+    assert page.locator(".lux-hero__stage").evaluate("node => getComputedStyle(node).position") != "sticky"
+    button = page.locator(".lux-hero__foot .lux-btn")
+    button.scroll_into_view_if_needed()
+    expect(page.locator(".lux-hero__foot")).to_have_css("opacity", "1")
+    expect(button).to_be_in_viewport()
+    for link in page.locator(".club-footer a").all():
+        assert link.bounding_box()["height"] >= 44
+    context.close()
+
+
+def test_home_without_javascript_shows_graduate_prices(chromium, site):
+    context = chromium.new_context(base_url=site[0], viewport={"width": 390, "height": 844}, java_script_enabled=False)
+    page = context.new_page()
+    page.goto("/")
+    expect(page.locator(".lux-calc__levels")).to_be_hidden()
+    expect(page.locator(".lux-prog").filter(has_text=PROGRAM["title"]).locator("[data-member-price]")).to_have_text(
+        rub(285000)
+    )
+    context.close()
 
 
 @pytest.mark.parametrize(

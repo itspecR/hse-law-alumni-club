@@ -117,10 +117,9 @@ def with_member_prices(program, levels):
 
 
 def home_programs(programs, levels, today=None):
-    catalog = prepare_catalog(programs, {}, today)
-    priced = [item for item in catalog["items"] if item.get("price") is not None]
-    starts = [item for item in catalog["upcoming"] if item.get("price") is not None]
-    shown = starts or [item for item in priced if item.get("enrollment") == "actual"][:HOME_PROGRAMS]
+    catalog = prepare_catalog([item for item in programs if item.get("price") is not None], {}, today)
+    starts = catalog["upcoming"]
+    shown = starts or [item for item in catalog["items"] if item.get("enrollment") == "actual"][:HOME_PROGRAMS]
     return {
         "levels": sorted(levels, key=lambda level: level["sort"]),
         "home_starts": bool(starts),

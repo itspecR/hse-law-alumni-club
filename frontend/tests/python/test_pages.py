@@ -288,6 +288,9 @@ async def test_failed_home_data_is_not_saved_offline():
     assert response.status_code == 200
     assert response.headers.get("X-Club-Offline") is None
     assert response.headers["cache-control"] == "no-store"
+    assert "Программы не&nbsp;загрузились" in response.text
+    assert "Программ в&nbsp;каталоге" not in response.text
+    assert "data-starts-empty" not in response.text
 
 
 async def test_office_keeps_light_theme(browser_client):

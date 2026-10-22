@@ -69,3 +69,27 @@ def test_home_programs_fall_back_to_open_programs_without_dates():
     assert data["home_starts"] is False
     assert len(data["home_programs"]) == 6
     assert "closed" not in [item["slug"] for item in data["home_programs"]]
+
+
+def test_home_programs_skip_unpriced_starts_before_limit():
+    unpriced = [
+        {
+            "slug": f"free-{day}",
+            "title": f"Без цены {day}",
+            "price": None,
+            "enrollment": "actual",
+            "dates": {"start": f"{day} октября 2026"},
+        }
+        for day in range(23, 29)
+    ]
+    priced = {
+        "slug": "paid",
+        "title": "С ценой",
+        "price": 500000,
+        "enrollment": "actual",
+        "dates": {"start": "30 октября 2026"},
+    }
+    data = home_programs([*unpriced, priced], LEVELS, date(2026, 10, 22))
+    assert data["home_starts"] is True
+    assert [item["slug"] for item in data["home_programs"]] == ["paid"]
+    assert (data["programs_total"], data["programs_open"]) == (7, 7)

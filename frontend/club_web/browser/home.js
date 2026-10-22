@@ -2,6 +2,7 @@ import { hidePastStarts } from "./catalog.js";
 
 const FAR_FROM = 0.42;
 const REVEAL_MARGIN = "0px 0px -8% 0px";
+const FOCUS_GAP = 8;
 const reduce = matchMedia("(prefers-reduced-motion: reduce)");
 let hero = null;
 let queued = false;
@@ -9,7 +10,7 @@ let revealer = null;
 let watcher = null;
 
 function heroProgress() {
-  const travel = hero.offsetHeight - innerHeight;
+  const travel = hero.offsetHeight - hero.querySelector(".lux-hero__stage").offsetHeight;
   if (travel <= 0) return 0;
   return Math.min(1, Math.max(0, -hero.getBoundingClientRect().top / travel));
 }
@@ -69,6 +70,14 @@ function prepareLevels(root) {
   if (chosen) showLevel(rows, chosen);
 }
 
+function keepRowsVisible(root) {
+  const levels = root.querySelector(".lux-calc__levels");
+  root.querySelector(".lux-progs")?.addEventListener("focusin", event => {
+    const covered = levels.getBoundingClientRect().bottom - event.target.getBoundingClientRect().top;
+    if (covered > 0) scrollBy({ top: -(covered + FOCUS_GAP), behavior: "instant" });
+  });
+}
+
 function watchHero() {
   watcher?.disconnect();
   if (!hero || !("IntersectionObserver" in window)) return;
@@ -84,6 +93,7 @@ export function prepareHome() {
   hidePastStarts(root);
   prepareReveal(root);
   prepareLevels(root);
+  keepRowsVisible(root);
   watchHero();
   requestHero();
 }

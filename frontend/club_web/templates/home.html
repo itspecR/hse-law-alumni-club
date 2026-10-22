@@ -41,7 +41,7 @@
 <section class="lux-section lux-dpo" id="dpo-prices" aria-labelledby="lux-dpo-title">
 <div class="lux-wrap lux-split">
 <h2 class="lux-h2 lux-reveal" id="lux-dpo-title">ДПО по&nbsp;цене выпускника.</h2>
-<p class="lux-lede lux-reveal" style="--d:1">Программ в&nbsp;каталоге: {{ programs_total }}, набор открыт на&nbsp;{{ programs_open }}. Скидка растёт с&nbsp;уровнем в&nbsp;клубе&nbsp;— от&nbsp;{{ levels[0].discount_percent }} до&nbsp;{{ levels[-1].discount_percent }}%.</p>
+<p class="lux-lede lux-reveal" style="--d:1">{% if 'programs' not in load_errors %}Программ в&nbsp;каталоге: {{ programs_total }}, набор открыт на&nbsp;{{ programs_open }}. {% endif %}Скидка растёт с&nbsp;уровнем в&nbsp;клубе&nbsp;— от&nbsp;{{ levels[0].discount_percent }} до&nbsp;{{ levels[-1].discount_percent }}%.</p>
 </div>
 <div class="lux-wrap">
 <div class="lux-tile lux-calc lux-reveal" style="--d:2">
@@ -54,6 +54,9 @@
 {% endfor %}
 </div>
 </fieldset>
+{% if 'programs' in load_errors %}
+<p class="lux-calc__error" role="status">Программы не&nbsp;загрузились. Обновите страницу или откройте каталог.</p>
+{% else %}
 <h3 class="lux-calc__sub">{{ 'Ближайшие старты' if home_starts else 'Программы с открытым набором' }}</h3>
 {% if home_programs %}
 <ul class="lux-progs">
@@ -69,6 +72,7 @@
 </ul>
 {% endif %}
 <p data-starts-empty {% if home_programs %}hidden{% endif %}>Ближайшие даты пока не объявлены. Программы с&nbsp;открытым набором&nbsp;— в&nbsp;каталоге.</p>
+{% endif %}
 <p class="lux-sr" role="status" data-level-status></p>
 <div class="lux-calc__foot">
 <p>Уровни: {% for level in levels[1:] %}{{ level.title }}&nbsp;— с&nbsp;{{ level.min_points }} баллов{{ ', ' if not loop.last else '' }}{% endfor %}. Личная скидка&nbsp;— ещё до&nbsp;{{ domain.limits.personal_discount_max }}%, всего не&nbsp;больше {{ domain.limits.member_discount_cap }}%. Итог считается при&nbsp;оформлении.</p>
@@ -102,11 +106,9 @@
 </div>
 <figure class="lux-wrap lux-voice">
 <div class="lux-frame lux-voice__photo lux-reveal"><img src="{{ base }}assets/photos/club/voice-576.webp" width="576" height="720" alt="Екатерина Салугина-Сороковая, выпускница факультета права 2006 года" loading="lazy" decoding="async"></div>
-<div class="lux-voice__text">
-<blockquote class="lux-reveal" style="--d:1"><p>«Вышка в&nbsp;моей жизни сыграла огромную роль».</p></blockquote>
-<figcaption class="lux-reveal" style="--d:2"><b>Екатерина Салугина-Сороковая</b>, выпуск 2006. В&nbsp;интервью 2024&nbsp;года, тогда первый вице-президент Газпромбанка, рассказала об&nbsp;учёбе в&nbsp;Вышке, профессиональном пути и&nbsp;встречах выпускников.</figcaption>
-<a href="https://pravo.hse.ru/news/894336073.html" class="foc lux-more lux-reveal" style="--d:3" target="_blank" rel="noopener noreferrer">Читать интервью <span class="lux-more__arrow" aria-hidden="true">↗</span><span class="lux-sr">, откроется в&nbsp;новой вкладке</span></a>
-</div>
+<blockquote class="lux-voice__quote lux-reveal" style="--d:1"><p>«Вышка в&nbsp;моей жизни сыграла огромную роль».</p></blockquote>
+<figcaption class="lux-voice__cap lux-reveal" style="--d:2"><p><b>Екатерина Салугина-Сороковая</b>, выпуск 2006. В&nbsp;интервью 2024&nbsp;года, тогда первый вице-президент Газпромбанка, рассказала об&nbsp;учёбе в&nbsp;Вышке, профессиональном пути и&nbsp;встречах выпускников.</p>
+<a href="https://pravo.hse.ru/news/894336073.html" class="foc lux-more" target="_blank" rel="noopener noreferrer">Читать интервью <span class="lux-more__arrow" aria-hidden="true">↗</span><span class="lux-sr">, откроется в&nbsp;новой вкладке</span></a></figcaption>
 </figure>
 {% if news %}
 <div class="lux-wrap lux-news">
