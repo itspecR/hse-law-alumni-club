@@ -269,6 +269,20 @@ def test_catalog_card_states_and_targets(page, site, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
+@pytest.mark.parametrize("width,position", [(390, "static"), (1440, "sticky")])
+def test_program_page_panel_and_teachers(page, site, width, position):
+    program = {**PROGRAM, "teachers": [{"name": "Первый преподаватель"}, {"name": "Второй преподаватель"}]}
+    site[1]["/programs/course-one"] = program
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/dpo/course-one")
+    expect(page.get_by_role("link", name="Каталог программ", exact=True)).to_have_attribute("href", "/dpo")
+    panel = page.locator(".program-page aside.site-panel")
+    assert panel.evaluate("node => getComputedStyle(node).position") == position
+    expect(panel.locator(".lux-price")).to_have_text(rub(PROGRAM["price"]))
+    expect(page.locator(".lux-teachers article")).to_have_count(2)
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
 @pytest.mark.parametrize("width", [390, 1440])
 def test_dpo_finder_starts_and_shareable_comparison(page, site, width):
     page.set_viewport_size({"width": width, "height": 900})

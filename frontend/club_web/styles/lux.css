@@ -12,6 +12,7 @@ html.lux {
   --lux-quiet: #86868b;
   --lux-hairline: #424245;
   --lux-hover: #1d1d1f;
+  --lux-header: 52px;
   --c-bg: var(--lux-black);
   --c-bg-raised: var(--lux-raised);
   --c-bg-sunken: var(--lux-sunken);
@@ -52,7 +53,7 @@ html.lux :is(h1, .lux-h2, .lux-hero__title, .lux-step h3, .lux-tile__title, .lux
 html.lux .club-caps { text-transform: none; letter-spacing: -0.01em; font-weight: 400; font-size: 14px; }
 html.lux :focus-visible { outline-color: var(--lux-ink); }
 html.lux button { border-radius: 999px; }
-html.lux :is(input, select, textarea) { border-radius: 12px; background: var(--lux-raised); border-color: var(--c-line-control); color: var(--c-text); }
+html.lux :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]), select, textarea) { border-radius: 12px; background: var(--lux-raised); border-color: var(--c-line-control); color: var(--c-text); }
 html.lux ::selection { background: var(--p-ohra); color: #111; }
 
 .lux-nobr { white-space: nowrap; }
@@ -74,10 +75,12 @@ html.lux ::selection { background: var(--p-ohra); color: #111; }
 }
 .lux-more:active { transform: scale(0.97); }
 .lux-more__arrow { display: inline-block; font-size: 20px; line-height: 1; transition: transform 160ms var(--ease-out); }
+.lux-back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 16px; color: var(--c-text-3); font-size: 15px; text-decoration: none; transition: color 160ms ease; }
+html.lux .lux-back + .site-masthead { padding-top: clamp(24px, 3cqi, 40px); }
 html.lux.vis :is(h1, h2, h3, .lux-hero__next, .lux-voice blockquote p, .club-menu a) { font-weight: 400; }
 
 html.lux .club-header { background: var(--lux-black); border-bottom: 0; backdrop-filter: none; -webkit-backdrop-filter: none; animation: none; box-shadow: none; }
-html.lux .club-header__inner { max-width: var(--container); height: 52px; padding: 0 var(--page-gutter); gap: 28px; }
+html.lux .club-header__inner { max-width: var(--container); height: var(--lux-header); padding: 0 var(--page-gutter); gap: 28px; }
 html.lux .club-header__brand { gap: 12px; min-height: 44px; }
 html.lux .club-header__emblem { width: 26px; height: 26px; border-radius: 6px; }
 html.lux .club-header__lockup { font-size: 14px; font-weight: 600; letter-spacing: -0.015em; }
@@ -130,6 +133,7 @@ html.lux .site-notice { background: var(--lux-raised); color: var(--lux-ink-2); 
   .lux-btn--ghost[aria-pressed="true"]:hover { background: var(--c-text); }
   .lux-more:hover { text-decoration-color: currentColor; }
   .lux-more:hover .lux-more__arrow { transform: translateX(3px); }
+  .lux-back:hover { color: var(--c-text); }
 }
 
 @media (min-width: 1101px) {

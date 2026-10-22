@@ -2,7 +2,7 @@
 {% from 'macros.html' import save,add_cart %}
 {% block content %}
 <main id="main" class="site-container program-page" data-reading-title="{{ item.title }}" data-reading-kind="dpo">
-<a href="/dpo">← Каталог программ</a>
+<a href="/dpo" class="foc lux-back"><span aria-hidden="true">‹</span> Каталог программ</a>
 <header class="site-masthead">
 <span class="club-caps">{{ item.direction }}</span>
 <h1>{{ item.title }}</h1>
@@ -51,6 +51,7 @@
 {% if item.teachers %}
 <section>
 <h2>Преподаватели</h2>
+<div class="lux-teachers">
 {% for teacher in item.teachers %}
 <article>
 {% if teacher.photo|media %}<img class="site-teacher-photo" src="{{ teacher.photo|media }}" alt="{{ teacher.name or teacher.fio }}" width="200" height="200" loading="lazy">{% endif %}
@@ -58,6 +59,7 @@
 <p>{{ teacher.bio or teacher.role or teacher.position or '' }}</p>
 </article>
 {% endfor %}
+</div>
 </section>
 {% endif %}
 </div>
@@ -65,7 +67,7 @@
 <h2>Обучение</h2>
 <dl>
 <dt>Формат</dt>
-<dd>{{ format_labels.get(item.format,item.format) }}</dd>
+<dd>{{ (format_labels.get(item.format,item.format) or '')|capitalize }}</dd>
 <dt>Продолжительность</dt>
 <dd>{{ item.duration }}</dd>
 <dt>Начало</dt>
@@ -73,7 +75,7 @@
 <dt>Документ</dt>
 <dd>{{ item.document or 'Уточняется у организатора' }}</dd>
 <dt>Стоимость</dt>
-<dd>{{ item.price|rub }}</dd>
+<dd class="lux-price">{{ item.price|rub }}</dd>
 </dl>
 {% if item.source_url|safe_url %}
 <a href="{{ item.source_url|safe_url }}" class="site-primary" target="_blank" rel="noopener noreferrer">Перейти к организатору ↗</a>

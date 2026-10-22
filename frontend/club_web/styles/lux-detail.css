@@ -1,0 +1,37 @@
+html.lux :is(.program-page, .product-page) .site-masthead .club-caps { display: block; margin-bottom: 14px; font-size: 14px; color: var(--c-text-3); }
+
+html.lux :is(.program-page, .product-page) .site-two-col { gap: clamp(32px, 4cqi, 64px); margin-bottom: clamp(64px, 8cqi, 112px); }
+html.lux :is(.program-page, .product-page) .site-two-col > div > section { margin-top: clamp(40px, 5cqi, 64px); }
+html.lux :is(.program-page, .product-page) .site-two-col > div > section h2 { margin: 0 0 20px; font: 200 clamp(26px, 2.6cqi, 34px)/1.12 var(--f-display); letter-spacing: -0.03em; font-kerning: none; }
+html.lux :is(.program-page, .product-page) .site-two-col > div > section > ul { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+html.lux :is(.program-page, .product-page) .site-two-col > div > section > ul > li { padding: 12px 0; border-top: 1px solid var(--c-line); font-size: 17px; line-height: 1.45; }
+html.lux :is(.program-page, .product-page) .site-two-col > div > section > ul > li:last-child { border-bottom: 1px solid var(--c-line); }
+html.lux :is(.program-page, .product-page) .site-program-cover { border-radius: var(--r-lg); }
+
+html.lux .program-page details { border-top: 1px solid var(--c-line); }
+html.lux .program-page details:last-of-type { border-bottom: 1px solid var(--c-line); }
+html.lux .program-page details summary { justify-content: space-between; gap: 16px; min-height: 56px; padding: 8px 0; font-size: 17px; font-weight: 500; list-style: none; }
+html.lux .program-page details summary::-webkit-details-marker { display: none; }
+html.lux .program-page details summary::after { content: "+"; flex: none; font: 200 26px/1 var(--f-display); color: var(--c-text-3); transition: transform 200ms var(--ease-out); }
+html.lux .program-page details[open] summary::after { transform: rotate(45deg); }
+html.lux .program-page details > :not(summary) { color: var(--c-text-3); }
+
+html.lux .lux-teachers { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 32px 24px; }
+html.lux .lux-teachers article { display: grid; align-content: start; gap: 6px; }
+html.lux .lux-teachers .site-teacher-photo { margin-bottom: 10px; border-radius: 14px; }
+html.lux .lux-teachers h3 { margin: 0; font: 500 17px/1.3 var(--f-body); }
+html.lux .lux-teachers p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--c-text-3); }
+
+html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel { padding: clamp(24px, 2.6cqi, 32px); border: 0; border-radius: var(--r-lg); background: var(--c-bg-raised); }
+html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel h2 { margin: 0 0 8px; font: 200 28px/1.1 var(--f-display); letter-spacing: -0.03em; }
+html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel dl { display: grid; gap: 0; margin: 0 0 24px; }
+html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel dt { margin-top: 14px; font-size: 13px; color: var(--c-text-3); }
+html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel dd { margin: 4px 0 0; font-size: 17px; }
+html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel .lux-price, html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel > .site-price { font-size: 32px; font-weight: 400; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel > p:last-child { margin: 20px 0 0; font-size: 14px; color: var(--c-text-3); }
+html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel form[data-cart] { display: grid; gap: 14px; margin-bottom: 10px; }
+html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel :is(.site-primary, .save-material) { width: 100%; }
+
+@media (min-width: 901px) {
+  html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel { position: sticky; top: calc(var(--lux-header) + 24px); }
+}

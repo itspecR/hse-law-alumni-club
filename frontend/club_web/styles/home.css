@@ -1,7 +1,7 @@
 @property --lux-sway { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
 
 .lux-home {
-  --lux-nav: 52px;
+  --lux-nav: var(--lux-header);
   --lux-top: calc(var(--lux-nav) + var(--office-notice-height, 0px));
   --lux-gutter: var(--page-gutter);
   --lux-h2: clamp(34px, 4.4cqi, 64px);
