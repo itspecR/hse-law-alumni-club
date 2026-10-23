@@ -11,7 +11,7 @@ FROM deps AS build
 COPY backend/club_api /repo/backend/club_api
 COPY data/domain-data.json data/faq-data.json data/dpo-catalog.json data/legal-data.json /repo/data/
 COPY scripts/club_ops ./club_ops
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-editable --python /usr/local/bin/python
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-editable --reinstall-package club-ops --reinstall-package club-api --python /usr/local/bin/python
 RUN .venv/bin/python -m compileall -q -b -s /repo -p /app .venv/lib/python3.14/site-packages/club_api .venv/lib/python3.14/site-packages/club_ops \
     && find .venv/lib/python3.14/site-packages/club_api .venv/lib/python3.14/site-packages/club_ops -type f -name '*.py' -delete \
     && find .venv/lib/python3.14/site-packages/club_api .venv/lib/python3.14/site-packages/club_ops -type d -name __pycache__ -exec rm -rf {} + \

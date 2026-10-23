@@ -52,6 +52,7 @@ jobs:
           python3 scripts/tests/test-ops.py
           python3 scripts/tests/test-install.py
           python3 scripts/tests/test-mariadb-ops.py
+          python3 scripts/tests/test-image-builds.py
           python3 scripts/tests/test-security-inventory.py
           uv run --directory frontend ruff check ../scripts/diagnostics/security-inventory.py ../scripts/checks/check-image-audit.py ../scripts/tests/test-security-inventory.py
           uv run --directory frontend ruff format --check ../scripts/diagnostics/security-inventory.py ../scripts/checks/check-image-audit.py ../scripts/tests/test-security-inventory.py
