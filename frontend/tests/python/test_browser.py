@@ -1531,21 +1531,78 @@ def test_disclosures_and_pressed_buttons_in_vision_mode(page, site):
         expect(node).to_have_css("font-weight", "400")
 
 
-def test_mini_app_sign_pauses_off_screen(chromium, site):
-    context = chromium.new_context(
-        base_url=site[0], viewport={"width": 390, "height": 500}, reduced_motion="no-preference"
-    )
-    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+def moving_themis_page(chromium, site, path, viewport, script=""):
+    context = chromium.new_context(base_url=site[0], viewport=viewport, reduced_motion="no-preference")
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');" + script)
     page = context.new_page()
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
     page.route("https://telegram.org/**", lambda route: route.abort())
-    page.goto("/tg")
-    welcome = page.locator(".mini-welcome")
-    expect(welcome).not_to_have_class(re.compile("is-off"))
+    page.goto(path)
+    return context, page, errors
+
+
+def test_mini_app_sign_pauses_off_screen(chromium, site):
+    context, page, errors = moving_themis_page(chromium, site, "/tg", {"width": 390, "height": 500})
+    themis = page.locator(".mini-welcome .lux-themis")
+    expect(themis).to_have_class(re.compile("is-moving"))
     page.locator(".mini-home > .site-catalog").last.scroll_into_view_if_needed()
     page.evaluate("scrollTo(0, document.documentElement.scrollHeight)")
-    expect(welcome).to_have_class(re.compile("is-off"))
-    glint = page.locator(".mini-welcome .lux-glint")
-    expect(glint).to_have_css("animation-play-state", "paused")
+    expect(themis).not_to_have_class(re.compile("is-moving"))
+    expect(themis).to_have_class(re.compile("is-live"))
+    page.evaluate("scrollTo(0, 0)")
+    expect(themis).to_have_class(re.compile("is-moving"))
+    assert not errors
+    context.close()
+
+
+def test_home_themis_animates_over_page_background(chromium, site):
+    context, page, errors = moving_themis_page(chromium, site, "/", {"width": 1440, "height": 900})
+    themis = page.locator(".lux-hero .lux-themis")
+    expect(themis).to_have_class(re.compile("is-moving"))
+    expect(themis.locator(".lux-themis__scene")).to_have_css("opacity", "1")
+    expect(themis.locator(".lux-themis__poster")).to_have_css("opacity", "0")
+    page.wait_for_timeout(700)
+    first = themis.screenshot()
+    page.wait_for_timeout(900)
+    assert themis.screenshot() != first
+    box = themis.bounding_box()
+    corner = page.screenshot(clip={"x": box["x"] + 2, "y": box["y"] + 2, "width": 8, "height": 8})
+    assert corner == page.screenshot(clip={"x": 2, "y": box["y"] + 2, "width": 8, "height": 8})
+    assert not errors
+    context.close()
+
+
+def test_themis_moves_again_after_returning_home(chromium, site):
+    context, page, errors = moving_themis_page(chromium, site, "/", {"width": 1440, "height": 900})
+    expect(page.locator(".lux-themis")).to_have_class(re.compile("is-moving"))
+    page.locator(".club-header__nav a[href='/dpo']").click()
+    expect(page).to_have_url(re.compile("/dpo$"))
+    expect(page.locator(".lux-themis")).to_have_count(0)
+    page.go_back()
+    expect(page.locator(".lux-themis")).to_have_class(re.compile("is-moving"))
+    assert not errors
+    context.close()
+
+
+@pytest.mark.parametrize("script", ["", "localStorage.setItem('club_vision', JSON.stringify({on:true,scheme:'wb'}));"])
+def test_themis_stays_still_for_reduced_motion_and_vision(chromium, site, script):
+    context = chromium.new_context(
+        base_url=site[0],
+        viewport={"width": 390, "height": 844},
+        reduced_motion="reduce" if not script else "no-preference",
+    )
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');" + script)
+    page = context.new_page()
+    page.goto("/")
+    themis = page.locator(".lux-themis")
+    poster = themis.locator(".lux-themis__poster")
+    expect(poster).to_be_visible()
+    poster.evaluate("image => image.decode()")
+    page.wait_for_timeout(300)
+    expect(themis).not_to_have_class(re.compile("is-live"))
+    expect(poster).to_have_css("opacity", "1")
+    expect(themis.locator(".lux-themis__scene")).to_have_css("opacity", "0")
     context.close()
 
 
