@@ -488,6 +488,11 @@ sudo env ENV_FILE=/etc/club/compose.env bash scripts/deploy.sh
 
 ### Что делает deploy.sh
 
+`deploy.sh` выкатывает коммит, на котором стоит checkout, и не принимает
+аргументов: ветку или SHA выбирают заранее командой
+`git checkout --detach <SHA>`. Скрипт можно запускать и как
+`./scripts/deploy.sh`, и через `bash`.
+
 Шаги выводятся в консоль как `[N/7]`.
 
 | Шаг | Действие |

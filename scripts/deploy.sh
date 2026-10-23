@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
+if (($#)); then
+  echo "deploy.sh выкатывает текущий коммит checkout и не принимает аргументы. Сначала: git fetch origin && git checkout --detach <SHA или origin/ветка>" >&2
+  exit 2
+fi
 native="$(dirname "${BASH_SOURCE[0]}")/lib/mariadb_native.py"
 if python3 "$native" detect; then exec python3 "$native" deploy; fi
 source "$(dirname "${BASH_SOURCE[0]}")/backup.sh"
