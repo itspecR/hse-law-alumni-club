@@ -89,7 +89,7 @@ pre{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}
 #install-app{position:fixed;right:20px;bottom:calc(16px + var(--tabs-h,0px) + var(--cookie-h,0px));z-index:300;max-width:calc(100% - 40px)}
 body:has(#support-bot[open]) #install-app{display:none}
 
-.club-header__cta{display:inline-flex;align-items:center;justify-content:center;padding:13px 20px;min-height:44px;background:var(--c-accent);color:var(--c-on-accent);border:1px solid var(--c-accent);border-radius:var(--r-sm);font-size:var(--t-caps);font-weight:600;text-decoration:none}.club-chrome-icon-btn{color:inherit;text-decoration:none}.club-footer a{color:inherit}.home a:not(.home-btn){color:inherit}.home-agenda__list article{padding:24px 0;border-bottom:1px solid var(--c-line)}.home-agenda__list h3{margin:8px 0}.home-agenda__copy>.home-btn{align-self:start;margin-top:32px}
+.club-header__cta{display:inline-flex;align-items:center;justify-content:center;padding:13px 20px;min-height:44px;background:var(--c-accent);color:var(--c-on-accent);border:1px solid var(--c-accent);border-radius:var(--r-sm);font-size:var(--t-caps);font-weight:600;text-decoration:none}.club-chrome-icon-btn{color:inherit;text-decoration:none}.club-footer a{color:inherit}
 
 #site-stage { width:100%; container-type:inline-size; container-name:club-layout; }
 html.pwa-shell #site-shell { display:flex; justify-content:center; background:#1c1916; min-height:100dvh; }
@@ -106,10 +106,7 @@ html.pwa-shell .club-header__inner { padding-inline:16px; }
 .site-calendar-grid>div { min-height:64px; padding:6px; border:1px solid var(--c-line); min-width:0; }
 .site-calendar-grid a { display:block; font-size:12px; overflow-wrap:anywhere; }
 .site-calendar-grid>strong { padding:8px; background:var(--c-bg-sunken); }
-.home-history { padding-block:40px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:24px; }
-.home-history h2 { grid-column:1/-1; }.home-history strong { color:var(--c-accent); font-size:30px; }
 
-@media(max-width:640px){.home-history{grid-template-columns:1fr}}
 
 .site-card-media { display: block; position: relative; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--r-lg); background: var(--c-bg-sunken); }
 .site-card-media--product { aspect-ratio: 1; }

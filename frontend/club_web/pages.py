@@ -5,13 +5,15 @@ from pathlib import Path
 from urllib.parse import quote, urlencode
 
 from club_web.calendar import google_calendar, instant, month_view
-from club_web.catalog import prepare_catalog
+from club_web.catalog import UPCOMING_LIMIT, prepare_catalog
 from club_web.changes import parse_changes, select_changes
 from club_web.client import ApiFailure
-from club_web.formatting import page_items
+from club_web.formatting import page_items, rub
 from club_web.office import DESCRIPTIONS, FIELDS, GROUPS, ICONS, LABELS, METRICS, filter_content
+from club_web.pricing import member_prices
 from club_web.search import search_groups
 
+HOME_EPISODES = 4
 PUBLIC_PAGES = {
     "/": ("home.html", "Клуб выпускников факультета права"),
     "/tg": ("mini.html", "Клуб выпускников"),
@@ -109,6 +111,24 @@ def select_page(path):
     return "not-found.html", "Страница не найдена"
 
 
+def with_member_prices(program, levels):
+    rows = member_prices(program["price"], levels)
+    return {**program, "member_prices": rows, "member_price_map": {row["level"]: rub(row["price"]) for row in rows}}
+
+
+def home_programs(programs, levels, today=None):
+    catalog = prepare_catalog([item for item in programs if item.get("price") is not None], {}, today)
+    starts = catalog["upcoming"]
+    shown = starts or [item for item in catalog["items"] if item.get("enrollment") == "actual"][:UPCOMING_LIMIT]
+    return {
+        "levels": sorted(levels, key=lambda level: level["sort"]),
+        "home_starts": bool(starts),
+        "home_programs": [with_member_prices(item, levels) for item in shown],
+        "programs_total": len(programs),
+        "programs_open": sum(item.get("enrollment") == "actual" for item in programs),
+    }
+
+
 def pagination_page(value):
     try:
         return max(1, min(10000, int(value)))
@@ -164,7 +184,7 @@ async def context(api, path, params, authorized=False):
             load("news", "/news?limit=3", []),
             load("programs", "/programs", []),
             load("events", "/events", []),
-            load("timeline", "/timeline", []),
+            load("podcasts", "/podcasts", {"items": []}),
         )
         data["hero"] = (data["page"].get("blocks") or {}).get("hero") or {}
         data["cta"] = (data["page"].get("blocks") or {}).get("cta") or {}
@@ -173,24 +193,8 @@ async def context(api, path, params, authorized=False):
             [item for item in data["events"] if instant(item.get("starts_at")) >= now],
             key=lambda item: instant(item["starts_at"]),
         )[:2]
-        data["featured"] = [
-            item
-            for item in data["programs"]
-            if item.get("enrollment") != "nonactual"
-            and any(
-                "/" + identifier + "." in (item.get("cover") or "")
-                for identifier in (
-                    "472681893",
-                    "474599435",
-                    "474776084",
-                    "494685723",
-                    "589527758",
-                    "802031223",
-                    "905186485",
-                    "906651510",
-                )
-            )
-        ][:4]
+        data.update(home_programs(data["programs"], data["domain"]["levels"]))
+        data["episodes"] = page_items(data["podcasts"])[:HOME_EPISODES]
         snapshot = parse_changes(resource("changes.json"))
         data["recent_changes"] = select_changes(
             snapshot["items"], {"view": "digest" if snapshot["mode"] == "channel" else "all"}

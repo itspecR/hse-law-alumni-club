@@ -144,5 +144,6 @@
 
 :root { --layer-modal: 500; --layer-toast: 600; }
 
-:root { --page-gutter: 28px; }
-@media (max-width: 600px) { :root { --page-gutter: 16px; } }
+:root { --page-gutter: 28px; --page-gutter-phone: 16px; }
+@media (max-width: 600px) { :root { --page-gutter: var(--page-gutter-phone); } }
+html.pwa-shell { --page-gutter: var(--page-gutter-phone); }

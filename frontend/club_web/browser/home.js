@@ -1,0 +1,94 @@
+import { hidePastStarts } from "./catalog.js";
+import { prepareThemis } from "./themis.js";
+
+const REVEAL_MARGIN = "0px 0px -8% 0px";
+const FOCUS_GAP = 8;
+const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+let hero = null;
+let farFrom = 1;
+let queued = false;
+let revealer = null;
+
+function heroProgress() {
+  const travel = hero.offsetHeight - hero.querySelector(".lux-hero__stage").offsetHeight;
+  if (travel <= 0) return 0;
+  return Math.min(1, Math.max(0, -hero.getBoundingClientRect().top / travel));
+}
+
+function paintHero() {
+  queued = false;
+  if (!hero?.isConnected) return;
+  const progress = reduce.matches ? 0 : heroProgress();
+  hero.style.setProperty("--p", progress.toFixed(4));
+  hero.classList.toggle("is-far", progress > farFrom);
+}
+
+function requestHero() {
+  if (queued || !hero) return;
+  queued = true;
+  requestAnimationFrame(paintHero);
+}
+
+addEventListener("scroll", requestHero, { passive: true });
+addEventListener("resize", requestHero);
+reduce.addEventListener("change", requestHero);
+document.addEventListener("focusin", event => event.target.closest(".lux-reveal")?.classList.add("is-in"));
+
+function prepareReveal(root) {
+  revealer?.disconnect();
+  const nodes = [...root.querySelectorAll(".lux-reveal")];
+  if (!("IntersectionObserver" in window)) { nodes.forEach(node => node.classList.add("is-in")); return; }
+  revealer = new IntersectionObserver(entries => entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    entry.target.classList.add("is-in");
+    revealer.unobserve(entry.target);
+  }), { rootMargin: REVEAL_MARGIN });
+  nodes.forEach(node => revealer.observe(node));
+}
+
+function swap(node, text) {
+  if (node.textContent === text) return;
+  node.textContent = text;
+  node.classList.remove("is-swap");
+  void node.offsetWidth;
+  node.classList.add("is-swap");
+}
+
+function showLevel(rows, input, inputs) {
+  rows.forEach(row => swap(row.querySelector("[data-member-price]"), JSON.parse(row.dataset.memberPrices)[input.value]));
+  input.closest(".lux-seg")?.style.setProperty("--seg-i", String(inputs.indexOf(input)));
+}
+
+function prepareLevels(root) {
+  const rows = [...root.querySelectorAll("[data-member-prices]")];
+  const status = root.querySelector("[data-level-status]");
+  const inputs = [...root.querySelectorAll("input[name='member-level']")];
+  inputs.forEach(input => input.addEventListener("change", () => {
+    showLevel(rows, input, inputs);
+    if (status) status.textContent = "Уровень «" + input.dataset.levelTitle + "»: скидка " + input.dataset.levelDiscount + "%, цены выпускника пересчитаны.";
+  }));
+  const chosen = inputs.find(input => input.checked);
+  if (chosen) showLevel(rows, chosen, inputs);
+}
+
+function keepRowsVisible(root) {
+  const levels = root.querySelector(".lux-calc__levels");
+  root.querySelector(".lux-progs")?.addEventListener("focusin", event => {
+    const covered = levels.getBoundingClientRect().bottom - event.target.getBoundingClientRect().top;
+    if (covered > 0) scrollBy({ top: -(covered + FOCUS_GAP), behavior: "instant" });
+  });
+}
+
+export function prepareHome() {
+  prepareThemis();
+  const root = document.querySelector(".lux-home");
+  hero = root?.querySelector(".lux-hero") || null;
+  if (hero) farFrom = parseFloat(getComputedStyle(hero).getPropertyValue("--far")) || farFrom;
+  if (!root || root.dataset.homeReady) { requestHero(); return; }
+  root.dataset.homeReady = "true";
+  hidePastStarts(root);
+  prepareReveal(root);
+  prepareLevels(root);
+  keepRowsVisible(root);
+  requestHero();
+}

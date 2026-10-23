@@ -4,6 +4,27 @@ export function miniStartRoute(value) {
   return /^p_[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value || "") ? "dpo/" + value.slice(2) : null;
 }
 
+function opaqueColor(value) {
+  const [red = 0, green = 0, blue = 0, alpha = 1] = (value.match(/[\d.]+/g) || []).map(Number);
+  if (alpha === 0) return null;
+  return "#" + [red, green, blue].map(channel => Math.round(channel).toString(16).padStart(2, "0")).join("");
+}
+
+function surfaceColor(selector) {
+  for (let node = document.querySelector(selector); node; node = node.parentElement) {
+    const color = opaqueColor(getComputedStyle(node).backgroundColor);
+    if (color) return color;
+  }
+  return null;
+}
+
+function paintTelegram(app) {
+  const page = surfaceColor("body");
+  const bar = surfaceColor(".mobile-tabs");
+  if (page) { app.setHeaderColor?.(page); app.setBackgroundColor?.(page); }
+  if (bar && (!app.isVersionAtLeast || app.isVersionAtLeast("7.10"))) app.setBottomBarColor?.(bar);
+}
+
 export function prepareMini(path, url) {
   if (path === "/admin" || path.startsWith("/admin/")) return;
   const query = new URLSearchParams(location.search);
@@ -36,8 +57,10 @@ export function prepareMini(path, url) {
   function connected() {
     const app = window.Telegram?.WebApp;
     if (!app?.initData) return;
-    app.ready?.(); app.expand?.(); app.setHeaderColor?.("#ffffff"); app.setBackgroundColor?.("#ffffff");
-    if (!app.isVersionAtLeast || app.isVersionAtLeast("7.10")) app.setBottomBarColor?.("#ffffff");
+    app.ready?.(); app.expand?.();
+    const repaint = () => paintTelegram(app);
+    repaint();
+    document.addEventListener("club-vision-change", repaint);
     const applyInsets = () => {
       for (const [name, edge] of [["--mini-top", "top"], ["--mini-bottom", "bottom"]]) {
         const size = (Number(app.safeAreaInset?.[edge]) || 0) + (Number(app.contentSafeAreaInset?.[edge]) || 0);
@@ -57,7 +80,7 @@ export function prepareMini(path, url) {
       else location.href = url("tg");
     };
     app.BackButton?.onClick?.(back);
-    window.addEventListener("pagehide", () => { app.BackButton?.offClick?.(back); app.offEvent?.("safeAreaChanged", applyInsets); app.offEvent?.("contentSafeAreaChanged", applyInsets); }, { once: true });
+    window.addEventListener("pagehide", () => { app.BackButton?.offClick?.(back); app.offEvent?.("safeAreaChanged", applyInsets); app.offEvent?.("contentSafeAreaChanged", applyInsets); document.removeEventListener("club-vision-change", repaint); }, { once: true });
     const sdkStart = miniStartRoute(app.initDataUnsafe?.start_param);
     if (entry && sdkStart && sdkStart !== "tg" && !query.has("startapp")) location.replace(url(sdkStart));
   }

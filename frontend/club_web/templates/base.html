@@ -1,13 +1,12 @@
 {% if not fragment %}
 <!doctype html>
-<html lang="ru">
+<html lang="ru" class="lux">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>{{ title }} – Клуб выпускников факультета права Вышки</title>
 <meta name="description" content="Клуб выпускников факультета права НИУ ВШЭ: встречи, программы ДПО и кабинет участника.">
-<meta name="theme-color" content="#EC5A13" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#14181f" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="robots" content="{{ 'noindex,nofollow' if mirror or path.startswith(('/lk','/admin','/cart','/join','/reset','/confirm','/saved')) else 'index,follow' }}">
 <link rel="icon" href="{{ base }}favicon.ico">
@@ -55,7 +54,7 @@
 <header class="club-header">
 <div class="club-header__inner">
 <a href="/" class="foc club-header__brand">
-<img src="{{ base }}icon-192.png" width="36" height="36" alt="" class="club-header__emblem">
+<img src="{{ base }}assets/themis-club.svg" width="26" height="26" alt="" class="club-header__emblem">
 <span class="club-header__lockup">Клуб выпускников<small>факультета права Вышки</small>
 </span>
 </a>
@@ -118,7 +117,7 @@
 <footer class="club-footer club-dark">
 <div class="club-footer__inner">
 <div class="club-footer__brand">
-<img src="{{ base }}icon-192.png" width="48" height="48" alt="">
+<img src="{{ base }}assets/themis-club.svg" width="40" height="40" alt="">
 <div>
 <strong>Клуб выпускников факультета права Вышки</strong>
 <p>Встречи выпускников, программы ДПО, подкасты и изменения в праве.</p>

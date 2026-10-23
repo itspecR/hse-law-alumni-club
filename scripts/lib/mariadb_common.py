@@ -291,20 +291,22 @@ def record(context, name, values):
     os.replace(temporary, destination)
 
 
+def container_revision(context, service):
+    container = context.capture("ps", "-aq", service)
+    if not container:
+        raise ValueError("Для копии нужны созданные API и web")
+    return output(
+        ["docker", "inspect", "-f", '{{index .Config.Labels "org.opencontainers.image.revision"}}', container]
+    )
+
+
 def image_revision(context):
-    versions = []
-    for service in ("api", "web"):
-        container = context.capture("ps", "-aq", service)
-        if not container:
-            raise ValueError("Для копии нужны созданные API и web")
-        versions.append(
-            output(
-                ["docker", "inspect", "-f", '{{index .Config.Labels "org.opencontainers.image.revision"}}', container]
-            )
-        )
-    if versions[0] != versions[1] or not REVISION.fullmatch(versions[0]):
-        raise ValueError("API и web должны иметь одинаковую revision label проверенного коммита")
-    return versions[0]
+    api, web = (container_revision(context, service) for service in ("api", "web"))
+    if not REVISION.fullmatch(api):
+        raise ValueError("У API нет revision label проверенного коммита; выкатите версию через deploy.sh")
+    if web != api:
+        print("Web собран не из версии API (" + (web or "без метки") + "); копия базы и файлов от этого не зависит")
+    return api
 
 
 def file_hashes(directory):

@@ -14,6 +14,8 @@ def build_source(tmp_path, monkeypatch):
     (root / "browser").mkdir()
     (root / "styles" / "tokens.css").write_text(":root { --color: blue; }")
     (root / "styles" / "index.css").write_text("body { color: var(--color); }")
+    (root / "styles" / "alpha.css").write_text(".alpha { color: red; }")
+    (root / "styles" / build.THEME_LAYER).write_text("html.theme { --color: black; }")
     worker = (Path(build.ROOT) / "browser" / "service-worker.js").read_text()
     (root / "browser" / "service-worker.js").write_text(worker)
     (root / "browser" / "site.js").write_text("export const version = 1;")
@@ -62,3 +64,10 @@ def test_static_content_change_updates_worker_version(build_source, tmp_path, as
     other_destination = tmp_path / "other-output"
     build.build_public(other_destination)
     assert (other_destination / "sw.js").read_bytes() == changed_worker
+
+
+def test_theme_layer_is_built_last(build_source, tmp_path):
+    destination = tmp_path / "output"
+    build.build_public(destination)
+    css = (destination / "assets" / "site.css").read_text()
+    assert css.index(":root") < css.index("body {") < css.index(".alpha") < css.index("html.theme")

@@ -8,6 +8,7 @@ from pathlib import Path
 from club_web.offline import PWA_PARAMS
 
 ROOT = Path(__file__).parent
+THEME_LAYER = "lux.css"
 
 
 def responsive_css(css):
@@ -41,8 +42,9 @@ def build_public(destination, *, mirror=False):
         *sorted(
             path
             for path in styles.glob("*.css")
-            if path.name not in ("tokens.css", "index.css") and not path.name.startswith(".")
+            if path.name not in ("tokens.css", "index.css", THEME_LAYER) and not path.name.startswith(".")
         ),
+        styles / THEME_LAYER,
     ]
     (assets / "site.css").write_text(
         "\n".join(responsive_css(path.read_text(encoding="utf-8")) for path in files), encoding="utf-8"

@@ -2,6 +2,7 @@ import { crowMascotApi } from "./crow-mascot.js";
 import { prepareMini } from "./mini.js";
 import { prepareDiscovery } from "./discovery.js";
 import { prepareCatalog } from "./catalog.js";
+import { prepareHome } from "./home.js";
 
 const base = document.body.dataset.base || "/";
 const mirror = document.body.dataset.mirror === "true";
@@ -359,6 +360,7 @@ function openCabinetSection() {
 function setupPage() {
   prepareDiscovery(url, mirror);
   prepareCatalog(url, notice);
+  prepareHome();
   alignOfficeNavigation();
   openCabinetSection();
   const recent = document.querySelector("[data-reading-title]");
@@ -622,6 +624,7 @@ function vision(action) {
   else if (action === "vision-serif") html.classList.toggle("vis-serif");
   else if (action === "vision-spacing") html.classList.toggle("vis-spacing");
   store("club_vision", JSON.stringify({ on: html.classList.contains("vis"), zoom: html.style.getPropertyValue("--vis-zoom") || "1", scheme: html.dataset.visScheme || "bw", images: !html.classList.contains("vis-noimg"), serif: html.classList.contains("vis-serif"), spacing: html.classList.contains("vis-spacing") }));
+  document.dispatchEvent(new Event("club-vision-change"));
 }
 
 async function pageview() {
@@ -642,6 +645,9 @@ async function subscribePush() {
 }
 
 document.addEventListener("input", event => { if (event.target.matches("[data-reading-search]")) renderReading(); });
+document.addEventListener("focusin", event => {
+  if (event.target.matches?.(":focus-visible")) event.target.closest(".dpo-starts-grid article, .cabinet-nav a")?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+});
 document.addEventListener("change", event => {
   if (event.target.matches("[data-audio-rate]")) event.target.closest(".site-player").querySelector("audio").playbackRate = Number(event.target.value);
   if (event.target.matches("[data-unread-filter],[data-reading-kind]")) renderReading();

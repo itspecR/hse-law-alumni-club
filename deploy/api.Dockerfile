@@ -9,7 +9,7 @@ RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-ins
 FROM deps AS build
 COPY data/domain-data.json data/faq-data.json data/legal-data.json /repo/data/
 COPY backend/club_api ./club_api
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-editable --python /usr/local/bin/python
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-editable --reinstall-package club-api --python /usr/local/bin/python
 RUN .venv/bin/python -m compileall -q -b -s /repo -p /app .venv/lib/python3.14/site-packages/club_api \
     && find .venv/lib/python3.14/site-packages/club_api -type f -name '*.py' -delete \
     && find .venv/lib/python3.14/site-packages/club_api -type d -name __pycache__ -exec rm -rf {} + \

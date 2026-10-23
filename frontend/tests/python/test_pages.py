@@ -1,7 +1,9 @@
+import re
+
 import httpx
 import pytest
 
-from club_web.formatting import payment_url, safe_url
+from club_web.formatting import payment_url, rub, safe_url
 from club_web.main import create_app
 from club_web.pages import OFFICE_NAV, PUBLIC_PAGES
 
@@ -154,7 +156,7 @@ async def browser_client():
 async def test_public_pages_render(browser_client, path):
     response = await browser_client.get(path)
     assert response.status_code == 200
-    assert '<html lang="ru">' in response.text
+    assert '<html lang="ru" class="lux">' in response.text
     assert 'id="main"' in response.text
     assert "React" not in response.text
     assert response.headers["cache-control"] == (
@@ -169,7 +171,7 @@ async def test_public_pages_render(browser_client, path):
         ("/saved", False, True),
         ("/changes/tg-18", False, True),
         ("/dpo", False, True),
-        pytest.param("/?source=pwa", False, False, id="failed-home-data-is-not-saved"),
+        ("/?source=pwa", False, True),
         ("/tg?pwa=1", False, True),
         ("/news?source=other", False, False),
         ("/dpo", True, False),
@@ -274,6 +276,58 @@ async def test_detail_api_failure_remains_retryable(path):
     assert response.status_code == 503
     assert "Не удалось загрузить страницу" in response.text
     assert "Страница не найдена" not in response.text
+
+
+async def test_failed_home_data_is_not_saved_offline():
+    async def upstream(request):
+        return httpx.Response(503, json={"error": "Сервис временно недоступен"})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            response = await client.get("/?source=pwa")
+    assert response.status_code == 200
+    assert response.headers.get("X-Club-Offline") is None
+    assert response.headers["cache-control"] == "no-store"
+    assert "Программы не&nbsp;загрузились" in response.text
+    assert "Программ в&nbsp;каталоге" not in response.text
+    assert "data-starts-empty" not in response.text
+
+
+@pytest.mark.parametrize(
+    "hero,chars",
+    [({}, 8), ({"title_pre": "Клуб выпускников", "title_accent": "факультета права"}, 11)],
+)
+async def test_home_hero_words_fit_longest_word(hero, chars):
+    async def upstream(request):
+        if request.url.path == "/pages/home":
+            return httpx.Response(200, json={"blocks": {"hero": hero}})
+        return httpx.Response(200, json=[])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            response = await client.get("/")
+    assert f'style="--hero-chars:{chars}"' in response.text
+
+
+async def test_home_uses_only_sourced_photos(browser_client):
+    response = await browser_client.get("/")
+    photos = set(re.findall(r"assets/photos/club/([a-z]+)-", response.text))
+    assert photos == {"graduates", "meeting", "conversation", "voice"}
+
+
+async def test_cart_line_has_no_empty_variant(browser_client):
+    response = await browser_client.get("/cart", headers={"x-cart-session": "cart-test"})
+    assert f"<p>{rub(PRODUCT['price'])}</p>" in response.text
+
+
+async def test_office_uses_dark_theme(browser_client):
+    response = await browser_client.get("/admin", headers={"authorization": "Bearer admin-test"})
+    assert '<html lang="ru" class="lux">' in response.text
+    assert "assets/themis-club.svg" in response.text
 
 
 async def test_office_page_failure_does_not_render_empty_edit_form():

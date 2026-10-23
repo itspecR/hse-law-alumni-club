@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import save,add_cart %}
 {% block content %}
-<main id="main" class="site-container">
-<a href="/merch">← Мерч клуба</a>
+<main id="main" class="site-container product-page">
+<a href="/merch" class="foc lux-back"><span aria-hidden="true">‹</span> Мерч клуба</a>
 <header class="site-masthead">
 <span class="club-caps">{{ item.category }}</span>
 <h1>{{ item.title }}</h1>
