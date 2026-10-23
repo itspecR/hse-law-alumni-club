@@ -8,6 +8,7 @@ html.lux .site-calendar > header { flex-wrap: nowrap; justify-content: space-bet
 html.lux .site-calendar > header h2 { flex: 1 1 0; min-width: 0; margin: 0; text-align: center; }
 html.lux .site-calendar > header a { display: inline-grid; flex: none; place-items: center; width: var(--lux-arrow); height: var(--lux-arrow); border-radius: 50%; background: var(--lux-control); color: var(--c-text); text-decoration: none; }
 html.lux .site-calendar { --lux-heading-size: min(var(--lux-section-size), var(--lux-month-fit)); --lux-month-fit: 9cqi; }
+html.lux.vis-spacing .site-calendar { --lux-month-fit: 7.5cqi; }
 html.lux .site-calendar-grid { --lux-dot: var(--c-accent); gap: 4px; border: 0; }
 html.vis .site-calendar-grid { --lux-dot: var(--vis-fg); }
 html.lux .site-calendar-grid > strong { padding: 6px 8px; background: none; font-size: 13px; font-weight: 500; color: var(--c-text-3); }

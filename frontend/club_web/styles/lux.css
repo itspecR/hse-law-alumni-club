@@ -96,7 +96,7 @@ html.lux.vis :is(.dpo-starts-grid article:has(a:focus-visible), .site-checkbox:h
 html.lux.vis .club-auth__aside li::before { font-weight: 400; color: var(--vis-fg); }
 
 html.lux :is(.cabinet-page, .cart-page, .program-page, .product-page) .site-two-col > aside.site-panel { padding: clamp(24px, 2.6cqi, 32px); border: 0; border-radius: var(--r-lg); background: var(--c-bg-raised); }
-html.lux :is(.cabinet-page, .cart-page, .program-page, .product-page) .site-two-col > aside.site-panel h2, html.lux .mini-membership h2 { font: 200 28px/1.1 var(--f-display); letter-spacing: -0.03em; }
+html.lux :is(.cabinet-page, .cart-page, .program-page) .site-two-col > aside.site-panel h2, html.lux .mini-membership h2 { font: 200 28px/1.1 var(--f-display); letter-spacing: -0.03em; }
 html.lux :is(.cart-page, .program-page, .product-page) .site-two-col > aside.site-panel :is(.lux-price, .site-price) { font-size: 32px; font-weight: 400; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 html.lux :is(.cabinet-page .site-two-col > div > section > h2, .program-page .site-two-col > div > section h2, :is(.profile-page, .support-page, .saved-page) section > h2, .site-calendar > header h2) { font: 200 var(--lux-heading-size, var(--lux-section-size))/1.12 var(--f-display); letter-spacing: -0.03em; font-kerning: none; }
 html.lux :is(.cabinet-gate__form, .club-auth__card, .cart-page .site-two-col > aside.site-panel, .mini-membership) .site-primary, html.lux .mini-home > .site-primary[data-action="leave-mini"] { width: 100%; min-height: 48px; }

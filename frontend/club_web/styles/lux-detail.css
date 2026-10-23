@@ -6,7 +6,7 @@ html.lux .program-page .site-two-col > div > section h2 { margin: 0 0 20px; }
 html.lux .program-page .site-two-col > div > section > ul { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
 html.lux .program-page .site-two-col > div > section > ul > li { padding: 12px 0; border-top: 1px solid var(--c-line); font-size: 17px; line-height: 1.45; }
 html.lux .program-page .site-two-col > div > section > ul > li:last-child { border-bottom: 1px solid var(--c-line); }
-html.lux :is(.program-page, .product-page) .site-program-cover { border-radius: var(--r-lg); }
+html.lux .program-page .site-program-cover { border-radius: var(--r-lg); }
 
 html.lux :is(.program-page, .support-page) details:last-of-type { border-bottom: 1px solid var(--c-line); }
 html.lux :is(.program-page, .support-page) details summary { justify-content: space-between; gap: 16px; min-height: 56px; padding: 8px 0; font-size: 17px; font-weight: 500; }
@@ -18,10 +18,10 @@ html.lux .lux-teachers .site-teacher-photo { margin-bottom: 12px; border-radius:
 html.lux .lux-teachers h3 { margin: 0; font: 500 17px/1.3 var(--f-body); }
 html.lux .lux-teachers p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--c-text-3); }
 
-html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel h2 { margin: 0 0 8px; }
-html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel dl { display: grid; gap: 0; margin: 0 0 24px; }
-html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel dt { margin-top: 16px; font-size: 13px; color: var(--c-text-3); }
-html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel dd { margin: 4px 0 0; font-size: 17px; }
+html.lux .program-page .site-two-col > aside.site-panel h2 { margin: 0 0 8px; }
+html.lux .program-page .site-two-col > aside.site-panel dl { display: grid; gap: 0; margin: 0 0 24px; }
+html.lux .program-page .site-two-col > aside.site-panel dt { margin-top: 16px; font-size: 13px; color: var(--c-text-3); }
+html.lux .program-page .site-two-col > aside.site-panel dd { margin: 4px 0 0; font-size: 17px; }
 html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel > p:last-child { margin: 20px 0 0; font-size: 14px; color: var(--c-text-3); }
 html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel form[data-cart] { display: grid; gap: 16px; margin-bottom: 12px; }
 html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel :is(.site-primary, .save-material) { width: 100%; }

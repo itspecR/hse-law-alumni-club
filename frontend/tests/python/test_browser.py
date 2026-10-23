@@ -1617,20 +1617,29 @@ def test_calendar_days_stay_readable_and_reachable(page, site, width):
 
 @pytest.mark.parametrize("width", [320, 360])
 def test_vision_mode_feed_and_account_details(page, site, width):
-    page.add_init_script("localStorage.setItem('club_vision', JSON.stringify({on:true,zoom:1.4,scheme:'bb'}));")
+    page.add_init_script(
+        "localStorage.getItem('club_vision') || localStorage.setItem('club_vision', JSON.stringify({on:true,zoom:1.4,scheme:'bb'}));"
+    )
     page.set_viewport_size({"width": width, "height": 800})
     page.goto("/events?month=2026-11")
     header = page.locator(".site-calendar > header a")
     assert abs(header.first.bounding_box()["y"] - header.last.bounding_box()["y"]) < 1
     dot = page.locator(".site-calendar-grid a").first
     assert dot.evaluate("node => getComputedStyle(node, '::after').backgroundColor") == "rgb(10, 42, 102)"
-    for vision in ("{on:true,zoom:1.4,scheme:'bw'}", "{on:true,zoom:1,scheme:'bw',spacing:true}"):
+    for vision in (
+        "{on:true,zoom:1.4,scheme:'bw'}",
+        "{on:true,zoom:1,scheme:'bw',spacing:true}",
+        "{on:true,zoom:1.4,scheme:'bw',spacing:true}",
+        "{on:true,zoom:1.4,scheme:'bw',spacing:true,serif:true}",
+    ):
         page.evaluate(f"localStorage.setItem('club_vision', JSON.stringify({vision}))")
         page.goto("/events?month=2026-09")
+        expect(page.locator("html")).to_have_class(re.compile("vis-spacing" if "spacing" in vision else "vis"))
         for arrow in header.all():
             size = arrow.evaluate("node => [node.offsetWidth, node.offsetHeight]")
             assert size[0] >= 44 and size[0] == size[1]
         assert page.locator(".site-calendar > header h2").evaluate("node => node.scrollWidth <= node.clientWidth + 1")
+    page.evaluate("localStorage.setItem('club_vision', JSON.stringify({on:true,zoom:1.4,scheme:'bb'}))")
     for path in ("/forgot", "/confirm"):
         page.goto(path)
         assert page.locator(".club-auth__card h1").evaluate(WORDS_UNBROKEN)
