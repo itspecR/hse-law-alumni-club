@@ -1,4 +1,5 @@
 import { hidePastStarts } from "./catalog.js";
+import { prepareThemis } from "./themis.js";
 
 const REVEAL_MARGIN = "0px 0px -8% 0px";
 const FOCUS_GAP = 8;
@@ -7,7 +8,6 @@ let hero = null;
 let farFrom = 1;
 let queued = false;
 let revealer = null;
-let watcher = null;
 
 function heroProgress() {
   const travel = hero.offsetHeight - hero.querySelector(".lux-hero__stage").offsetHeight;
@@ -79,16 +79,8 @@ function keepRowsVisible(root) {
   });
 }
 
-function watchSign() {
-  watcher?.disconnect();
-  const stage = document.querySelector(".lux-hero, .mini-welcome");
-  if (!stage || !("IntersectionObserver" in window)) return;
-  watcher = new IntersectionObserver(([entry]) => stage.classList.toggle("is-off", !entry.isIntersecting));
-  watcher.observe(stage);
-}
-
 export function prepareHome() {
-  watchSign();
+  prepareThemis();
   const root = document.querySelector(".lux-home");
   hero = root?.querySelector(".lux-hero") || null;
   if (hero) farFrom = parseFloat(getComputedStyle(hero).getPropertyValue("--far")) || farFrom;
