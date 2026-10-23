@@ -12,4 +12,4 @@ RUN go get golang.org/x/sys@v0.49.0 github.com/moby/sys/user@v0.4.1 && go mod ti
 FROM postgres:16.15-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
 COPY --from=gosu /usr/local/bin/gosu /usr/local/bin/gosu
 COPY --from=gosu /tmp/gosu-1.19/LICENSE /usr/share/licenses/club-gosu/LICENSE
-RUN apk add --no-cache 'zlib>=1.3.2-r1' && gosu nobody true
+RUN apk upgrade --no-cache && apk add --no-cache 'zlib>=1.3.2-r1' 'musl>=1.2.6-r3' && gosu nobody true
