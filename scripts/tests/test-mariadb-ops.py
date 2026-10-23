@@ -124,6 +124,32 @@ class NativeDatabaseGuards(unittest.TestCase):
             self.assertEqual(before, {name: (config / name).read_bytes() for name in installer.FILES})
 
 
+class BackupRevision(unittest.TestCase):
+    API = "a" * 40
+
+    def revision_of(self, web):
+        context = Mock()
+        context.capture.side_effect = ["api-container", "web-container"]
+        with patch.object(common, "output", side_effect=[self.API, web]), patch("sys.stdout", new_callable=io.StringIO) as printed:
+            return common.image_revision(context), printed.getvalue()
+
+    def test_web_built_by_hand_does_not_block_backup(self):
+        for web in ("", "b" * 40):
+            revision, printed = self.revision_of(web)
+            self.assertEqual(revision, self.API)
+            self.assertIn("Web собран не из версии API", printed)
+
+    def test_matching_labels_pass_silently(self):
+        self.assertEqual(self.revision_of(self.API), (self.API, ""))
+
+    def test_api_without_label_is_rejected(self):
+        context = Mock()
+        context.capture.side_effect = ["api-container", "web-container"]
+        with patch.object(common, "output", side_effect=["", ""]):
+            with self.assertRaisesRegex(ValueError, "У API нет revision label"):
+                common.image_revision(context)
+
+
 class RestoreResourceGuards(unittest.TestCase):
     def test_no_space_rejects_restore_before_context_sql_and_decryption(self):
         with tempfile.TemporaryDirectory() as temp:

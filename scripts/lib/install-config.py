@@ -177,7 +177,7 @@ def install(directory, local):
         metadata = {'version': 1, 'mode': 'local' if local else 'public'}
         write_new(previous, json.dumps(metadata) + '\n')
     environment = {'PATH': os.environ['PATH'], **operations(directory, local)}
-    subprocess.run(['bash', str(REPO / 'scripts/deploy.sh')], env=environment, check=True)
+    subprocess.run(['bash', str(REPO / 'scripts/deploy.sh'), '--current'], env=environment, check=True)
     url = subprocess.check_output(['bash', '-c', 'source "$1/scripts/lib/ops-common.sh"; ops_value PUBLIC_URL',
                                    'install', str(REPO)], env=environment, text=True).strip()
     print('\nСайт и /api/ready проверены: ' + url)
