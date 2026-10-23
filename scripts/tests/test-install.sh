@@ -86,7 +86,7 @@ PY
 )"
 sudo env ENV_FILE="$config/compose.env" python3 "$temp/repo/scripts/lib/mariadb_native.py" prepare-restore --config-dir "$restore_config"
 sudo env ENV_FILE="$config/compose.env" SNAPSHOT_FILE="$snapshot" RESTORE_ENV_FILE="$restore_config/compose.env" bash "$temp/repo/scripts/restore.sh"
-sudo env ENV_FILE="$restore_config/compose.env" bash "$temp/repo/scripts/deploy.sh"
+sudo env ENV_FILE="$restore_config/compose.env" bash "$temp/repo/scripts/deploy.sh" --current
 sudo python3 - "$restore_config" "$config/initial-admin.txt" <<'PY'
 import json,pathlib,ssl,sys,urllib.request
 directory=pathlib.Path(sys.argv[1])

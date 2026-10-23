@@ -98,7 +98,7 @@ host запрещены. Для локальной репетиции снача
 
 ```bash
 sudo env ENV_FILE=/etc/club/runtime.env bash scripts/preflight.sh
-sudo env ENV_FILE=/etc/club/runtime.env bash scripts/deploy.sh
+sudo env ENV_FILE=/etc/club/runtime.env bash scripts/deploy.sh --current
 ```
 
 Для QA к **каждой** операции добавляются одинаковые `DEPLOY_COMPOSE_OVERRIDE` и
@@ -190,7 +190,7 @@ COMMIT. Проверьте новый вход и отказ старого JWT,
 sudo git status --short
 sudo git fetch origin
 sudo git checkout --detach REVIEWED_COMMIT
-sudo env ENV_FILE=/etc/club/runtime.env bash scripts/deploy.sh
+sudo env ENV_FILE=/etc/club/runtime.env bash scripts/deploy.sh --current
 ```
 
 Текущая работающая версия фиксируется в OCI labels API/web и `last-deploy.json`.

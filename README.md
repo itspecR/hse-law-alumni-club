@@ -480,13 +480,26 @@ git clone /tmp/club.bundle /opt/club
 
 ```bash
 sudo env ENV_FILE=/etc/club/compose.env bash scripts/preflight.sh
-sudo env ENV_FILE=/etc/club/compose.env bash scripts/deploy.sh
+sudo ./scripts/deploy.sh --current
 ```
 
 Ручной перенос прежних данных, сокет, права и проверка файлов описаны в
 [инструкции MariaDB](docs/operations/mariadb-migration.md).
 
 ### Что делает deploy.sh
+
+| Команда | Что выкатывается |
+|---|---|
+| `./scripts/deploy.sh` | свежий `main` из GitHub |
+| `./scripts/deploy.sh <ветка>` | свежая указанная ветка из GitHub |
+| `./scripts/deploy.sh --current` | папка как есть, без скачивания: установщик, стенд восстановления |
+
+Скрипт сам перезапускается через `sudo` и берёт настройки установщика
+`/etc/club/compose.env`; другой файл задаётся через `ENV_FILE`. С веткой он
+скачивает её, приводит папку к ней (`git checkout -f`, `git clean -fd`:
+локальные правки в файлах репозитория стираются, настройки и данные вне папки не
+трогаются) и выкатывает. Если выкладка упала, скрипт сам возвращает прошлый коммит,
+выкатывает его и пишет, где лежит копия базы, сделанная перед выкладкой.
 
 Шаги выводятся в консоль как `[N/7]`.
 
@@ -607,10 +620,11 @@ sudo rm /etc/club/staff-password
 
 ## Обновление и миграции
 
-Получите проверенную ревизию, убедитесь в чистом рабочем дереве и выполните:
+Одна команда из папки сайта:
 
 ```bash
-sudo env ENV_FILE=/etc/club/compose.env bash scripts/deploy.sh
+./scripts/deploy.sh            # свежий main
+./scripts/deploy.sh <ветка>    # любая ветка
 ```
 
 Перед миграциями создаётся копия базы и uploads. Сборка новых образов не меняет
@@ -621,8 +635,9 @@ sudo env ENV_FILE=/etc/club/compose.env bash scripts/deploy.sh
 После миграций запускается новая версия, nginx обновляет адреса upstream.
 
 Сохранённый SHA находится в `/var/lib/club-ops/last-deploy.json`.
-Ненулевой код после начала миграций требует разбора; API автоматически
-не возвращается к старой схеме. Исходную PostgreSQL и её файлы сохраняйте
+При ошибке скрипт возвращает и выкатывает прошлый коммит. Схема базы при этом
+не откатывается: если миграции успели примениться и прошлая версия работает
+с ошибками, базу восстанавливают из копии перед выкладкой. Исходную PostgreSQL и её файлы сохраняйте
 до окончания переноса и проверки восстановления.
 
 ## Резервное копирование
@@ -650,7 +665,7 @@ Systemd-таймеры подключаются отдельно. Файлы к�
 ```bash
 sudo env ENV_FILE=/etc/club/compose.env python3 scripts/lib/mariadb_native.py prepare-restore --config-dir /etc/club-restore
 sudo env ENV_FILE=/etc/club/compose.env SNAPSHOT_FILE=/var/backups/club/snapshot-YYYYMMDD.tar.gz.enc RESTORE_ENV_FILE=/etc/club-restore/compose.env bash scripts/restore.sh
-sudo env ENV_FILE=/etc/club-restore/compose.env bash scripts/deploy.sh
+sudo env ENV_FILE=/etc/club-restore/compose.env bash scripts/deploy.sh --current
 ```
 
 Используйте checkout ревизии приложения из снимка. Восстановление требует
