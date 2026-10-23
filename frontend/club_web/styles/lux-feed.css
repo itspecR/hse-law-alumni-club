@@ -5,9 +5,11 @@ html.lux .news-page .site-editorial-list p { margin: 0; max-width: 68ch; color: 
 
 html.lux .site-calendar { margin: 8px 0 40px; overflow: visible; }
 html.lux .site-calendar > header { flex-wrap: nowrap; justify-content: space-between; gap: 8px; margin: 0 0 16px; }
-html.lux .site-calendar > header h2 { min-width: 0; margin: 0; text-align: center; }
-html.lux .site-calendar > header a { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--lux-control); color: var(--c-text); text-decoration: none; }
-html.lux .site-calendar-grid { gap: 4px; border: 0; }
+html.lux .site-calendar > header h2 { flex: 1 1 0; min-width: 0; margin: 0; text-align: center; }
+html.lux .site-calendar > header a { display: inline-grid; flex: none; place-items: center; width: var(--lux-arrow); height: var(--lux-arrow); border-radius: 50%; background: var(--lux-control); color: var(--c-text); text-decoration: none; }
+html.lux .site-calendar { --lux-heading-size: min(var(--lux-section-size), var(--lux-month-fit)); --lux-month-fit: 9cqi; }
+html.lux .site-calendar-grid { --lux-dot: var(--c-accent); gap: 4px; border: 0; }
+html.vis .site-calendar-grid { --lux-dot: var(--vis-fg); }
 html.lux .site-calendar-grid > strong { padding: 6px 8px; background: none; font-size: 13px; font-weight: 500; color: var(--c-text-3); }
 html.lux .site-calendar-grid > div { min-height: 72px; padding: 8px; border: 0; border-radius: 12px; background: var(--c-bg-raised); }
 html.lux .site-calendar-grid > div:not(:has(span)) { background: none; }
@@ -32,11 +34,10 @@ html.lux .site-event .site-actions > span { color: var(--c-text-3); }
   html.lux .site-calendar-grid > div:focus-within { z-index: 1; }
   html.lux .site-calendar-grid a { position: absolute; inset: 0; margin: 0; padding: 0; border-radius: inherit; background: none; color: transparent; font-size: 0; }
   html.lux .site-calendar-grid a ~ a { display: none; }
-  html.lux .site-calendar-grid a::after { content: ""; position: absolute; left: 50%; bottom: 8px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: var(--c-accent); }
+  html.lux .site-calendar-grid a::after { content: ""; position: absolute; left: 50%; bottom: 8px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: var(--lux-dot); forced-color-adjust: none; }
 }
-html.vis .site-calendar-grid a::after { background: var(--vis-fg) !important; }
 @media (forced-colors: active) {
-  html.lux .site-calendar-grid a::after { forced-color-adjust: none; background: LinkText; }
+  html.lux .site-calendar-grid { --lux-dot: LinkText; }
 }
 
 html.lux .site-article { max-width: 760px; }

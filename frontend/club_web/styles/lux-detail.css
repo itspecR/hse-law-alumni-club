@@ -1,11 +1,11 @@
 html.lux :is(.program-page, .product-page) .site-masthead .club-caps { display: block; margin-bottom: 16px; font-size: 14px; color: var(--c-text-3); }
 
 html.lux :is(.program-page, .product-page) .site-two-col { gap: clamp(32px, 4cqi, 64px); margin-bottom: clamp(64px, 8cqi, 112px); }
-html.lux :is(.program-page, .product-page) .site-two-col > div > section { margin-top: clamp(40px, 5cqi, 64px); }
-html.lux :is(.program-page, .product-page) .site-two-col > div > section h2 { margin: 0 0 20px; }
-html.lux :is(.program-page, .product-page) .site-two-col > div > section > ul { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
-html.lux :is(.program-page, .product-page) .site-two-col > div > section > ul > li { padding: 12px 0; border-top: 1px solid var(--c-line); font-size: 17px; line-height: 1.45; }
-html.lux :is(.program-page, .product-page) .site-two-col > div > section > ul > li:last-child { border-bottom: 1px solid var(--c-line); }
+html.lux .program-page .site-two-col > div > section { margin-top: clamp(40px, 5cqi, 64px); }
+html.lux .program-page .site-two-col > div > section h2 { margin: 0 0 20px; }
+html.lux .program-page .site-two-col > div > section > ul { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+html.lux .program-page .site-two-col > div > section > ul > li { padding: 12px 0; border-top: 1px solid var(--c-line); font-size: 17px; line-height: 1.45; }
+html.lux .program-page .site-two-col > div > section > ul > li:last-child { border-bottom: 1px solid var(--c-line); }
 html.lux :is(.program-page, .product-page) .site-program-cover { border-radius: var(--r-lg); }
 
 html.lux :is(.program-page, .support-page) details:last-of-type { border-bottom: 1px solid var(--c-line); }

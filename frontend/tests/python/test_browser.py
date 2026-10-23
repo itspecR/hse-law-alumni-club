@@ -1624,12 +1624,30 @@ def test_vision_mode_feed_and_account_details(page, site, width):
     assert abs(header.first.bounding_box()["y"] - header.last.bounding_box()["y"]) < 1
     dot = page.locator(".site-calendar-grid a").first
     assert dot.evaluate("node => getComputedStyle(node, '::after').backgroundColor") == "rgb(10, 42, 102)"
+    for vision in ("{on:true,zoom:1.4,scheme:'bw'}", "{on:true,zoom:1,scheme:'bw',spacing:true}"):
+        page.evaluate(f"localStorage.setItem('club_vision', JSON.stringify({vision}))")
+        page.goto("/events?month=2026-09")
+        for arrow in header.all():
+            size = arrow.evaluate("node => [node.offsetWidth, node.offsetHeight]")
+            assert size[0] >= 44 and size[0] == size[1]
+        assert page.locator(".site-calendar > header h2").evaluate("node => node.scrollWidth <= node.clientWidth + 1")
     for path in ("/forgot", "/confirm"):
         page.goto(path)
         assert page.locator(".club-auth__card h1").evaluate(WORDS_UNBROKEN)
     page.goto("/join")
     step = page.locator(".club-auth__aside li").first
     assert step.evaluate("node => getComputedStyle(node, '::before').fontWeight") == "400"
+
+
+def test_calendar_dot_follows_forced_colors(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.emulate_media(forced_colors="active")
+    page.goto("/events?month=2026-11")
+    dot = page.locator(".site-calendar-grid a").first.evaluate(
+        "node => getComputedStyle(node, '::after').backgroundColor"
+    )
+    link = page.locator(".site-calendar > header a").first.evaluate("node => getComputedStyle(node).color")
+    assert dot == link
 
 
 def test_disclosure_names_and_vision_focus_rings(page, site):
