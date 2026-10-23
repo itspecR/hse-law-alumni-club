@@ -182,6 +182,11 @@ jobs:
           path: security-reports/
           retention-days: 7
           if-no-files-found: warn
+      - name: Remove MySQL preinstalled on the runner image
+        run: |
+          sudo systemctl stop mysql || true
+          sudo DEBIAN_FRONTEND=noninteractive apt-get purge -y 'mysql-server*' 'mysql-client*' mysql-common
+          sudo rm -rf /etc/mysql /var/lib/mysql
       - name: Install, repeat and restore MariaDB on Ubuntu with local TLS
         run: CLUB_NATIVE_BROWSER=true bash scripts/tests/test-install.sh
 
