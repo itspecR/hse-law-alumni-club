@@ -3,6 +3,7 @@ from django.http import HttpRequest
 from club_api.core.errors import ApiError
 from club_api.core.views import api_view
 from club_api.modules.catalog.scope import PUBLISHED_PORTFOLIO
+from club_api.modules.portfolio.applications import MAX_PARTICIPANTS, MIN_GROUP
 from club_api.modules.portfolio.links import published_trainers
 from club_api.modules.portfolio.seats import free_seats
 
@@ -44,4 +45,5 @@ async def program(request: HttpRequest, slug: str):
         **program,
         "trainers": await published_trainers(state, program["id"]),
         "seats_left": await free_seats(state, program),
+        "group": {"min": MIN_GROUP, "max": MAX_PARTICIPANTS},
     }

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros.html' import save %}
+{% from 'macros.html' import save,field %}
 {% block content %}
 <main id="main" class="site-container program-page portfolio-program" data-reading-title="{{ item.title }}" data-reading-kind="portfolio">
 <a href="/portfolio" class="foc lux-back"><span aria-hidden="true">‹</span> Портфель программ</a>
@@ -59,14 +59,43 @@
 {% if item.capacity %}
 <dt>Мест в группе</dt>
 <dd>{{ item.capacity }}</dd>
+<dt>Свободных мест</dt>
+<dd>{{ item.seats_left }}</dd>
 {% endif %}
 <dt>Стоимость</dt>
 <dd class="lux-price">{{ item.price|rub }}</dd>
 </dl>
-{% if item.enrollment=='nonactual' %}<p role="status">Набор закрыт</p>{% endif %}
+{% if item.enrollment=='nonactual' %}<p role="status">Набор закрыт</p>{% else %}<a href="#application" class="site-primary">Оставить заявку</a>{% endif %}
 {{ save(path,item.title,'portfolio') }}
 <p>Выпускникам клуба и по промокоду — скидка, итог в заявке.</p>
 </aside>
 </div>
+{% if item.enrollment!='nonactual' %}
+<section id="application" class="site-panel portfolio-application" aria-labelledby="application-title">
+<h2 id="application-title">Заявка на программу</h2>
+{% if item.seats_left==0 %}<p role="status">Места закончились — заявку можно оставить, офис свяжется при освобождении места.</p>{% endif %}
+<p>Оплата на сайте не требуется: учебный офис свяжется с вами, чтобы согласовать договор и оплату.</p>
+<form data-api="/portfolio/{{ item.slug }}/applications" data-application>
+{{ field('contact_fio','ФИО') }}{{ field('contact_phone','Телефон',type='tel') }}{{ field('contact_email','Почта',type='email') }}
+<fieldset class="portfolio-applicant">
+<legend>Кто будет учиться</legend>
+<div class="lux-seg" style="--seg-n:2">
+<label class="lux-seg__opt"><input type="radio" name="applicant" value="self" checked data-applicant><span>Для себя</span></label>
+<label class="lux-seg__opt"><input type="radio" name="applicant" value="organization" data-applicant><span>От организации</span></label>
+</div>
+</fieldset>
+<div data-organization hidden>
+<label class="site-field">Организация<input name="organization" maxlength="300" required disabled></label>
+<label class="site-field">Число участников<input name="participants" type="number" min="{{ item.group.min }}" max="{{ item.group.max }}" value="{{ item.group.min }}" required disabled></label>
+</div>
+<label class="site-field">Комментарий<textarea name="comment" maxlength="2000"></textarea></label>
+<label class="site-consent"><input type="checkbox" name="consent_pdn" required>Даю <a href="/portfolio-consent">согласие на обработку персональных данных</a></label>
+<label class="site-consent"><input type="checkbox" name="consent_terms" required>Соглашаюсь с <a href="/portfolio-terms">условиями обучения</a></label>
+<input type="text" name="website" class="site-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true">
+<p role="alert" data-error hidden></p>
+<button class="site-primary">Отправить заявку</button>
+</form>
+</section>
+{% endif %}
 </main>
 {% endblock %}

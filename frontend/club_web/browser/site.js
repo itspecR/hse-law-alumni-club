@@ -121,6 +121,10 @@ function formBody(form) {
   for (const input of form.elements) {
     if (!input.name || input.disabled || input.type === "submit") continue;
     let value = input.value;
+    if (input.type === "radio") {
+      if (input.checked) body[input.name] = value;
+      continue;
+    }
     if (input.type === "checkbox") {
       if (input.name === "interests") { body.interests ||= []; if (input.checked) body.interests.push(value); continue; }
       if (input.hasAttribute("data-list")) { body[input.name] ||= []; if (input.checked) body[input.name].push(value); continue; }
@@ -212,6 +216,21 @@ function checkoutReceipt(result) {
   window.scrollTo(0, 0);
 }
 
+function applicationReceipt(form, result) {
+  const receipt = element("div", undefined, { role: "status", class: "portfolio-receipt", tabindex: "-1" });
+  receipt.append(element("h3", "Заявка " + result.number + " принята"), element("p", "Участников: " + result.participants + " · сумма (справочно): " + new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB" }).format(result.total_estimate / 100)), element("p", "Учебный офис свяжется с вами по указанным контактам, чтобы согласовать договор и оплату."));
+  if (!result.notified?.ok) receipt.append(element("p", "Заявка сохранена, но уведомление офиса не прошло. Сообщите номер заявки в поддержку.", { role: "alert" }));
+  form.replaceWith(receipt);
+  receipt.focus();
+}
+
+function toggleApplicant(input) {
+  const group = input.form.querySelector("[data-organization]");
+  const organization = input.value === "organization";
+  group.hidden = !organization;
+  group.querySelectorAll("input").forEach(field => { field.disabled = !organization; });
+}
+
 async function perform(target, body) {
   if (target.hasAttribute("data-member-action") && !token(false)) {
     location.href = url("lk?next=" + encodeURIComponent(currentPath() + location.hash));
@@ -222,6 +241,7 @@ async function perform(target, body) {
   const method = target.dataset.method || "POST";
   const cart = target.hasAttribute("data-cart");
   const checkout = target.hasAttribute("data-checkout");
+  const application = target.hasAttribute("data-application");
   if (checkout && pendingCart) throw new Error("Дождитесь обновления корзины.");
   if (cart && pendingCheckout) throw new Error("Дождитесь отправки заявки.");
   const buttons = target.tagName === "FORM" ? [...target.querySelectorAll("button[type='submit'],button:not([type])")] : [target];
@@ -229,7 +249,7 @@ async function perform(target, body) {
   buttons.forEach(button => { button.disabled = true; });
   const oldText = buttons.map(button => button.textContent);
   buttons.forEach(button => { button.textContent = "Подождите…"; });
-  const fields = checkout ? [...target.querySelectorAll("input,select,textarea")].map(input => ({ input, disabled: input.disabled })) : [];
+  const fields = checkout || application ? [...target.querySelectorAll("input,select,textarea")].map(input => ({ input, disabled: input.disabled })) : [];
   fields.forEach(({ input }) => { input.disabled = true; });
   let headers = {};
   try {
@@ -237,6 +257,12 @@ async function perform(target, body) {
     if (checkout) {
       pendingCheckout = true;
       const key = "club_checkout:" + cartSession();
+      const id = stored(key) || crypto.randomUUID();
+      store(key, id);
+      headers = { "idempotency-key": id };
+    }
+    if (application) {
+      const key = "club_application:" + path;
       const id = stored(key) || crypto.randomUUID();
       store(key, id);
       headers = { "idempotency-key": id };
@@ -255,6 +281,9 @@ async function perform(target, body) {
       const next = new URLSearchParams(location.search).get("next");
       if (next?.startsWith("/") && !next.startsWith("//") && !/[\\\x00-\x20]/.test(next)) location.href = url(next);
       else await refresh();
+    } else if (application) {
+      store("club_application:" + path, null);
+      applicationReceipt(target, result);
     } else if (checkout) {
       store("club_checkout:" + cartSession(), null);
       checkoutReceipt(result);
@@ -625,6 +654,7 @@ document.addEventListener("focusin", event => {
 document.addEventListener("change", event => {
   if (event.target.matches("[data-audio-rate]")) event.target.closest(".site-player").querySelector("audio").playbackRate = Number(event.target.value);
   if (event.target.matches("[data-unread-filter],[data-reading-kind]")) renderReading();
+  if (event.target.matches("[data-applicant]")) toggleApplicant(event.target);
   if (event.target.matches("input[name='interests']")) {
     const selected = event.target.form.querySelectorAll("input[name='interests']:checked");
     if (selected.length > Number(event.target.closest("fieldset").dataset.maxInterests)) { event.target.checked = false; notice("Выбрано максимальное число интересов."); }

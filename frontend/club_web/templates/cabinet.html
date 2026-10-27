@@ -83,14 +83,18 @@
 <h3>Заявка {{ order.number }}</h3>
 <p>{{ order.created_at|date }} · {{ {'new':'Новая','confirmed':'Подтверждена','in_progress':'В работе','done':'Исполнена','canceled':'Отменена','expired':'Резерв истёк'}.get(order.status,order.status) }}</p>
 <p>{{ order.total_estimate|rub }} · {{ 'Оплачено' if order.payment_status=='succeeded' else 'Не оплачено' }}</p>
+{% if order.type=='portfolio' %}
+<p>До скидки: {{ order.subtotal|rub }} · скидка выпускника: {{ order.member_discount or 0 }}% · участников: {{ order.participants }}{% if order.organization %} · {{ order.organization }}{% endif %}.</p>
+{% else %}
 <p>До скидки: {{ order.subtotal|rub }} · скидка на ДПО: {{ order.member_discount or 0 }}% · {{ 'Доставка' if order.fulfillment=='delivery' else 'Самовывоз' }}.</p>
+{% endif %}
 {% for line in order.items_json or [] %}
 <p>{{ line.title }} × {{ line.qty }}</p>
 {% endfor %}
 {% if order.payment_url|payment_url %}
 <a href="{{ order.payment_url|payment_url }}">Оплатить через ЮKassa</a>
 {% endif %}
-{% if order.status not in ('done','canceled','expired') %}
+{% if order.status not in ('done','canceled','expired') and order.type!='portfolio' %}
 <button data-api="/orders/{{ order.number }}/pay" data-member-action>Получить ссылку оплаты</button>
 {% endif %}
 </article>

@@ -37,11 +37,14 @@ PUBLIC_PAGES = {
     "/requisites": ("legal/requisites.html", "Реквизиты"),
     "/support": ("support.html", "Поддержка клуба"),
     "/support/consent": ("legal/support.html", "Согласие на обработку данных"),
+    "/portfolio-consent": ("legal/portfolio-consent.html", "Согласие на обработку персональных данных"),
+    "/portfolio-terms": ("legal/portfolio-terms.html", "Условия обучения"),
     "/cart": ("cart.html", "Корзина"),
     "/lk": ("cabinet.html", "Личный кабинет"),
     "/lk/profile": ("profile.html", "Профиль"),
 }
 NAV = [
+    ("/portfolio", "Портфель программ"),
     ("/dpo", "ДПО"),
     ("/events", "События"),
     ("/news", "Новости"),
