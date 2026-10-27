@@ -1,3 +1,5 @@
+@property --lux-sway { syntax: "<angle>"; inherits: true; initial-value: 0deg; }
+
 .lux-home {
   --lux-nav: var(--lux-header);
   --lux-top: calc(var(--lux-nav) + var(--office-notice-height, 0px));
@@ -11,8 +13,8 @@
   --word-gap: clamp(20px, 3cqi, 48px);
   --hero-glyph: 0.46;
   --far: 0.42;
-  --fig-axis: 0.452;
-  --fig-ratio: var(--themis-ratio);
+  --fig-axis: 0.454;
+  --fig-ratio: 313 / 549;
   --p: 0;
   display: block;
   padding: 0;
@@ -38,7 +40,7 @@
   position: absolute; left: 50%; top: 3svh; height: var(--fig-h); aspect-ratio: var(--fig-ratio); translate: calc(var(--fig-axis) * -100%) 0;
   transform: translateY(calc(var(--p) * -2svh)) scale(calc(1 + var(--p) * 0.04)); transform-origin: 50% 42%;
 }
-.lux-hero__figure .lux-themis { width: 100%; height: 100%; }
+.lux-themis { display: block; width: 100%; height: 100%; overflow: visible; }
 .lux-hero__title { --hero-fit: calc((50cqi - var(--fig-w) * (1 - var(--fig-axis)) - var(--word-gap) - var(--lux-gutter)) / (var(--hero-chars) * var(--hero-glyph))); position: absolute; inset: 0; margin: 0; font: 200 min(7.2cqi, 12svh, var(--hero-fit))/0.98 var(--f-display); letter-spacing: -0.045em; pointer-events: none; }
 .lux-hero__word { position: absolute; top: calc(3svh + var(--fig-h) * 0.27); display: flex; flex-direction: column; opacity: calc(1 - var(--p) * 1.7); }
 .lux-hero__word--l { right: calc(50% + var(--fig-w) * var(--fig-axis) + var(--word-gap)); align-items: flex-end; transform: translateX(calc(var(--p) * -9cqi)); }
@@ -54,6 +56,11 @@
   font: 200 clamp(24px, 2.4cqi, 34px)/1.22 var(--f-display); letter-spacing: -0.025em; text-align: center; text-wrap: balance;
   pointer-events: none; display: none;
 }
+.lux-scales { --lux-angle: calc(var(--p) * 7deg + var(--lux-sway)); }
+.lux-scales__beam { transform-box: fill-box; transform-origin: 46% 50%; rotate: var(--lux-angle); }
+.lux-pan--l { transform: translateY(calc(-33px * sin(var(--lux-angle)))); }
+.lux-pan--r { transform: translateY(calc(36px * sin(var(--lux-angle)))); }
+.lux-glint { fill: url(#lux-g-glint); opacity: 0; }
 
 .lux-join__head { text-align: center; }
 .lux-join__head .lux-lede { margin-inline: auto; }
@@ -189,9 +196,13 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
 }
 
 @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  .lux-piece { opacity: 0; animation: lux-piece-in 640ms var(--ease-out) forwards; animation-delay: calc(140ms + var(--i) * 34ms); }
   .lux-hero__line > span { transform: translateY(108%); animation: lux-line-up 900ms var(--ease-out) forwards; animation-delay: calc(140ms + var(--i) * 110ms); }
   .lux-hero__foot > * { opacity: 0; animation: lux-rise 700ms var(--ease-out) 820ms forwards; }
   .lux-hero__acts { animation-delay: 900ms; }
+  .lux-scales { animation: lux-sway 7s var(--ease-in-out, ease-in-out) 1.6s 4 alternate both; }
+  .lux-glint { animation: lux-glint 9s var(--ease-in-out, ease-in-out) 1.9s infinite; }
+  :is(.lux-hero, .mini-welcome).is-off :is(.lux-scales, .lux-glint) { animation-play-state: paused; }
   .lux-reveal { opacity: 0; transform: translateY(24px); transition: opacity 600ms var(--ease-out), transform 600ms var(--ease-out); transition-delay: calc(var(--d, 0) * 60ms); }
   .lux-reveal.is-in, .lux-reveal:focus-within { opacity: 1; transform: none; }
   .lux-reveal:focus-within { transition: none; }
@@ -212,6 +223,9 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
   .lux-calc__levels { display: none; }
 }
 
+@keyframes lux-piece-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes lux-line-up { to { transform: none; } }
 @keyframes lux-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes lux-sway { from { --lux-sway: -1.6deg; } to { --lux-sway: 1.6deg; } }
+@keyframes lux-glint { 0% { opacity: 0; transform: translateY(0); } 2% { opacity: 1; } 14% { opacity: 1; transform: translateY(320px); } 15%, 100% { opacity: 0; transform: translateY(320px); } }
 @keyframes lux-swap { from { opacity: 0.5; transform: translateY(3px); } to { opacity: 1; transform: none; } }
