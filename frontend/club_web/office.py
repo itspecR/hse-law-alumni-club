@@ -1,5 +1,5 @@
 GROUPS = [
-    ("Работа клуба", ("overview", "orders", "members", "subs", "support")),
+    ("Работа клуба", ("overview", "orders", "promo-codes", "members", "subs", "support")),
     (
         "Публикации",
         ("portfolio", "trainers", "programs", "products", "news", "news-sources", "events", "podcasts", "timeline"),
@@ -10,6 +10,7 @@ DESCRIPTIONS = {
     "overview": "Заявки, проверка выпускников и состояние сервисов клуба.",
     "analytics": "Участники, заявки и активность за выбранный период.",
     "orders": "Заявки на программы, мерч и подписки.",
+    "promo-codes": "Скидки по коду для программ клуба: срок, лимиты и программы.",
     "members": "Профили выпускников, проверка статуса и возможности клуба.",
     "subs": "Доступ к подкастам и прослушивания выпусков.",
     "portfolio": "Программы клуба: карточки, тренеры, цена и набор.",
@@ -29,6 +30,7 @@ DESCRIPTIONS = {
 ICONS = {
     "overview": "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z",
     "orders": "M8 3h8v4H8zM8 5H5v16h14V5h-3M8 12h8M8 16h5",
+    "promo-codes": "M20 12l-8 8-9-9V3h8l9 9M7.5 7.5h.01",
     "members": "M15 21v-3a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v3M21 21v-3a4 4 0 0 0-3-4M18 3a4 4 0 0 1 0 8M12 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
     "subs": "M3 5h18v14H3zM3 10h18M7 15h4",
     "support": "M21 11a8 8 0 0 1-8 8H7l-4 3V7a4 4 0 0 1 4-4h6a8 8 0 0 1 8 8M7 8h10M7 12h7",
@@ -51,6 +53,23 @@ ICONS = {
     "arrow": "M7 17 17 7M7 7h10v10",
 }
 
+SEARCH_KEYS = ("title", "fio", "code", "note", "direction", "category", "year")
+CHOICES = {
+    "trainers": ("fio", "Тренеров пока нет."),
+    "portfolio": ("title", "Программ портфеля пока нет."),
+}
+CREATE_DEFAULTS = {"promo-codes": {"per_person_limit": 1, "all_programs": True}}
+SECTION_LABELS = {"promo-codes": {"active": "Действует", "disabled": "Отключён"}}
+
+
+def choice_sources(section):
+    return [kind for _, _, kind in FIELDS.get(section, []) if kind in CHOICES]
+
+
+def choice_options(source, rows):
+    field = CHOICES[source][0]
+    return [{"id": row["id"], "label": row[field], "status": row.get("status")} for row in rows]
+
 
 def filter_content(rows, params):
     needle = params.get("q", "").strip().casefold().replace("ё", "е")
@@ -61,10 +80,7 @@ def filter_content(rows, params):
         if (not status or row.get("status") == status)
         and (
             not needle
-            or needle
-            in " ".join(str(row.get(key) or "") for key in ("title", "fio", "direction", "category", "year"))
-            .casefold()
-            .replace("ё", "е")
+            or needle in " ".join(str(row.get(key) or "") for key in SEARCH_KEYS).casefold().replace("ё", "е")
         )
     ]
 
@@ -87,6 +103,18 @@ FIELDS = {
         ("communication", "Коммуникация, каждый канал с новой строки", "lines"),
         ("cover", "Обложка", "text"),
         ("status", "Статус", "published|draft|archived"),
+    ],
+    "promo-codes": [
+        ("code", "Код: латиница, цифры и дефис", "text"),
+        ("percent", "Скидка, % (до 50)", "number"),
+        ("starts_on", "Действует с", "date"),
+        ("ends_on", "Действует по", "date"),
+        ("total_limit", "Всего использований, пусто — без лимита", "limit"),
+        ("per_person_limit", "На одного человека, пусто — без лимита", "limit"),
+        ("all_programs", "Все программы портфеля", "checkbox"),
+        ("program_ids", "Программы, если не все", "portfolio"),
+        ("note", "Заметка офиса", "textarea"),
+        ("status", "Статус", "active|disabled"),
     ],
     "trainers": [
         ("fio", "ФИО", "text"),

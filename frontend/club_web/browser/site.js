@@ -206,7 +206,7 @@ async function updateCartCount() {
 function checkoutReceipt(result) {
   const section = element("main", undefined, { id: "main", class: "site-article" });
   const heading = element("h1", "Заявка отправлена в учебный офис", { tabindex: "-1" });
-  section.append(heading, element("p", "Номер заявки: " + result.number), element("p", "Учебный офис проверит состав и сумму заявки и свяжется с вами по указанным контактам."), element("p", "Итого: " + new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB" }).format(result.total_estimate / 100)));
+  section.append(heading, element("p", "Номер заявки: " + result.number), element("p", "Учебный офис проверит состав и сумму заявки и свяжется с вами по указанным контактам."), element("p", "Итого: " + rubles(result.total_estimate)));
   if (!result.notified?.ok) section.append(element("p", "Заявка сохранена, но уведомление офиса не прошло. Сообщите номер заявки в поддержку.", { role: "alert" }));
   const payment = safeLink(result.payment_url, true);
   if (payment) section.append(element("a", "Оплатить через ЮKassa", { href: payment, class: "site-primary" }));
@@ -216,12 +216,45 @@ function checkoutReceipt(result) {
   window.scrollTo(0, 0);
 }
 
+function rubles(value) {
+  return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", minimumFractionDigits: 0 }).format(value / 100);
+}
+
+function discountText(discount, source, message) {
+  if (message) return message;
+  return source === "member" ? "Скидка выпускника: " + discount + "%" : "";
+}
+
 function applicationReceipt(form, result) {
   const receipt = element("div", undefined, { role: "status", class: "portfolio-receipt", tabindex: "-1" });
-  receipt.append(element("h3", "Заявка " + result.number + " принята"), element("p", "Участников: " + result.participants + " · сумма (справочно): " + new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB" }).format(result.total_estimate / 100)), element("p", "Учебный офис свяжется с вами по указанным контактам, чтобы согласовать договор и оплату."));
+  receipt.append(element("h3", "Заявка " + result.number + " принята"), element("p", "Участников: " + result.participants + " · сумма (справочно): " + rubles(result.total_estimate)));
+  const discount = discountText(result.member_discount, result.discount_source, result.message);
+  if (discount) receipt.append(element("p", discount));
+  receipt.append(element("p", "Учебный офис свяжется с вами по указанным контактам, чтобы согласовать договор и оплату."));
   if (!result.notified?.ok) receipt.append(element("p", "Заявка сохранена, но уведомление офиса не прошло. Сообщите номер заявки в поддержку.", { role: "alert" }));
   form.replaceWith(receipt);
   receipt.focus();
+}
+
+function showQuote(form, text, failed = false) {
+  const box = form.querySelector("[data-quote]");
+  box.textContent = text;
+  box.dataset.state = failed ? "error" : "ok";
+}
+
+async function quotePromo(button) {
+  const form = button.form;
+  const code = form.elements.promo_code.value.trim();
+  if (!code) { showQuote(form, "Введите промокод.", true); return; }
+  const applicant = form.querySelector("[data-applicant]:checked").value;
+  const body = { applicant, promo_code: code, contact_email: form.elements.contact_email.value.trim() || null };
+  if (applicant === "organization") body.participants = Number(form.elements.participants.value) || undefined;
+  button.disabled = true;
+  try {
+    const quote = await request(button.dataset.quoteApi, "POST", body);
+    showQuote(form, [discountText(quote.discount, quote.source, quote.message), "итого (справочно): " + rubles(quote.total)].filter(Boolean).join(" · "));
+  } catch (error) { showQuote(form, error.message, true); }
+  finally { button.disabled = false; }
 }
 
 function toggleApplicant(input) {
@@ -521,6 +554,7 @@ document.addEventListener("click", async event => {
     if (target.dataset.api) { await perform(target, target.dataset.method === "GET" || target.dataset.method === "DELETE" ? undefined : target.dataset.body ? JSON.parse(target.dataset.body) : {}); return; }
     const action = target.dataset.action;
     if (action === "refresh") await refresh();
+    else if (action === "quote") await quotePromo(target);
     else if (action === "office-menu") {
       const open = target.getAttribute("aria-expanded") !== "true";
       target.setAttribute("aria-expanded", String(open));
@@ -647,14 +681,17 @@ async function subscribePush() {
   await request("/me/push/subscribe", "POST", subscription.toJSON()); notice("Уведомления включены");
 }
 
-document.addEventListener("input", event => { if (event.target.matches("[data-reading-search]")) renderReading(); });
+document.addEventListener("input", event => {
+  if (event.target.matches("[data-reading-search]")) renderReading();
+  if (event.target.matches("[data-quote-input]")) showQuote(event.target.form, "");
+});
 document.addEventListener("focusin", event => {
   if (event.target.matches?.(":focus-visible")) event.target.closest(".dpo-starts-grid article, .cabinet-nav a")?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
 });
 document.addEventListener("change", event => {
   if (event.target.matches("[data-audio-rate]")) event.target.closest(".site-player").querySelector("audio").playbackRate = Number(event.target.value);
   if (event.target.matches("[data-unread-filter],[data-reading-kind]")) renderReading();
-  if (event.target.matches("[data-applicant]")) toggleApplicant(event.target);
+  if (event.target.matches("[data-applicant]")) { toggleApplicant(event.target); showQuote(event.target.form, ""); }
   if (event.target.matches("input[name='interests']")) {
     const selected = event.target.form.querySelectorAll("input[name='interests']:checked");
     if (selected.length > Number(event.target.closest("fieldset").dataset.maxInterests)) { event.target.checked = false; notice("Выбрано максимальное число интересов."); }
