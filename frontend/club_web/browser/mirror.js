@@ -87,17 +87,6 @@ document.addEventListener("club-reading-updated", event => { readPaths = new Set
 document.dispatchEvent(new Event("club-reading-refresh"));
 apply();
 
-window.clubMirrorReply = async question => {
-  const faq = await fetch(base+"data/faq.json").then(response=>response.json());
-  const text = normalized(question);
-  const answer = faq.answers.find(item=>item.triggers.some(trigger=>text.includes(normalized(trigger))));
-  if (answer) return answer;
-  if (/подобрать|выбрать.*программ/.test(text)) return { text: "Выберите сферу программы. В демоверсии показан каталог для ознакомления.", anchor:"/dpo", programs:[] };
-  const snapshot = await fetch(base+"data/mirror-api.json").then(response=>response.json());
-  const programs = snapshot['/programs'].filter(item=>(normalized(item.title)+" "+normalized(item.direction)).includes(text)).slice(0,5).map(item=>({title:item.title,url:"/dpo/"+item.slug,duration:item.duration,formatLabel:item.format}));
-  return { text:programs.length ? "Программы из демонстрационного каталога:" : "Посмотрите каталог ДПО или выберите вопрос из подсказок. Отправка обращения в демоверсии отключена.",anchor:"/dpo",programs };
-};
-
 function calendar() {
   const section = document.querySelector("[data-calendar-events]");
   if (!section) return;

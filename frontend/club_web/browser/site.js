@@ -12,7 +12,6 @@ let pendingCart = 0;
 let pendingCheckout = false;
 let installPrompt = null;
 let mirrorApi = null;
-let botQueue = Promise.resolve();
 let readingPageSaved = false;
 let removedReading = null;
 
@@ -452,36 +451,6 @@ async function supportThread(access) {
   section.append(remove);
 }
 
-async function askBot(question) {
-  const dialog = document.querySelector("#support-bot");
-  const log = dialog.querySelector(".club-bot-log");
-  log.append(element("p", question, { class: "club-bot-mine" }));
-  const busy = element("p", "Загружаю ответ…", { role: "status" });
-  log.append(busy);
-  try {
-    const response = mirror && window.clubMirrorReply ? await window.clubMirrorReply(question) : await request("/support/ask", "POST", { question });
-    log.append(element("p", response.text, { class: "club-bot-say" }));
-    if (response.anchor?.startsWith("/") && !response.anchor.startsWith("//")) log.append(element("a", "Подробнее", { href: url(response.anchor), class: "club-bot-more" }));
-    for (const program of response.programs || []) {
-      const card = element("article", undefined, { class: "club-bot-card" });
-      card.append(element("a", program.title, { href: url(program.url) }), element("p", [program.formatLabel, program.duration, program.start].filter(Boolean).join(" · ")));
-      log.append(card);
-    }
-    for (const hint of response.hints || []) log.append(element("button", hint, { "data-action": "bot-hint", "data-question": hint }));
-  } catch (error) { log.append(element("p", error.message + " Обратитесь в поддержку.", { role: "alert" }), element("a", "Написать человеку", { href: url("support") })); }
-  finally { busy.remove(); log.scrollTop = log.scrollHeight; }
-}
-
-function queueBot(question) {
-  botQueue = botQueue.then(() => askBot(question));
-  return botQueue;
-}
-
-function openBot() {
-  const dialog = document.querySelector("#support-bot");
-  dialog.showModal(); dialog.querySelector("input").focus();
-}
-
 async function download(button) {
   if (mirror) throw new Error("Выгрузки доступны в рабочем приложении.");
   const headers = token() ? { authorization: `Bearer ${token()}` } : {};
@@ -495,7 +464,6 @@ async function download(button) {
 
 document.addEventListener("submit", async event => {
   const form = event.target;
-  if (form.hasAttribute("data-bot-form")) { event.preventDefault(); const input = form.elements.question; const question = input.value.trim(); input.value = ""; if (question.length >= 2) await queueBot(question); return; }
   if (!(form instanceof HTMLFormElement) || (!form.dataset.api && !form.hasAttribute("data-support-open"))) return;
   event.preventDefault();
   const errorBox = form.querySelector("[data-error]");
@@ -513,10 +481,7 @@ document.addEventListener("click", async event => {
     if (target.dataset.download) { await download(target); return; }
     if (target.dataset.api) { await perform(target, target.dataset.method === "GET" || target.dataset.method === "DELETE" ? undefined : target.dataset.body ? JSON.parse(target.dataset.body) : {}); return; }
     const action = target.dataset.action;
-    if (action === "support") { event.preventDefault(); openBot(); }
-    else if (action === "close-bot") document.querySelector("#support-bot").close();
-    else if (action === "bot-hint") await queueBot(target.dataset.question);
-    else if (action === "refresh") await refresh();
+    if (action === "refresh") await refresh();
     else if (action === "office-menu") {
       const open = target.getAttribute("aria-expanded") !== "true";
       target.setAttribute("aria-expanded", String(open));
@@ -723,6 +688,3 @@ if ((token() && (currentPath().startsWith("/lk") || currentPath().startsWith("/a
 void updateCartCount();
 void pageview();
 
-if (!currentPath().startsWith("/admin") && !currentPath().startsWith("/support") && currentPath() !== "/tg") {
-  document.querySelector(".support-launcher").dataset.action = "support";
-}

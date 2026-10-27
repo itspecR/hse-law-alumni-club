@@ -109,8 +109,6 @@ def site():
                 return httpx.Response(
                     200, json={"number": "ORD-QA", "total_estimate": 300000, "notified": {"ok": True}}
                 )
-            if path == "/support/ask":
-                return httpx.Response(200, json={"text": "Подайте заявку на сайте.", "anchor": "/join"})
             if path.endswith("login"):
                 return httpx.Response(200, json={"token": "member-qa"})
             return httpx.Response(200, json={"ok": True})
@@ -466,32 +464,11 @@ def test_checkout_blocks_cart_mutation_and_restores_fields_on_error(page, site):
     expect(form.get_by_label("ФИО", exact=True)).to_have_value("Тестовое имя")
 
 
-@pytest.mark.parametrize("width,pwa", [(1440, False), (390, False), (1440, True)])
-def test_support_launcher_clears_bottom_navigation_and_banners(page, width, pwa):
-    page.set_viewport_size({"width": width, "height": 900})
-    page.goto("/news" + ("?pwa=1" if pwa else ""))
-    if width == 390 or pwa:
-        page.wait_for_function(
-            "() => document.querySelector('.support-launcher').getBoundingClientRect().bottom <= document.querySelector('.mobile-tabs').getBoundingClientRect().top"
-        )
-    page.evaluate("document.querySelector('#cookie-banner').hidden=false")
-    launcher = page.get_by_role("link", name="Поддержка клуба", exact=True)
-    expect(launcher).to_be_visible()
-    expect(page.locator("#cookie-banner")).to_be_visible()
-    page.wait_for_function(
-        "() => document.querySelector('.support-launcher').getBoundingClientRect().bottom <= document.querySelector('#cookie-banner').getBoundingClientRect().top"
-    )
-    launcher.click()
-    expect(page.locator("#support-bot")).to_be_visible()
-    expect(page).to_have_url(re.compile("/news"))
-    expect(page.locator("img[src*='crow'], .crow-mascot")).to_have_count(0)
-
-
-def test_accessibility_mode_keeps_support_launcher(page):
-    page.goto("/news")
-    page.get_by_role("button", name="Версия для слабовидящих", exact=True).first.click()
-    page.get_by_role("link", name="Поддержка клуба", exact=True).click()
-    expect(page.locator("#support-bot")).to_be_visible()
+@pytest.mark.parametrize("path", ["/news", "/support", "/tg", "/?pwa=1"])
+def test_help_button_and_bot_dialog_are_gone(page, path):
+    page.goto(path)
+    expect(page.locator(".support-launcher, #support-bot, [data-action='support']")).to_have_count(0)
+    expect(page.get_by_role("link", name="Помощь", exact=True)).to_have_count(0)
 
 
 def test_reading_storage_survives_navigation_and_rejects_external_path(page):
@@ -548,17 +525,6 @@ def test_telegram_preview_safe_start_and_return(page):
     expect(page.locator(".lux-hero")).to_be_visible()
     page.goto("/tg?startapp=admin")
     expect(page.locator(".mini-home")).to_be_visible()
-
-
-def test_bot_dialog_uses_server_response_and_keyboard(page):
-    page.goto("/support")
-    page.get_by_role("button", name="Спросить бота", exact=True).click()
-    dialog = page.locator("#support-bot")
-    expect(dialog).to_be_visible()
-    dialog.get_by_role("button", name="Как вступить", exact=True).click()
-    expect(dialog.locator(".club-bot-log")).to_contain_text("Подайте заявку на сайте.")
-    page.keyboard.press("Escape")
-    expect(dialog).to_be_hidden()
 
 
 def test_telegram_back_returns_to_previous_catalog(page):

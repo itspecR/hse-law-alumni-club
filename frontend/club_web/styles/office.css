@@ -124,7 +124,6 @@
 .site-office .site-audit { background:var(--c-bg); padding:20px 24px; }
 .site-office .site-audit time { display:block; font-size:12px; color:var(--c-text-3); margin-bottom:4px; }
 .site-office .site-audit pre { font-size:12px; background:var(--c-bg-sunken); padding:12px; border-radius:var(--r-sm); }
-body:has(.site-office)>.support-launcher { bottom:20px; font-size:14px; }
 @media(hover:hover) and (pointer:fine) {
   .office-nav-group a:not([aria-current]):hover,.office-account button:hover,.office-shortcuts a:hover { background:var(--c-bg-sunken); }
   .office-queue:hover,.office-site-link:hover,.office-topbar nav a:hover { color:var(--c-accent-text); }

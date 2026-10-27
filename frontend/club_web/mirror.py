@@ -111,9 +111,6 @@ async def export(destination, base, data):
         )
     (destination / "data").mkdir(exist_ok=True)
     (destination / "data/mirror-api.json").write_text(json.dumps(endpoints, ensure_ascii=False), encoding="utf-8")
-    (destination / "data/faq.json").write_text(
-        json.dumps(resource("faq-data.json"), ensure_ascii=False), encoding="utf-8"
-    )
     changes = resource("changes.json")
     (destination / "data/changes.json").write_text(
         json.dumps(changes, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
