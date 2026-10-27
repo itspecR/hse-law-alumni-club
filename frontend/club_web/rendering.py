@@ -3,7 +3,17 @@ from pathlib import Path
 from django.template import engines
 from jinja2 import Environment
 
-from club_web.formatting import FORMAT_LABELS, date, media, page_items, payment_url, plain_title, rub, safe_url
+from club_web.formatting import (
+    FORMAT_LABELS,
+    date,
+    discount_label,
+    media,
+    page_items,
+    payment_url,
+    plain_title,
+    rub,
+    safe_url,
+)
 
 ROOT = Path(__file__).parent
 VERSION_FILE = "assets/version.txt"
@@ -28,6 +38,7 @@ def environment(**options):
     renderer.filters.update(
         rub=rub,
         date=date,
+        discount_label=discount_label,
         safe_url=safe_url,
         payment_url=payment_url,
         media=media,
