@@ -7,7 +7,6 @@ import time
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 from urllib.parse import quote, urlsplit
-from zoneinfo import ZoneInfo
 
 from django.http import HttpRequest, HttpResponseRedirect
 from pydantic import Field, field_validator
@@ -21,6 +20,7 @@ from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin
 from club_api.modules.checkout.cart import locked_cart
 from club_api.modules.checkout.payments import secure_payment_url
+from club_api.modules.checkout.store import next_order_number
 from club_api.modules.content.admin import content_crud
 from club_api.modules.gamification.routes import verified_alumni
 from club_api.modules.media.service import media_id
@@ -181,16 +181,7 @@ async def subscribe(request: HttpRequest):
         if previous:
             order = previous[0]
         else:
-            await acquire_lock(connection, "order.sequence")
-            year = datetime.now(ZoneInfo("Europe/Moscow")).year
-            cursor = await connection.execute(
-                Query(
-                    "SELECT COALESCE(MAX(CAST(split_part(number,'-',3) AS integer)),0)+1 AS seq FROM orders WHERE number ~ %s",
-                    "SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(number,'-',-1) AS integer)),0)+1 AS seq FROM orders WHERE number REGEXP %s",
-                ),
-                (f"^ALU-{year}-[0-9]+$",),
-            )
-            number = f"ALU-{year}-{(await cursor.fetchone())['seq']:06d}"
+            number = await next_order_number(connection)
             contacts = alumni.get("contacts_json") or {}
             order = await state.store.create(
                 "orders",

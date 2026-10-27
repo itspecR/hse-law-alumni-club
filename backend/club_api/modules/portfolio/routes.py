@@ -4,6 +4,7 @@ from club_api.core.errors import ApiError
 from club_api.core.views import api_view
 from club_api.modules.catalog.scope import PUBLISHED_PORTFOLIO
 from club_api.modules.portfolio.links import published_trainers
+from club_api.modules.portfolio.seats import free_seats
 
 CARD_FIELDS = (
     "id",
@@ -38,4 +39,9 @@ async def program(request: HttpRequest, slug: str):
     )
     if not rows:
         raise ApiError(404, "Программа не найдена")
-    return {**rows[0], "trainers": await published_trainers(state, rows[0]["id"])}
+    program = rows[0]
+    return {
+        **program,
+        "trainers": await published_trainers(state, program["id"]),
+        "seats_left": await free_seats(state, program),
+    }
