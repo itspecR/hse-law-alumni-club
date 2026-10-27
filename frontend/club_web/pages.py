@@ -9,7 +9,20 @@ from club_web.catalog import UPCOMING_LIMIT, prepare_catalog
 from club_web.changes import parse_changes, select_changes
 from club_web.client import ApiFailure
 from club_web.formatting import page_items, rub
-from club_web.office import DESCRIPTIONS, FIELDS, GROUPS, ICONS, LABELS, METRICS, filter_content
+from club_web.office import (
+    CHOICES,
+    CREATE_DEFAULTS,
+    DESCRIPTIONS,
+    FIELDS,
+    GROUPS,
+    ICONS,
+    LABELS,
+    METRICS,
+    SECTION_LABELS,
+    choice_options,
+    choice_sources,
+    filter_content,
+)
 from club_web.pricing import member_prices
 from club_web.search import search_groups
 
@@ -64,6 +77,7 @@ OFFICE_NAV = [
     ("overview", "Обзор"),
     ("analytics", "Аналитика"),
     ("orders", "Заявки"),
+    ("promo-codes", "Промокоды"),
     ("members", "Выпускники"),
     ("subs", "Подписки"),
     ("portfolio", "Портфель программ"),
@@ -84,6 +98,7 @@ OFFICE_ENDPOINTS = {
     "overview": "/admin/overview",
     "analytics": "/admin/analytics",
     "orders": "/admin/orders",
+    "promo-codes": "/admin/promo-codes",
     "members": "/admin/members",
     "subs": "/admin/podcast-subs",
     "portfolio": "/admin/portfolio",
@@ -172,6 +187,10 @@ async def context(api, path, params, authorized=False):
         "office_descriptions": DESCRIPTIONS,
         "office_icons": ICONS,
         "office_fields": FIELDS,
+        "office_choices": CHOICES,
+        "office_defaults": CREATE_DEFAULTS,
+        "office_options": {},
+        "office_names": {},
         "labels": LABELS,
         "metrics": METRICS,
         "errors": [],
@@ -377,6 +396,7 @@ async def context(api, path, params, authorized=False):
     elif path.startswith("/admin"):
         section = path.removeprefix("/admin/") if path != "/admin" else "overview"
         data["section"] = section
+        data["labels"] = {**LABELS, **SECTION_LABELS.get(section, {})}
         data["office_template"] = "office/" + ("content" if section in FIELDS else section) + ".html"
         if authorized and template != "not-found.html":
             await load("session", "/auth/admin-session", {})
@@ -395,9 +415,10 @@ async def context(api, path, params, authorized=False):
                     await load("records", OFFICE_ENDPOINTS[section] + ("?" + query if query else ""), [])
                 if section == "overview":
                     await load("health", "/admin/system-health", {})
-                if section == "portfolio":
-                    await load("trainers", "/admin/trainers", [])
-                    data["trainer_names"] = {row["id"]: row["fio"] for row in page_items(data["trainers"])}
+                for source in choice_sources(section):
+                    rows = page_items(await load("choices:" + source, OFFICE_ENDPOINTS[source], []))
+                    data["office_options"][source] = choice_options(source, rows)
+                    data["office_names"][source] = {row["id"]: row["label"] for row in data["office_options"][source]}
                 if params.get("id") and section == "events":
                     await load("roster", "/admin/events/" + quote(params["id"], safe="") + "/rsvps", [])
                 data["rows"] = page_items(data.get("records"))

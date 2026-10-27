@@ -6,6 +6,7 @@ import pytest
 from club_web.build import build_public
 from club_web.formatting import payment_url, rub, safe_url
 from club_web.main import create_app
+from club_web.office import filter_content
 from club_web.pages import NAV, OFFICE_NAV, PUBLIC_PAGES
 from club_web.views import PUBLIC
 
@@ -569,3 +570,13 @@ async def test_unknown_portfolio_program_is_not_found(browser_client):
     response = await browser_client.get("/portfolio/missing")
     assert response.status_code == 404
     assert "Страница не найдена" in response.text
+
+
+def test_office_search_finds_promo_by_code_and_note():
+    rows = [
+        {"code": "SPRING-15", "note": "Весенняя акция", "status": "active"},
+        {"code": "AUTUMN-10", "status": "disabled"},
+    ]
+    assert filter_content(rows, {"q": "spring"}) == rows[:1]
+    assert filter_content(rows, {"q": "весенняя"}) == rows[:1]
+    assert filter_content(rows, {"status": "disabled"}) == rows[1:]

@@ -38,6 +38,9 @@ WORDS_UNBROKEN = """node => {
     });
 }"""
 
+PROMO_QUOTE = {"discount": 15, "source": "promo", "message": "Промокод применён: скидка 15%"}
+NO_DISCOUNT = {"discount": 0, "source": None, "message": None}
+
 
 def is_cart_change(response):
     return response.url.endswith("/api/cart") and response.request.method == "PATCH"
@@ -113,14 +116,23 @@ def site():
                 )
             if path.endswith("login"):
                 return httpx.Response(200, json={"token": "member-qa"})
+            if path.endswith("/quote"):
+                if (body.get("promo_code") or "").upper() != "SPRING-15":
+                    return httpx.Response(400, json={"error": "Промокод не найден"})
+                total = PORTFOLIO["price"] * body.get("participants", 1) * 85 // 100
+                return httpx.Response(200, json=PROMO_QUOTE | {"total": total})
             if path.endswith("/applications"):
                 participants = body.get("participants", 1)
+                promo = PROMO_QUOTE if body.get("promo_code") else records.get("member_quote", NO_DISCOUNT)
                 return httpx.Response(
                     200,
                     json={
                         "number": "ALU-2026-000777",
                         "participants": participants,
-                        "total_estimate": PORTFOLIO["price"] * participants,
+                        "member_discount": promo["discount"],
+                        "discount_source": promo["source"],
+                        "message": promo["message"],
+                        "total_estimate": PORTFOLIO["price"] * participants * (100 - promo["discount"]) // 100,
                         "notified": {"ok": True},
                     },
                 )
@@ -2064,6 +2076,142 @@ def test_office_trainers_list_and_delete_warning(page, site):
     expect(delete).to_have_attribute("data-confirm", "Удалить тренера? Он исчезнет из всех программ.")
 
 
+PROMO = {
+    "id": "promo-1",
+    "code": "SPRING-15",
+    "percent": 15,
+    "starts_on": "2026-10-01",
+    "ends_on": "2026-11-30",
+    "total_limit": 10,
+    "per_person_limit": 1,
+    "all_programs": False,
+    "program_ids": ["club-1"],
+    "status": "disabled",
+    "note": "Весенняя акция",
+    "used": 3,
+}
+
+
+@pytest.mark.parametrize("width", [1440, 390])
+def test_office_promo_codes_list_edit_and_create_defaults(page, site, width):
+    site[1]["/admin/promo-codes"] = [PROMO]
+    site[1]["/admin/portfolio"] = [PORTFOLIO_PROGRAM]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/promo-codes")
+    row = page.locator("article.office-record")
+    expect(row.get_by_role("heading", name="SPRING-15", exact=True)).to_be_visible()
+    expect(row.locator(".office-status")).to_have_text("Отключён")
+    expect(row.locator("p.office-meta").first).to_have_text(
+        "15% · 1 октября 2026 – 30 ноября 2026 · использовано: 3 из 10 · на человека: 1 · Переговоры для юристов"
+    )
+    expect(row.locator("p.office-meta").nth(1)).to_have_text("Весенняя акция")
+    expect(row.get_by_role("button", name="Удалить", exact=True)).to_have_attribute(
+        "data-confirm", "Удалить промокод? В отправленных заявках код сохранится."
+    )
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    row.get_by_text("Редактировать", exact=True).click()
+    programs = row.get_by_role("group", name="Программы, если не все")
+    expect(programs.get_by_label("Переговоры для юристов")).to_be_checked()
+    row.get_by_label("Всего использований, пусто — без лимита").fill("")
+    row.get_by_label("Все программы портфеля").check()
+    row.get_by_role("button", name="Сохранить", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
+    write = site[2][-1]
+    assert write["path"] == "/admin/promo-codes/promo-1" and write["method"] == "PATCH"
+    assert write["body"]["total_limit"] is None and write["body"]["all_programs"] is True
+    assert write["body"]["program_ids"] == ["club-1"] and write["body"]["per_person_limit"] == 1
+    assert (write["body"]["percent"], write["body"]["starts_on"], write["body"]["status"]) == (
+        15,
+        "2026-10-01",
+        "disabled",
+    )
+    page.locator("details.office-create summary").click()
+    create = page.locator("details.office-create form")
+    expect(create.get_by_label("На одного человека, пусто — без лимита")).to_have_value("1")
+    expect(create.get_by_label("Все программы портфеля")).to_be_checked()
+    expect(create.get_by_label("Статус")).to_have_value("active")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+def test_office_promo_codes_without_programs_point_to_portfolio(page, site):
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/promo-codes")
+    page.locator("details.office-create summary").click()
+    form = page.locator("details.office-create form")
+    expect(form.get_by_role("link", name="«Портфель программ»")).to_have_attribute("href", "/admin/portfolio")
+    form.get_by_label("Код: латиница, цифры и дефис").fill("autumn-10")
+    form.get_by_label("Скидка, % (до 50)").fill("10")
+    form.get_by_label("Действует с").fill("2026-11-01")
+    form.get_by_label("Действует по").fill("2026-11-30")
+    form.get_by_role("button", name="Создать", exact=True).click()
+    expect(page.locator("#toast")).to_be_visible()
+    write = site[2][-1]
+    assert write["path"] == "/admin/promo-codes" and write["method"] == "POST"
+    assert write["body"] == {
+        "code": "autumn-10",
+        "percent": 10,
+        "starts_on": "2026-11-01",
+        "ends_on": "2026-11-30",
+        "total_limit": None,
+        "per_person_limit": 1,
+        "all_programs": True,
+        "note": "",
+        "status": "active",
+    }
+
+
+@pytest.mark.parametrize("width", [1440, 390])
+def test_portfolio_promo_preview_and_application(page, site, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/portfolio/club-one")
+    form = page.locator("form[data-application]")
+    quote = form.locator("[data-quote]")
+    apply = form.get_by_role("button", name="Применить", exact=True)
+    apply.click()
+    expect(quote).to_have_text("Введите промокод.")
+    form.get_by_label("Промокод", exact=True).fill("wrong-1")
+    apply.click()
+    expect(quote).to_have_text("Промокод не найден")
+    expect(quote).to_have_attribute("data-state", "error")
+    form.get_by_label("Промокод", exact=True).fill("spring-15")
+    expect(quote).to_be_hidden()
+    apply.click()
+    expect(quote).to_have_text(re.compile(r"^Промокод применён: скидка 15% · итого \(справочно\): 38\s250\s₽$"))
+    expect(quote).to_have_attribute("data-state", "ok")
+    sent = site[2][-1]
+    assert sent["path"] == "/portfolio/club-one/quote"
+    assert sent["body"] == {"applicant": "self", "promo_code": "spring-15", "contact_email": None}
+    form.get_by_label("От организации", exact=True).check()
+    expect(quote).to_be_hidden()
+    form.get_by_label("Для себя", exact=True).check()
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    form.get_by_label("ФИО", exact=True).fill("Вымышленный Заявитель")
+    form.get_by_label("Телефон", exact=True).fill("+70000000000")
+    form.get_by_label("Почта", exact=True).fill("applicant@example.test")
+    form.get_by_label("Даю согласие на обработку персональных данных").check()
+    form.get_by_label("Соглашаюсь с условиями обучения").check()
+    form.get_by_role("button", name="Отправить заявку", exact=True).click()
+    receipt = page.locator(".portfolio-receipt")
+    expect(receipt).to_contain_text("Промокод применён: скидка 15%")
+    assert site[2][-1]["body"]["promo_code"] == "spring-15"
+
+
+def test_portfolio_receipt_names_member_discount(page, site):
+    site[1]["member_quote"] = {"discount": 10, "source": "member", "message": None}
+    page.goto("/portfolio/club-one")
+    form = page.locator("form[data-application]")
+    form.get_by_label("ФИО", exact=True).fill("Вымышленный Заявитель")
+    form.get_by_label("Телефон", exact=True).fill("+70000000000")
+    form.get_by_label("Почта", exact=True).fill("applicant@example.test")
+    form.get_by_label("Даю согласие на обработку персональных данных").check()
+    form.get_by_label("Соглашаюсь с условиями обучения").check()
+    form.get_by_role("button", name="Отправить заявку", exact=True).click()
+    receipt = page.locator(".portfolio-receipt")
+    expect(receipt).to_contain_text("Скидка выпускника: 10%")
+    expect(receipt).not_to_contain_text("Промокод")
+
+
 @pytest.mark.parametrize("width", [1440, 390])
 def test_portfolio_pages_fit_and_save_to_reading_list(page, width):
     page.set_viewport_size({"width": width, "height": 900})
@@ -2118,6 +2266,7 @@ def test_portfolio_application_from_organization(page, site, width):
         "organization": "ООО «Пример»",
         "participants": 3,
         "comment": "",
+        "promo_code": "",
         "consent_pdn": True,
         "consent_terms": True,
         "website": "",

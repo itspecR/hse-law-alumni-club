@@ -35,6 +35,13 @@ html.lux .portfolio-application :is(input:not([type=checkbox]):not([type=radio])
 html.lux .portfolio-applicant { margin: 20px 0 8px; padding: 0; border: 0; }
 html.lux .portfolio-applicant legend { margin-bottom: 10px; font-size: 14px; color: var(--c-text-3); }
 html.lux .portfolio-applicant .lux-seg__opt input:checked + span { border-radius: 999px; background: var(--c-text); }
+html.lux .portfolio-promo { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin: 16px 0 0; }
+html.lux .portfolio-promo .site-field { flex: 1 1 160px; margin: 0; }
+html.lux .portfolio-promo input { text-transform: uppercase; }
+html.lux .portfolio-promo .lux-btn { flex: none; }
+html.lux .portfolio-quote { margin: 8px 0 0; font-size: 15px; color: var(--c-ok-text); }
+html.lux .portfolio-quote:empty { margin: 0; }
+html.lux .portfolio-quote[data-state=error] { color: var(--c-danger-text); }
 html.lux .portfolio-application .site-consent { display: flex; align-items: flex-start; gap: 12px; margin: 16px 0; }
 html.lux .portfolio-application .site-consent input { flex: none; width: 20px; height: 20px; margin: 2px 0 0; }
 html.lux .portfolio-application form > .site-primary { margin-top: 8px; }

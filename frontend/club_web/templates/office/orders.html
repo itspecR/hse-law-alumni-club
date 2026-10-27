@@ -22,7 +22,7 @@
 <div class="office-record-head">
 <h2>{{ order.number }} · {{ order.contact_fio }}</h2>
 {{ status(order.status) }}</div>
-<div class="office-order-details"><div><p>{{ order.contact_email }}</p><p>{{ order.contact_phone }}</p><p class="office-meta">{% if order.type=='portfolio' %}{{ labels.portfolio }} · {{ order.organization or 'для себя' }} · участников: {{ order.participants }}{% else %}{{ order.address or 'Самовывоз' }}{% endif %}</p>{% if order.comment %}<p class="office-meta">{{ order.comment }}</p>{% endif %}</div><div><p class="office-order-total">{{ order.total_estimate|rub }}</p>{{ status(order.payment_status,true) }}</div></div>
+<div class="office-order-details"><div><p>{{ order.contact_email }}</p><p>{{ order.contact_phone }}</p><p class="office-meta">{% if order.type=='portfolio' %}{{ labels.portfolio }} · {{ order.organization or 'для себя' }} · участников: {{ order.participants }}{% if order.promo_code %} · промокод {{ order.promo_code }}{% endif %}{% else %}{{ order.address or 'Самовывоз' }}{% endif %}</p>{% if order.comment %}<p class="office-meta">{{ order.comment }}</p>{% endif %}</div><div><p class="office-order-total">{{ order.total_estimate|rub }}</p>{{ status(order.payment_status,true) }}</div></div>
 <div class="office-order-items">
 {% for line in order.items_json or [] %}
 <p>{{ line.title }} × {{ line.qty }} · {{ line.variant_sku or '' }}</p>
