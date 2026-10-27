@@ -14,6 +14,7 @@ from club_api.core.views import api_view, defer, parse_body
 from club_api.db.queries import acquire_lock
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin
+from club_api.modules.catalog.scope import PUBLISHED_DPO
 from club_api.modules.events.notifications import announce
 from club_api.modules.gamification.routes import verified_alumni
 from club_api.observability.audit import audit
@@ -85,7 +86,7 @@ async def stats(request: HttpRequest):
     data = {
         "alumni": await count(state.store, "alumni", {"verification_status": {"_eq": "verified"}}),
         "events": await count(state.store, "events", {"status": {"_in": ["published", "done"]}}),
-        "programs": await count(state.store, "programs", {"status": {"_eq": "published"}}),
+        "programs": await count(state.store, "programs", PUBLISHED_DPO),
     }
     state.public_stats = (time.monotonic(), data)
     return data

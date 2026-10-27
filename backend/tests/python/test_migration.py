@@ -37,7 +37,13 @@ def test_all_legacy_routes_are_present():
     }
     old = json.loads(Path(__file__).with_name("legacy-routes.json").read_text())
     expected = {(row["method"], row["path"]) for row in old}
-    assert actual == expected | {("GET", "/auth/admin-session"), ("POST", "/support/ask")} and len(actual) == 119
+    added = {("GET", "/auth/admin-session"), ("POST", "/support/ask")}
+    portfolio = {
+        (method, "/admin/" + name + suffix)
+        for name in ("trainers", "portfolio")
+        for method, suffix in (("GET", ""), ("POST", ""), ("PATCH", "/{id}"), ("DELETE", "/{id}"))
+    }
+    assert actual == expected | added | portfolio and len(actual) == 127
 
 
 def test_hse_state_dates_and_manual_fields():

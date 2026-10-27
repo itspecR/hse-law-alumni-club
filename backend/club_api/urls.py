@@ -19,6 +19,7 @@ import club_api.modules.news.routes as news_routes
 import club_api.modules.notifications.push as notifications_push
 import club_api.modules.office.routes as office_routes
 import club_api.modules.podcasts.routes as podcasts_routes
+import club_api.modules.portfolio.admin as portfolio_admin
 import club_api.modules.support.routes as support_routes
 import club_api.modules.telegram.routes as telegram_routes
 from club_api.core.api import build_api
@@ -135,6 +136,7 @@ routes = (
         path("avatars/<str:fileId>", endpoint({"GET": media_routes.avatar})),
     ]
     + content_admin.urlpatterns
+    + portfolio_admin.urlpatterns
     + podcasts_routes.urlpatterns
 )
 routes.sort(key=lambda route: str(route.pattern).count("<"))

@@ -1,15 +1,18 @@
+from club_api.modules.catalog.scope import DPO_PROGRAMS
+
+
 async def lookup_catalog(store, items, connection=None):
     result = {}
-    for type, table, extra in (
-        ("dpo", "programs", ("enrollment", "source_url")),
-        ("merch", "products", ("stock", "variants_json")),
+    for type, table, extra, scope in (
+        ("dpo", "programs", ("enrollment", "source_url"), DPO_PROGRAMS),
+        ("merch", "products", ("stock", "variants_json"), {}),
     ):
         slugs = list(dict.fromkeys(item["ref_id"] for item in items if item["type"] == type))
         if not slugs:
             continue
         rows = await store.read(
             table,
-            filters={"slug": {"_in": slugs}, "status": {"_eq": "published"}},
+            filters={"slug": {"_in": slugs}, "status": {"_eq": "published"}, **scope},
             limit=-1,
             fields=("slug", "title", "price", *extra),
             connection=connection,

@@ -4,8 +4,7 @@ from django.db import models
 from django.db.models.functions import Now
 
 from club_api.db.functions import DatabaseUUID
-
-PROGRAM_CATALOGS = ("dpo", "portfolio")
+from club_api.domain import PROGRAM_CATALOGS
 
 
 class Achievements(models.Model):
