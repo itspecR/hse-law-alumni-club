@@ -48,6 +48,14 @@ NAV = [
     ("/changes", "Изменения в праве"),
     ("/merch", "Мерч"),
 ]
+LIVE_VIEWS = (
+    ("/admin", "office"),
+    ("/lk", "member"),
+    ("/podcasts", "member"),
+    ("/events", "member"),
+    ("/cart", "cart"),
+)
+VEILED_VIEWS = ("/admin", "/lk", "/cart")
 OFFICE_NAV = [
     ("overview", "Обзор"),
     ("analytics", "Аналитика"),
@@ -136,6 +144,11 @@ def pagination_page(value):
         return 1
 
 
+def live_view(path):
+    kind = next((kind for prefix, kind in LIVE_VIEWS if path.startswith(prefix)), "")
+    return {"kind": kind, "veiled": path.startswith(VEILED_VIEWS)}
+
+
 async def context(api, path, params, authorized=False):
     template, title = select_page(path)
     data = {
@@ -144,6 +157,7 @@ async def context(api, path, params, authorized=False):
         "path": path,
         "query": params,
         "nav": NAV,
+        "live": live_view(path),
         "office_nav": OFFICE_NAV,
         "office_groups": GROUPS,
         "office_descriptions": DESCRIPTIONS,

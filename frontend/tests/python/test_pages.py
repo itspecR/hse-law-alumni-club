@@ -158,7 +158,7 @@ async def browser_client():
 async def test_public_pages_render(browser_client, path):
     response = await browser_client.get(path)
     assert response.status_code == 200
-    assert '<html lang="ru" class="lux">' in response.text
+    assert '<html lang="ru" class="lux" data-live=' in response.text
     assert 'id="main"' in response.text
     assert "React" not in response.text
     assert response.headers["cache-control"] == (
@@ -202,6 +202,24 @@ async def test_office_sections_render(browser_client, section):
     assert response.status_code == 200
     assert 'id="main"' in response.text
     assert "Войти в кабинет" not in response.text
+
+
+@pytest.mark.parametrize(
+    "path,root",
+    [
+        ("/lk", 'data-live="member" data-veil'),
+        ("/lk/profile", 'data-live="member" data-veil'),
+        ("/admin/news", 'data-live="office" data-veil'),
+        ("/cart", 'data-live="cart" data-veil'),
+        ("/podcasts", 'data-live="member">'),
+        ("/events/event-1", 'data-live="member">'),
+        ("/news", 'data-live="">'),
+    ],
+)
+async def test_pages_tell_browser_whether_they_load_member_data(browser_client, path, root):
+    response = await browser_client.get(path)
+    assert '<html lang="ru" class="lux" ' + root in response.text
+    assert 'class="club-skeleton"' in response.text
 
 
 async def test_guest_cannot_load_private_fragment(browser_client):
@@ -328,7 +346,7 @@ async def test_cart_line_has_no_empty_variant(browser_client):
 
 async def test_office_uses_dark_theme(browser_client):
     response = await browser_client.get("/admin", headers={"authorization": "Bearer admin-test"})
-    assert '<html lang="ru" class="lux">' in response.text
+    assert '<html lang="ru" class="lux" data-live="office" data-veil>' in response.text
     assert "assets/themis-club.svg" in response.text
 
 

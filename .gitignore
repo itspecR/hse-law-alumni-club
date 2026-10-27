@@ -46,3 +46,5 @@ frontend/public/assets/discovery.js
 frontend/public/assets/catalog.js
 frontend/public/assets/home.js
 frontend/public/assets/version.txt
+frontend/public/assets/boot.js
+frontend/public/assets/skeleton.js

@@ -2,6 +2,7 @@ import { prepareMini } from "./mini.js";
 import { prepareDiscovery } from "./discovery.js";
 import { prepareCatalog } from "./catalog.js";
 import { prepareHome } from "./home.js";
+import { hideSkeleton, prepareSkeleton } from "./skeleton.js";
 
 const base = document.body.dataset.base || "/";
 const mirror = document.body.dataset.mirror === "true";
@@ -170,6 +171,7 @@ async function refresh() {
     if (!next) throw new Error("Не удалось обновить страницу. Попробуйте позже.");
     const contacts = path === "/cart" ? [...page.querySelectorAll("form[data-checkout] [name]")].map(input => ({ name: input.name, value: input.value, checked: input.checked })) : [];
     page.replaceWith(document.importNode(next, true));
+    hideSkeleton();
     for (const saved of contacts) {
       const input = document.querySelector("form[data-checkout]")?.elements.namedItem(saved.name);
       if (input) { input.value = saved.value; if (input.type === "checkbox") input.checked = saved.checked; }
@@ -178,6 +180,11 @@ async function refresh() {
     void updateCartCount();
     return true;
   } catch (error) { notice(error.message); return false; }
+}
+
+async function refreshLiveView() {
+  const live = document.documentElement.dataset.live;
+  if (live === "cart" || (live && token(live === "office"))) await refresh();
 }
 
 async function updateCartCount() {
@@ -684,7 +691,8 @@ if (navigator.serviceWorker && window.isSecureContext) {
   void navigator.serviceWorker.register(url("sw.js"), { scope: base }).then(() => navigator.serviceWorker.ready).then(saveReadingPage).catch(() => {});
 }
 setupPage();
-if ((token() && (currentPath().startsWith("/lk") || currentPath().startsWith("/admin") || currentPath().startsWith("/podcasts") || currentPath().startsWith("/events"))) || currentPath() === "/cart") void refresh();
+prepareSkeleton(base);
+void refreshLiveView().finally(hideSkeleton);
 void updateCartCount();
 void pageview();
 
