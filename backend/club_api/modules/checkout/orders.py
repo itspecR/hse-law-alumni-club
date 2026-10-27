@@ -193,5 +193,7 @@ async def my_orders(request: HttpRequest):
             "participants",
             "organization",
             "office_discount",
+            "discount_source",
+            "promo_code",
         ),
     )

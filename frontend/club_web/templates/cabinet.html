@@ -84,7 +84,7 @@
 <p>{{ order.created_at|date }} · {{ {'new':'Новая','confirmed':'Подтверждена','in_progress':'В работе','done':'Исполнена','canceled':'Отменена','expired':'Резерв истёк'}.get(order.status,order.status) }}</p>
 <p>{{ order.total_estimate|rub }} · {{ 'Оплачено' if order.payment_status=='succeeded' else 'Не оплачено' }}</p>
 {% if order.type=='portfolio' %}
-<p>До скидки: {{ order.subtotal|rub }} · скидка выпускника: {{ order.member_discount or 0 }}% · участников: {{ order.participants }}{% if order.organization %} · {{ order.organization }}{% endif %}.</p>
+<p>До скидки: {{ order.subtotal|rub }} · {{ order|discount_label }} · участников: {{ order.participants }}{% if order.organization %} · {{ order.organization }}{% endif %}.</p>
 {% else %}
 <p>До скидки: {{ order.subtotal|rub }} · скидка на ДПО: {{ order.member_discount or 0 }}% · {{ 'Доставка' if order.fulfillment=='delivery' else 'Самовывоз' }}.</p>
 {% endif %}

@@ -2212,6 +2212,89 @@ def test_portfolio_receipt_names_member_discount(page, site):
     expect(receipt).not_to_contain_text("Промокод")
 
 
+CLUB_ORDER = {
+    "id": "order-1",
+    "number": "ALU-2026-000101",
+    "type": "portfolio",
+    "contact_fio": "Вымышленный Заявитель",
+    "contact_email": "applicant@example.test",
+    "contact_phone": "+70000000000",
+    "status": "new",
+    "payment_status": None,
+    "subtotal": 13500000,
+    "total_estimate": 11475000,
+    "member_discount": 15,
+    "discount_source": "promo",
+    "promo_code": "SPRING-15",
+    "office_discount": None,
+    "office_reason": None,
+    "organization": "ООО «Пример»",
+    "participants": 3,
+    "items_json": [{"title": "Переговоры для юристов", "qty": 3}],
+}
+
+
+def office_orders(page, site, width, *orders):
+    site[1]["/admin/orders"] = {"items": list(orders), "total": len(orders)}
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.on("dialog", lambda dialog: dialog.accept())
+    page.goto("/admin/orders")
+    return page.locator("article.office-record")
+
+
+@pytest.mark.parametrize("width", [1440, 390])
+def test_office_sets_discount_on_club_application(page, site, width):
+    closed = {**CLUB_ORDER, "id": "order-2", "number": "ALU-2026-000102", "status": "done"}
+    shop = {**CLUB_ORDER, "id": "order-3", "number": "ALU-2026-000103", "type": "merch"}
+    rows = office_orders(page, site, width, CLUB_ORDER, closed, shop)
+    row = rows.first
+    expect(row.locator(".office-meta").first).to_contain_text("участников: 3 · промокод SPRING-15: 15%")
+    form = row.locator("form[data-api$='/discount']")
+    expect(form.get_by_role("button", name="Сбросить", exact=True)).to_have_count(0)
+    form.get_by_label("Скидка офиса, %").fill("20")
+    form.get_by_label("Причина скидки").fill("Корпоративный договор")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    form.get_by_role("button", name="Применить скидку", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
+    write = site[2][-1]
+    assert write["path"] == "/admin/orders/order-1/discount" and write["method"] == "PATCH"
+    assert write["body"] == {"discount": 20, "reason": "Корпоративный договор"}
+    expect(rows.nth(1).locator("form[data-api$='/discount']")).to_have_count(0)
+    expect(rows.nth(2).locator("form[data-api$='/discount']")).to_have_count(0)
+
+
+def test_office_discount_shows_reason_and_resets(page, site):
+    discounted = {**CLUB_ORDER, "office_discount": 20, "office_reason": "Корпоративный договор"}
+    row = office_orders(page, site, 1440, discounted).first
+    expect(row.locator(".office-meta").first).to_contain_text("скидка учебного офиса: 20%")
+    expect(row.locator(".office-meta").nth(1)).to_have_text(
+        "Причина: Корпоративный договор · до этого промокод SPRING-15: 15%"
+    )
+    form = row.locator("form[data-api$='/discount']")
+    expect(form.get_by_label("Скидка офиса, %")).to_have_value("20")
+    form.get_by_role("button", name="Сбросить", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
+    write = site[2][-1]
+    assert write["path"] == "/admin/orders/order-1/discount" and write["body"] == {"discount": None}
+
+
+@pytest.mark.parametrize("width", [1440, 390])
+def test_cabinet_names_club_application_discount(page, site, width):
+    site[1]["/me/orders"] = [
+        CLUB_ORDER,
+        {**CLUB_ORDER, "number": "ALU-2026-000104", "office_discount": 20, "total_estimate": 10800000},
+    ]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk#orders")
+    orders = page.locator("#orders article")
+    expect(orders.first).to_contain_text("промокод SPRING-15: 15% · участников: 3")
+    expect(orders.nth(1)).to_contain_text("скидка учебного офиса: 20% · участников: 3")
+    expect(orders.first).not_to_contain_text("скидка выпускника")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
 @pytest.mark.parametrize("width", [1440, 390])
 def test_portfolio_pages_fit_and_save_to_reading_list(page, width):
     page.set_viewport_size({"width": width, "height": 900})

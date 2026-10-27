@@ -63,7 +63,7 @@ async def test_office_discount_replaces_member_discount_and_can_be_reset(databas
         "Договор с ООО «Пример»",
         PRICE * 70 // 100,
     )
-    assert own["office_discount"] == 30 and "office_reason" not in own
+    assert own["office_discount"] == 30 and "office_reason" not in own and own["discount_source"] == "member"
     assert reset.json()["total_estimate"] == receipt["total_estimate"] and reset.json()["office_reason"] is None
     assert [mail["to"] for mail in mails[1:]] == ["applicant@example.test", "applicant@example.test"]
     assert "скидка учебного офиса 30%" in mails[1]["text"] and rubles(PRICE * 70 // 100) in mails[1]["text"]

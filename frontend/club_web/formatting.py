@@ -31,6 +31,15 @@ def rub(value):
     return formatted.replace(",", "\u00a0").replace(".", ",") + " ₽"
 
 
+def discount_label(order, automatic=False):
+    if order.get("office_discount") is not None and not automatic:
+        return f"скидка учебного офиса: {order['office_discount']}%"
+    percent = order.get("member_discount") or 0
+    if order.get("discount_source") == "promo":
+        return f"промокод {order.get('promo_code') or ''}: {percent}%"
+    return f"скидка выпускника: {percent}%" if percent else "без скидки"
+
+
 def date(value, time=False):
     if not value:
         return ""
