@@ -3,9 +3,11 @@ import re
 import httpx
 import pytest
 
+from club_web.build import build_public
 from club_web.formatting import payment_url, rub, safe_url
 from club_web.main import create_app
 from club_web.pages import OFFICE_NAV, PUBLIC_PAGES
+from club_web.views import PUBLIC
 
 NEWS = {
     "id": "news-1",
@@ -466,3 +468,23 @@ async def test_cart_forms_send_catalog_type(browser_client):
     response = await browser_client.get("/views/cart", headers={"x-cart-session": "test-session"})
     assert '<input type="hidden" name="type" value="merch">' in response.text
     assert '"type": "merch"' in response.text
+
+
+async def test_versioned_assets_are_cached_for_a_year(browser_client):
+    build_public(PUBLIC)
+    version = (PUBLIC / "assets/version.txt").read_text()
+    page = (await browser_client.get("/")).text
+    for path in ("assets/site.css", "assets/site.js", "fonts/fonts.css"):
+        assert f"/{path}?v={version}" in page
+    assert page.count('rel="preload"') == 3 and 'href="/fonts/HSESans-Thin.woff2"' in page
+    policies = {
+        f"/assets/site.css?v={version}": "public, max-age=31536000, immutable",
+        f"/assets/home.js?v={version}": "public, max-age=31536000, immutable",
+        "/assets/site.css?v=stale": "no-cache",
+        "/assets/site.js": "no-cache",
+        "/fonts/HSESans-Thin.woff2": "public, max-age=2592000",
+        "/assets/themis-club.svg": "public, max-age=86400",
+    }
+    for path, policy in policies.items():
+        response = await browser_client.get(path)
+        assert response.status_code == 200 and response.headers["cache-control"] == policy, path

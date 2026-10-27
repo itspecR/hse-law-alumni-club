@@ -6,6 +6,20 @@ from jinja2 import Environment
 from club_web.formatting import FORMAT_LABELS, date, media, page_items, payment_url, plain_title, rub, safe_url
 
 ROOT = Path(__file__).parent
+VERSION_FILE = "assets/version.txt"
+published_versions = {}
+
+
+def published_version(public):
+    path = Path(public) / VERSION_FILE
+    try:
+        stamp = path.stat().st_mtime_ns
+    except FileNotFoundError:
+        return ""
+    cached = published_versions.get(path)
+    if cached is None or cached[0] != stamp:
+        cached = published_versions[path] = (stamp, path.read_text(encoding="utf-8").strip())
+    return cached[1]
 
 
 def environment(**options):

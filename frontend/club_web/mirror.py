@@ -11,7 +11,7 @@ from club_web.build import build_public
 from club_web.calendar import calendar_file
 from club_web.client import Api
 from club_web.pages import OFFICE_NAV, PUBLIC_PAGES, context, resource
-from club_web.rendering import templates
+from club_web.rendering import published_version, templates
 from club_web.search import search_groups
 
 
@@ -155,7 +155,7 @@ async def export(destination, base, data):
                 page["groups"] = search_groups(
                     data["programs"], data["news"], data["events"], data["podcasts"], changes["items"]
                 )
-            page.update(base=base, mirror=True, request=None)
+            page.update(base=base, mirror=True, request=None, asset_version=published_version(destination))
             target = destination / path.lstrip("/") / "index.html" if path != "/404" else destination / "404.html"
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(
