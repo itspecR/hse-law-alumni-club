@@ -1,4 +1,6 @@
 import json
+import logging
+from functools import partial
 from typing import Literal
 from uuid import UUID, uuid4
 
@@ -10,7 +12,7 @@ from club_api.core.views import api_view, parse_body
 from club_api.domain import PORTFOLIO_CATALOG, effective_discount, order_totals, rubles
 from club_api.modules.auth.routes import Body, EmailBody, RegisterBody
 from club_api.modules.catalog.scope import PUBLISHED_PORTFOLIO
-from club_api.modules.checkout.store import digest
+from club_api.modules.checkout.store import PENDING_NOTICE, digest
 from club_api.modules.portfolio.promo import valid_promo
 from club_api.observability.audit import audit
 from club_api.resources import shared_data
@@ -22,6 +24,7 @@ PROMO_CODE_LENGTH = 32
 PROMO_SOURCE = "promo"
 MEMBER_SOURCE = "member"
 CONSENTS = shared_data("legal-data.json")["portfolio_consents"]
+logger = logging.getLogger("club.portfolio")
 
 
 class ApplicationBody(Body):
@@ -56,7 +59,6 @@ class ApplicationBody(Body):
 class QuoteBody(Body):
     applicant: Literal["self", "organization"]
     participants: int = Field(default=1, ge=1, le=MAX_PARTICIPANTS)
-    contact_email: str | None = Field(default=None, max_length=200)
     promo_code: str | None = Field(default=None, max_length=PROMO_CODE_LENGTH)
 
     @field_validator("promo_code")
@@ -144,7 +146,7 @@ def promo_message(code, source, discount):
     if source == PROMO_SOURCE:
         return f"Промокод применён: скидка {discount}%"
     if code:
-        return "Ваша скидка выпускника больше — промокод не понадобился"
+        return "Ваша скидка выпускника не меньше — промокод не понадобился"
     return None
 
 
@@ -171,6 +173,21 @@ def order_base(body, program, alumni, member, promo):
         "discount_source": source,
         "status": "new",
         "payment_status": None,
+    }
+
+
+def application_receipt(code, number, base, notified=PENDING_NOTICE):
+    return {
+        "number": number,
+        "status": base["status"],
+        "participants": base["participants"],
+        "member_discount": base["member_discount"],
+        "discount_source": base["discount_source"],
+        "promo_code": base["promo_code"],
+        "message": promo_message(code, base["discount_source"], base["member_discount"]),
+        "subtotal": base["subtotal"],
+        "total_estimate": base["total_estimate"],
+        "notified": notified,
     }
 
 
@@ -216,22 +233,13 @@ async def apply(request: HttpRequest, slug: str):
         promo = await chosen_promo(connection, body.promo_code, program, body.contact_email, member, lock=True)
         return order_base(body, program, alumni, member, promo)
 
-    result = await state.checkout.commit_single(key=key, request_hash=request_hash, build=build)
+    result = await state.checkout.commit_single(
+        key=key, request_hash=request_hash, build=build, receipt=partial(application_receipt, body.promo_code)
+    )
     if result["replay"]:
         return result["replay"]
     number, base = result["number"], result["base"]
-    receipt = {
-        "number": number,
-        "status": "new",
-        "participants": base["participants"],
-        "member_discount": base["member_discount"],
-        "discount_source": base["discount_source"],
-        "promo_code": base["promo_code"],
-        "message": promo_message(body.promo_code, base["discount_source"], base["member_discount"]),
-        "subtotal": base["subtotal"],
-        "total_estimate": base["total_estimate"],
-        "notified": await notify(state, number, base),
-    }
+    receipt = application_receipt(body.promo_code, number, base, await notify(state, number, base))
     await audit(
         request,
         "order.created",
@@ -244,7 +252,10 @@ async def apply(request: HttpRequest, slug: str):
             "promo": base["promo_code"],
         },
     )
-    await state.checkout.save_receipt(key, receipt)
+    try:
+        await state.checkout.save_receipt(key, receipt)
+    except Exception:
+        logger.error("Не удалось обновить квитанцию после сохранения заявки")
     return receipt
 
 
@@ -257,7 +268,7 @@ async def quote(request: HttpRequest, slug: str):
     program = await open_program(state, slug)
     member = applicant_discount(body.applicant, alumni)
     async with state.database.connection() as connection:
-        promo = await chosen_promo(connection, body.promo_code, program, body.contact_email or "", member, lock=False)
+        promo = await chosen_promo(connection, body.promo_code, program, None, member, lock=False)
     _, totals, discount, source = pricing(program, body.participants, member, promo)
     return {
         "subtotal": totals["subtotal"],

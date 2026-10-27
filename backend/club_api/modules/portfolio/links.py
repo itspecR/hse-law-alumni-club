@@ -1,27 +1,11 @@
 from club_api.modules.catalog.scope import PUBLISHED
+from club_api.modules.portfolio.relations import PROGRAM_TRAINERS
 
-LINKS = "program_trainers"
 PUBLIC_TRAINER_FIELDS = ("id", "fio", "photo", "bio")
 
 
-async def program_links(state, program_ids):
-    if not program_ids:
-        return {}
-    rows = await state.store.read(
-        LINKS,
-        filters={"program_id": {"_in": program_ids}},
-        fields=("program_id", "trainer_id"),
-        sort=("sort",),
-        limit=-1,
-    )
-    result = {}
-    for row in rows:
-        result.setdefault(row["program_id"], []).append(row["trainer_id"])
-    return result
-
-
 async def published_trainers(state, program_id):
-    ids = (await program_links(state, [program_id])).get(program_id, [])
+    ids = (await PROGRAM_TRAINERS.grouped(state, [program_id])).get(program_id, [])
     if not ids:
         return []
     rows = await state.store.read(

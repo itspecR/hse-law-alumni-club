@@ -217,7 +217,7 @@ function checkoutReceipt(result) {
 }
 
 function rubles(value) {
-  return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", minimumFractionDigits: 0 }).format(value / 100);
+  return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", minimumFractionDigits: value % 100 ? 2 : 0 }).format(value / 100);
 }
 
 function discountText(discount, source, message) {
@@ -236,6 +236,15 @@ function applicationReceipt(form, result) {
   receipt.focus();
 }
 
+function jsonOrNull(value) {
+  try { return JSON.parse(value); } catch { return null; }
+}
+
+async function fingerprint(value) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(value)));
+  return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
 function showQuote(form, text, failed = false) {
   const box = form.querySelector("[data-quote]");
   box.textContent = text;
@@ -247,7 +256,7 @@ async function quotePromo(button) {
   const code = form.elements.promo_code.value.trim();
   if (!code) { showQuote(form, "Введите промокод.", true); return; }
   const applicant = form.querySelector("[data-applicant]:checked").value;
-  const body = { applicant, promo_code: code, contact_email: form.elements.contact_email.value.trim() || null };
+  const body = { applicant, promo_code: code };
   if (applicant === "organization") body.participants = Number(form.elements.participants.value) || undefined;
   button.disabled = true;
   try {
@@ -296,8 +305,10 @@ async function perform(target, body) {
     }
     if (application) {
       const key = "club_application:" + path;
-      const id = stored(key) || crypto.randomUUID();
-      store(key, id);
+      const print = await fingerprint([body, token() ? "member" : "guest"]);
+      const saved = jsonOrNull(stored(key));
+      const id = saved?.print === print ? saved.id : crypto.randomUUID();
+      store(key, JSON.stringify({ id, print }));
       headers = { "idempotency-key": id };
     }
     if (target.hasAttribute("data-support-create")) {

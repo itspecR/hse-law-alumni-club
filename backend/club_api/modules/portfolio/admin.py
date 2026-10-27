@@ -3,12 +3,11 @@ from uuid import UUID
 
 from pydantic import Field, field_validator
 
-from club_api.core.errors import ApiError
 from club_api.domain import PORTFOLIO_CATALOG
 from club_api.modules.auth.routes import Body
 from club_api.modules.checkout.payments import SAFE_INTEGER_MAX
 from club_api.modules.content.admin import content_crud
-from club_api.modules.portfolio.links import LINKS, program_links
+from club_api.modules.portfolio.relations import PROGRAM_TRAINERS, require_existing
 
 DEFAULT_DOCUMENT = "Сертификат об обучении"
 MAX_LIST_ITEMS = 20
@@ -34,7 +33,6 @@ PORTFOLIO_FIELDS = (
     "competencies",
     "communication",
     "capacity",
-    "seats_taken",
 )
 TRAINER_FIELDS = ("id", "fio", "photo", "bio", "status", "created_at")
 
@@ -84,34 +82,27 @@ class PortfolioBody(Body):
         return canonical_ids(value)
 
 
-async def require_trainers(state, ids, connection):
-    if not ids:
-        return
-    rows = await state.store.read(
-        "trainers", filters={"id": {"_in": ids}}, fields=("id",), limit=-1, connection=connection
-    )
-    if len(rows) != len(ids):
-        raise ApiError(400, "Тренер не найден. Обновите страницу и выберите тренеров заново")
-
-
 class TrainerLinks:
     def split(self, data):
         data = dict(data)
         return data, data.pop("trainer_ids", None)
 
     async def prepare(self, state, data, trainer_ids, id, connection):
-        await require_trainers(state, trainer_ids or [], connection)
+        await require_existing(
+            state,
+            "trainers",
+            trainer_ids,
+            {},
+            "Тренер не найден. Обновите страницу и выберите тренеров заново",
+            connection,
+        )
         return data
 
     async def save(self, state, program_id, trainer_ids, connection):
-        await state.store.delete(LINKS, filters={"program_id": {"_eq": program_id}}, connection=connection)
-        for sort, trainer_id in enumerate(trainer_ids):
-            await state.store.create(
-                LINKS, {"program_id": program_id, "trainer_id": trainer_id, "sort": sort}, connection=connection
-            )
+        await PROGRAM_TRAINERS.replace(state, program_id, trainer_ids, connection)
 
     async def attach(self, state, rows):
-        links = await program_links(state, [row["id"] for row in rows])
+        links = await PROGRAM_TRAINERS.grouped(state, [row["id"] for row in rows])
         return [{**row, "trainer_ids": links.get(row["id"], [])} for row in rows]
 
 

@@ -119,9 +119,9 @@ def slugify(value):
     return f"item-{abs(hashed if hashed < 2**31 else hashed - 2**32)}"
 
 
-async def unique_slug(store, table, title):
+async def unique_slug(store, table, title, connection=None):
     slug = slugify(title)
-    if await store.read(table, filters={"slug": {"_eq": slug}}, fields=("id",), limit=1):
+    if await store.read(table, filters={"slug": {"_eq": slug}}, fields=("id",), limit=1, connection=connection):
         import secrets
 
         return slug + "-" + secrets.token_hex(4)
