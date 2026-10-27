@@ -472,23 +472,25 @@ def test_support_launcher_clears_bottom_navigation_and_banners(page, width, pwa)
     page.goto("/news" + ("?pwa=1" if pwa else ""))
     if width == 390 or pwa:
         page.wait_for_function(
-            "() => document.querySelector('.club-crow-hit').getBoundingClientRect().bottom <= document.querySelector('.mobile-tabs').getBoundingClientRect().top"
+            "() => document.querySelector('.support-launcher').getBoundingClientRect().bottom <= document.querySelector('.mobile-tabs').getBoundingClientRect().top"
         )
     page.evaluate("document.querySelector('#cookie-banner').hidden=false")
-    launcher = page.get_by_role("button", name="Открыть бота поддержки", exact=True)
+    launcher = page.get_by_role("link", name="Поддержка клуба", exact=True)
     expect(launcher).to_be_visible()
     expect(page.locator("#cookie-banner")).to_be_visible()
     page.wait_for_function(
-        "() => document.querySelector('.club-crow-hit').getBoundingClientRect().bottom <= document.querySelector('#cookie-banner').getBoundingClientRect().top"
+        "() => document.querySelector('.support-launcher').getBoundingClientRect().bottom <= document.querySelector('#cookie-banner').getBoundingClientRect().top"
     )
     launcher.click()
     expect(page.locator("#support-bot")).to_be_visible()
+    expect(page).to_have_url(re.compile("/news"))
+    expect(page.locator("img[src*='crow'], .crow-mascot")).to_have_count(0)
 
 
 def test_accessibility_mode_keeps_support_launcher(page):
     page.goto("/news")
     page.get_by_role("button", name="Версия для слабовидящих", exact=True).first.click()
-    page.get_by_role("button", name="Поддержка клуба", exact=True).click()
+    page.get_by_role("link", name="Поддержка клуба", exact=True).click()
     expect(page.locator("#support-bot")).to_be_visible()
 
 

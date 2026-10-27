@@ -1,4 +1,3 @@
-import { crowMascotApi } from "./crow-mascot.js";
 import { prepareMini } from "./mini.js";
 import { prepareDiscovery } from "./discovery.js";
 import { prepareCatalog } from "./catalog.js";
@@ -514,7 +513,7 @@ document.addEventListener("click", async event => {
     if (target.dataset.download) { await download(target); return; }
     if (target.dataset.api) { await perform(target, target.dataset.method === "GET" || target.dataset.method === "DELETE" ? undefined : target.dataset.body ? JSON.parse(target.dataset.body) : {}); return; }
     const action = target.dataset.action;
-    if (action === "support") openBot();
+    if (action === "support") { event.preventDefault(); openBot(); }
     else if (action === "close-bot") document.querySelector("#support-bot").close();
     else if (action === "bot-hint") await queueBot(target.dataset.question);
     else if (action === "refresh") await refresh();
@@ -725,15 +724,5 @@ void updateCartCount();
 void pageview();
 
 if (!currentPath().startsWith("/admin") && !currentPath().startsWith("/support") && currentPath() !== "/tg") {
-  const compact = matchMedia("(max-width: 640px)").matches;
-  const launcher = document.querySelector(".support-launcher");
-  launcher.hidden = true;
-  const hit = element("button", undefined, { class: "club-crow-hit foc", "aria-label": "Открыть бота поддержки", "data-action": "support" });
-  hit.style.width = compact ? "56px" : "96px"; hit.style.height = compact ? "59px" : "100px";
-  document.body.append(hit);
-  document.body.append(element("button", "Поддержка клуба", { class: "club-crow-vi", "data-action": "support" }));
-  const crow = crowMascotApi.mount({ assetPath: url("assets/crow/"), anchor: "bottom-right", width: compact ? 56 : 96, zIndex: 40, idleSeconds: 0, followCursor: false, idleAnim: "askQ", solo: true, onClick: openBot });
-  crow.play("idle"); crow.host.classList.add("club-crow-corner");
-  hit.addEventListener("click", openBot);
-  window.addEventListener("pagehide", () => crow.destroy(), { once: true });
+  document.querySelector(".support-launcher").dataset.action = "support";
 }

@@ -40,7 +40,7 @@ def test_gunicorn_serves_parallel_assets_with_reused_connections():
                 if time.monotonic() > deadline:
                     pytest.fail("Gunicorn не запустился")
                 time.sleep(0.05)
-        files = [path for path in sorted((PUBLIC / "assets/crow").glob("*.webp")) if path.is_file()]
+        files = [path for path in sorted((PUBLIC / "assets").rglob("*.webp")) if path.is_file()][:12]
         assert len(files) >= 10
 
         async def requests():
