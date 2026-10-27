@@ -7,12 +7,28 @@ import httpx
 import pytest
 from club_ops.bootstrap import BootstrapConfig, bootstrap
 from club_ops.database_transfer import FORMAT, fingerprint, import_snapshot, model_tables, normalized, table_rows
-from django.db import IntegrityError
+from django.db import IntegrityError, models
 
 from club_api.core.config import Settings
 from club_api.main import create_app
 
 REPO = Path(__file__).resolve().parents[3]
+DELETE_RULES = {models.CASCADE: "CASCADE", models.SET_NULL: "SET NULL", models.PROTECT: "RESTRICT"}
+FOREIGN_KEYS_SQL = (
+    "SELECT k.TABLE_NAME AS table_name,k.COLUMN_NAME AS column_name,r.DELETE_RULE AS rule "
+    "FROM information_schema.KEY_COLUMN_USAGE k JOIN information_schema.REFERENTIAL_CONSTRAINTS r "
+    "ON r.CONSTRAINT_SCHEMA=k.CONSTRAINT_SCHEMA AND r.CONSTRAINT_NAME=k.CONSTRAINT_NAME "
+    "WHERE k.TABLE_SCHEMA=DATABASE()"
+)
+
+
+def model_foreign_keys():
+    return sorted(
+        (model._meta.db_table, field.column, DELETE_RULES[field.remote_field.on_delete])
+        for model in model_tables().values()
+        for field in model._meta.local_fields
+        if isinstance(field, models.ForeignKey)
+    )
 
 
 async def test_runtime_role_serves_crud_without_operator_permissions(database_app):
@@ -135,6 +151,14 @@ async def test_invalid_transfer_rolls_back_every_table(database_app, tmp_path):
         assert not await connection.run(lambda: any(model.objects.exists() for model in model_tables().values()))
 
 
+async def test_each_foreign_key_has_one_database_delete_rule(database_app):
+    if database_app.state.database.vendor != "mysql":
+        pytest.skip("Действия внешних ключей задают миграции MariaDB")
+    rows = await database_app.state.database.rows(FOREIGN_KEYS_SQL)
+    actual = sorted((row["table_name"], row["column_name"], row["rule"]) for row in rows)
+    assert actual == model_foreign_keys()
+
+
 async def test_unicode_case_search_and_literal_wildcards(database_app):
     if database_app.state.database.vendor != "mysql":
         pytest.skip("Сравнения MariaDB проверяются в отдельном сценарии")
@@ -210,6 +234,6 @@ async def test_operator_cli_imports_with_django_async_dispatch(database_app, tmp
         timeout=30,
     )
     assert result.returncode == 0, result.stderr
-    assert "таблиц 41, записей 1" in result.stdout
+    assert "таблиц 43, записей 1" in result.stdout
     async with database_app.state.database.connection() as connection:
         assert await connection.run(lambda: Alumnus.objects.get().fio) == "Перенос через команду оператора"

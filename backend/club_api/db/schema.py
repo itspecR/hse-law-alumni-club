@@ -141,10 +141,15 @@ DATA_COLUMNS = {
         "results",
         "advantages",
         "status",
+        "catalog",
+        "competencies",
+        "communication",
     ),
+    "program_trainers": ("id", "program_id", "trainer_id", "sort"),
     "push_subs": ("id", "alumni_id", "endpoint", "keys", "created_at"),
     "referrals": ("id", "referrer_id", "invited_user_id", "code", "status", "reward_points", "created_at"),
     "timeline_items": ("id", "year", "title", "text", "metric", "sort", "status"),
+    "trainers": ("id", "fio", "photo", "bio", "status", "created_at"),
 }
 
 JSON_COLUMNS = {
@@ -155,6 +160,6 @@ JSON_COLUMNS = {
     "carts": ("items_json",),
     "orders": ("items_json",),
     "products": ("images", "variants_json"),
-    "programs": ("dates", "modules", "teachers", "audience", "results", "advantages"),
+    "programs": ("dates", "modules", "teachers", "audience", "results", "advantages", "competencies", "communication"),
     "push_subs": ("keys",),
 }

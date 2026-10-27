@@ -5,6 +5,8 @@ from django.db.models.functions import Now
 
 from club_api.db.functions import DatabaseUUID
 
+PROGRAM_CATALOGS = ("dpo", "portfolio")
+
 
 class Achievements(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, db_default=DatabaseUUID())
@@ -618,6 +620,19 @@ class Products(models.Model):
         db_table = "products"
 
 
+class ProgramTrainers(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, db_default=DatabaseUUID())
+    program = models.ForeignKey("Programs", on_delete=models.CASCADE, db_column="program_id", related_name="+")
+    trainer = models.ForeignKey("Trainers", on_delete=models.CASCADE, db_column="trainer_id", related_name="+")
+    sort = models.IntegerField(db_default=0)
+
+    class Meta:
+        db_table = "program_trainers"
+        constraints = [
+            models.UniqueConstraint(fields=("program", "trainer"), name="uq_program_trainers_program_trainer"),
+        ]
+
+
 class Programs(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, db_default=DatabaseUUID())
     slug = models.CharField(max_length=255, unique=True, null=True)
@@ -642,9 +657,15 @@ class Programs(models.Model):
     results = models.JSONField(null=True)
     advantages = models.JSONField(null=True)
     status = models.CharField(max_length=255, null=True, db_default="draft")
+    catalog = models.CharField(max_length=32, db_default=PROGRAM_CATALOGS[0])
+    competencies = models.JSONField(null=True)
+    communication = models.JSONField(null=True)
 
     class Meta:
         db_table = "programs"
+        constraints = [
+            models.CheckConstraint(condition=models.Q(catalog__in=PROGRAM_CATALOGS), name="programs_catalog_check"),
+        ]
 
 
 class PushSubs(models.Model):
@@ -689,3 +710,15 @@ class TimelineItems(models.Model):
 
     class Meta:
         db_table = "timeline_items"
+
+
+class Trainers(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, db_default=DatabaseUUID())
+    fio = models.CharField(max_length=255)
+    photo = models.CharField(max_length=255, null=True)
+    bio = models.TextField(null=True)
+    status = models.CharField(max_length=255, db_default="draft")
+    created_at = models.DateTimeField(db_default=Now())
+
+    class Meta:
+        db_table = "trainers"
