@@ -56,6 +56,17 @@ async def test_site_bot_keeps_private_programs_out_of_answers(database_app):
                 "status": status,
             },
         )
+    await app.state.store.create(
+        "programs",
+        {
+            "slug": "club",
+            "title": "Программа права клуба",
+            "price": 5000000,
+            "format": "online",
+            "status": "published",
+            "catalog": "portfolio",
+        },
+    )
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
         joining = await client.post("/support/ask", json={"question": "Как вступить в клуб"})
         assert joining.status_code == 200 and joining.json()["anchor"] == "/join"

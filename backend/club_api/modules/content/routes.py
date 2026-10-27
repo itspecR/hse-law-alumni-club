@@ -7,6 +7,7 @@ from django.http import HttpRequest, HttpResponse
 
 from club_api.core.errors import ApiError
 from club_api.core.views import api_view, query_integer
+from club_api.modules.catalog.scope import PUBLISHED_DPO
 
 NEWS_FIELDS = ("id", "slug", "title", "excerpt", "body", "published_at", "source_url")
 PROGRAM_FIELDS = (
@@ -46,7 +47,7 @@ async def sitemap(request: HttpRequest):
         return HttpResponse(cached[1], content_type="application/xml")
     news, programs = await asyncio.gather(
         state.store.read("news", filters=PUBLISHED, fields=("slug", "published_at"), limit=-1),
-        state.store.read("programs", filters=PUBLISHED, fields=("slug",), limit=-1),
+        state.store.read("programs", filters=PUBLISHED_DPO, fields=("slug",), limit=-1),
     )
     urls = [
         ("/", "1.0", "weekly", None),
@@ -108,7 +109,7 @@ async def news_detail(request: HttpRequest, slug: str):
 @api_view
 async def programs(request: HttpRequest):
     return await request.services.store.read(
-        "programs", filters=PUBLISHED, fields=PROGRAM_FIELDS, sort=("title",), limit=-1
+        "programs", filters=PUBLISHED_DPO, fields=PROGRAM_FIELDS, sort=("title",), limit=-1
     )
 
 
@@ -116,7 +117,7 @@ async def programs(request: HttpRequest):
 async def program_detail(request: HttpRequest, slug: str):
     rows = await request.services.store.read(
         "programs",
-        filters={**PUBLISHED, "slug": {"_eq": slug}},
+        filters={**PUBLISHED_DPO, "slug": {"_eq": slug}},
         fields=(*PROGRAM_FIELDS, "modules", "teachers", "audience", "results", "advantages"),
         limit=1,
     )

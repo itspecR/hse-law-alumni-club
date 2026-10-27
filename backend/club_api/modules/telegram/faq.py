@@ -2,6 +2,7 @@ import html
 import math
 import re
 
+from club_api.modules.catalog.scope import PUBLISHED_DPO
 from club_api.modules.support.service import FAQ, log_faq
 
 ENDINGS = (
@@ -277,7 +278,7 @@ async def site_reply(state, query):
         program_to_bot(row)
         for row in await state.store.read(
             "programs",
-            filters={"status": {"_eq": "published"}},
+            filters=PUBLISHED_DPO,
             fields=(
                 "id",
                 "slug",
@@ -360,7 +361,7 @@ async def answer_faq(state, query):
         program_to_bot(row)
         for row in await state.store.read(
             "programs",
-            filters={"status": {"_eq": "published"}},
+            filters=PUBLISHED_DPO,
             fields=(
                 "id",
                 "slug",

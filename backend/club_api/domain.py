@@ -10,6 +10,8 @@ MEMBER_DISCOUNT_CAP = DOMAIN["limits"]["member_discount_cap"]
 MAX_LINE_QTY = DOMAIN["limits"]["max_line_qty"]
 MAX_CART_LINES = DOMAIN["limits"]["max_cart_lines"]
 MAX_INTERESTS = DOMAIN["limits"]["max_interests"]
+PROGRAM_CATALOGS = ("dpo", "portfolio")
+DPO_CATALOG, PORTFOLIO_CATALOG = PROGRAM_CATALOGS
 
 
 def compute_level(points):

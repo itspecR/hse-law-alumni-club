@@ -5,6 +5,7 @@ from club_api.core.models import count, group_count
 from club_api.db.queries import Query
 from club_api.db.store import normalize
 from club_api.modules.analytics.pageviews import pageview_stats
+from club_api.modules.catalog.scope import PUBLISHED_DPO
 
 
 async def sum_field(store, table, field, filters=None):
@@ -16,7 +17,7 @@ async def overview(state):
     store, now = state.store, normalize(datetime.now(UTC))
     orders = await group_count(store, "orders", ("status", "payment_status"))
     alumni = await group_count(store, "alumni", ("verification_status",))
-    programs = await group_count(store, "programs", ("enrollment",), {"status": {"_eq": "published"}})
+    programs = await group_count(store, "programs", ("enrollment",), PUBLISHED_DPO)
     friends = await group_count(store, "alumni_friends", ("status",), {"status": {"_in": ["accepted", "pending"]}})
 
     def total(rows, field=None, value=None):

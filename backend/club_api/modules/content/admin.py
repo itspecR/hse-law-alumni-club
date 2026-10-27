@@ -9,6 +9,7 @@ from club_api.core.errors import ApiError
 from club_api.core.models import guid, partial, unique_slug
 from club_api.core.views import api_view, endpoint, parse_body
 from club_api.db.queries import Query
+from club_api.domain import DPO_CATALOG
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin
 from club_api.observability.audit import audit
@@ -61,7 +62,7 @@ class ProductBody(Body):
     status: Literal["draft", "published", "archived"] = "published"
 
 
-async def write_content(state, table, data, *, id=None):
+async def write_content(state, table, data, *, id=None, connection=None):
     data = dict(data)
     if table == "programs" and "start" in data:
         start = data.pop("start")
@@ -75,7 +76,7 @@ async def write_content(state, table, data, *, id=None):
             async with state.database.transaction() as connection:
                 await product_reservations(connection, id)
                 return await state.store.update(table, data, id=id, connection=connection)
-        return await state.store.update(table, data, id=id)
+        return await state.store.update(table, data, id=id, connection=connection)
     if table in ("programs", "products", "news"):
         data["slug"] = await unique_slug(state.store, table, data["title"])
     if table == "news":
@@ -83,7 +84,23 @@ async def write_content(state, table, data, *, id=None):
     if table in ("timeline_items", "podcasts") and data.get("sort") is None:
         rows = await state.store.read(table, fields=("sort",), limit=-1)
         data["sort"] = max((row["sort"] or 0 for row in rows), default=0) + 1
-    return await state.store.create(table, data)
+    return await state.store.create(table, data, connection=connection)
+
+
+async def save_content(state, table, data, relation, *, id=None):
+    if not relation:
+        return await write_content(state, table, data, id=id)
+    data, links = relation.split(data)
+    async with state.database.transaction() as connection:
+        row = await write_content(state, table, data, id=id, connection=connection) if data or id is None else {}
+        if links is not None:
+            await relation.save(state, id or row["id"], links, connection)
+    return row
+
+
+async def require_scope(state, table, id, filters):
+    if filters and not await state.store.read(table, filters={**filters, "id": {"_eq": id}}, fields=("id",), limit=1):
+        raise ApiError(404, "Запись не найдена")
 
 
 async def product_reservations(connection, id):
@@ -103,13 +120,18 @@ async def product_reservations(connection, id):
         raise ApiError(409, "У товара есть резерв в незавершённой заявке. Сначала завершите или отмените её")
 
 
-def content_crud(route, table, model, *, sort, fields, subject, notify=None):
+def content_crud(route, table, model, *, sort, fields, subject, notify=None, scope=None, relation=None):
     patch_model = partial(model)
+    scope = scope or {}
+    filters = {name: {"_eq": value} for name, value in scope.items()}
+    name = route.strip("/").replace("/", "_")
 
     @api_view(permission=require_admin)
     async def listing(request: HttpRequest):
         await require_admin(request)
-        return await request.services.store.read(table, sort=sort, fields=fields, limit=-1)
+        state = request.services
+        rows = await state.store.read(table, filters=filters or None, sort=sort, fields=fields, limit=-1)
+        return await relation.attach(state, rows) if relation else rows
 
     @api_view(body=model, permission=require_admin)
     async def create(request: HttpRequest):
@@ -123,7 +145,7 @@ def content_crud(route, table, model, *, sort, fields, subject, notify=None):
             or key in body.model_fields_set
             or type(None) in get_args(model.model_fields[key].annotation)
         }
-        row = await write_content(request.services, table, data)
+        row = await save_content(request.services, table, {**data, **scope}, relation)
         await audit(
             request,
             subject + ".create",
@@ -146,7 +168,8 @@ def content_crud(route, table, model, *, sort, fields, subject, notify=None):
         admin = await require_admin(request)
         body = parse_body(request, patch_model)
         data = body.model_dump(exclude_unset=True)
-        await write_content(request.services, table, data, id=guid(id))
+        await require_scope(request.services, table, guid(id), filters)
+        await save_content(request.services, table, data, relation, id=guid(id))
         await audit(
             request, subject + ".patch", actor="admin:" + admin["userId"], subject=subject + ":" + id, detail=data
         )
@@ -156,6 +179,7 @@ def content_crud(route, table, model, *, sort, fields, subject, notify=None):
     async def delete(request: HttpRequest, id: str):
         admin = await require_admin(request)
         state, id = (request.services, guid(id))
+        await require_scope(state, table, id, filters)
         if table == "products":
             async with state.database.transaction() as connection:
                 await product_reservations(connection, id)
@@ -166,8 +190,8 @@ def content_crud(route, table, model, *, sort, fields, subject, notify=None):
         return {"ok": True}
 
     return [
-        path(route.lstrip("/"), endpoint({"GET": listing, "POST": create}), name=table + "_collection"),
-        path(route.lstrip("/") + "/<str:id>", endpoint({"PATCH": patch, "DELETE": delete}), name=table + "_item"),
+        path(route.lstrip("/"), endpoint({"GET": listing, "POST": create}), name=name + "_collection"),
+        path(route.lstrip("/") + "/<str:id>", endpoint({"PATCH": patch, "DELETE": delete}), name=name + "_item"),
     ]
 
 
@@ -193,6 +217,7 @@ urlpatterns += content_crud(
     "/admin/programs",
     "programs",
     ProgramBody,
+    scope={"catalog": DPO_CATALOG},
     sort=("title",),
     fields=(
         "id",
