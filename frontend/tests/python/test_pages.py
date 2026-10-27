@@ -41,6 +41,8 @@ PORTFOLIO = {
     "document": "Сертификат об обучении",
     "cover": "",
     "capacity": 20,
+    "seats_left": 17,
+    "group": {"min": 2, "max": 20},
     "description": "Практический курс.",
     "audience": ["Юристы компаний"],
     "competencies": ["Подготовка позиции"],
@@ -547,11 +549,20 @@ async def test_portfolio_pages_show_club_program_without_cart(browser_client):
     for text in ("Анна Вымышленная", "Тренер", "Компетенции", "Подготовка позиции", "Коммуникация", "Мест в группе"):
         assert text in card.text
     assert "Сертификат об обучении" in card.text and 'data-reading-kind="portfolio"' in card.text
-    assert 'data-api="/cart"' not in card.text and "Оставить заявку" not in card.text
+    assert 'data-api="/cart"' not in card.text and 'href="#application"' in card.text
+    assert 'data-api="/portfolio/club-one/applications" data-application' in card.text
+    assert "Свободных мест" in card.text and 'max="20"' in card.text and "Места закончились" not in card.text
+    assert 'href="/portfolio-consent"' in card.text and 'href="/portfolio-terms"' in card.text
 
 
-async def test_portfolio_stays_out_of_navigation_until_applications():
-    assert "/portfolio" not in dict(NAV)
+async def test_portfolio_leads_the_navigation():
+    assert NAV[0] == ("/portfolio", "Портфель программ")
+
+
+async def test_consent_placeholders_show_draft_version(browser_client):
+    for path in ("/portfolio-consent", "/portfolio-terms"):
+        response = await browser_client.get(path)
+        assert response.status_code == 200 and "draft-2026-10-27" in response.text
 
 
 async def test_unknown_portfolio_program_is_not_found(browser_client):

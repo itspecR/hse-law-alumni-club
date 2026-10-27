@@ -202,3 +202,23 @@ async def test_office_sees_and_exports_club_application(database_app, mails):
     assert (listed["number"], listed["organization"], listed["participants"]) == (number, "ООО «Пример»", 3)
     row = next(line for line in export.text.splitlines() if number in line)
     assert '"Портфель программ"' in row and '"ООО «Пример»";"3"' in row and "Самовывоз" not in row
+
+
+async def test_card_and_sitemap_announce_club_programs(database_app):
+    app = database_app
+    item = await program(app)
+    async with client_for(app) as client:
+        card = (await client.get("/portfolio/" + item["slug"])).json()
+        sitemap = (await client.get("/sitemap.xml")).text
+    assert card["group"] == {"min": 2, "max": 20}
+    assert "/portfolio</loc>" in sitemap and "/portfolio/" + item["slug"] + "</loc>" in sitemap
+
+
+async def test_member_sees_club_application_details(database_app, mails):
+    app = database_app
+    item = await program(app)
+    _, member = await account(app)
+    async with client_for(app) as client:
+        await apply(client, item["slug"], GROUP, member)
+        rows = (await client.get("/me/orders", headers=member)).json()
+    assert (rows[0]["type"], rows[0]["participants"], rows[0]["organization"]) == ("portfolio", 3, "ООО «Пример»")

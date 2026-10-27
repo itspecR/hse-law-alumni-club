@@ -113,6 +113,17 @@ def site():
                 )
             if path.endswith("login"):
                 return httpx.Response(200, json={"token": "member-qa"})
+            if path.endswith("/applications"):
+                participants = body.get("participants", 1)
+                return httpx.Response(
+                    200,
+                    json={
+                        "number": "ALU-2026-000777",
+                        "participants": participants,
+                        "total_estimate": PORTFOLIO["price"] * participants,
+                        "notified": {"ok": True},
+                    },
+                )
             return httpx.Response(200, json={"ok": True})
         if path == "/news/news-one" and records.get("deleted_news"):
             return httpx.Response(404, json={"error": "Новость удалена"})
@@ -2075,3 +2086,67 @@ def test_portfolio_pages_fit_and_save_to_reading_list(page, width):
     )
     recent = page.locator("[data-reading-list='recent']")
     expect(recent.get_by_role("link", name=PORTFOLIO["title"], exact=True)).to_be_visible()
+
+
+@pytest.mark.parametrize("width", [1440, 390])
+def test_portfolio_application_from_organization(page, site, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/portfolio/club-one")
+    page.locator("aside.site-panel").get_by_role("link", name="Оставить заявку", exact=True).click()
+    form = page.locator("form[data-application]")
+    expect(form.get_by_label("Организация", exact=True)).to_be_hidden()
+    form.get_by_label("ФИО", exact=True).fill("Вымышленный Заявитель")
+    form.get_by_label("Телефон", exact=True).fill("+70000000000")
+    form.get_by_label("Почта", exact=True).fill("applicant@example.test")
+    form.get_by_label("От организации", exact=True).check()
+    form.get_by_label("Организация", exact=True).fill("ООО «Пример»")
+    form.get_by_label("Число участников", exact=True).fill("3")
+    form.get_by_label("Даю согласие на обработку персональных данных").check()
+    form.get_by_label("Соглашаюсь с условиями обучения").check()
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    form.get_by_role("button", name="Отправить заявку", exact=True).click()
+    receipt = page.locator(".portfolio-receipt")
+    expect(receipt).to_contain_text("Заявка ALU-2026-000777 принята")
+    expect(receipt).to_contain_text("Участников: 3")
+    write = site[2][-1]
+    assert write["path"] == "/portfolio/club-one/applications" and write["headers"]["idempotency-key"]
+    assert write["body"] == {
+        "contact_fio": "Вымышленный Заявитель",
+        "contact_phone": "+70000000000",
+        "contact_email": "applicant@example.test",
+        "applicant": "organization",
+        "organization": "ООО «Пример»",
+        "participants": 3,
+        "comment": "",
+        "consent_pdn": True,
+        "consent_terms": True,
+        "website": "",
+    }
+
+
+def test_portfolio_application_for_self_skips_organization(page, site):
+    page.goto("/portfolio/club-one")
+    form = page.locator("form[data-application]")
+    form.get_by_label("ФИО", exact=True).fill("Вымышленный Заявитель")
+    form.get_by_label("Телефон", exact=True).fill("+70000000000")
+    form.get_by_label("Почта", exact=True).fill("applicant@example.test")
+    form.get_by_label("От организации", exact=True).check()
+    form.get_by_label("Для себя", exact=True).check()
+    form.get_by_label("Даю согласие на обработку персональных данных").check()
+    form.get_by_label("Соглашаюсь с условиями обучения").check()
+    form.get_by_role("button", name="Отправить заявку", exact=True).click()
+    expect(page.locator(".portfolio-receipt")).to_contain_text("Участников: 1")
+    body = site[2][-1]["body"]
+    assert body["applicant"] == "self" and "organization" not in body and "participants" not in body
+
+
+def test_portfolio_application_requires_both_consents(page, site):
+    page.goto("/portfolio/club-one")
+    form = page.locator("form[data-application]")
+    form.get_by_label("ФИО", exact=True).fill("Вымышленный Заявитель")
+    form.get_by_label("Телефон", exact=True).fill("+70000000000")
+    form.get_by_label("Почта", exact=True).fill("applicant@example.test")
+    form.get_by_label("Даю согласие на обработку персональных данных").check()
+    form.get_by_role("button", name="Отправить заявку", exact=True).click()
+    expect(page.locator(".portfolio-receipt")).to_have_count(0)
+    assert not any(write["path"].endswith("/applications") for write in site[2])

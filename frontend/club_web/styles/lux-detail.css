@@ -26,3 +26,17 @@ html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel > p:
 html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel form[data-cart] { display: grid; gap: 16px; margin-bottom: 12px; }
 html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel :is(.site-primary, .save-material) { width: 100%; }
 html.lux :is(.program-page, .product-page) .site-two-col > aside.site-panel > .save-material { margin-top: 12px; }
+
+html.lux .portfolio-program .site-two-col > aside.site-panel > a.site-primary { display: flex; justify-content: center; }
+html.lux .portfolio-application { max-width: 760px; margin: 0 0 clamp(64px, 8cqi, 112px); padding: clamp(24px, 4cqi, 40px); }
+html.lux .portfolio-application h2 { margin: 0 0 12px; }
+html.lux .portfolio-application > p { color: var(--c-text-3); }
+html.lux .portfolio-application :is(input:not([type=checkbox]):not([type=radio]), textarea) { width: 100%; }
+html.lux .portfolio-applicant { margin: 20px 0 8px; padding: 0; border: 0; }
+html.lux .portfolio-applicant legend { margin-bottom: 10px; font-size: 14px; color: var(--c-text-3); }
+html.lux .portfolio-applicant .lux-seg__opt input:checked + span { border-radius: 999px; background: var(--c-text); }
+html.lux .portfolio-application .site-consent { display: flex; align-items: flex-start; gap: 12px; margin: 16px 0; }
+html.lux .portfolio-application .site-consent input { flex: none; width: 20px; height: 20px; margin: 2px 0 0; }
+html.lux .portfolio-application form > .site-primary { margin-top: 8px; }
+html.lux .portfolio-receipt { padding: 20px 0 0; }
+html.lux .portfolio-receipt h3 { margin: 0 0 8px; font: 500 20px/1.3 var(--f-body); }

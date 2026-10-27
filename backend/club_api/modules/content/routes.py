@@ -7,7 +7,7 @@ from django.http import HttpRequest, HttpResponse
 
 from club_api.core.errors import ApiError
 from club_api.core.views import api_view, query_integer
-from club_api.modules.catalog.scope import PUBLISHED_DPO
+from club_api.modules.catalog.scope import PUBLISHED_DPO, PUBLISHED_PORTFOLIO
 
 NEWS_FIELDS = ("id", "slug", "title", "excerpt", "body", "published_at", "source_url")
 PROGRAM_FIELDS = (
@@ -45,12 +45,14 @@ async def sitemap(request: HttpRequest):
     now = time.monotonic()
     if cached and now - cached[0] < 3600:
         return HttpResponse(cached[1], content_type="application/xml")
-    news, programs = await asyncio.gather(
+    news, programs, portfolio = await asyncio.gather(
         state.store.read("news", filters=PUBLISHED, fields=("slug", "published_at"), limit=-1),
         state.store.read("programs", filters=PUBLISHED_DPO, fields=("slug",), limit=-1),
+        state.store.read("programs", filters=PUBLISHED_PORTFOLIO, fields=("slug",), limit=-1),
     )
     urls = [
         ("/", "1.0", "weekly", None),
+        ("/portfolio", "0.9", "weekly", None),
         ("/events", "0.9", "weekly", None),
         ("/dpo", "0.9", "weekly", None),
         ("/news", "0.8", "weekly", None),
@@ -67,6 +69,7 @@ async def sitemap(request: HttpRequest):
             for item in news
         ],
         *[("/dpo/" + quote(item["slug"], safe=""), "0.6", "monthly", None) for item in programs],
+        *[("/portfolio/" + quote(item["slug"], safe=""), "0.6", "monthly", None) for item in portfolio],
         *[(path, "0.3", "yearly", None) for path in ("/privacy", "/confidential", "/requisites")],
     ]
     base = state.settings.PUBLIC_URL.rstrip("/")

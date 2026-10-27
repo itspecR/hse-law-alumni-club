@@ -190,5 +190,7 @@ async def my_orders(request: HttpRequest):
             "items_json",
             "fulfillment",
             "payment_status",
+            "participants",
+            "organization",
         ),
     )
