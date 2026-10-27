@@ -394,7 +394,6 @@ html.vis .club-cookie-banner__btn--primary {
 @media (max-width: 768px) {
   :root {
     --tabs-h: 0px;
-    --crow-h: 108px;
   }
   .club-cookie-banner,
   [role="dialog"][aria-label="Согласие на использование cookies"],
@@ -620,10 +619,7 @@ button[aria-disabled="true"],
 .club-support-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 20px 0; }
 .club-support-lookup { margin-top: 32px; }
 .club-support-page summary { cursor: pointer; min-height: 44px; padding-block: 8px; }
-.club-mascot { display: block; object-fit: contain; }
-.club-mascot-hero { width: 100%; height: auto; aspect-ratio: 1; }
-.club-mascot-support { width: 36px; height: 36px; }
-@media (max-width: 700px) { .club-mascot-hero { display: none; } .club-support-dock { padding: 12px; } .club-support-dock > span:not(.crow-support-portrait) { display: none; } }
+@media (max-width: 700px) { .club-support-dock { padding: 12px; } .club-support-dock > span { display: none; } }
 @media (prefers-reduced-motion: no-preference) { .club-support-dock { transition: background-color 160ms ease, transform 160ms ease; } .club-support-dock:hover { transform: translateY(-2px); } }
 
 .club-agenda-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(160px, 240px); gap: 24px; padding: 20px 0; margin: 12px 0 24px; border-block: 1px solid var(--c-line); }
@@ -739,10 +735,6 @@ button[aria-disabled="true"],
 @media (max-width: 1180px) { .cabinet-club-nav { margin-inline: 20px; } }
 @media (max-width: 600px) { .cabinet-club-nav { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 2px; padding: 8px; } .cabinet-club-nav a { padding: 8px 4px; font-size: 14px; } .cabinet-welcome h1 { font-size: 30px; } .cabinet-next-event { padding: 22px; } .cabinet-next-event h3 { font-size: 25px; } .cabinet-opportunities { grid-template-columns: 1fr; } }
 
-.crow-support-portrait { position: relative; display: block; flex: 0 0 44px; width: 44px; height: 44px; overflow: hidden; border-radius: 50%; background: #f0c74d; }
-.crow-support-portrait img { position: absolute; width: 102px; max-width: none; height: auto; left: -30px; top: -17px; }
-.club-support-dock:has(.crow-support-portrait) { padding: 5px 16px 5px 5px; }
-@media (max-width: 700px) { .club-support-dock:has(.crow-support-portrait) { padding: 3px; } }
 
 .club-event-row > div:first-child > div:first-child { font-family: var(--f-display) !important; font-size: 22px !important; line-height: 1.1; color: var(--c-accent-text) !important; }
 .club-merch-image { border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-ambient); transition: transform 520ms var(--ease-spring), box-shadow 520ms var(--ease-spring); }
