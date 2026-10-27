@@ -16,6 +16,7 @@ MEDIA_FIELDS = {
     "podcasts": ("cover", "audio_url", "description"),
     "products": ("images", "description"),
     "programs": ("cover", "teachers", "modules", "description", "results", "advantages", "audience"),
+    "trainers": ("photo", "bio"),
 }
 MEDIA_LINK = re.compile(r"/(?:api/media|assets)/([0-9a-f-]{36})", re.I)
 
