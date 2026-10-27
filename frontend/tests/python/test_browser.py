@@ -1331,6 +1331,27 @@ def test_home_member_price_follows_selected_level(page, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
+def test_hero_progress_reaches_only_its_readers(chromium, site):
+    context = chromium.new_context(
+        base_url=site[0], viewport={"width": 1440, "height": 900}, reduced_motion="no-preference"
+    )
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+    page = context.new_page()
+    page.goto("/")
+    page.evaluate("scrollTo(0, 400)")
+    word = page.locator(".lux-hero__word--l")
+    page.wait_for_function(
+        "() => parseFloat(getComputedStyle(document.querySelector('.lux-hero__word--l')).getPropertyValue('--p')) > 0"
+    )
+    assert word.evaluate("node => getComputedStyle(node).transform") != "none"
+    assert page.evaluate("document.querySelector('.lux-hero').style.getPropertyValue('--p')") == ""
+    for selector in (".lux-hero__title", ".lux-hero__line > span", ".lux-scales__beam"):
+        assert page.locator(selector).first.evaluate("node => getComputedStyle(node).getPropertyValue('--p')") == "0", (
+            selector
+        )
+    context.close()
+
+
 @pytest.mark.parametrize(
     "viewport,vision", [({"width": 844, "height": 390}, False), ({"width": 390, "height": 844}, True)]
 )

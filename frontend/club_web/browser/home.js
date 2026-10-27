@@ -2,8 +2,11 @@ import { hidePastStarts } from "./catalog.js";
 
 const REVEAL_MARGIN = "0px 0px -8% 0px";
 const FOCUS_GAP = 8;
+const PROGRESS_READERS = ".lux-hero__figure, .lux-hero__word, .lux-hero__foot, .lux-hero__next, .lux-scales";
 const reduce = matchMedia("(prefers-reduced-motion: reduce)");
 let hero = null;
+let readers = [];
+let painted = "";
 let farFrom = 1;
 let queued = false;
 let revealer = null;
@@ -19,7 +22,10 @@ function paintHero() {
   queued = false;
   if (!hero?.isConnected) return;
   const progress = reduce.matches ? 0 : heroProgress();
-  hero.style.setProperty("--p", progress.toFixed(4));
+  const value = progress.toFixed(4);
+  if (value === painted) return;
+  painted = value;
+  readers.forEach(node => node.style.setProperty("--p", value));
   hero.classList.toggle("is-far", progress > farFrom);
 }
 
@@ -91,6 +97,8 @@ export function prepareHome() {
   watchSign();
   const root = document.querySelector(".lux-home");
   hero = root?.querySelector(".lux-hero") || null;
+  readers = hero ? [...hero.querySelectorAll(PROGRESS_READERS)] : [];
+  painted = "";
   if (hero) farFrom = parseFloat(getComputedStyle(hero).getPropertyValue("--far")) || farFrom;
   if (!root || root.dataset.homeReady) { requestHero(); return; }
   root.dataset.homeReady = "true";
