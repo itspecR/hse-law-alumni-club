@@ -16,6 +16,7 @@
   --far: 0.42;
   --fig-axis: 0.454;
   --fig-ratio: 313 / 549;
+  --fig-min: 180px;
   display: block;
   padding: 0;
   max-width: none;
@@ -156,12 +157,12 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
   :is(.lux-agenda, .lux-news, .lux-eps) a:hover span:not(.lux-agenda__place), .lux-acts a:hover b { text-decoration: underline 1px; text-underline-offset: 4px; }
 }
 
-@media (max-width: 1000px) {
-  .lux-hero__stage { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(16px, 3svh, 28px); height: calc(100svh - var(--lux-top) - var(--tabs-h, 0px)); min-height: 500px; padding: 3svh var(--lux-gutter) max(3svh, 20px); }
+@media (max-width: 1000px), (max-height: 600px) {
+  .lux-hero__stage { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(16px, 3svh, 28px); height: auto; min-height: calc(100svh - var(--lux-top) - var(--tabs-h, 0px)); padding: 3svh var(--lux-gutter) max(3svh, 20px); }
   .lux-hero__title { position: static; text-align: center; font-size: min(11.5cqi, 64px); line-height: 1.02; }
   .lux-hero__word { position: static; display: block; transform: translateY(calc(var(--p) * -24px)); }
   .lux-hero__line { display: inline-block; }
-  .lux-hero__figure { position: relative; left: auto; top: auto; flex: 1 1 0; min-height: 0; max-height: 480px; height: auto; translate: calc((0.5 - var(--fig-axis)) * 100%) 0; }
+  .lux-hero__figure { position: relative; left: auto; top: auto; flex: 1 1 0; min-height: var(--fig-min); max-height: 480px; height: auto; translate: calc((0.5 - var(--fig-axis)) * 100%) 0; }
   .lux-hero__foot { position: static; padding: 0; }
   .lux-hero__lede { font-size: 17px; }
   .lux-hero__acts { gap: 8px 24px; }
@@ -196,9 +197,9 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
 }
 
 @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
-  .lux-piece { opacity: 0; animation: lux-piece-in 640ms var(--ease-out) forwards; animation-delay: calc(140ms + var(--i) * 34ms); }
-  .lux-hero__line > span { transform: translateY(108%); animation: lux-line-up 900ms var(--ease-out) forwards; animation-delay: calc(140ms + var(--i) * 110ms); }
-  .lux-hero__foot > * { opacity: 0; animation: lux-rise 700ms var(--ease-out) 820ms forwards; }
+  .lux-piece { animation: lux-piece-in 640ms var(--ease-out) backwards; animation-delay: calc(140ms + var(--i) * 34ms); }
+  .lux-hero__line > span { animation: lux-line-up 900ms var(--ease-out) backwards; animation-delay: calc(140ms + var(--i) * 110ms); }
+  .lux-hero__foot > * { animation: lux-rise 700ms var(--ease-out) 820ms backwards; }
   .lux-hero__acts { animation-delay: 900ms; }
   .lux-scales { animation: lux-sway 7s var(--ease-in-out, ease-in-out) 1.6s 4 alternate both; }
   .lux-glint { animation: lux-glint 9s var(--ease-in-out, ease-in-out) 1.9s infinite; }
@@ -223,9 +224,9 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
   .lux-calc__levels { display: none; }
 }
 
-@keyframes lux-piece-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-@keyframes lux-line-up { to { transform: none; } }
-@keyframes lux-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes lux-piece-in { from { opacity: 0; transform: translateY(10px); } }
+@keyframes lux-line-up { from { transform: translateY(108%); } }
+@keyframes lux-rise { from { opacity: 0; transform: translateY(12px); } }
 @keyframes lux-sway { from { --lux-sway: -1.6deg; } to { --lux-sway: 1.6deg; } }
 @keyframes lux-glint { 0% { opacity: 0; transform: translateY(0); } 2% { opacity: 1; } 14% { opacity: 1; transform: translateY(320px); } 15%, 100% { opacity: 0; transform: translateY(320px); } }
 @keyframes lux-swap { from { opacity: 0.5; transform: translateY(3px); } to { opacity: 1; transform: none; } }

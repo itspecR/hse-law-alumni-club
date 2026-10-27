@@ -1472,6 +1472,67 @@ def test_slow_navigation_shows_skeleton_of_target_page(chromium, site, motion, p
     context.close()
 
 
+HERO_SETTLED = "() => !document.getAnimations().some(a => /^lux-(piece-in|line-up|rise)$/.test(a.animationName))"
+HERO_LAYOUT = """() => {
+  const box = selector => [...document.querySelectorAll(selector)].map(node => node.getBoundingClientRect());
+  const [stage] = box('.lux-hero__stage');
+  const [figure] = box('.lux-themis');
+  const parts = [...box('.lux-hero__word'), ...box('.lux-hero__foot > *')];
+  const hit = (a, b) => a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+  return {
+    figure: Math.round(figure.height),
+    overlaps: parts.filter(part => hit(part, figure)).length,
+    clipped: parts.filter(part => part.bottom > stage.bottom + 1).length,
+    skip: Math.round(box('.skip')[0].bottom),
+  };
+}"""
+
+
+@pytest.mark.parametrize(
+    "viewport,mobile",
+    [
+        ({"width": 130, "height": 221}, True),
+        ({"width": 260, "height": 442}, True),
+        ({"width": 480, "height": 270}, False),
+        ({"width": 1097, "height": 540}, False),
+        ({"width": 1440, "height": 810}, False),
+    ],
+)
+def test_zoomed_home_keeps_hero_whole(chromium, site, viewport, mobile):
+    context = chromium.new_context(base_url=site[0], viewport=viewport, is_mobile=mobile, has_touch=mobile)
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+    page = context.new_page()
+    page.goto("/")
+    page.wait_for_function(HERO_SETTLED)
+    layout = page.evaluate(HERO_LAYOUT)
+    assert layout["figure"] >= 150 and layout["overlaps"] == 0 and layout["clipped"] == 0, layout
+    assert layout["skip"] <= 0
+    page.keyboard.press("Tab")
+    expect(page.locator(".skip")).to_be_focused()
+    expect(page.locator(".skip")).to_be_in_viewport()
+    context.close()
+
+
+def test_hero_entrance_releases_animated_layers(chromium, site):
+    context = chromium.new_context(base_url=site[0], viewport={"width": 390, "height": 664}, is_mobile=True)
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+    page = context.new_page()
+    page.goto("/")
+    names = (
+        "[...new Set(document.getAnimations().filter(a => a.effect.target.closest('.lux-hero'))"
+        ".map(a => a.animationName))].sort()"
+    )
+    assert {"lux-piece-in", "lux-line-up", "lux-rise"} <= set(page.evaluate(names))
+    page.wait_for_function(HERO_SETTLED)
+    assert page.evaluate(names) == ["lux-glint", "lux-sway"]
+    settled = page.evaluate(
+        "[...document.querySelectorAll('.lux-piece, .lux-hero__line > span, .lux-hero__foot > *')]"
+        ".map(node => getComputedStyle(node)).map(style => style.opacity + ' ' + style.transform)"
+    )
+    assert set(settled) == {"1 none"}
+    context.close()
+
+
 @pytest.mark.parametrize(
     "viewport,vision", [({"width": 844, "height": 390}, False), ({"width": 390, "height": 844}, True)]
 )
