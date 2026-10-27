@@ -8,6 +8,7 @@ from django.http import HttpRequest, HttpResponse
 
 from club_api.core.models import count, guid, parse_date, query_choice, query_page, query_search
 from club_api.core.views import api_view, defer, parse_body
+from club_api.domain import PORTFOLIO_CATALOG
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin, require_full_admin
 from club_api.observability.audit import audit
@@ -44,6 +45,8 @@ ORDER_FIELDS = (
     "items_json",
     "address",
     "comment",
+    "organization",
+    "participants",
 )
 
 
@@ -142,11 +145,23 @@ async def patch_order(request: HttpRequest, id: str):
     return {"ok": True, "status": body.status}
 
 
+def fulfillment_label(order):
+    if order["type"] == PORTFOLIO_CATALOG:
+        return ""
+    return "Доставка" if order["fulfillment"] == "delivery" else "Самовывоз"
+
+
 @api_view(permission=require_full_admin)
 async def export_orders(request: HttpRequest):
     admin = await require_full_admin(request)
     orders = await request.services.store.read("orders", sort=("-created_at",), limit=-1)
-    types = {"dpo": "ДПО", "merch": "Мерч", "mixed": "Смешанная", "podcast": "Подписка на подкасты"}
+    types = {
+        "dpo": "ДПО",
+        "merch": "Мерч",
+        "mixed": "Смешанная",
+        "podcast": "Подписка на подкасты",
+        PORTFOLIO_CATALOG: "Портфель программ",
+    }
     rows = [
         [
             "Номер",
@@ -164,6 +179,8 @@ async def export_orders(request: HttpRequest):
             "Статус",
             "Оплата",
             "Комментарий",
+            "Организация",
+            "Участников",
         ]
     ]
     for order in orders:
@@ -189,7 +206,7 @@ async def export_orders(request: HttpRequest):
                 order["contact_fio"],
                 order["contact_phone"],
                 order["contact_email"],
-                "Доставка" if order["fulfillment"] == "delivery" else "Самовывоз",
+                fulfillment_label(order),
                 order["address"],
                 items,
                 rubles(order["subtotal"]),
@@ -198,6 +215,8 @@ async def export_orders(request: HttpRequest):
                 STATUS_LABELS.get(order["status"], order["status"]),
                 payment,
                 order["comment"],
+                order["organization"],
+                order["participants"],
             ]
         )
     await audit(request, "orders.export", actor="admin:" + admin["userId"], detail={"count": len(orders)})

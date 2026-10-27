@@ -518,6 +518,12 @@ class Orders(models.Model):
     paid_at = models.DateTimeField(null=True)
     status = models.CharField(max_length=255, null=True, db_default="new")
     created_at = models.DateTimeField(null=True, db_default=Now())
+    program = models.ForeignKey(
+        "Programs", on_delete=models.SET_NULL, db_column="program_id", related_name="+", null=True
+    )
+    participants = models.IntegerField(db_default=1)
+    organization = models.CharField(max_length=300, null=True)
+    consents = models.JSONField(null=True)
 
     class Meta:
         db_table = "orders"

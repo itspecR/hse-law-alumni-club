@@ -10,6 +10,7 @@ from club_api.core.models import parse_date
 from club_api.core.security import client_ip, trust_proxy, yookassa_ip
 from club_api.core.views import api_view, json_body
 from club_api.db.store import normalize
+from club_api.domain import PORTFOLIO_CATALOG
 from club_api.modules.auth.service import require_alumni
 from club_api.modules.checkout.store import digest
 from club_api.observability.audit import audit
@@ -226,6 +227,8 @@ class Payments:
                 raise ApiError(404, "Заявка не найдена")
             if order["alumni_id"] != alumni_id:
                 raise ApiError(403, "Оплата доступна владельцу заявки")
+            if order["type"] == PORTFOLIO_CATALOG:
+                raise ApiError(400, "Программу клуба оплачивают по договору с учебным офисом")
             if order["status"] in ("canceled", "expired"):
                 raise ApiError(400, "Заявка закрыта")
             if order["payment_status"] == "succeeded":

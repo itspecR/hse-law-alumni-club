@@ -12,6 +12,7 @@ MAX_CART_LINES = DOMAIN["limits"]["max_cart_lines"]
 MAX_INTERESTS = DOMAIN["limits"]["max_interests"]
 PROGRAM_CATALOGS = ("dpo", "portfolio")
 DPO_CATALOG, PORTFOLIO_CATALOG = PROGRAM_CATALOGS
+DISCOUNTED_TYPES = PROGRAM_CATALOGS
 
 
 def compute_level(points):
@@ -63,7 +64,7 @@ def achievement_progress(stats):
 
 def order_totals(items, discount_percent):
     subtotal = sum(item["price"] * item["qty"] for item in items)
-    base = sum(item["price"] * item["qty"] for item in items if item["type"] == "dpo")
+    base = sum(item["price"] * item["qty"] for item in items if item["type"] in DISCOUNTED_TYPES)
     discount = max(0, min(100, discount_percent))
     amount = (base * discount + 50) // 100
     return {"subtotal": subtotal, "discount": discount, "discountAmount": amount, "total": max(0, subtotal - amount)}

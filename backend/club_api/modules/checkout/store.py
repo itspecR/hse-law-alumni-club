@@ -9,12 +9,26 @@ from club_api.core.errors import ApiError
 from club_api.db.queries import Query, acquire_lock
 from club_api.domain import effective_discount
 from club_api.modules.checkout.cart import locked_cart
+from club_api.modules.portfolio.seats import require_free_seats
 
 RESERVATION_BATCH_SIZE = 50
 
 
 def digest(value):
     return hashlib.sha256(value.encode()).hexdigest()
+
+
+async def next_order_number(connection):
+    await acquire_lock(connection, "order.sequence")
+    year = datetime.now(ZoneInfo("Europe/Moscow")).year
+    cursor = await connection.execute(
+        Query(
+            "SELECT COALESCE(MAX(CAST(split_part(number,'-',3) AS integer)),0)+1 AS seq FROM orders WHERE number ~ %s",
+            "SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(number,'-',-1) AS integer)),0)+1 AS seq FROM orders WHERE number REGEXP %s",
+        ),
+        (f"^ALU-{year}-[0-9]+$",),
+    )
+    return f"ALU-{year}-{(await cursor.fetchone())['seq']:06d}"
 
 
 class Checkout:
@@ -106,33 +120,7 @@ class Checkout:
                             "UPDATE products SET stock=stock-%s WHERE id=%s", (item["qty"], product["id"])
                         )
                     reservations.append({"id": str(product["id"]), "sku": item.get("variant_sku"), "qty": item["qty"]})
-            await acquire_lock(connection, "order.sequence")
-            year = datetime.now(ZoneInfo("Europe/Moscow")).year
-            cursor = await connection.execute(
-                Query(
-                    "SELECT COALESCE(MAX(CAST(split_part(number,'-',3) AS integer)),0)+1 AS seq FROM orders WHERE number ~ %s",
-                    "SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(number,'-',-1) AS integer)),0)+1 AS seq FROM orders WHERE number REGEXP %s",
-                ),
-                (f"^ALU-{year}-[0-9]+$",),
-            )
-            number = f"ALU-{year}-{(await cursor.fetchone())['seq']:06d}"
-            order = await self.state.store.create(
-                "orders",
-                {"id": str(uuid4()), **base, "number": number, "created_at": datetime.now(UTC)},
-                connection=connection,
-            )
-            receipt = {
-                "number": number,
-                "status": base["status"],
-                "member_discount": base["member_discount"],
-                "subtotal": base["subtotal"],
-                "total_estimate": base["total_estimate"],
-                "notified": {"channel": "none", "ok": False, "blocked": True},
-            }
-            await connection.execute(
-                "INSERT INTO club_checkout_commits(key_hash,request_hash,order_id,reservations,receipt) VALUES(%s,%s,%s,%s,%s)",
-                (key, request_hash, order["id"], Jsonb(reservations), Jsonb(receipt)),
-            )
+            number = await self.record_order(connection, key, request_hash, base, reservations)
             await connection.execute(
                 Query(
                     "UPDATE carts SET items_json='[]'::json,updated_at=now() WHERE id=%s",
@@ -141,6 +129,34 @@ class Checkout:
                 (cart_id,),
             )
             return {"number": number, "replay": None}
+
+    async def record_order(self, connection, key, request_hash, base, reservations):
+        number = await next_order_number(connection)
+        order = await self.state.store.create(
+            "orders",
+            {"id": str(uuid4()), **base, "number": number, "created_at": datetime.now(UTC)},
+            connection=connection,
+        )
+        receipt = {
+            "number": number,
+            "status": base["status"],
+            "member_discount": base["member_discount"],
+            "subtotal": base["subtotal"],
+            "total_estimate": base["total_estimate"],
+            "notified": {"channel": "none", "ok": False, "blocked": True},
+        }
+        await connection.execute(
+            "INSERT INTO club_checkout_commits(key_hash,request_hash,order_id,reservations,receipt) VALUES(%s,%s,%s,%s,%s)",
+            (key, request_hash, order["id"], Jsonb(reservations), Jsonb(receipt)),
+        )
+        return number
+
+    async def commit_single(self, *, key, request_hash, base):
+        async with self.state.database.transaction() as connection:
+            await acquire_lock(connection, "checkout:" + key)
+            if previous := await self.replay(key, request_hash, connection):
+                return {"replay": previous, "number": previous["number"]}
+            return {"replay": None, "number": await self.record_order(connection, key, request_hash, base, [])}
 
     async def release(self, connection, order_id):
         cursor = await connection.execute(
@@ -173,7 +189,9 @@ class Checkout:
 
     async def change_status(self, id, status, *, expected_status=None):
         async with self.state.database.transaction() as connection:
-            cursor = await connection.execute("SELECT status,payment_status FROM orders WHERE id=%s FOR UPDATE", (id,))
+            cursor = await connection.execute(
+                "SELECT status,payment_status,program_id,participants FROM orders WHERE id=%s FOR UPDATE", (id,)
+            )
             order = await cursor.fetchone()
             if not order:
                 raise ApiError(404, "Заявка не найдена")
@@ -187,6 +205,7 @@ class Checkout:
                 if order["payment_status"] in ("succeeded", "pending", "waiting_for_capture", "review"):
                     raise ApiError(409, "Сначала завершите сверку или возврат платежа. Резерв сохранён.")
                 await self.release(connection, id)
+            await require_free_seats(connection, order, status)
             await connection.execute("UPDATE orders SET status=%s WHERE id=%s", (status, id))
             return True
 
