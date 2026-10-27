@@ -12,8 +12,10 @@ from club_web.pages import context
 from club_web.rendering import ROOT, published_version, templates
 
 PUBLIC = ROOT / "public" if (ROOT / "public").exists() else ROOT.parent / "public"
+CONTENT_TYPES = {"speculation-rules.json": "application/speculationrules+json"}
 STATIC_FILES = {
     "sw.js",
+    "speculation-rules.json",
     "manifest.webmanifest",
     "offline.html",
     "favicon.ico",
@@ -127,7 +129,7 @@ async def static_file(request, path, prefix=""):
     return HttpResponse(
         body,
         headers={"Content-Length": str(len(body))},
-        content_type=mimetypes.guess_type(file.name)[0] or "application/octet-stream",
+        content_type=CONTENT_TYPES.get(file.name) or mimetypes.guess_type(file.name)[0] or "application/octet-stream",
     )
 
 

@@ -327,7 +327,9 @@ html.pwa-shell .club-header__inner { padding-inline: 16px; }
     transition: opacity 820ms var(--ease-out), transform 820ms var(--ease-out);
   }
   .reveal-armed [data-reveal].is-in { opacity: 1; transform: none; }
+  @view-transition { navigation: auto; }
   .club-header { view-transition-name: club-header; }
+  .mobile-tabs { view-transition-name: club-tabs; }
   ::view-transition-old(root) { animation: 220ms var(--ease-out) both club-vt-out; }
   ::view-transition-new(root) { animation: 380ms var(--ease-out) both club-vt-in; }
   @keyframes club-vt-out { to { opacity: 0; } }
