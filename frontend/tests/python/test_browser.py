@@ -14,7 +14,7 @@ import httpx
 import pytest
 import uvicorn
 from playwright.sync_api import expect, sync_playwright
-from test_pages import EPISODE, EVENT, NEWS, PRODUCT, PROFILE, PROGRAM
+from test_pages import EPISODE, EVENT, NEWS, PORTFOLIO, PRODUCT, PROFILE, PROGRAM
 
 from club_web.build import build_public
 from club_web.formatting import rub
@@ -60,6 +60,8 @@ def site():
         "/news/news-one": NEWS,
         "/programs": [PROGRAM],
         "/programs/course-one": PROGRAM,
+        "/portfolio": [PORTFOLIO],
+        "/portfolio/club-one": PORTFOLIO,
         "/products": [PRODUCT],
         "/events": [EVENT],
         "/podcasts": {"items": [EPISODE], "subscribed": False, "price": 499900},
@@ -2049,3 +2051,27 @@ def test_office_trainers_list_and_delete_warning(page, site):
     expect(page.locator("article.office-record").last).to_contain_text("Справка не заполнена")
     delete = page.locator("article.office-record").first.get_by_role("button", name="Удалить", exact=True)
     expect(delete).to_have_attribute("data-confirm", "Удалить тренера? Он исчезнет из всех программ.")
+
+
+@pytest.mark.parametrize("width", [1440, 390])
+def test_portfolio_pages_fit_and_save_to_reading_list(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/portfolio")
+    card = page.locator(".site-catalog-card")
+    expect(card).to_have_count(1)
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    card.get_by_role("link", name="Подробнее — " + PORTFOLIO["title"]).click()
+    expect(page.get_by_role("heading", name=PORTFOLIO["title"], level=1)).to_be_visible()
+    expect(page.get_by_role("heading", name="Тренер", exact=True)).to_be_visible()
+    expect(page.locator("aside.site-panel")).to_contain_text("Мест в группе")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    page.locator("aside.site-panel").get_by_role("button", name="Сохранить", exact=True).click()
+    expect(page.locator("aside.site-panel").get_by_role("button", name="Сохранено", exact=True)).to_be_visible()
+    page.goto("/saved")
+    page.get_by_label("Тип материала", exact=True).select_option("portfolio")
+    saved = page.locator("[data-reading-list='saved']")
+    expect(saved.get_by_role("link", name=PORTFOLIO["title"], exact=True)).to_have_attribute(
+        "href", "/portfolio/club-one"
+    )
+    recent = page.locator("[data-reading-list='recent']")
+    expect(recent.get_by_role("link", name=PORTFOLIO["title"], exact=True)).to_be_visible()

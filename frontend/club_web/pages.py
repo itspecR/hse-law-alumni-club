@@ -18,6 +18,7 @@ PUBLIC_PAGES = {
     "/": ("home.html", "Клуб выпускников факультета права"),
     "/tg": ("mini.html", "Клуб выпускников"),
     "/dpo": ("catalog.html", "Программы ДПО"),
+    "/portfolio": ("portfolio.html", "Портфель программ"),
     "/merch": ("catalog.html", "Мерч клуба"),
     "/events": ("events.html", "События клуба"),
     "/news": ("news.html", "Новости"),
@@ -112,6 +113,7 @@ def select_page(path):
         return "office.html", dict(OFFICE_NAV)[section]
     for prefix, template in (
         ("/dpo/", "program.html"),
+        ("/portfolio/", "portfolio-program.html"),
         ("/merch/", "product.html"),
         ("/news/", "article.html"),
         ("/events/", "events.html"),
@@ -242,6 +244,12 @@ async def context(api, path, params, authorized=False):
                 data["items"].sort(key=lambda item: -(item.get("price") or 0))
         if authorized:
             await load("me", "/me", {})
+    elif path == "/portfolio":
+        await load("items", "/portfolio", [])
+    elif path.startswith("/portfolio/"):
+        await load("item", "/portfolio/" + quote(path.rsplit("/", 1)[1], safe=""), {})
+        if data["item"]:
+            data["title"] = data["item"]["title"]
     elif path.startswith(("/dpo/", "/news/")):
         endpoint = "/programs/" if path.startswith("/dpo/") else "/news/"
         await load("item", endpoint + quote(path.rsplit("/", 1)[1], safe=""), {})

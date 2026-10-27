@@ -20,6 +20,7 @@ import club_api.modules.notifications.push as notifications_push
 import club_api.modules.office.routes as office_routes
 import club_api.modules.podcasts.routes as podcasts_routes
 import club_api.modules.portfolio.admin as portfolio_admin
+import club_api.modules.portfolio.routes as portfolio_routes
 import club_api.modules.support.routes as support_routes
 import club_api.modules.telegram.routes as telegram_routes
 from club_api.core.api import build_api
@@ -60,6 +61,8 @@ routes = (
         path("programs", endpoint({"GET": content_routes.programs})),
         path("programs/<str:slug>", endpoint({"GET": content_routes.program_detail})),
         path("products", endpoint({"GET": content_routes.products})),
+        path("portfolio", endpoint({"GET": portfolio_routes.programs})),
+        path("portfolio/<str:slug>", endpoint({"GET": portfolio_routes.program})),
         path("timeline", endpoint({"GET": content_routes.timeline})),
         path("pages/<str:slug>", endpoint({"GET": content_routes.page})),
         path(

@@ -80,6 +80,7 @@ def snapshot(data):
             },
         },
         "/admin/support": [],
+        "/portfolio": [],
         "/admin/portfolio": [],
         "/admin/trainers": [],
     }

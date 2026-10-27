@@ -6,7 +6,7 @@ import pytest
 from club_web.build import build_public
 from club_web.formatting import payment_url, rub, safe_url
 from club_web.main import create_app
-from club_web.pages import OFFICE_NAV, PUBLIC_PAGES
+from club_web.pages import NAV, OFFICE_NAV, PUBLIC_PAGES
 from club_web.views import PUBLIC
 
 NEWS = {
@@ -27,6 +27,25 @@ PROGRAM = {
     "enrollment": "actual",
     "modules": [],
     "teachers": [],
+}
+PORTFOLIO = {
+    "id": "club-1",
+    "slug": "club-one",
+    "title": "Переговоры для юристов",
+    "direction": "Переговоры",
+    "format": "blended",
+    "duration": "6 недель",
+    "price": 4500000,
+    "enrollment": "actual",
+    "dates": {"start": "1 декабря 2026"},
+    "document": "Сертификат об обучении",
+    "cover": "",
+    "capacity": 20,
+    "description": "Практический курс.",
+    "audience": ["Юристы компаний"],
+    "competencies": ["Подготовка позиции"],
+    "communication": ["Telegram-чат группы"],
+    "trainers": [{"id": "trainer-1", "fio": "Анна Вымышленная", "photo": "", "bio": "Медиатор"}],
 }
 PRODUCT = {
     "id": "product-1",
@@ -106,6 +125,8 @@ async def browser_client():
             "/news/news-one": NEWS,
             "/programs": [PROGRAM],
             "/programs/course-one": PROGRAM,
+            "/portfolio": [PORTFOLIO],
+            "/portfolio/club-one": PORTFOLIO,
             "/products": [PRODUCT],
             "/events": [EVENT],
             "/podcasts": {"items": [EPISODE], "subscribed": False, "price": 499900},
@@ -153,7 +174,14 @@ async def browser_client():
 @pytest.mark.parametrize(
     "path",
     list(PUBLIC_PAGES)
-    + ["/dpo/course-one", "/merch/bag-one", "/news/news-one", "/events/event-1", "/podcasts/episode-1"],
+    + [
+        "/dpo/course-one",
+        "/portfolio/club-one",
+        "/merch/bag-one",
+        "/news/news-one",
+        "/events/event-1",
+        "/podcasts/episode-1",
+    ],
 )
 async def test_public_pages_render(browser_client, path):
     response = await browser_client.get(path)
@@ -283,7 +311,7 @@ async def test_legacy_redirect_rejects_external_destination(browser_client, path
     assert "location" not in response.headers
 
 
-@pytest.mark.parametrize("path", ["/merch/bag-one", "/events/event-1", "/podcasts/episode-1"])
+@pytest.mark.parametrize("path", ["/merch/bag-one", "/events/event-1", "/podcasts/episode-1", "/portfolio/club-one"])
 async def test_detail_api_failure_remains_retryable(path):
     async def upstream(request):
         return httpx.Response(503, json={"error": "Сервис временно недоступен"})
@@ -506,3 +534,27 @@ async def test_versioned_assets_are_cached_for_a_year(browser_client):
     for path, policy in policies.items():
         response = await browser_client.get(path)
         assert response.status_code == 200 and response.headers["cache-control"] == policy, path
+
+
+async def test_portfolio_pages_show_club_program_without_cart(browser_client):
+    listing = await browser_client.get("/portfolio")
+    assert listing.status_code == 200
+    assert 'href="/portfolio/club-one"' in listing.text and "45\u00a0000 ₽" in listing.text
+    assert "Смешанный · 6 недель · 1 декабря 2026" in listing.text
+    assert 'data-api="/cart"' not in listing.text
+    card = await browser_client.get("/portfolio/club-one")
+    assert card.status_code == 200
+    for text in ("Анна Вымышленная", "Тренер", "Компетенции", "Подготовка позиции", "Коммуникация", "Мест в группе"):
+        assert text in card.text
+    assert "Сертификат об обучении" in card.text and 'data-reading-kind="portfolio"' in card.text
+    assert 'data-api="/cart"' not in card.text and "Оставить заявку" not in card.text
+
+
+async def test_portfolio_stays_out_of_navigation_until_applications():
+    assert "/portfolio" not in dict(NAV)
+
+
+async def test_unknown_portfolio_program_is_not_found(browser_client):
+    response = await browser_client.get("/portfolio/missing")
+    assert response.status_code == 404
+    assert "Страница не найдена" in response.text

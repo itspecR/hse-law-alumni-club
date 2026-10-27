@@ -1,6 +1,6 @@
 import re
 
-PUBLIC_READING_PATH = re.compile(r"/(?:news|dpo|merch|events|changes)(?:/[^/]+)?\Z")
+PUBLIC_READING_PATH = re.compile(r"/(?:news|dpo|portfolio|merch|events|changes)(?:/[^/]+)?\Z")
 PWA_PARAMS = {"source": "pwa", "pwa": "1", "site": "1"}
 
 
