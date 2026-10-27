@@ -93,6 +93,8 @@ DATA_COLUMNS = {
         "promo_id",
         "promo_code",
         "discount_source",
+        "office_discount",
+        "office_reason",
     ),
     "pages": ("id", "slug", "title", "status", "sort"),
     "pages_blocks": ("id", "collection", "item", "sort", "pages_id"),

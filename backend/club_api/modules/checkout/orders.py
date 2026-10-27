@@ -8,7 +8,7 @@ from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
 from club_api.core.views import api_view, parse_body
-from club_api.domain import effective_discount, order_totals
+from club_api.domain import effective_discount, order_totals, rubles
 from club_api.modules.auth.routes import Body, EmailBody, RegisterBody
 from club_api.modules.auth.service import require_alumni
 from club_api.modules.catalog.lookup import lookup_catalog
@@ -133,7 +133,7 @@ async def create_order(request: HttpRequest):
     await state.notifications.send_email(
         body.contact_email,
         f"Заявка {number} принята – Клуб выпускников факультета права",
-        f"Здравствуйте, {body.contact_fio}!\n\nВаша заявка {number} принята:\n{summary}\nСумма (справочно): {totals['total'] / 100:g} ₽.\n\nМенеджер учебного офиса свяжется с вами для подтверждения деталей.",
+        f"Здравствуйте, {body.contact_fio}!\n\nВаша заявка {number} принята:\n{summary}\nСумма (справочно): {rubles(totals['total'])}.\n\nМенеджер учебного офиса свяжется с вами для подтверждения деталей.",
     )
     receipt = {
         "number": number,
@@ -192,5 +192,6 @@ async def my_orders(request: HttpRequest):
             "payment_status",
             "participants",
             "organization",
+            "office_discount",
         ),
     )

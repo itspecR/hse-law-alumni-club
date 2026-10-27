@@ -5,6 +5,7 @@ from urllib.parse import urlsplit
 import aiosmtplib
 
 from club_api.db.queries import Query, acquire_lock
+from club_api.domain import rubles
 
 logger = logging.getLogger("club.mail")
 EMAIL_CONFIRMATION_KIND = "email_confirmation"
@@ -203,7 +204,7 @@ class Notifications:
             logger.warning("Уведомление офиса не доставлено; проверьте канал и очередь")
 
     async def order_notice(self, number, summary, total, discount):
-        text = f"🆕 Новая заявка {number}\n{summary}\nСумма (справочно): {total / 100:g} ₽ (скидка −{discount}%)\nКонтакты и детали – в админ-панели."
+        text = f"🆕 Новая заявка {number}\n{summary}\nСумма (справочно): {rubles(total)} (скидка −{discount}%)\nКонтакты и детали – в админ-панели."
         results = []
         if self.settings.OFFICE_NOTIFY_CHANNEL in ("email", "both"):
             if self.settings.OFFICE_EMAIL:

@@ -15,6 +15,15 @@ DPO_CATALOG, PORTFOLIO_CATALOG = PROGRAM_CATALOGS
 DISCOUNTED_TYPES = PROGRAM_CATALOGS
 
 
+def rubles(kopecks):
+    whole, cents = divmod(kopecks or 0, 100)
+    return f"{whole:,}".replace(",", "\u00a0") + (f",{cents:02d}" if cents else "") + "\u00a0₽"
+
+
+def applied_discount(order):
+    return order["member_discount"] if order["office_discount"] is None else order["office_discount"]
+
+
 def compute_level(points):
     return next((level for level in reversed(LEVELS) if points >= level["min_points"]), LEVELS[0])
 
