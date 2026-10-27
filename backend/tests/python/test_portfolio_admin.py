@@ -131,3 +131,15 @@ async def test_portfolio_admin_requires_staff(database_app, route):
         assert (await client.get(route)).status_code == 401
         assert (await client.get(route, headers=member)).status_code == 401
         assert (await client.post(route, headers=member, json={"fio": "Посторонний"})).status_code == 401
+
+
+async def test_blank_document_falls_back_to_certificate(database_app):
+    app = database_app
+    _, editor = await account(app, "editor")
+    async with client_for(app) as client:
+        program = await create(client, editor, "/admin/portfolio", {**PORTFOLIO, "document": ""})
+        assert (await listed(client, editor, "/admin/portfolio", program["id"]))["document"] == "Сертификат об обучении"
+        route = "/admin/portfolio/" + program["id"]
+        assert (await client.patch(route, headers=editor, json={"document": "Удостоверение"})).status_code == 200
+        assert (await client.patch(route, headers=editor, json={"document": "  "})).status_code == 200
+        assert (await listed(client, editor, "/admin/portfolio", program["id"]))["document"] == "Сертификат об обучении"

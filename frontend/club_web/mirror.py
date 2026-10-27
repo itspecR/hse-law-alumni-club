@@ -80,6 +80,8 @@ def snapshot(data):
             },
         },
         "/admin/support": [],
+        "/admin/portfolio": [],
+        "/admin/trainers": [],
     }
     for name in ("programs", "products", "news", "events", "podcasts"):
         result["/admin/" + name] = data[name]

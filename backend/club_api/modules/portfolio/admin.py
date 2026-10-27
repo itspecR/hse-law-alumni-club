@@ -73,6 +73,11 @@ class PortfolioBody(Body):
     trainer_ids: list[str] = Field(default_factory=list, max_length=MAX_PROGRAM_TRAINERS)
     status: Literal["draft", "published", "archived"] = "published"
 
+    @field_validator("document", mode="before")
+    @classmethod
+    def default_document(cls, value):
+        return DEFAULT_DOCUMENT if isinstance(value, str) and not value.strip() else value
+
     @field_validator("trainer_ids")
     @classmethod
     def unique_trainers(cls, value):

@@ -1,6 +1,9 @@
 GROUPS = [
     ("Работа клуба", ("overview", "orders", "members", "subs", "support")),
-    ("Публикации", ("programs", "products", "news", "news-sources", "events", "podcasts", "timeline")),
+    (
+        "Публикации",
+        ("portfolio", "trainers", "programs", "products", "news", "news-sources", "events", "podcasts", "timeline"),
+    ),
     ("Управление", ("analytics", "pages", "media", "audit")),
 ]
 DESCRIPTIONS = {
@@ -9,6 +12,8 @@ DESCRIPTIONS = {
     "orders": "Заявки на программы, мерч и подписки.",
     "members": "Профили выпускников, проверка статуса и возможности клуба.",
     "subs": "Доступ к подкастам и прослушивания выпусков.",
+    "portfolio": "Программы клуба: карточки, тренеры, цена и набор.",
+    "trainers": "Тренеры программ клуба: ФИО, фото и справка.",
     "programs": "Каталог программ дополнительного образования.",
     "products": "Товары клуба, варианты и остатки.",
     "news": "Публикации на сайте и черновики.",
@@ -27,6 +32,8 @@ ICONS = {
     "members": "M15 21v-3a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v3M21 21v-3a4 4 0 0 0-3-4M18 3a4 4 0 0 1 0 8M12 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
     "subs": "M3 5h18v14H3zM3 10h18M7 15h4",
     "support": "M21 11a8 8 0 0 1-8 8H7l-4 3V7a4 4 0 0 1 4-4h6a8 8 0 0 1 8 8M7 8h10M7 12h7",
+    "portfolio": "M3 7h18v13H3zM8 7V4h8v3M3 12h18M10 12v2h4v-2",
+    "trainers": "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1",
     "programs": "m2 8 10-5 10 5-10 5-10-5M6 10v7c4 3 8 3 12 0v-7M22 8v8",
     "products": "M5 7h14l1 14H4L5 7M8 7V5a4 4 0 0 1 8 0v2",
     "news": "M4 3h16v18H4zM8 7h8M8 11h8M8 15h5",
@@ -55,7 +62,7 @@ def filter_content(rows, params):
         and (
             not needle
             or needle
-            in " ".join(str(row.get(key) or "") for key in ("title", "direction", "category", "year"))
+            in " ".join(str(row.get(key) or "") for key in ("title", "fio", "direction", "category", "year"))
             .casefold()
             .replace("ё", "е")
         )
@@ -63,6 +70,30 @@ def filter_content(rows, params):
 
 
 FIELDS = {
+    "portfolio": [
+        ("title", "Название", "text"),
+        ("trainer_ids", "Тренеры", "trainers"),
+        ("duration", "Продолжительность", "text"),
+        ("format", "Формат обучения", "online|offline|blended"),
+        ("document", "Документ по окончании", "text"),
+        ("price", "Цена, копейки", "number"),
+        ("start", "Начало", "text"),
+        ("capacity", "Лимит мест", "limit"),
+        ("enrollment", "Набор", "actual|nonactual"),
+        ("direction", "Направление", "text"),
+        ("description", "Описание", "textarea"),
+        ("audience", "Для кого, каждый пункт с новой строки", "lines"),
+        ("competencies", "Компетенции, каждая с новой строки", "lines"),
+        ("communication", "Коммуникация, каждый канал с новой строки", "lines"),
+        ("cover", "Обложка", "text"),
+        ("status", "Статус", "published|draft|archived"),
+    ],
+    "trainers": [
+        ("fio", "ФИО", "text"),
+        ("photo", "Фото", "text"),
+        ("bio", "Справка", "textarea"),
+        ("status", "Статус", "published|draft|archived"),
+    ],
     "programs": [
         ("title", "Название", "text"),
         ("direction", "Направление", "text"),
@@ -133,6 +164,8 @@ LABELS = {
     "online": "Онлайн",
     "offline": "Очно",
     "blended": "Смешанный",
+    "actual": "Набор открыт",
+    "nonactual": "Набор закрыт",
     "published": "Опубликовано",
     "draft": "Черновик",
     "archived": "В архиве",

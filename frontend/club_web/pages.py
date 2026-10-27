@@ -62,6 +62,8 @@ OFFICE_NAV = [
     ("orders", "Заявки"),
     ("members", "Выпускники"),
     ("subs", "Подписки"),
+    ("portfolio", "Портфель программ"),
+    ("trainers", "Тренеры"),
     ("programs", "ДПО"),
     ("products", "Мерч"),
     ("news", "Новости"),
@@ -80,6 +82,8 @@ OFFICE_ENDPOINTS = {
     "orders": "/admin/orders",
     "members": "/admin/members",
     "subs": "/admin/podcast-subs",
+    "portfolio": "/admin/portfolio",
+    "trainers": "/admin/trainers",
     "programs": "/admin/programs",
     "products": "/admin/products",
     "news": "/admin/news",
@@ -380,6 +384,9 @@ async def context(api, path, params, authorized=False):
                     await load("records", OFFICE_ENDPOINTS[section] + ("?" + query if query else ""), [])
                 if section == "overview":
                     await load("health", "/admin/system-health", {})
+                if section == "portfolio":
+                    await load("trainers", "/admin/trainers", [])
+                    data["trainer_names"] = {row["id"]: row["fio"] for row in page_items(data["trainers"])}
                 if params.get("id") and section == "events":
                     await load("roster", "/admin/events/" + quote(params["id"], safe="") + "/rsvps", [])
                 data["rows"] = page_items(data.get("records"))
