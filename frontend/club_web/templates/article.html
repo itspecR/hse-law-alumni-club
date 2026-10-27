@@ -2,7 +2,7 @@
 {% from 'macros.html' import save %}
 {% block content %}
 <main id="main" class="site-article" data-reading-title="{{ item.title }}" data-reading-kind="news">
-<a href="/news">← Новости</a>
+<a href="/news" class="foc lux-back"><span aria-hidden="true">‹</span> Новости</a>
 <time>{{ item.published_at|date }}</time>
 <h1>{{ item.title }}</h1>
 {% if item.excerpt %}

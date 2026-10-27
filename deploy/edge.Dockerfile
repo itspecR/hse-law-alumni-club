@@ -1,4 +1,4 @@
-FROM golang:1.27.2-alpine@sha256:f92b6ef800e499660581efdabdf25d9d817a9d124eaf900924f0504e7e27e12d AS edge-source
+FROM golang:1.27.3-alpine@sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e883524642a481a9505e9c AS edge-source
 ENV CGO_ENABLED=0 GOTOOLCHAIN=local GOMAXPROCS=2
 WORKDIR /caddy
 COPY deploy/caddy/go.mod deploy/caddy/go.sum ./locked/
@@ -43,7 +43,7 @@ LABEL org.opencontainers.image.revision=$VCS_REF \
       org.opencontainers.image.version="v2.11.7" \
       org.opencontainers.image.licenses="Apache-2.0"
 ENV CADDY_VERSION=v2.11.7 XDG_CONFIG_HOME=/config XDG_DATA_HOME=/data
-RUN apk add --no-cache ca-certificates curl mailcap 'zlib>=1.3.2-r1' && \
+RUN apk upgrade --no-cache && apk add --no-cache ca-certificates curl mailcap 'zlib>=1.3.2-r1' 'musl>=1.2.6-r3' && \
     mkdir -p /config/caddy /data/caddy /etc/caddy /usr/share/caddy && \
     chmod 1777 /config/caddy /data/caddy
 COPY --from=edge-build /usr/bin/caddy /usr/bin/caddy

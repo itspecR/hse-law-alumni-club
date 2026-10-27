@@ -2,7 +2,7 @@
 {% from 'macros.html' import save %}
 {% block content %}
 <main id="main" class="site-article" data-reading-title="{{ item.title }}" data-reading-kind="podcasts">
-<a href="/podcasts">← Подкасты</a>
+<a href="/podcasts" class="foc lux-back"><span aria-hidden="true">‹</span> Подкасты</a>
 <header class="site-masthead">
 <h1>{{ item.title }}</h1>
 <p>{{ item.description or '' }}</p>

@@ -1,0 +1,57 @@
+html.lux .site-masthead { max-width: none; padding: clamp(48px, 6cqi, 88px) 0 clamp(32px, 4cqi, 48px); }
+html.lux .site-masthead h1 { margin: 0; }
+html.lux .site-masthead p { max-width: 44ch; margin: 20px 0 0; font-size: clamp(19px, 1.6cqi, 23px); line-height: 1.4; letter-spacing: -0.015em; color: var(--c-text-3); text-wrap: pretty; }
+
+html.lux .dpo-picker { margin: 0 0 56px; padding: 0; border: 0; border-radius: var(--r-lg); background: var(--c-bg-raised); }
+html.lux .dpo-picker { --lux-disclosure-size: 30px; }
+html.lux .dpo-picker summary { justify-content: space-between; gap: 16px; min-height: 64px; padding: 0 24px; font-size: 19px; font-weight: 500; letter-spacing: -0.01em; }
+html.lux .dpo-picker form { padding: 0 24px 24px; }
+html.lux .dpo-picker label { font-size: 15px; color: var(--c-text-3); }
+
+html.lux .dpo-starts { margin: 0 0 64px; }
+html.lux .dpo-starts h2 { margin: 0; font: 200 clamp(30px, 3.2cqi, 44px)/1.08 var(--f-display); letter-spacing: -0.035em; font-kerning: none; }
+html.lux .dpo-starts > p { margin: 12px 0 0; color: var(--c-text-3); }
+html.lux .dpo-starts-grid { gap: 12px; margin-top: 28px; }
+html.lux .dpo-starts-grid article { position: relative; display: grid; grid-template-rows: auto 1fr auto; gap: 12px; min-height: 176px; padding: 24px; border: 0; border-radius: var(--r-lg); background: var(--c-bg-raised); transition: background-color 160ms ease; }
+html.lux .dpo-starts-grid article:has(a:focus-visible) { outline: 3px solid var(--c-text); outline-offset: 2px; }
+html.lux .dpo-starts-grid time { font-size: 15px; font-weight: 400; color: var(--c-text-3); }
+html.lux .dpo-starts-grid h3 { margin: 0; font: 500 19px/1.3 var(--f-body); letter-spacing: -0.01em; }
+html.lux .dpo-starts-grid h3 a { color: var(--c-text); text-decoration: none; outline: none; }
+html.lux .dpo-starts-grid h3 a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+html.lux .dpo-starts-grid p { margin: 0; font-size: 17px; font-weight: 400; font-variant-numeric: tabular-nums; }
+
+html.lux :is(.catalog-page, .saved-page) .site-filters { gap: 12px 16px; padding: 24px 0; border-color: var(--c-line); }
+html.lux :is(.catalog-page, .saved-page) .site-filters label { font-size: 13px; color: var(--c-text-3); }
+html.lux :is(.catalog-page, .saved-page) .site-filters :is(input, select) { margin-top: 8px; font-size: 16px; }
+
+html.lux :is(.catalog-page, .podcasts-page) .site-catalog { gap: 56px 24px; margin: 28px 0 64px; }
+html.lux :is(.catalog-page, .podcasts-page) .site-catalog-card { display: flex; flex-direction: column; border-top: 0; overflow: visible; }
+html.lux :is(.catalog-page, .podcasts-page) .site-catalog-card > div:not(.site-card-media) { display: flex; flex: 1 0 auto; flex-direction: column; padding: 20px 0 0; }
+html.lux .site-card-media { flex: none; border-radius: var(--r-lg); background: var(--c-bg-raised); }
+html.lux .site-card-media--empty::before { content: ""; position: absolute; inset: 18% 0; background: url("themis-figure.svg") center / contain no-repeat; }
+html.lux :is(.catalog-page, .podcasts-page) .site-catalog-card .club-caps { font-size: 13px; color: var(--c-text-3); }
+html.lux :is(.catalog-page, .podcasts-page) .site-catalog-card h2 { margin: 8px 0; font: 400 21px/1.28 var(--f-body); letter-spacing: -0.015em; text-wrap: pretty; }
+html.lux :is(.catalog-page, .podcasts-page) .site-catalog-card p { margin: 0; font-size: 15px; color: var(--c-text-3); }
+html.lux .catalog-page .site-catalog-card .site-price { margin-top: 16px; font-size: 21px; color: var(--c-text); }
+html.lux .podcasts-page .site-catalog-card .save-material { margin-top: 16px; }
+html.lux .catalog-page .site-catalog-card .site-actions { margin: auto 0 0; padding-top: 16px; gap: 8px; }
+html.lux .catalog-page .site-catalog-card .site-actions > .lux-more { margin-right: auto; }
+html.lux .catalog-page .site-catalog-card .site-actions form { display: flex; flex-basis: 100%; flex-wrap: wrap; align-items: end; gap: 8px; }
+html.lux .catalog-page .site-catalog-card .site-actions form .site-field { flex: 0 0 96px; font-size: 13px; color: var(--c-text-3); }
+html.lux .catalog-page .site-filters ~ p[role="status"] { color: var(--c-text-3); font-size: 15px; }
+
+@media (hover: hover) and (pointer: fine) {
+  html.lux .dpo-starts-grid article:hover { background: var(--lux-hover); }
+}
+@media (max-width: 600px) {
+  html.lux .dpo-picker summary { min-height: 56px; padding: 0 20px; font-size: 17px; }
+  html.lux .dpo-picker form { padding: 0 20px 20px; }
+  html.lux .dpo-starts-grid {
+    grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: min(80%, 300px);
+    margin: 20px calc(-1 * var(--page-gutter)) -12px; padding: 8px var(--page-gutter) 12px;
+    overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: var(--page-gutter); scrollbar-width: none;
+  }
+  html.lux .dpo-starts-grid::-webkit-scrollbar { display: none; }
+  html.lux .dpo-starts-grid article { min-height: 168px; scroll-snap-align: start; }
+  html.lux :is(.catalog-page, .podcasts-page) .site-catalog { gap: 48px; }
+}

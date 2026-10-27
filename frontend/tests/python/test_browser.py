@@ -17,10 +17,30 @@ from playwright.sync_api import expect, sync_playwright
 from test_pages import EPISODE, EVENT, NEWS, PRODUCT, PROFILE, PROGRAM
 
 from club_web.build import build_public
+from club_web.formatting import rub
 from club_web.main import create_app
 from club_web.mirror import export, fixtures
 from club_web.pages import OFFICE_NAV, PUBLIC_PAGES
 from club_web.views import PUBLIC
+
+TELEGRAM_COLORS = (
+    "window.telegramColors={};window.Telegram={WebApp:{initData:'test',"
+    "setHeaderColor:c=>telegramColors.header=c,setBackgroundColor:c=>telegramColors.background=c,"
+    "setBottomBarColor:c=>telegramColors.bar=c,BackButton:{onClick(){}}}};"
+)
+WORDS_UNBROKEN = """node => {
+    const text = node.firstChild;
+    return [...text.textContent.matchAll(/\\S+/g)].every(word => {
+        const range = document.createRange();
+        range.setStart(text, word.index);
+        range.setEnd(text, word.index + word[0].length);
+        return range.getClientRects().length === 1;
+    });
+}"""
+
+
+def is_cart_change(response):
+    return response.url.endswith("/api/cart") and response.request.method == "PATCH"
 
 
 @pytest.fixture(scope="module")
@@ -89,8 +109,6 @@ def site():
                 return httpx.Response(
                     200, json={"number": "ORD-QA", "total_estimate": 300000, "notified": {"ok": True}}
                 )
-            if path == "/support/ask":
-                return httpx.Response(200, json={"text": "Подайте заявку на сайте.", "anchor": "/join"})
             if path.endswith("login"):
                 return httpx.Response(200, json={"token": "member-qa"})
             return httpx.Response(200, json={"ok": True})
@@ -248,6 +266,41 @@ def test_catalog_filters_search_compare_and_cart(page, site):
 
 
 @pytest.mark.parametrize("width", [390, 1440])
+def test_catalog_card_states_and_targets(page, site, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/dpo")
+    card = page.locator(".site-catalog-card").filter(has_text=PROGRAM["title"])
+    expect(card.locator(".site-card-media--empty")).to_have_attribute("aria-hidden", "true")
+    expect(card.get_by_role("link", name="Подробнее — " + PROGRAM["title"], exact=True)).to_have_attribute(
+        "href", "/dpo/" + PROGRAM["slug"]
+    )
+    compare = card.get_by_role("button", name="Сравнить", exact=True)
+    idle = compare.evaluate("node => getComputedStyle(node).backgroundColor")
+    compare.click()
+    expect(compare).to_have_attribute("aria-pressed", "true")
+    page.wait_for_function(
+        "([node, idle]) => getComputedStyle(node).backgroundColor !== idle", arg=[compare.element_handle(), idle]
+    )
+    for target in card.locator(".site-actions :is(a, button)").all():
+        assert target.bounding_box()["height"] >= 44
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width,position", [(390, "static"), (1440, "sticky")])
+def test_program_page_panel_and_teachers(page, site, width, position):
+    program = {**PROGRAM, "teachers": [{"name": "Первый преподаватель"}, {"name": "Второй преподаватель"}]}
+    site[1]["/programs/course-one"] = program
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/dpo/course-one")
+    expect(page.get_by_role("link", name="Каталог программ", exact=True)).to_have_attribute("href", "/dpo")
+    panel = page.locator(".program-page aside.site-panel")
+    assert panel.evaluate("node => getComputedStyle(node).position") == position
+    expect(panel.locator(".lux-price")).to_have_text(rub(PROGRAM["price"]))
+    expect(page.locator(".lux-teachers article")).to_have_count(2)
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
 def test_dpo_finder_starts_and_shareable_comparison(page, site, width):
     page.set_viewport_size({"width": width, "height": 900})
     rows = [
@@ -273,6 +326,7 @@ def test_dpo_finder_starts_and_shareable_comparison(page, site, width):
     picker.get_by_label("3. Как вам удобно учиться?").select_option("online")
     picker.get_by_role("button").click()
     expect(page.locator("[data-catalog-row]")).to_have_count(2)
+    expect(page.locator("#main")).to_have_attribute("data-catalog-ready", "true")
     page.locator("[data-action='compare']").first.click()
     expect(page).to_have_url(re.compile("compare=program-1"))
     page.reload()
@@ -410,30 +464,11 @@ def test_checkout_blocks_cart_mutation_and_restores_fields_on_error(page, site):
     expect(form.get_by_label("ФИО", exact=True)).to_have_value("Тестовое имя")
 
 
-@pytest.mark.parametrize("width,pwa", [(1440, False), (390, False), (1440, True)])
-def test_support_launcher_clears_bottom_navigation_and_banners(page, width, pwa):
-    page.set_viewport_size({"width": width, "height": 900})
-    page.goto("/news" + ("?pwa=1" if pwa else ""))
-    if width == 390 or pwa:
-        page.wait_for_function(
-            "() => document.querySelector('.club-crow-hit').getBoundingClientRect().bottom <= document.querySelector('.mobile-tabs').getBoundingClientRect().top"
-        )
-    page.evaluate("document.querySelector('#cookie-banner').hidden=false")
-    launcher = page.get_by_role("button", name="Открыть бота поддержки", exact=True)
-    expect(launcher).to_be_visible()
-    expect(page.locator("#cookie-banner")).to_be_visible()
-    page.wait_for_function(
-        "() => document.querySelector('.club-crow-hit').getBoundingClientRect().bottom <= document.querySelector('#cookie-banner').getBoundingClientRect().top"
-    )
-    launcher.click()
-    expect(page.locator("#support-bot")).to_be_visible()
-
-
-def test_accessibility_mode_keeps_support_launcher(page):
-    page.goto("/news")
-    page.get_by_role("button", name="Версия для слабовидящих", exact=True).first.click()
-    page.get_by_role("button", name="Поддержка клуба", exact=True).click()
-    expect(page.locator("#support-bot")).to_be_visible()
+@pytest.mark.parametrize("path", ["/news", "/support", "/tg", "/?pwa=1"])
+def test_help_button_and_bot_dialog_are_gone(page, path):
+    page.goto(path)
+    expect(page.locator(".support-launcher, #support-bot, [data-action='support']")).to_have_count(0)
+    expect(page.get_by_role("link", name="Помощь", exact=True)).to_have_count(0)
 
 
 def test_reading_storage_survives_navigation_and_rejects_external_path(page):
@@ -473,9 +508,7 @@ def test_pwa_uses_phone_layout_and_preserves_navigation(page):
     page.goto("/?pwa=1")
     assert page.locator("#site-stage").bounding_box()["width"] == 430
     expect(page.get_by_role("button", name="Открыть меню", exact=True)).to_be_visible()
-    assert page.locator(".home-hero").evaluate("node => getComputedStyle(node).gridTemplateColumns").split() == [
-        "430px"
-    ]
+    assert page.locator(".lux-hero").bounding_box()["width"] == 430
     page.get_by_role("navigation", name="Основные разделы").get_by_role("link", name="Кабинет", exact=True).click()
     expect(page.locator("html")).to_have_class(re.compile("pwa-shell"))
     expect(page.get_by_role("heading", name="Вход для выпускников", exact=True)).to_be_visible()
@@ -489,20 +522,9 @@ def test_telegram_preview_safe_start_and_return(page):
     expect(page.get_by_text("Предпросмотр мини-приложения", exact=True)).to_be_visible()
     expect(page.get_by_role("button", name="Войти через Telegram", exact=True)).to_be_hidden()
     page.get_by_role("link", name="Вернуться на сайт", exact=True).click()
-    expect(page.locator(".home-hero")).to_be_visible()
+    expect(page.locator(".lux-hero")).to_be_visible()
     page.goto("/tg?startapp=admin")
     expect(page.locator(".mini-home")).to_be_visible()
-
-
-def test_bot_dialog_uses_server_response_and_keyboard(page):
-    page.goto("/support")
-    page.get_by_role("button", name="Спросить бота", exact=True).click()
-    dialog = page.locator("#support-bot")
-    expect(dialog).to_be_visible()
-    dialog.get_by_role("button", name="Как вступить", exact=True).click()
-    expect(dialog.locator(".club-bot-log")).to_contain_text("Подайте заявку на сайте.")
-    page.keyboard.press("Escape")
-    expect(dialog).to_be_hidden()
 
 
 def test_telegram_back_returns_to_previous_catalog(page):
@@ -516,6 +538,80 @@ def test_telegram_back_returns_to_previous_catalog(page):
     page.evaluate("window.telegramBack()")
     expect(page).to_have_url(re.compile("/dpo\\?q="))
     expect(page.get_by_role("searchbox", name="Поиск", exact=True)).to_have_value("Правовая")
+
+
+def test_telegram_colors_follow_dark_theme(page):
+    page.add_init_script(TELEGRAM_COLORS)
+    page.goto("/tg")
+    page.wait_for_function("() => window.telegramColors.bar")
+    assert page.evaluate("window.telegramColors") == {"header": "#000000", "background": "#000000", "bar": "#0b0b0c"}
+
+
+def test_telegram_colors_follow_vision_mode(page):
+    page.add_init_script(
+        TELEGRAM_COLORS + "localStorage.setItem('club_vision', JSON.stringify({on:true,scheme:'bw'}));"
+    )
+    page.goto("/tg")
+    page.wait_for_function("() => window.telegramColors.bar")
+    assert page.evaluate("window.telegramColors") == {"header": "#ffffff", "background": "#ffffff", "bar": "#ffffff"}
+    page.evaluate("document.querySelector(\"[data-action='vision-scheme']\").click()")
+    page.wait_for_function("() => window.telegramColors.header === '#000000'")
+    assert page.evaluate("window.telegramColors") == {"header": "#000000", "background": "#000000", "bar": "#000000"}
+
+
+def test_pwa_page_titles_use_column_width(page):
+    page.goto("/saved?pwa=1")
+    expect(page.locator("#site-stage")).to_have_css("width", "430px")
+    expect(page.locator("main h1").first).to_have_css("font-size", "40px")
+
+
+def test_mini_home_sections_and_photo(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto("/tg")
+    image = page.locator(".mini-agenda img")
+    image.scroll_into_view_if_needed()
+    image.evaluate("image => image.decode()")
+    assert image.evaluate(
+        "image => image.clientWidth <= image.naturalWidth + 1 && Math.abs(image.clientWidth / image.clientHeight - image.naturalWidth / image.naturalHeight) < .02"
+    )
+    links = page.locator(".mini-home > .site-catalog a").all()
+    assert links
+    for link in links:
+        assert link.bounding_box()["height"] >= 44
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_feed_calendar_events_and_headings(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/events?month=2026-11")
+    day = page.get_by_role("link", name=EVENT["title"], exact=True).first
+    box = day.bounding_box()
+    assert box["width"] >= 44 and box["height"] >= 44
+    event = page.locator(".site-event").first
+    assert event.locator(":scope > div").bounding_box()["width"] > event.bounding_box()["width"] / 2
+    heading = event.get_by_role("link", name=EVENT["title"], exact=True)
+    expect(heading).to_have_css("color", "rgb(245, 245, 247)")
+    page.goto("/news/news-one")
+    expect(page.locator("#main").get_by_role("link", name="Новости", exact=True)).to_have_attribute("href", "/news")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_search_page_row_and_support_questions(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/search?q=право")
+    field = page.locator("#main").get_by_role("searchbox").bounding_box()
+    button = page.locator("#main").get_by_role("button", name="Найти", exact=True).bounding_box()
+    heading = page.get_by_role("heading", level=1).bounding_box()
+    assert abs(field["y"] + field["height"] / 2 - (button["y"] + button["height"] / 2)) < 2
+    assert heading["x"] >= 16 and button["x"] + button["width"] <= width - 16
+    page.goto("/support")
+    question = page.locator(".support-page details summary").first
+    assert question.bounding_box()["height"] >= 56
+    question.click()
+    expect(page.locator(".support-page details").first).to_have_attribute("open", "")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
 def test_corrupt_reading_data_is_not_overwritten(page):
@@ -648,7 +744,7 @@ def test_mirror_mobile_preview_navigation_and_exit(chromium, mirror_site, width)
     page.get_by_role("navigation", name="Просмотр зеркала").get_by_role("link", name="Обычный сайт").click()
     expect(page).to_have_url(mirror_site + "?site=1")
     expect(page.locator("html")).not_to_have_class(re.compile("pwa-shell|telegram-mini"))
-    expect(page.locator(".home-hero")).to_be_visible()
+    expect(page.locator(".lux-hero")).to_be_visible()
     page.get_by_role("navigation", name="Просмотр зеркала").get_by_role("link", name="Панель офиса").click()
     expect(page.locator(".office-page-header")).to_be_visible()
     assert (
@@ -1069,6 +1165,18 @@ def test_changes_reader_navigation_preserves_list_return(page):
     expect(page.locator('[data-change-open="' + identifier + '"]')).to_be_focused()
 
 
+def test_changes_return_focuses_item_opened_before_scripts(page):
+    page.goto("/changes?view=all")
+    page.locator("[data-change-open]").first.click()
+    expect(page.locator(".changes-page--reading[data-prepared]")).to_be_attached()
+    second = page.locator("[data-change-open]").nth(1)
+    identifier = second.get_attribute("data-change-open")
+    page.goto(second.get_attribute("href"))
+    expect(page.locator(".changes-page--reading[data-prepared]")).to_be_attached()
+    page.get_by_role("link", name="← Все материалы", exact=True).click()
+    expect(page.locator('[data-change-open="' + identifier + '"]')).to_be_focused()
+
+
 def test_mirror_reader_back_restores_focus(chromium, mirror_site):
     context = chromium.new_context(viewport={"width": 1440, "height": 1000})
     context.add_init_script("localStorage.setItem('club_cookie_consent','essential')")
@@ -1175,12 +1283,12 @@ def test_cart_changes_include_type_when_slugs_match(page, site, width):
     page.goto("/cart")
     row = page.locator(".site-cart-row").filter(has=page.get_by_role("heading", name=PRODUCT["title"], exact=True))
     row.get_by_role("spinbutton", name="Количество").fill("3")
-    with page.expect_response("**/api/cart"):
+    with page.expect_response(is_cart_change):
         row.get_by_role("button", name="Обновить", exact=True).click()
     assert writes[-1]["body"] == {"type": "merch", "ref_id": PROGRAM["slug"], "variant_sku": None, "qty": 3}
     records["/cart"] = {"items": items, "subtotal": 20000, "count": 2}
     page.goto("/cart")
-    with page.expect_response("**/api/cart"):
+    with page.expect_response(is_cart_change):
         row.get_by_role("button", name="Удалить", exact=True).click()
     assert writes[-1]["body"] == {"type": "merch", "ref_id": PROGRAM["slug"], "variant_sku": None, "qty": 0}
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
@@ -1205,18 +1313,613 @@ def test_product_editor_retains_gallery_during_title_edit(page, site, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
+@pytest.mark.parametrize("width", [1440, 390])
+def test_home_member_price_follows_selected_level(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/")
+    price = page.locator(".lux-prog").filter(has_text=PROGRAM["title"]).locator("[data-member-price]")
+    expect(price).to_have_text(rub(285000))
+    expect(page.locator(".lux-home")).to_have_attribute("data-home-ready", "true")
+    expect(page.locator("[data-starts-empty]")).to_be_hidden()
+    page.get_by_role("radio", name=re.compile("^Амбассадор")).check()
+    expect(price).to_have_text(rub(240000))
+    expect(page.locator("[data-level-status]")).to_have_text(
+        "Уровень «Амбассадор»: скидка 20%, цены выпускника пересчитаны."
+    )
+    page.get_by_role("radio", name=re.compile("^Друг клуба")).check()
+    expect(price).to_have_text(rub(270000))
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+def test_hero_progress_reaches_only_its_readers(chromium, site):
+    context = chromium.new_context(
+        base_url=site[0], viewport={"width": 1440, "height": 900}, reduced_motion="no-preference"
+    )
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+    page = context.new_page()
+    page.goto("/")
+    page.evaluate("scrollTo(0, 400)")
+    word = page.locator(".lux-hero__word--l")
+    page.wait_for_function(
+        "() => parseFloat(getComputedStyle(document.querySelector('.lux-hero__word--l')).getPropertyValue('--p')) > 0"
+    )
+    assert word.evaluate("node => getComputedStyle(node).transform") != "none"
+    assert page.evaluate("document.querySelector('.lux-hero').style.getPropertyValue('--p')") == ""
+    for selector in (".lux-hero__title", ".lux-hero__line > span", ".lux-scales__beam"):
+        assert page.locator(selector).first.evaluate("node => getComputedStyle(node).getPropertyValue('--p')") == "0", (
+            selector
+        )
+    context.close()
+
+
+@pytest.mark.parametrize("motion,animated", [("no-preference", True), ("reduce", False)])
+def test_links_are_prefetched_and_pages_cross_fade(chromium, site, motion, animated):
+    context = chromium.new_context(base_url=site[0], viewport={"width": 1440, "height": 900}, reduced_motion=motion)
+    context.add_init_script(
+        "localStorage.setItem('club_cookie_consent','essential');"
+        "addEventListener('pageswap', event => sessionStorage.setItem('swapped', String(!!event.viewTransition)));"
+    )
+    page = context.new_page()
+    response = page.goto("/news")
+    assert response.headers["speculation-rules"] == '"/speculation-rules.json"'
+    rules = page.request.get("/speculation-rules.json")
+    assert rules.headers["content-type"] == "application/speculationrules+json"
+    excluded = rules.json()["prefetch"][0]["where"]["and"][1]["not"]["href_matches"]
+    assert {"/admin/*", "/api/*", "/lk", "/cart", "/logout"} <= set(excluded)
+    link = page.locator(".club-header__nav a[href='/dpo']")
+    link.hover()
+    page.wait_for_timeout(1200)
+    link.click()
+    page.wait_for_url("**/dpo")
+    assert page.evaluate("performance.getEntriesByType('navigation')[0].deliveryType") == "navigational-prefetch"
+    assert page.evaluate("sessionStorage.getItem('swapped')") == str(animated).lower()
+    context.close()
+
+
+@pytest.mark.parametrize(
+    "path,key,content",
+    [
+        ("/lk", "club_token", "Тестовый выпускник"),
+        ("/admin/news", "club_admin_token", "Новости"),
+        ("/cart", "club_cart", "Корзина"),
+    ],
+)
+def test_signed_in_member_sees_skeleton_until_private_page_loads(chromium, site, path, key, content):
+    context = chromium.new_context(base_url=site[0], viewport={"width": 390, "height": 844}, is_mobile=True)
+    tokens = {"club_token": "member-qa", "club_admin_token": "admin-qa", "club_cart": "cart-qa"}
+    context.add_init_script(
+        f"localStorage.setItem('club_cookie_consent','essential');localStorage.setItem('{key}','{tokens[key]}');"
+    )
+    page = context.new_page()
+    held = []
+    page.route("**/views/**", lambda route: held.append(route))
+    page.goto(path)
+    expect(page.locator(".club-skeleton")).to_be_visible()
+    expect(page.locator("#page")).to_be_hidden()
+    assert page.evaluate("document.documentElement.dataset.skeleton") == "panel"
+    for _ in range(50):
+        if held:
+            break
+        page.wait_for_timeout(100)
+    assert held
+    for route in held:
+        route.continue_()
+    page.unroute("**/views/**")
+    expect(page.locator(".club-skeleton")).to_be_hidden()
+    expect(page.locator("#page")).to_contain_text(content)
+    context.close()
+
+
+@pytest.mark.parametrize("path,key", [("/lk", None), ("/podcasts", "club_token"), ("/news", "club_token")])
+def test_pages_without_private_data_show_content_at_once(chromium, site, path, key):
+    context = chromium.new_context(base_url=site[0])
+    script = "localStorage.setItem('club_cookie_consent','essential');"
+    if key:
+        script += f"localStorage.setItem('{key}','member-qa');"
+    context.add_init_script(
+        script
+        + "addEventListener('DOMContentLoaded', () => { window.veiled = 'skeleton' in document.documentElement.dataset; });"
+    )
+    page = context.new_page()
+    page.goto(path)
+    assert page.evaluate("window.veiled") is False
+    expect(page.locator("#main")).to_be_visible()
+    expect(page.locator(".club-skeleton")).to_be_hidden()
+    context.close()
+
+
+SKELETON_STATE = """addEventListener('pageswap', () => {
+  const style = selector => getComputedStyle(document.querySelector(selector));
+  const parts = ['#page', '.club-skeleton', '.club-skeleton__media', '.club-skeleton__grid'];
+  sessionStorage.setItem('skeleton', JSON.stringify({
+    kind: document.documentElement.dataset.skeleton || null,
+    display: parts.map(selector => style(selector).display),
+    pulse: style('.club-skeleton__title').animationName,
+  }));
+});"""
+
+
+@pytest.mark.parametrize("motion,pulse", [("no-preference", "club-skeleton-pulse"), ("reduce", "none")])
+def test_slow_navigation_shows_skeleton_of_target_page(chromium, site, motion, pulse):
+    context = chromium.new_context(
+        base_url=site[0], viewport={"width": 1440, "height": 900}, reduced_motion=motion, service_workers="block"
+    )
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');" + SKELETON_STATE)
+    page = context.new_page()
+    page.goto("/support")
+    kinds = page.evaluate(
+        "import('/assets/skeleton.js').then(module => ['/news', '/news/news-one', '/lk', '/admin/news', '/']"
+        ".map(module.skeletonKind))"
+    )
+    assert kinds == ["list", "article", "panel", "panel", "list"]
+    page.evaluate(
+        "document.body.insertAdjacentHTML('beforeend',"
+        ' \'<a id=slow data-no-prefetch href="/news/news-one">x</a><a id=hash href="#main">y</a>\')'
+    )
+    page.locator("#hash").click()
+    page.wait_for_timeout(500)
+    assert page.evaluate("document.documentElement.dataset.skeleton") is None
+    held = []
+    page.route("**/news/news-one", lambda route: held.append(route))
+    page.locator("#slow").click(no_wait_after=True)
+    page.wait_for_timeout(700)
+    for route in held:
+        route.continue_()
+    page.wait_for_url("**/news/news-one")
+    state = json.loads(page.evaluate("sessionStorage.getItem('skeleton')"))
+    assert state == {"kind": "article", "display": ["none", "block", "block", "none"], "pulse": pulse}
+    expect(page.locator(".club-skeleton")).to_be_hidden()
+    context.close()
+
+
+HERO_SETTLED = "() => !document.getAnimations().some(a => /^lux-(piece-in|line-up|rise)$/.test(a.animationName))"
+HERO_LAYOUT = """() => {
+  const box = selector => [...document.querySelectorAll(selector)].map(node => node.getBoundingClientRect());
+  const [stage] = box('.lux-hero__stage');
+  const [figure] = box('.lux-themis');
+  const parts = [...box('.lux-hero__word'), ...box('.lux-hero__foot > *')];
+  const hit = (a, b) => a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+  return {
+    figure: Math.round(figure.height),
+    overlaps: parts.filter(part => hit(part, figure)).length,
+    clipped: parts.filter(part => part.bottom > stage.bottom + 1).length,
+    skip: Math.round(box('.skip')[0].bottom),
+  };
+}"""
+
+
+@pytest.mark.parametrize(
+    "viewport,mobile",
+    [
+        ({"width": 130, "height": 221}, True),
+        ({"width": 260, "height": 442}, True),
+        ({"width": 480, "height": 270}, False),
+        ({"width": 1097, "height": 540}, False),
+        ({"width": 1440, "height": 810}, False),
+    ],
+)
+def test_zoomed_home_keeps_hero_whole(chromium, site, viewport, mobile):
+    context = chromium.new_context(base_url=site[0], viewport=viewport, is_mobile=mobile, has_touch=mobile)
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+    page = context.new_page()
+    page.goto("/")
+    page.wait_for_function(HERO_SETTLED)
+    layout = page.evaluate(HERO_LAYOUT)
+    assert layout["figure"] >= 150 and layout["overlaps"] == 0 and layout["clipped"] == 0, layout
+    assert layout["skip"] <= 0
+    page.keyboard.press("Tab")
+    expect(page.locator(".skip")).to_be_focused()
+    expect(page.locator(".skip")).to_be_in_viewport()
+    context.close()
+
+
+def test_hero_entrance_releases_animated_layers(chromium, site):
+    context = chromium.new_context(base_url=site[0], viewport={"width": 390, "height": 664}, is_mobile=True)
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+    page = context.new_page()
+    page.goto("/")
+    names = (
+        "[...new Set(document.getAnimations().filter(a => a.effect.target.closest('.lux-hero'))"
+        ".map(a => a.animationName))].sort()"
+    )
+    assert {"lux-piece-in", "lux-line-up", "lux-rise"} <= set(page.evaluate(names))
+    page.wait_for_function(HERO_SETTLED)
+    assert page.evaluate(names) == ["lux-glint", "lux-sway"]
+    settled = page.evaluate(
+        "[...document.querySelectorAll('.lux-piece, .lux-hero__line > span, .lux-hero__foot > *')]"
+        ".map(node => getComputedStyle(node)).map(style => style.opacity + ' ' + style.transform)"
+    )
+    assert set(settled) == {"1 none"}
+    context.close()
+
+
+@pytest.mark.parametrize(
+    "viewport,vision", [({"width": 844, "height": 390}, False), ({"width": 390, "height": 844}, True)]
+)
+def test_home_hero_stays_usable_without_scroll_scene(chromium, site, viewport, vision):
+    context = chromium.new_context(base_url=site[0], viewport=viewport, is_mobile=True, has_touch=True)
+    script = "localStorage.setItem('club_cookie_consent','essential');"
+    if vision:
+        script += "localStorage.setItem('club_vision', JSON.stringify({on:true,scheme:'bw'}));"
+    context.add_init_script(script)
+    page = context.new_page()
+    page.goto("/")
+    assert page.locator(".lux-hero__stage").evaluate("node => getComputedStyle(node).position") != "sticky"
+    button = page.locator(".lux-hero__foot .lux-btn")
+    button.scroll_into_view_if_needed()
+    expect(page.locator(".lux-hero__foot")).to_have_css("opacity", "1")
+    expect(button).to_be_in_viewport()
+    for link in page.locator(".club-footer a").all():
+        assert link.bounding_box()["height"] >= 44
+    context.close()
+
+
+@pytest.mark.parametrize("zoom,nav", [(None, "flex"), (1.4, "none")])
+def test_header_navigation_follows_layout_width(chromium, site, zoom, nav):
+    context = chromium.new_context(base_url=site[0], viewport={"width": 1280, "height": 900})
+    script = "localStorage.setItem('club_cookie_consent','essential');"
+    if zoom:
+        script += f"localStorage.setItem('club_vision', JSON.stringify({{on:true,zoom:{zoom},scheme:'bw'}}));"
+    context.add_init_script(script)
+    page = context.new_page()
+    page.goto("/dpo")
+    expect(page.locator(".club-header__nav")).to_have_css("display", nav)
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    context.close()
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_cabinet_stats_and_sections(page, site, width):
+    site[1]["/me"] = {**PROFILE, "level": {**PROFILE["level"], "next_level": "Друг клуба", "to_next": 100}}
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk")
+    stats = page.locator(".cabinet-stats")
+    expect(stats.locator("dt")).to_have_text(["Уровень", "Баллы", "Скидка на ДПО", "Код приглашения"])
+    expect(stats.locator(".cabinet-stats__next")).to_have_text("До «Друг клуба» — 100\u00a0баллов")
+    for link in page.get_by_role("navigation", name="Разделы кабинета").get_by_role("link").all():
+        assert link.bounding_box()["height"] >= 44
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_catalog_styles_stay_on_catalog_pages(page, site, width):
+    site[1]["/admin/programs"] = [{**PROGRAM, "status": "published"}]
+    site[1]["/programs"] = [
+        PROGRAM,
+        {**PROGRAM, "id": "program-2", "slug": "course-two", "title": "Длинное название " * 12},
+    ]
+    site[1]["/podcasts"]["items"] = [{**EPISODE, "description": "Описание выпуска"}]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/programs")
+    filters = page.locator("form.site-filters")
+    field = filters.get_by_label("Поиск", exact=True).bounding_box()
+    assert field["x"] - filters.bounding_box()["x"] >= 16
+    page.goto("/dpo")
+    for node in page.locator(".site-card-media--empty").all():
+        empty = node.bounding_box()
+        assert abs(empty["width"] / empty["height"] - 4 / 3) < 0.02
+    page.goto("/podcasts")
+    card = page.locator(".site-catalog-card").first
+    gap = card.locator(".save-material").bounding_box()["y"] - card.locator("p").last.bounding_box()["y"]
+    assert gap >= card.locator("p").last.bounding_box()["height"] + 8
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_program_panel_actions_have_gap(page, site, width):
+    site[1]["/programs/course-one"] = {**PROGRAM, "source_url": "https://pravo.hse.ru/"}
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/dpo/course-one")
+    panel = page.locator("aside.site-panel")
+    link = panel.locator(".site-primary").bounding_box()
+    save = panel.locator(".save-material").bounding_box()
+    assert save["y"] - (link["y"] + link["height"]) >= 8
+    expect(panel).to_have_css("position", "sticky" if width > 900 else "static")
+
+
+def test_pwa_column_uses_phone_gutter(page):
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.goto("/tg?pwa=1")
+    main = page.locator("#main").bounding_box()
+    expect(page.locator(".mini-home")).to_have_css("padding-left", "16px")
+    assert main["width"] <= 430
+    page.goto("/dpo/course-one?pwa=1")
+    expect(page.locator(".site-two-col > aside.site-panel")).to_have_css("position", "static")
+    page.goto("/join?pwa=1")
+    assert page.evaluate(
+        "document.querySelector('#site-stage').scrollWidth <= document.querySelector('#site-stage').clientWidth + 1"
+    )
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_login_form_tile_and_profile_back_link(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/lk")
+    form = page.locator(".cabinet-gate__form")
+    for corner in ("top-left", "top-right", "bottom-left", "bottom-right"):
+        assert form.evaluate(f"node => parseFloat(getComputedStyle(node)['border-{corner}-radius'])") > 0
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    offsets = []
+    for path in ("/news/news-one", "/lk/profile"):
+        page.goto(path)
+        offsets.append(page.locator("#main .lux-back").bounding_box()["y"])
+    assert offsets[0] == offsets[1]
+
+
+def test_focus_keeps_ribbon_items_in_view(page, site):
+    site[1]["/programs"] = [
+        {**PROGRAM, "id": f"program-{i}", "slug": f"course-{i}", "dates": {"start": f"2{i} октября 2099"}}
+        for i in range(4)
+    ]
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto("/dpo")
+    ribbon = page.locator(".dpo-starts-grid")
+    for index in range(4):
+        ribbon.locator("article a").nth(index).focus()
+        item = ribbon.locator("article").nth(index).bounding_box()
+        box = ribbon.bounding_box()
+        assert item["x"] >= box["x"] and item["x"] + item["width"] <= box["x"] + box["width"] + 1
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk")
+    nav = page.get_by_role("navigation", name="Разделы кабинета")
+    for link in nav.get_by_role("link").all():
+        link.focus()
+        item, box = link.bounding_box(), nav.bounding_box()
+        assert item["x"] >= box["x"] + 6 and item["x"] + item["width"] <= box["x"] + box["width"] - 6
+        assert item["y"] - box["y"] >= 6 and box["y"] + box["height"] - item["y"] - item["height"] >= 6
+
+
+def test_mini_app_focus_rings_are_not_clipped(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto("/tg")
+    expect(page.locator(".mini-home > .site-catalog")).to_have_css("overflow", "visible")
+    agenda = page.locator(".mini-agenda__link")
+    agenda.focus()
+    expect(agenda).to_have_css("outline-offset", "-5px")
+
+
+def test_disclosures_and_pressed_buttons_in_vision_mode(page, site):
+    page.add_init_script(
+        "localStorage.setItem('club_vision', JSON.stringify({on:true,scheme:'bw'}));"
+        "localStorage.setItem('club_token','member-qa');"
+    )
+    page.goto("/support")
+    summary = page.locator(".lux-disclosure > summary").first
+    assert summary.evaluate("node => getComputedStyle(node, '::after').color") == "rgb(0, 0, 0)"
+    assert summary.evaluate("node => getComputedStyle(node, '::after').transitionDuration") == "0s"
+    page.goto("/dpo/course-one")
+    for heading in page.locator("#main h2").all():
+        expect(heading).to_have_css("font-weight", "400")
+    page.goto("/dpo")
+    compare = page.locator("[data-action='compare']").first
+    compare.click()
+    expect(compare).to_have_css("background-color", "rgb(0, 0, 0)")
+    expect(compare).to_have_css("color", "rgb(255, 255, 255)")
+    page.goto("/lk")
+    for node in page.locator("#main h2, .cabinet-stats dd").all():
+        expect(node).to_have_css("font-weight", "400")
+
+
+def test_mini_app_sign_pauses_off_screen(chromium, site):
+    context = chromium.new_context(
+        base_url=site[0], viewport={"width": 390, "height": 500}, reduced_motion="no-preference"
+    )
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+    page = context.new_page()
+    page.route("https://telegram.org/**", lambda route: route.abort())
+    page.goto("/tg")
+    welcome = page.locator(".mini-welcome")
+    expect(welcome).not_to_have_class(re.compile("is-off"))
+    page.locator(".mini-home > .site-catalog").last.scroll_into_view_if_needed()
+    page.evaluate("scrollTo(0, document.documentElement.scrollHeight)")
+    expect(welcome).to_have_class(re.compile("is-off"))
+    glint = page.locator(".mini-welcome .lux-glint")
+    expect(glint).to_have_css("animation-play-state", "paused")
+    context.close()
+
+
+def test_touch_opens_peeking_ribbon_items(chromium, site):
+    site[1]["/programs"] = [
+        {**PROGRAM, "id": f"program-{i}", "slug": f"course-{i}", "dates": {"start": f"2{i} октября 2099"}}
+        for i in range(4)
+    ]
+    context = chromium.new_context(
+        base_url=site[0], viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True
+    )
+    context.add_init_script(
+        "localStorage.setItem('club_cookie_consent','essential');localStorage.setItem('club_token','member-qa');"
+    )
+    page = context.new_page()
+    page.goto("/dpo")
+    page.locator(".dpo-starts-grid").scroll_into_view_if_needed()
+    peeking = page.locator(".dpo-starts-grid article").nth(1).bounding_box()
+    page.touchscreen.tap(min(peeking["x"] + 40, 380), peeking["y"] + peeking["height"] / 2)
+    expect(page).to_have_url(re.compile("/dpo/course-1$"))
+    page.goto("/lk")
+    nav = page.get_by_role("navigation", name="Разделы кабинета")
+    nav.scroll_into_view_if_needed()
+    last = nav.get_by_role("link").last.bounding_box()
+    page.touchscreen.tap(min(last["x"] + last["width"] - 4, 386), last["y"] + last["height"] / 2)
+    expect(page).to_have_url(re.compile("#achievements$"))
+    context.close()
+
+
+def test_changes_list_keeps_its_own_rows(page):
+    page.goto("/changes?view=all")
+    page.locator("[data-change-open]").first.click()
+    selected = page.locator(".changes-row.is-selected")
+    expect(selected).to_have_css("border-left-color", "rgb(234, 104, 6)")
+    expect(selected.locator("h2")).to_have_css("font-weight", "500")
+    reset = page.locator("#main .site-filters > a").first
+    assert reset.bounding_box()["height"] >= 44
+
+
+def test_podcast_cards_keep_focus_ring_and_muted_text(page):
+    page.goto("/podcasts")
+    card = page.locator(".site-catalog-card").first
+    expect(card).to_have_css("overflow", "visible")
+    expect(card.locator("p").last).to_have_css("color", "rgb(161, 161, 166)")
+
+
+@pytest.mark.parametrize("width", [390, 700, 1024, 1440])
+def test_calendar_days_stay_readable_and_reachable(page, site, width):
+    site[1]["/events"] = [EVENT, {**EVENT, "id": "event-2", "title": "Открытая лекция и нетворкинг"}]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/events?month=2026-11")
+    expect(page.locator(".site-calendar")).to_have_css("overflow", "visible")
+    links = page.locator(".site-calendar-grid a")
+    if links.first.evaluate("node => getComputedStyle(node).fontSize") == "0px":
+        expect(links.nth(1)).to_be_hidden()
+        box = links.first.bounding_box()
+        target = page.evaluate(
+            f"document.elementFromPoint({box['x'] + box['width'] / 2}, {box['y'] + box['height'] / 2}).closest('a')?.textContent"
+        )
+        assert target == EVENT["title"]
+        links.first.focus()
+        assert links.first.evaluate("node => getComputedStyle(node.parentElement).zIndex") == "1"
+    else:
+        for index in range(links.count()):
+            assert links.nth(index).evaluate(WORDS_UNBROKEN)
+    header = page.locator(".site-calendar > header a")
+    assert abs(header.first.bounding_box()["y"] - header.last.bounding_box()["y"]) < 1
+
+
+@pytest.mark.parametrize("width", [320, 360])
+def test_vision_mode_feed_and_account_details(page, site, width):
+    page.add_init_script(
+        "localStorage.getItem('club_vision') || localStorage.setItem('club_vision', JSON.stringify({on:true,zoom:1.4,scheme:'bb'}));"
+    )
+    page.set_viewport_size({"width": width, "height": 800})
+    page.goto("/events?month=2026-11")
+    header = page.locator(".site-calendar > header a")
+    assert abs(header.first.bounding_box()["y"] - header.last.bounding_box()["y"]) < 1
+    dot = page.locator(".site-calendar-grid a").first
+    assert dot.evaluate("node => getComputedStyle(node, '::after').backgroundColor") == "rgb(10, 42, 102)"
+    for vision in (
+        "{on:true,zoom:1.4,scheme:'bw'}",
+        "{on:true,zoom:1,scheme:'bw',spacing:true}",
+        "{on:true,zoom:1.4,scheme:'bw',spacing:true}",
+        "{on:true,zoom:1.4,scheme:'bw',spacing:true,serif:true}",
+    ):
+        page.evaluate(f"localStorage.setItem('club_vision', JSON.stringify({vision}))")
+        page.goto("/events?month=2026-09")
+        expect(page.locator("html")).to_have_class(re.compile("vis-spacing" if "spacing" in vision else "vis"))
+        for arrow in header.all():
+            size = arrow.evaluate("node => [node.offsetWidth, node.offsetHeight]")
+            assert size[0] >= 44 and size[0] == size[1]
+        assert page.locator(".site-calendar > header h2").evaluate("node => node.scrollWidth <= node.clientWidth + 1")
+    page.evaluate("localStorage.setItem('club_vision', JSON.stringify({on:true,zoom:1.4,scheme:'bb'}))")
+    for path in ("/forgot", "/confirm"):
+        page.goto(path)
+        assert page.locator(".club-auth__card h1").evaluate(WORDS_UNBROKEN)
+    page.goto("/join")
+    step = page.locator(".club-auth__aside li").first
+    assert step.evaluate("node => getComputedStyle(node, '::before').fontWeight") == "400"
+
+
+def test_calendar_dot_follows_forced_colors(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.emulate_media(forced_colors="active")
+    page.goto("/events?month=2026-11")
+    dot = page.locator(".site-calendar-grid a").first.evaluate(
+        "node => getComputedStyle(node, '::after').backgroundColor"
+    )
+    link = page.locator(".site-calendar > header a").first.evaluate("node => getComputedStyle(node).color")
+    assert dot == link
+
+
+def test_disclosure_names_and_vision_focus_rings(page, site):
+    site[1]["/programs"] = [{**PROGRAM, "dates": {"start": "24 октября 2099"}}]
+    page.goto("/support")
+    summary = page.locator(".lux-disclosure > summary").first
+    name = summary.evaluate("node => node.textContent.trim()")
+    expect(summary).to_have_accessible_name(name)
+    for heading in page.locator("#main section > h2").all():
+        expect(heading).to_have_css("font-weight", "200")
+    page.add_init_script("localStorage.setItem('club_vision', JSON.stringify({on:true,scheme:'bw'}));")
+    page.goto("/dpo")
+    page.locator(".dpo-starts-grid article a").first.focus()
+    expect(page.locator(".dpo-starts-grid article").first).to_have_css("outline-color", "rgb(0, 0, 0)")
+
+
+SPACING_STEP = 4
+
+
+@pytest.mark.parametrize(
+    "path,selector",
+    [
+        ("/join", "[data-registration]"),
+        ("/forgot", ".club-auth__card form"),
+        ("/lk", ".cabinet-gate__form"),
+        ("/dpo/course-one", "aside.site-panel form[data-cart]"),
+        ("/dpo", ".dpo-starts-grid article"),
+        ("/events?month=2026-11", ".site-calendar-grid a"),
+    ],
+)
+def test_block_spacing_follows_grid(page, site, path, selector):
+    site[1]["/programs"] = [{**PROGRAM, "dates": {"start": "24 октября 2099"}}]
+    page.goto(path)
+    for value in page.locator(selector).first.evaluate(
+        "node => { const style = getComputedStyle(node); return [style.rowGap, style.marginTop, style.marginBottom]; }"
+    ):
+        assert value == "normal" or float(value.removesuffix("px")) % SPACING_STEP == 0
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_login_and_join_layout(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/lk")
+    expect(page.get_by_text("Почта", exact=True)).to_have_css("text-transform", "none")
+    expect(page.get_by_role("heading", name="Ваше место в клубе", exact=True)).to_be_visible()
+    page.goto("/join")
+    photo = page.locator(".club-auth__aside img").bounding_box()
+    copy = page.locator(".club-auth__aside-copy").bounding_box()
+    assert copy["y"] >= photo["y"] + photo["height"] - 1
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+@pytest.mark.parametrize("path", ["/forgot", "/reset", "/confirm"])
+def test_account_forms_keep_form_width(page, width, path):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto(path)
+    card = page.locator(".club-auth__card .site-panel").bounding_box()
+    assert card["width"] <= 480
+    assert abs(card["x"] + card["width"] / 2 - width / 2) <= 1
+    assert page.locator(".club-auth__card h1").evaluate(WORDS_UNBROKEN)
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("path", ["/confidential", "/terms"])
+def test_page_headings_keep_words_whole_on_small_phone(page, path):
+    page.set_viewport_size({"width": 320, "height": 700})
+    page.goto(path)
+    assert page.locator("#main h1").evaluate(WORDS_UNBROKEN)
+
+
+def test_home_without_javascript_shows_graduate_prices(chromium, site):
+    context = chromium.new_context(base_url=site[0], viewport={"width": 390, "height": 844}, java_script_enabled=False)
+    page = context.new_page()
+    page.goto("/")
+    expect(page.locator(".lux-calc__levels")).to_be_hidden()
+    expect(page.locator(".lux-prog").filter(has_text=PROGRAM["title"]).locator("[data-member-price]")).to_have_text(
+        rub(285000)
+    )
+    context.close()
+
+
 @pytest.mark.parametrize(
     "width,pwa", [(320, False), (390, False), (768, False), (1024, False), (1440, False), (1440, True)]
 )
 def test_home_photos_keep_people_in_frame(page, width, pwa):
     page.set_viewport_size({"width": width, "height": 1000})
     page.goto("/?pwa=1" if pwa else "/")
-    hero = page.locator(".home-hero__photo img")
-    expect(hero).to_be_visible()
-    hero.evaluate("image => image.decode()")
-    assert hero.evaluate("image => image.currentSrc.endsWith('.avif')")
-    for selector in (".home-agenda__photo", ".home-meeting__photo", ".home-voice__photo"):
-        for frame in page.locator(selector).all():
+    expect(page.locator(".lux-themis")).to_be_visible()
+    for selector in (".lux-join__photo", ".lux-pair .lux-frame", ".lux-voice__photo"):
+        frames = page.locator(selector).all()
+        assert frames
+        for frame in frames:
             frame.scroll_into_view_if_needed()
             image = frame.locator("img")
             image.evaluate("image => image.decode()")
@@ -1250,7 +1953,6 @@ def test_catalog_and_detail_photos_keep_shape_without_enlargement(page, site, wi
     records["/products"] = [{**PRODUCT, "images": ["/assets/merch-hoodie.webp"]}]
     page.set_viewport_size({"width": width, "height": 1000})
     for path, selector in (
-        ("/", ".site-card-media img"),
         ("/dpo", ".site-card-media img"),
         ("/merch", ".site-card-media img"),
         ("/dpo/course-one", ".site-program-cover, .site-teacher-photo"),
@@ -1265,7 +1967,7 @@ def test_catalog_and_detail_photos_keep_shape_without_enlargement(page, site, wi
             assert image.evaluate("image => image.clientWidth > 0 && image.clientHeight > 0")
             assert image.evaluate("image => image.clientWidth <= image.naturalWidth + 1")
             assert image.evaluate("image => image.clientHeight <= image.naturalHeight + 1")
-            if path in ("/", "/dpo", "/merch"):
+            if path in ("/dpo", "/merch"):
                 assert image.evaluate(
                     "image => image.clientWidth <= image.parentElement.clientWidth + 1 && image.clientHeight <= image.parentElement.clientHeight + 1"
                 )

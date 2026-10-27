@@ -1,0 +1,17 @@
+html.lux .site-office { background: var(--c-bg); }
+html.lux .office-sidebar, html.lux .office-account { background: var(--c-bg-sunken); border-color: var(--c-line); }
+html.lux .office-brand img { border-radius: 6px; }
+html.lux .office-nav-group p { margin-bottom: 6px; font-size: 13px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+html.lux .office-nav-group a { border-left: 0; border-radius: 999px; padding: 10px 14px; transition: background-color 160ms ease, color 160ms ease; }
+html.lux .office-nav-group a[aria-current] { background: var(--lux-control); color: var(--c-text); }
+html.lux .office-account-mark { border-radius: 50%; background: var(--lux-control); color: var(--c-text); }
+html.lux .office-topbar { border-color: var(--c-line); }
+html.lux .office-page-header h1 { font-weight: 200; }
+html.lux .site-office :is(.site-panel, .site-filters, .site-metrics article) { border: 0; background: var(--c-bg-raised); }
+html.lux .site-office .office-primary-metrics article:first-child { background: var(--c-bg-raised); color: var(--c-text); }
+html.lux .site-office .office-primary-metrics article:first-child strong { color: var(--c-accent-text); }
+html.lux .site-office input[type="file"] { background: var(--c-bg-sunken); }
+
+@media (hover: hover) and (pointer: fine) {
+  html.lux .office-nav-group a:not([aria-current]):hover { background: var(--lux-hover); color: var(--c-text); }
+}

@@ -6,8 +6,12 @@ import shutil
 from pathlib import Path
 
 from club_web.offline import PWA_PARAMS
+from club_web.rendering import VERSION_FILE
 
 ROOT = Path(__file__).parent
+THEME_LAYER = "lux.css"
+VERSION_LENGTH = 12
+MODULE_IMPORT = re.compile(r'(from\s+"\./[\w-]+\.js)"')
 
 
 def responsive_css(css):
@@ -20,6 +24,34 @@ def responsive_css(css):
         if not depth:
             additions.append(f"@container club-layout (max-width:{match[1]}px){{" + css[match.end() : end])
     return css + "\n" + "\n".join(additions)
+
+
+def versioned_files(destination):
+    return sorted(
+        [*(destination / "assets").glob("*.js"), destination / "assets/site.css", destination / "fonts/fonts.css"]
+    )
+
+
+def compute_version(destination):
+    digest = hashlib.sha256()
+    for path in versioned_files(destination):
+        digest.update(path.name.encode() + b"\0" + path.read_bytes())
+    return digest.hexdigest()[:VERSION_LENGTH]
+
+
+def stamp_assets(destination, version):
+    for module in (destination / "assets").glob("*.js"):
+        module.write_text(MODULE_IMPORT.sub(rf'\1?v={version}"', module.read_text(encoding="utf-8")), encoding="utf-8")
+    (destination / VERSION_FILE).write_text(version, encoding="utf-8")
+
+
+def built_assets(destination, version):
+    files = [f"./{path.relative_to(destination).as_posix()}?v={version}" for path in versioned_files(destination)]
+    files += [
+        "./assets/offline.js",
+        *[f"./fonts/{path.name}" for path in sorted((destination / "fonts").glob("*.woff2"))],
+    ]
+    return files
 
 
 def build_public(destination, *, mirror=False):
@@ -41,8 +73,9 @@ def build_public(destination, *, mirror=False):
         *sorted(
             path
             for path in styles.glob("*.css")
-            if path.name not in ("tokens.css", "index.css") and not path.name.startswith(".")
+            if path.name not in ("tokens.css", "index.css", THEME_LAYER) and not path.name.startswith(".")
         ),
+        styles / THEME_LAYER,
     ]
     (assets / "site.css").write_text(
         "\n".join(responsive_css(path.read_text(encoding="utf-8")) for path in files), encoding="utf-8"
@@ -56,12 +89,10 @@ def build_public(destination, *, mirror=False):
         ):
             continue
         shutil.copyfile(browser_file, assets / browser_file.name)
+    version = compute_version(destination)
+    stamp_assets(destination, version)
     worker = (ROOT / "browser/service-worker.js").read_text(encoding="utf-8")
-    files = ["./assets/" + path.name for path in sorted(assets.glob("*.js"))]
-    files += [
-        "./assets/site.css",
-        *["./fonts/" + path.name for path in sorted((destination / "fonts").glob("*.woff2"))],
-    ]
+    files = built_assets(destination, version)
     worker = worker.replace("const BUILT_ASSETS = [];", "const BUILT_ASSETS = " + json.dumps(files) + ";")
     worker = worker.replace("const PWA_PARAMS = {};", "const PWA_PARAMS = " + json.dumps(PWA_PARAMS) + ";")
     digest = hashlib.sha256(worker.encode())

@@ -35,7 +35,6 @@ docs/Отчёт по дизайну*
 
 frontend/public/assets/site.css
 frontend/public/assets/site.js
-frontend/public/assets/crow-mascot.js
 
 frontend/public/assets/mini.js
 frontend/public/assets/mirror.js
@@ -45,3 +44,7 @@ frontend/public/sw.js
 
 frontend/public/assets/discovery.js
 frontend/public/assets/catalog.js
+frontend/public/assets/home.js
+frontend/public/assets/version.txt
+frontend/public/assets/boot.js
+frontend/public/assets/skeleton.js

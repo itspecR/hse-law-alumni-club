@@ -1,13 +1,12 @@
 {% if not fragment %}
 <!doctype html>
-<html lang="ru">
+<html lang="ru" class="lux" data-live="{{ live.kind }}"{% if live.veiled %} data-veil{% endif %}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>{{ title }} – Клуб выпускников факультета права Вышки</title>
 <meta name="description" content="Клуб выпускников факультета права НИУ ВШЭ: встречи, программы ДПО и кабинет участника.">
-<meta name="theme-color" content="#EC5A13" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#14181f" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="robots" content="{{ 'noindex,nofollow' if mirror or path.startswith(('/lk','/admin','/cart','/join','/reset','/confirm','/saved')) else 'index,follow' }}">
 <link rel="icon" href="{{ base }}favicon.ico">
@@ -15,12 +14,17 @@
 <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}icon-180.png">
 <link rel="apple-touch-icon" sizes="167x167" href="{{ base }}icon-167.png">
 <link rel="apple-touch-icon" sizes="152x152" href="{{ base }}icon-152.png">
-<link rel="stylesheet" href="{{ base }}fonts/fonts.css">
-<link rel="stylesheet" href="{{ base }}assets/site.css">
-<script type="module" src="{{ base }}assets/site.js">
+{% for font in ('Thin', 'Regular', 'SemiBold') %}
+<link rel="preload" href="{{ base }}fonts/HSESans-{{ font }}.woff2" as="font" type="font/woff2" crossorigin>
+{% endfor %}
+<link rel="stylesheet" href="{{ base }}fonts/fonts.css?v={{ asset_version }}">
+<link rel="stylesheet" href="{{ base }}assets/site.css?v={{ asset_version }}">
+<script src="{{ base }}assets/boot.js?v={{ asset_version }}">
+</script>
+<script type="module" src="{{ base }}assets/site.js?v={{ asset_version }}">
 </script>
 {% if mirror %}
-<script type="module" src="{{ base }}assets/mirror.js">
+<script type="module" src="{{ base }}assets/mirror.js?v={{ asset_version }}">
 </script>
 {% endif %}
 </head>
@@ -55,7 +59,7 @@
 <header class="club-header">
 <div class="club-header__inner">
 <a href="/" class="foc club-header__brand">
-<img src="{{ base }}icon-192.png" width="36" height="36" alt="" class="club-header__emblem">
+<img src="{{ base }}assets/themis-club.svg" width="26" height="26" alt="" class="club-header__emblem">
 <span class="club-header__lockup">Клуб выпускников<small>факультета права Вышки</small>
 </span>
 </a>
@@ -101,7 +105,7 @@
 </header>
 {% endif %}
 {% endif %}
-<div id="page" data-path="{{ path }}" data-private="{{ 'office' if path.startswith('/admin') else 'member' if path.startswith('/lk') else '' }}">
+<div id="page" data-path="{{ path }}">
 {% if errors %}
 <div role="alert" class="site-errors">
 {% for error in errors|unique %}
@@ -114,11 +118,27 @@
 {% endblock %}
 </div>
 {% if not fragment %}
+<div class="club-skeleton" role="status">
+<span class="club-skeleton__label">Загружаем страницу</span>
+<div class="club-skeleton__frame" aria-hidden="true">
+<span class="club-skeleton__bone club-skeleton__title"></span>
+<span class="club-skeleton__bone club-skeleton__lead"></span>
+<span class="club-skeleton__bone club-skeleton__media"></span>
+<div class="club-skeleton__grid">
+{% for _ in range(6) %}
+<span class="club-skeleton__bone club-skeleton__card"></span>
+{% endfor %}
+</div>
+{% for _ in range(5) %}
+<span class="club-skeleton__bone club-skeleton__text"></span>
+{% endfor %}
+</div>
+</div>
 {% if not path.startswith('/admin') %}
 <footer class="club-footer club-dark">
 <div class="club-footer__inner">
 <div class="club-footer__brand">
-<img src="{{ base }}icon-192.png" width="48" height="48" alt="">
+<img src="{{ base }}assets/themis-club.svg" width="40" height="40" alt="">
 <div>
 <strong>Клуб выпускников факультета права Вышки</strong>
 <p>Встречи выпускников, программы ДПО, подкасты и изменения в праве.</p>
@@ -179,26 +199,6 @@
 {% endif %}
 </div>
 </div>
-<dialog id="support-bot" aria-labelledby="bot-title">
-<header class="site-actions">
-<h2 id="bot-title">Поддержка клуба</h2>
-<button data-action="close-bot" aria-label="Закрыть поддержку">×</button>
-</header>
-<div class="club-bot-log" aria-live="polite">
-<p>Спрашивайте про программы ДПО, вступление в клуб, подкасты, мерч, события или кабинет.</p>
-</div>
-<div class="club-bot-hints">
-{% for hint in ['Подобрать программу','Как вступить','Подкасты','Скидка выпускника','Онлайн'] %}
-<button data-action="bot-hint" data-question="{{ hint }}">{{ hint }}</button>
-{% endfor %}
-</div>
-<form data-bot-form>
-<label>Вопрос<input name="question" minlength="2" maxlength="500" required autocomplete="off">
-</label>
-<button>Спросить</button>
-</form>
-<a href="/support">Написать человеку</a>
-</dialog>
 <div id="toast" role="status" aria-live="polite" hidden>
 </div>
 <dialog id="search-dialog" class="discovery-dialog" aria-labelledby="search-title">
@@ -220,7 +220,6 @@
 </div>
 </aside>
 <button id="install-app" data-action="install" hidden>Установить приложение</button>
-<a href="/support" class="support-launcher" aria-label="Поддержка клуба">Помощь</a>
 </body>
 </html>
 {% endif %}

@@ -52,6 +52,8 @@ jobs:
           python3 scripts/tests/test-ops.py
           python3 scripts/tests/test-install.py
           python3 scripts/tests/test-mariadb-ops.py
+          python3 scripts/tests/test-image-builds.py
+          sudo python3 scripts/tests/test-deploy-entrypoint.py
           python3 scripts/tests/test-security-inventory.py
           uv run --directory frontend ruff check ../scripts/diagnostics/security-inventory.py ../scripts/checks/check-image-audit.py ../scripts/tests/test-security-inventory.py
           uv run --directory frontend ruff format --check ../scripts/diagnostics/security-inventory.py ../scripts/checks/check-image-audit.py ../scripts/tests/test-security-inventory.py
@@ -131,7 +133,7 @@ jobs:
 
   live-stack:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
@@ -181,6 +183,11 @@ jobs:
           path: security-reports/
           retention-days: 7
           if-no-files-found: warn
+      - name: Remove MySQL preinstalled on the runner image
+        run: |
+          sudo systemctl stop mysql || true
+          sudo DEBIAN_FRONTEND=noninteractive apt-get purge -y 'mysql-server*' 'mysql-client*' mysql-common
+          sudo rm -rf /etc/mysql /var/lib/mysql
       - name: Install, repeat and restore MariaDB on Ubuntu with local TLS
         run: CLUB_NATIVE_BROWSER=true bash scripts/tests/test-install.sh
 

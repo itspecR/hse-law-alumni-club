@@ -1,5 +1,12 @@
 from asgiref.sync import markcoroutinefunction
 
+from club_web.rendering import published_version
+from club_web.views import PUBLIC
+
+VERSIONED_ASSET = "public, max-age=31536000, immutable"
+FONT_ASSET = "public, max-age=2592000"
+STATIC_ASSET = "public, max-age=86400"
+SPECULATION_RULES = '"/speculation-rules.json"'
 CSP = "default-src 'self'; script-src 'self' https://telegram.org; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https:; media-src 'self' https: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-src https://rutube.ru https://www.rutube.ru; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors https://web.telegram.org https://*.telegram.org 'self'"
 
 
@@ -19,12 +26,22 @@ class HeadersMiddleware:
         response.headers.setdefault(
             "Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
         )
-        if response.headers.get("X-Club-Offline") == "public":
-            response.headers["Cache-Control"] = "no-cache"
-        elif request.path == "/sw.js" or request.path.endswith((".js", ".css")):
-            response.headers["Cache-Control"] = "no-cache"
-        elif request.path.startswith(("/assets/", "/fonts/")):
-            response.headers["Cache-Control"] = "public, max-age=300"
-        else:
-            response.headers["Cache-Control"] = "no-store"
+        if response.headers.get("Content-Type", "").startswith("text/html"):
+            response.headers.setdefault("Speculation-Rules", SPECULATION_RULES)
+        response.headers["Cache-Control"] = cache_policy(request, response)
         return response
+
+
+def cache_policy(request, response):
+    static = request.path.startswith(("/assets/", "/fonts/"))
+    if response.headers.get("X-Club-Offline") == "public":
+        return "no-cache"
+    if static and response.status_code == 200 and request.GET.get("v") == published_version(PUBLIC) != "":
+        return VERSIONED_ASSET
+    if request.path == "/sw.js" or request.path.endswith((".js", ".css")):
+        return "no-cache"
+    if static and request.path.endswith(".woff2"):
+        return FONT_ASSET
+    if static:
+        return STATIC_ASSET
+    return "no-store"

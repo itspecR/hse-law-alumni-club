@@ -1,9 +1,13 @@
+import re
+
 import httpx
 import pytest
 
-from club_web.formatting import payment_url, safe_url
+from club_web.build import build_public
+from club_web.formatting import payment_url, rub, safe_url
 from club_web.main import create_app
 from club_web.pages import OFFICE_NAV, PUBLIC_PAGES
+from club_web.views import PUBLIC
 
 NEWS = {
     "id": "news-1",
@@ -154,7 +158,7 @@ async def browser_client():
 async def test_public_pages_render(browser_client, path):
     response = await browser_client.get(path)
     assert response.status_code == 200
-    assert '<html lang="ru">' in response.text
+    assert '<html lang="ru" class="lux" data-live=' in response.text
     assert 'id="main"' in response.text
     assert "React" not in response.text
     assert response.headers["cache-control"] == (
@@ -169,7 +173,7 @@ async def test_public_pages_render(browser_client, path):
         ("/saved", False, True),
         ("/changes/tg-18", False, True),
         ("/dpo", False, True),
-        pytest.param("/?source=pwa", False, False, id="failed-home-data-is-not-saved"),
+        ("/?source=pwa", False, True),
         ("/tg?pwa=1", False, True),
         ("/news?source=other", False, False),
         ("/dpo", True, False),
@@ -198,6 +202,24 @@ async def test_office_sections_render(browser_client, section):
     assert response.status_code == 200
     assert 'id="main"' in response.text
     assert "Войти в кабинет" not in response.text
+
+
+@pytest.mark.parametrize(
+    "path,root",
+    [
+        ("/lk", 'data-live="member" data-veil'),
+        ("/lk/profile", 'data-live="member" data-veil'),
+        ("/admin/news", 'data-live="office" data-veil'),
+        ("/cart", 'data-live="cart" data-veil'),
+        ("/podcasts", 'data-live="member">'),
+        ("/events/event-1", 'data-live="member">'),
+        ("/news", 'data-live="">'),
+    ],
+)
+async def test_pages_tell_browser_whether_they_load_member_data(browser_client, path, root):
+    response = await browser_client.get(path)
+    assert '<html lang="ru" class="lux" ' + root in response.text
+    assert 'class="club-skeleton"' in response.text
 
 
 async def test_guest_cannot_load_private_fragment(browser_client):
@@ -274,6 +296,58 @@ async def test_detail_api_failure_remains_retryable(path):
     assert response.status_code == 503
     assert "Не удалось загрузить страницу" in response.text
     assert "Страница не найдена" not in response.text
+
+
+async def test_failed_home_data_is_not_saved_offline():
+    async def upstream(request):
+        return httpx.Response(503, json={"error": "Сервис временно недоступен"})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            response = await client.get("/?source=pwa")
+    assert response.status_code == 200
+    assert response.headers.get("X-Club-Offline") is None
+    assert response.headers["cache-control"] == "no-store"
+    assert "Программы не&nbsp;загрузились" in response.text
+    assert "Программ в&nbsp;каталоге" not in response.text
+    assert "data-starts-empty" not in response.text
+
+
+@pytest.mark.parametrize(
+    "hero,chars",
+    [({}, 8), ({"title_pre": "Клуб выпускников", "title_accent": "факультета права"}, 11)],
+)
+async def test_home_hero_words_fit_longest_word(hero, chars):
+    async def upstream(request):
+        if request.url.path == "/pages/home":
+            return httpx.Response(200, json={"blocks": {"hero": hero}})
+        return httpx.Response(200, json=[])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            response = await client.get("/")
+    assert f'style="--hero-chars:{chars}"' in response.text
+
+
+async def test_home_uses_only_sourced_photos(browser_client):
+    response = await browser_client.get("/")
+    photos = set(re.findall(r"assets/photos/club/([a-z]+)-", response.text))
+    assert photos == {"graduates", "meeting", "conversation", "voice"}
+
+
+async def test_cart_line_has_no_empty_variant(browser_client):
+    response = await browser_client.get("/cart", headers={"x-cart-session": "cart-test"})
+    assert f"<p>{rub(PRODUCT['price'])}</p>" in response.text
+
+
+async def test_office_uses_dark_theme(browser_client):
+    response = await browser_client.get("/admin", headers={"authorization": "Bearer admin-test"})
+    assert '<html lang="ru" class="lux" data-live="office" data-veil>' in response.text
+    assert "assets/themis-club.svg" in response.text
 
 
 async def test_office_page_failure_does_not_render_empty_edit_form():
@@ -412,3 +486,23 @@ async def test_cart_forms_send_catalog_type(browser_client):
     response = await browser_client.get("/views/cart", headers={"x-cart-session": "test-session"})
     assert '<input type="hidden" name="type" value="merch">' in response.text
     assert '"type": "merch"' in response.text
+
+
+async def test_versioned_assets_are_cached_for_a_year(browser_client):
+    build_public(PUBLIC)
+    version = (PUBLIC / "assets/version.txt").read_text()
+    page = (await browser_client.get("/")).text
+    for path in ("assets/site.css", "assets/site.js", "fonts/fonts.css"):
+        assert f"/{path}?v={version}" in page
+    assert page.count('rel="preload"') == 3 and 'href="/fonts/HSESans-Thin.woff2"' in page
+    policies = {
+        f"/assets/site.css?v={version}": "public, max-age=31536000, immutable",
+        f"/assets/home.js?v={version}": "public, max-age=31536000, immutable",
+        "/assets/site.css?v=stale": "no-cache",
+        "/assets/site.js": "no-cache",
+        "/fonts/HSESans-Thin.woff2": "public, max-age=2592000",
+        "/assets/themis-club.svg": "public, max-age=86400",
+    }
+    for path, policy in policies.items():
+        response = await browser_client.get(path)
+        assert response.status_code == 200 and response.headers["cache-control"] == policy, path

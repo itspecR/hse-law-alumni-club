@@ -9,6 +9,15 @@ function node(tag, text, attributes = {}) {
   return result;
 }
 
+export function hidePastStarts(root) {
+  const rows = [...root.querySelectorAll("[data-program-start]")];
+  if (!rows.length) return;
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Moscow", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  rows.forEach(row => { row.hidden = row.dataset.programStart < today; });
+  const empty = root.querySelector("[data-starts-empty]");
+  if (empty) empty.hidden = rows.some(row => !row.hidden);
+}
+
 export function prepareCatalog(url, notice) {
   const root = document.querySelector("#main");
   const source = root?.querySelector("#program-data");
@@ -22,9 +31,7 @@ export function prepareCatalog(url, notice) {
   const dialog = root.querySelector("#program-compare-dialog");
   let selected = new Set();
   let trigger = null;
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Moscow", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-  root.querySelectorAll("[data-program-start]").forEach(row => { row.hidden = row.dataset.programStart < today; });
-  root.querySelector("[data-starts-empty]").hidden = !!root.querySelector("[data-program-start]:not([hidden])");
+  hidePastStarts(root);
 
   function render() {
     bar.hidden = !selected.size;

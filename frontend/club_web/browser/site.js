@@ -1,7 +1,8 @@
-import { crowMascotApi } from "./crow-mascot.js";
 import { prepareMini } from "./mini.js";
 import { prepareDiscovery } from "./discovery.js";
 import { prepareCatalog } from "./catalog.js";
+import { prepareHome } from "./home.js";
+import { hideSkeleton, prepareSkeleton } from "./skeleton.js";
 
 const base = document.body.dataset.base || "/";
 const mirror = document.body.dataset.mirror === "true";
@@ -12,7 +13,6 @@ let pendingCart = 0;
 let pendingCheckout = false;
 let installPrompt = null;
 let mirrorApi = null;
-let botQueue = Promise.resolve();
 let readingPageSaved = false;
 let removedReading = null;
 
@@ -171,6 +171,7 @@ async function refresh() {
     if (!next) throw new Error("Не удалось обновить страницу. Попробуйте позже.");
     const contacts = path === "/cart" ? [...page.querySelectorAll("form[data-checkout] [name]")].map(input => ({ name: input.name, value: input.value, checked: input.checked })) : [];
     page.replaceWith(document.importNode(next, true));
+    hideSkeleton();
     for (const saved of contacts) {
       const input = document.querySelector("form[data-checkout]")?.elements.namedItem(saved.name);
       if (input) { input.value = saved.value; if (input.type === "checkbox") input.checked = saved.checked; }
@@ -179,6 +180,11 @@ async function refresh() {
     void updateCartCount();
     return true;
   } catch (error) { notice(error.message); return false; }
+}
+
+async function refreshLiveView() {
+  const live = document.documentElement.dataset.live;
+  if (live === "cart" || (live && token(live === "office"))) await refresh();
 }
 
 async function updateCartCount() {
@@ -359,6 +365,7 @@ function openCabinetSection() {
 function setupPage() {
   prepareDiscovery(url, mirror);
   prepareCatalog(url, notice);
+  prepareHome();
   alignOfficeNavigation();
   openCabinetSection();
   const recent = document.querySelector("[data-reading-title]");
@@ -451,36 +458,6 @@ async function supportThread(access) {
   section.append(remove);
 }
 
-async function askBot(question) {
-  const dialog = document.querySelector("#support-bot");
-  const log = dialog.querySelector(".club-bot-log");
-  log.append(element("p", question, { class: "club-bot-mine" }));
-  const busy = element("p", "Загружаю ответ…", { role: "status" });
-  log.append(busy);
-  try {
-    const response = mirror && window.clubMirrorReply ? await window.clubMirrorReply(question) : await request("/support/ask", "POST", { question });
-    log.append(element("p", response.text, { class: "club-bot-say" }));
-    if (response.anchor?.startsWith("/") && !response.anchor.startsWith("//")) log.append(element("a", "Подробнее", { href: url(response.anchor), class: "club-bot-more" }));
-    for (const program of response.programs || []) {
-      const card = element("article", undefined, { class: "club-bot-card" });
-      card.append(element("a", program.title, { href: url(program.url) }), element("p", [program.formatLabel, program.duration, program.start].filter(Boolean).join(" · ")));
-      log.append(card);
-    }
-    for (const hint of response.hints || []) log.append(element("button", hint, { "data-action": "bot-hint", "data-question": hint }));
-  } catch (error) { log.append(element("p", error.message + " Обратитесь в поддержку.", { role: "alert" }), element("a", "Написать человеку", { href: url("support") })); }
-  finally { busy.remove(); log.scrollTop = log.scrollHeight; }
-}
-
-function queueBot(question) {
-  botQueue = botQueue.then(() => askBot(question));
-  return botQueue;
-}
-
-function openBot() {
-  const dialog = document.querySelector("#support-bot");
-  dialog.showModal(); dialog.querySelector("input").focus();
-}
-
 async function download(button) {
   if (mirror) throw new Error("Выгрузки доступны в рабочем приложении.");
   const headers = token() ? { authorization: `Bearer ${token()}` } : {};
@@ -494,7 +471,6 @@ async function download(button) {
 
 document.addEventListener("submit", async event => {
   const form = event.target;
-  if (form.hasAttribute("data-bot-form")) { event.preventDefault(); const input = form.elements.question; const question = input.value.trim(); input.value = ""; if (question.length >= 2) await queueBot(question); return; }
   if (!(form instanceof HTMLFormElement) || (!form.dataset.api && !form.hasAttribute("data-support-open"))) return;
   event.preventDefault();
   const errorBox = form.querySelector("[data-error]");
@@ -512,10 +488,7 @@ document.addEventListener("click", async event => {
     if (target.dataset.download) { await download(target); return; }
     if (target.dataset.api) { await perform(target, target.dataset.method === "GET" || target.dataset.method === "DELETE" ? undefined : target.dataset.body ? JSON.parse(target.dataset.body) : {}); return; }
     const action = target.dataset.action;
-    if (action === "support") openBot();
-    else if (action === "close-bot") document.querySelector("#support-bot").close();
-    else if (action === "bot-hint") await queueBot(target.dataset.question);
-    else if (action === "refresh") await refresh();
+    if (action === "refresh") await refresh();
     else if (action === "office-menu") {
       const open = target.getAttribute("aria-expanded") !== "true";
       target.setAttribute("aria-expanded", String(open));
@@ -622,6 +595,7 @@ function vision(action) {
   else if (action === "vision-serif") html.classList.toggle("vis-serif");
   else if (action === "vision-spacing") html.classList.toggle("vis-spacing");
   store("club_vision", JSON.stringify({ on: html.classList.contains("vis"), zoom: html.style.getPropertyValue("--vis-zoom") || "1", scheme: html.dataset.visScheme || "bw", images: !html.classList.contains("vis-noimg"), serif: html.classList.contains("vis-serif"), spacing: html.classList.contains("vis-spacing") }));
+  document.dispatchEvent(new Event("club-vision-change"));
 }
 
 async function pageview() {
@@ -642,6 +616,9 @@ async function subscribePush() {
 }
 
 document.addEventListener("input", event => { if (event.target.matches("[data-reading-search]")) renderReading(); });
+document.addEventListener("focusin", event => {
+  if (event.target.matches?.(":focus-visible")) event.target.closest(".dpo-starts-grid article, .cabinet-nav a")?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+});
 document.addEventListener("change", event => {
   if (event.target.matches("[data-audio-rate]")) event.target.closest(".site-player").querySelector("audio").playbackRate = Number(event.target.value);
   if (event.target.matches("[data-unread-filter],[data-reading-kind]")) renderReading();
@@ -714,20 +691,8 @@ if (navigator.serviceWorker && window.isSecureContext) {
   void navigator.serviceWorker.register(url("sw.js"), { scope: base }).then(() => navigator.serviceWorker.ready).then(saveReadingPage).catch(() => {});
 }
 setupPage();
-if ((token() && (currentPath().startsWith("/lk") || currentPath().startsWith("/admin") || currentPath().startsWith("/podcasts") || currentPath().startsWith("/events"))) || currentPath() === "/cart") void refresh();
+prepareSkeleton(base);
+void refreshLiveView().finally(hideSkeleton);
 void updateCartCount();
 void pageview();
 
-if (!currentPath().startsWith("/admin") && !currentPath().startsWith("/support") && currentPath() !== "/tg") {
-  const compact = matchMedia("(max-width: 640px)").matches;
-  const launcher = document.querySelector(".support-launcher");
-  launcher.hidden = true;
-  const hit = element("button", undefined, { class: "club-crow-hit foc", "aria-label": "Открыть бота поддержки", "data-action": "support" });
-  hit.style.width = compact ? "56px" : "96px"; hit.style.height = compact ? "59px" : "100px";
-  document.body.append(hit);
-  document.body.append(element("button", "Поддержка клуба", { class: "club-crow-vi", "data-action": "support" }));
-  const crow = crowMascotApi.mount({ assetPath: url("assets/crow/"), anchor: "bottom-right", width: compact ? 56 : 96, zIndex: 40, idleSeconds: 0, followCursor: false, idleAnim: "askQ", solo: true, onClick: openBot });
-  crow.play("idle"); crow.host.classList.add("club-crow-corner");
-  hit.addEventListener("click", openBot);
-  window.addEventListener("pagehide", () => crow.destroy(), { once: true });
-}

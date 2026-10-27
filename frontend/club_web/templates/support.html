@@ -1,16 +1,15 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import field %}
 {% block content %}
-<main id="main" class="site-article">
+<main id="main" class="site-article support-page">
 <header class="site-masthead">
 <h1>Поддержка клуба</h1>
 <p>Ответы на частые вопросы и обращение в учебный офис.</p>
 </header>
-<button data-action="support">Спросить бота</button>
 <section>
 <h2>Частые вопросы</h2>
 {% for answer in faq.answers %}
-<details>
+<details class="lux-disclosure">
 <summary>{{ answer.triggers[0]|capitalize }}</summary>
 <p>{{ answer.text }}</p>
 {% if answer.anchor|safe_url %}
@@ -31,7 +30,7 @@
 </select>
 </label>{{ field('message','Сообщение',type='textarea') }}<input type="hidden" name="consentVersion" value="{{ support.version }}">
 <input type="text" name="website" class="site-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true">
-<details>
+<details class="lux-disclosure">
 <summary>Согласие на обработку данных</summary>
 <p>{{ support.consent }}</p>
 </details>

@@ -17,9 +17,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         size=int(self.headers.get('Content-Length','0'))
         self.rfile.read(size)
-        body=json.dumps({'path':self.path,'ip':self.headers.get('X-Forwarded-For'),'forwarded':self.headers.get('Forwarded')}).encode()
+        body=json.dumps({'path':self.path,'ip':self.headers.get('X-Forwarded-For'),'forwarded':self.headers.get('Forwarded'),'pad':'x'*4096}).encode()
+        kind='text/css' if self.path.split('?')[0].endswith('.css') else 'text/html' if self.path.startswith('/news') else 'application/json'
         self.send_response(200)
-        self.send_header('Content-Type','application/json')
+        self.send_header('Content-Type',kind)
         self.send_header('Content-Length',str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -171,9 +172,13 @@ def main():
             assert request("/api/probe", b"x" * 524289)[0] == 413
             assert request("/api/me/avatar", b"x" * (4 * 1024 * 1024 + 1))[0] == 413
             assert request("/api/admin/media", b"x" * (5 * 1024 * 1024))[0] == 200
+            compressed = {"Accept-Encoding": "gzip"}
+            assert request("/assets/site.css?v=1", headers=compressed)[1].get("Content-Encoding") == "gzip"
+            for path in ("/news", "/api/probe"):
+                assert request(path, headers=compressed)[1].get("Content-Encoding") is None, path
             statuses = [request("/api/auth/admin-login", b"{}")[0] for _ in range(15)]
             assert 200 in statuses and 429 in statuses
-            print("nginx: TLS, прокси, защита заголовков IP, CSP, лимиты тела и входа проверены")
+            print("nginx: TLS, прокси, защита заголовков IP, CSP, сжатие статики, лимиты тела и входа проверены")
     finally:
         for container in reversed(owned):
             command("docker", "rm", "-f", container)

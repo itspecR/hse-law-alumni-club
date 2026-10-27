@@ -162,7 +162,7 @@ docker compose --env-file /etc/club-mariadb/compose.env -f deploy/compose.mariad
 sudo env ENV_FILE=/etc/club/compose.env bash scripts/backup.sh
 sudo env ENV_FILE=/etc/club/compose.env python3 scripts/lib/mariadb_native.py prepare-restore --config-dir /etc/club-restore
 sudo env ENV_FILE=/etc/club/compose.env SNAPSHOT_FILE=/var/backups/club/snapshot-YYYYMMDD.tar.gz.enc RESTORE_ENV_FILE=/etc/club-restore/compose.env bash scripts/restore.sh
-sudo env ENV_FILE=/etc/club-restore/compose.env bash scripts/deploy.sh
+sudo env ENV_FILE=/etc/club-restore/compose.env bash scripts/deploy.sh --current
 ```
 
 Восстановление требует checkout ревизии из снимка, новую пустую базу, отдельный
