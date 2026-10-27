@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import save %}
+{% block content %}
+<main id="main" class="site-container program-page portfolio-program" data-reading-title="{{ item.title }}" data-reading-kind="portfolio">
+<a href="/portfolio" class="foc lux-back"><span aria-hidden="true">‹</span> Портфель программ</a>
+<header class="site-masthead">
+{% if item.direction %}<span class="club-caps">{{ item.direction }}</span>{% endif %}
+<h1>{{ item.title }}</h1>
+</header>
+<div class="site-two-col">
+<div>
+{% if item.cover|media %}
+<img class="site-cover site-program-cover" src="{{ item.cover|media }}" alt="{{ item.title }}" width="900" height="600">
+{% endif %}
+{% if item.description %}
+<section>
+<h2>О программе</h2>
+<p class="site-prose">{{ item.description }}</p>
+</section>
+{% endif %}
+{% if item.trainers %}
+<section>
+<h2>{{ 'Тренер' if item.trainers|length==1 else 'Тренеры' }}</h2>
+<div class="lux-teachers">
+{% for trainer in item.trainers %}
+<article>
+{% if trainer.photo|media %}<img class="site-teacher-photo" src="{{ trainer.photo|media }}" alt="{{ trainer.fio }}" width="200" height="200" loading="lazy">{% endif %}
+<h3>{{ trainer.fio }}</h3>
+{% if trainer.bio %}<p>{{ trainer.bio }}</p>{% endif %}
+</article>
+{% endfor %}
+</div>
+</section>
+{% endif %}
+{% for key,label in [('audience','Для кого'),('competencies','Компетенции'),('communication','Коммуникация')] %}
+{% if item[key] %}
+<section>
+<h2>{{ label }}</h2>
+<ul>
+{% for text in item[key] %}
+<li>{{ text }}</li>
+{% endfor %}
+</ul>
+</section>
+{% endif %}
+{% endfor %}
+</div>
+<aside class="site-panel">
+<h2>Обучение</h2>
+<dl>
+<dt>Формат</dt>
+<dd>{{ (format_labels.get(item.format,item.format) or '')|capitalize }}</dd>
+<dt>Продолжительность</dt>
+<dd>{{ item.duration }}</dd>
+<dt>Начало</dt>
+<dd>{{ ((item.dates or {}).get('start') or 'По мере набора')|date }}</dd>
+<dt>Документ</dt>
+<dd>{{ item.document }}</dd>
+{% if item.capacity %}
+<dt>Мест в группе</dt>
+<dd>{{ item.capacity }}</dd>
+{% endif %}
+<dt>Стоимость</dt>
+<dd class="lux-price">{{ item.price|rub }}</dd>
+</dl>
+{% if item.enrollment=='nonactual' %}<p role="status">Набор закрыт</p>{% endif %}
+{{ save(path,item.title,'portfolio') }}
+<p>Выпускникам клуба и по промокоду — скидка, итог в заявке.</p>
+</aside>
+</div>
+</main>
+{% endblock %}

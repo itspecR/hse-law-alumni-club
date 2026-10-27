@@ -8,6 +8,7 @@ from club_api.domain import PORTFOLIO_CATALOG
 from club_api.modules.auth.routes import Body
 from club_api.modules.checkout.payments import SAFE_INTEGER_MAX
 from club_api.modules.content.admin import content_crud
+from club_api.modules.portfolio.links import LINKS, program_links
 
 DEFAULT_DOCUMENT = "Сертификат об обучении"
 MAX_LIST_ITEMS = 20
@@ -15,7 +16,6 @@ MAX_ITEM_LENGTH = 300
 MAX_PROGRAM_TRAINERS = 10
 MAX_CAPACITY = 1000
 MAX_BIO_LENGTH = 5000
-LINKS = "program_trainers"
 PORTFOLIO_FIELDS = (
     "id",
     "slug",
@@ -110,22 +110,6 @@ class TrainerLinks:
     async def attach(self, state, rows):
         links = await program_links(state, [row["id"] for row in rows])
         return [{**row, "trainer_ids": links.get(row["id"], [])} for row in rows]
-
-
-async def program_links(state, program_ids):
-    if not program_ids:
-        return {}
-    rows = await state.store.read(
-        LINKS,
-        filters={"program_id": {"_in": program_ids}},
-        fields=("program_id", "trainer_id"),
-        sort=("sort",),
-        limit=-1,
-    )
-    result = {}
-    for row in rows:
-        result.setdefault(row["program_id"], []).append(row["trainer_id"])
-    return result
 
 
 urlpatterns = content_crud(

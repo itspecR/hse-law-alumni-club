@@ -303,7 +303,7 @@ async function perform(target, body) {
 function reading(strict = false) {
   try {
     const parsed = JSON.parse(stored(readingKey, '{"saved":[],"recent":[],"read":[]}'));
-    const prefixes = { change: "changes", program: "dpo", podcast: "podcasts", event: "events", news: "news", merch: "merch" };
+    const prefixes = { change: "changes", program: "dpo", portfolio: "portfolio", podcast: "podcasts", event: "events", news: "news", merch: "merch" };
     const clean = values => [...new Map((Array.isArray(values) ? values : []).filter(item => item && Object.hasOwn(prefixes, item.kind) && /^[\w-]{1,200}$/.test(item.id) && typeof item.title === "string" && item.title.trim() && item.title.length <= 1000 && item.path === "/" + prefixes[item.kind] + "/" + item.id && Number.isFinite(item.at) && item.at > 0).map(item => [item.path, item])).values()];
     return { saved: clean(parsed.saved).slice(0, 200), recent: clean(parsed.recent).slice(0, 12), read: Array.isArray(parsed.read) ? parsed.read.filter(value => /^\/changes\/[\w-]{1,200}$/.test(value)).slice(0, 500) : [] };
   } catch { if (strict) throw new Error("Сохранённые материалы повреждены. Выгрузите данные браузера перед очисткой хранилища."); return { saved: [], recent: [], read: [] }; }
