@@ -1352,6 +1352,30 @@ def test_hero_progress_reaches_only_its_readers(chromium, site):
     context.close()
 
 
+@pytest.mark.parametrize("motion,animated", [("no-preference", True), ("reduce", False)])
+def test_links_are_prefetched_and_pages_cross_fade(chromium, site, motion, animated):
+    context = chromium.new_context(base_url=site[0], viewport={"width": 1440, "height": 900}, reduced_motion=motion)
+    context.add_init_script(
+        "localStorage.setItem('club_cookie_consent','essential');"
+        "addEventListener('pageswap', event => sessionStorage.setItem('swapped', String(!!event.viewTransition)));"
+    )
+    page = context.new_page()
+    response = page.goto("/news")
+    assert response.headers["speculation-rules"] == '"/speculation-rules.json"'
+    rules = page.request.get("/speculation-rules.json")
+    assert rules.headers["content-type"] == "application/speculationrules+json"
+    excluded = rules.json()["prefetch"][0]["where"]["and"][1]["not"]["href_matches"]
+    assert {"/admin/*", "/api/*", "/lk", "/cart", "/logout"} <= set(excluded)
+    link = page.locator(".club-header__nav a[href='/dpo']")
+    link.hover()
+    page.wait_for_timeout(1200)
+    link.click()
+    page.wait_for_url("**/dpo")
+    assert page.evaluate("performance.getEntriesByType('navigation')[0].deliveryType") == "navigational-prefetch"
+    assert page.evaluate("sessionStorage.getItem('swapped')") == str(animated).lower()
+    context.close()
+
+
 @pytest.mark.parametrize(
     "viewport,vision", [({"width": 844, "height": 390}, False), ({"width": 390, "height": 844}, True)]
 )

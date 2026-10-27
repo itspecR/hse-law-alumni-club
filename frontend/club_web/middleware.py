@@ -6,6 +6,7 @@ from club_web.views import PUBLIC
 VERSIONED_ASSET = "public, max-age=31536000, immutable"
 FONT_ASSET = "public, max-age=2592000"
 STATIC_ASSET = "public, max-age=86400"
+SPECULATION_RULES = '"/speculation-rules.json"'
 CSP = "default-src 'self'; script-src 'self' https://telegram.org; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https:; media-src 'self' https: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-src https://rutube.ru https://www.rutube.ru; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors https://web.telegram.org https://*.telegram.org 'self'"
 
 
@@ -25,6 +26,8 @@ class HeadersMiddleware:
         response.headers.setdefault(
             "Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
         )
+        if response.headers.get("Content-Type", "").startswith("text/html"):
+            response.headers.setdefault("Speculation-Rules", SPECULATION_RULES)
         response.headers["Cache-Control"] = cache_policy(request, response)
         return response
 
