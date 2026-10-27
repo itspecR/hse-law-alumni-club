@@ -31,6 +31,20 @@ async def next_order_number(connection):
     return f"ALU-{year}-{(await cursor.fetchone())['seq']:06d}"
 
 
+PENDING_NOTICE = {"channel": "none", "ok": False, "blocked": True}
+
+
+def initial_receipt(number, base):
+    return {
+        "number": number,
+        "status": base["status"],
+        "member_discount": base["member_discount"],
+        "subtotal": base["subtotal"],
+        "total_estimate": base["total_estimate"],
+        "notified": PENDING_NOTICE,
+    }
+
+
 class Checkout:
     def __init__(self, state):
         self.state = state
@@ -130,34 +144,26 @@ class Checkout:
             )
             return {"number": number, "replay": None}
 
-    async def record_order(self, connection, key, request_hash, base, reservations):
+    async def record_order(self, connection, key, request_hash, base, reservations, receipt=initial_receipt):
         number = await next_order_number(connection)
         order = await self.state.store.create(
             "orders",
             {"id": str(uuid4()), **base, "number": number, "created_at": datetime.now(UTC)},
             connection=connection,
         )
-        receipt = {
-            "number": number,
-            "status": base["status"],
-            "member_discount": base["member_discount"],
-            "subtotal": base["subtotal"],
-            "total_estimate": base["total_estimate"],
-            "notified": {"channel": "none", "ok": False, "blocked": True},
-        }
         await connection.execute(
             "INSERT INTO club_checkout_commits(key_hash,request_hash,order_id,reservations,receipt) VALUES(%s,%s,%s,%s,%s)",
-            (key, request_hash, order["id"], Jsonb(reservations), Jsonb(receipt)),
+            (key, request_hash, order["id"], Jsonb(reservations), Jsonb(receipt(number, base))),
         )
         return number
 
-    async def commit_single(self, *, key, request_hash, build):
+    async def commit_single(self, *, key, request_hash, build, receipt):
         async with self.state.database.transaction() as connection:
             await acquire_lock(connection, "checkout:" + key)
             if previous := await self.replay(key, request_hash, connection):
                 return {"replay": previous, "number": previous["number"]}
             base = await build(connection)
-            number = await self.record_order(connection, key, request_hash, base, [])
+            number = await self.record_order(connection, key, request_hash, base, [], receipt)
             return {"replay": None, "number": number, "base": base}
 
     async def release(self, connection, order_id):

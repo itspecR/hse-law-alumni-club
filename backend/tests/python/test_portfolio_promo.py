@@ -8,6 +8,8 @@ import pytest
 from test_community_integration import account
 from test_portfolio_applications import FORM, GROUP, PRICE, apply, mails, order, program
 
+from club_api.modules.portfolio.applications import promo_message
+
 TODAY = datetime.now(ZoneInfo("Europe/Moscow")).date()
 DAY = timedelta(days=1)
 PROMO = {"code": "spring-15", "percent": 15, "starts_on": str(TODAY - DAY), "ends_on": str(TODAY + DAY)}
@@ -246,3 +248,46 @@ async def test_deleted_promo_keeps_code_in_application(database_app, mails):
         assert (await client.delete("/admin/promo-codes/" + id, headers=admin)).status_code == 200
     saved = await order(app, number)
     assert (saved["promo_id"], saved["promo_code"], saved["discount_source"]) == (None, "SPRING-15", "promo")
+
+
+async def test_patch_of_deleted_promo_is_not_found(database_app):
+    app = database_app
+    _, admin = await account(app, "admin")
+    async with client_for(app) as client:
+        id = await create_promo(client, admin)
+        await client.delete("/admin/promo-codes/" + id, headers=admin)
+        response = await client.patch("/admin/promo-codes/" + id, headers=admin, json={"percent": 10})
+    assert response.status_code == 404 and response.json()["error"] == "Промокод не найден"
+
+
+async def test_promo_dates_are_stored_in_iso_form(database_app):
+    app = database_app
+    _, admin = await account(app, "admin")
+    week = TODAY.isocalendar()
+    async with client_for(app) as client:
+        id = await create_promo(
+            client, admin, starts_on=TODAY.strftime("%Y%m%d"), ends_on=f"{week.year}-W{week.week:02d}-7"
+        )
+        row = await promo_row(client, admin, id)
+    sunday = TODAY + timedelta(days=7 - week.weekday)
+    assert (row["starts_on"], row["ends_on"]) == (TODAY.isoformat(), sunday.isoformat())
+
+
+async def test_quote_does_not_reveal_who_used_the_code(database_app, mails):
+    app = database_app
+    item = await program(app)
+    _, admin = await account(app, "admin")
+    async with client_for(app) as client:
+        await create_promo(client, admin)
+        assert (await apply(client, item["slug"], with_code(FORM))).status_code == 200
+        quote = await client.post(
+            f"/portfolio/{item['slug']}/quote",
+            json={"applicant": "self", "promo_code": "SPRING-15", "contact_email": FORM["contact_email"]},
+        )
+        again = await apply(client, item["slug"], with_code(FORM))
+    assert quote.status_code == 200 and quote.json()["source"] == "promo"
+    assert again.status_code == 400 and "уже использовали" in again.json()["error"]
+
+
+def test_equal_member_discount_message_does_not_claim_it_is_bigger():
+    assert promo_message("SPRING-15", "member", 15) == "Ваша скидка выпускника не меньше — промокод не понадобился"

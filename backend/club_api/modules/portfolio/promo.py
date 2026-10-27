@@ -10,13 +10,13 @@ from club_api.modules.auth.routes import Body
 from club_api.modules.catalog.scope import PORTFOLIO_PROGRAMS
 from club_api.modules.content.admin import content_crud
 from club_api.modules.portfolio.admin import canonical_ids
+from club_api.modules.portfolio.relations import PROMO_PROGRAMS, require_existing
 
 PROMO_MAX_PERCENT = 50
 DEFAULT_PER_PERSON = 1
 MAX_PROMO_LIMIT = 100000
 MAX_PROMO_PROGRAMS = 50
 CODE_PATTERN = r"^[A-Za-z0-9-]{3,32}$"
-PROMO_PROGRAMS = "promo_code_programs"
 RELEASED_STATUSES = ("canceled", "expired")
 MOSCOW = ZoneInfo("Europe/Moscow")
 PROMO_FIELDS = (
@@ -41,8 +41,7 @@ PERSON_USES_SQL = USES_SQL + " AND LOWER(contact_email)=LOWER(%s)"
 
 
 def iso_date(value):
-    date.fromisoformat(value)
-    return value
+    return date.fromisoformat(value).isoformat()
 
 
 class PromoBody(Body):
@@ -79,30 +78,6 @@ async def require_unique_code(state, code, id, connection):
         raise ApiError(409, "Такой промокод уже есть")
 
 
-async def require_programs(state, ids, connection):
-    rows = await state.store.read(
-        "programs", filters={"id": {"_in": ids}, **PORTFOLIO_PROGRAMS}, fields=("id",), limit=-1, connection=connection
-    )
-    if len(rows) != len(ids):
-        raise ApiError(400, "Программа не найдена. Обновите страницу и выберите программы заново")
-
-
-async def linked_programs(state, promo_ids, connection=None):
-    if not promo_ids:
-        return {}
-    rows = await state.store.read(
-        PROMO_PROGRAMS,
-        filters={"promo_id": {"_in": promo_ids}},
-        fields=("promo_id", "program_id"),
-        limit=-1,
-        connection=connection,
-    )
-    result = {}
-    for row in rows:
-        result.setdefault(row["promo_id"], []).append(row["program_id"])
-    return result
-
-
 async def promo_uses(state, promo_ids):
     if not promo_ids:
         return {}
@@ -121,30 +96,36 @@ class PromoRules:
 
     async def prepare(self, state, data, program_ids, id, connection):
         current = await state.store.read("promo_codes", filters={"id": {"_eq": id}}, limit=1, connection=connection)
+        if id and not current:
+            raise ApiError(404, "Промокод не найден")
         merged = {**(current[0] if current else {}), **data}
         if "code" in data:
             await require_unique_code(state, data["code"], id, connection)
         if date.fromisoformat(merged["ends_on"]) < date.fromisoformat(merged["starts_on"]):
             raise ApiError(400, "Дата окончания раньше даты начала")
         programs = (
-            program_ids if program_ids is not None else (await linked_programs(state, [id], connection)).get(id, [])
+            program_ids
+            if program_ids is not None
+            else (await PROMO_PROGRAMS.grouped(state, [id], connection)).get(id, [])
         )
         if not merged.get("all_programs", True) and not programs:
             raise ApiError(400, "Выберите программы или отметьте «Все программы портфеля»")
-        if program_ids:
-            await require_programs(state, program_ids, connection)
+        await require_existing(
+            state,
+            "programs",
+            program_ids,
+            PORTFOLIO_PROGRAMS,
+            "Программа не найдена. Обновите страницу и выберите программы заново",
+            connection,
+        )
         return data
 
     async def save(self, state, promo_id, program_ids, connection):
-        await state.store.delete(PROMO_PROGRAMS, filters={"promo_id": {"_eq": promo_id}}, connection=connection)
-        for program_id in program_ids:
-            await state.store.create(
-                PROMO_PROGRAMS, {"promo_id": promo_id, "program_id": program_id}, connection=connection
-            )
+        await PROMO_PROGRAMS.replace(state, promo_id, program_ids, connection)
 
     async def attach(self, state, rows):
         ids = [row["id"] for row in rows]
-        links, uses = await linked_programs(state, ids), await promo_uses(state, ids)
+        links, uses = await PROMO_PROGRAMS.grouped(state, ids), await promo_uses(state, ids)
         return [{**row, "program_ids": links.get(row["id"], []), "used": uses.get(row["id"], 0)} for row in rows]
 
 
@@ -174,8 +155,10 @@ async def require_uses(connection, promo, email):
     released = (promo["id"], *RELEASED_STATUSES)
     if promo["total_limit"] and await count(connection, USES_SQL, released) >= promo["total_limit"]:
         raise ApiError(400, "Лимит промокода исчерпан")
-    if promo["per_person_limit"] and (
-        await count(connection, PERSON_USES_SQL, (*released, email)) >= promo["per_person_limit"]
+    if (
+        email is not None
+        and promo["per_person_limit"]
+        and (await count(connection, PERSON_USES_SQL, (*released, email)) >= promo["per_person_limit"])
     ):
         raise ApiError(400, "Вы уже использовали этот промокод")
 

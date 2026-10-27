@@ -222,3 +222,22 @@ async def test_member_sees_club_application_details(database_app, mails):
         await apply(client, item["slug"], GROUP, member)
         rows = (await client.get("/me/orders", headers=member)).json()
     assert (rows[0]["type"], rows[0]["participants"], rows[0]["organization"]) == ("portfolio", 3, "ООО «Пример»")
+
+
+async def test_retry_after_failed_notice_returns_full_receipt(database_app, mails, monkeypatch):
+    app = database_app
+    item = await program(app)
+
+    async def broken(*args):
+        raise RuntimeError("office channel is down")
+
+    monkeypatch.setattr(app.state.notifications, "order_notice", broken)
+    key = {"idempotency-key": str(uuid4())}
+    async with client_for(app) as client:
+        failed = await apply(client, item["slug"], GROUP, key)
+        retried = await apply(client, item["slug"], GROUP, key)
+    assert failed.status_code == 500 and retried.status_code == 200
+    receipt = retried.json()
+    assert (receipt["participants"], receipt["discount_source"], receipt["total_estimate"]) == (3, None, 3 * PRICE)
+    assert receipt["notified"]["ok"] is False
+    assert len(await app.state.store.read("orders", fields=("id",))) == 1

@@ -120,7 +120,9 @@ def site():
                 if (body.get("promo_code") or "").upper() != "SPRING-15":
                     return httpx.Response(400, json={"error": "Промокод не найден"})
                 total = PORTFOLIO["price"] * body.get("participants", 1) * 85 // 100
-                return httpx.Response(200, json=PROMO_QUOTE | {"total": total})
+                return httpx.Response(200, json=PROMO_QUOTE | {"total": records.get("quote_total", total)})
+            if path.endswith("/applications") and records.get("application_failure"):
+                return httpx.Response(503, json={"error": "Временно недоступно"})
             if path.endswith("/applications"):
                 participants = body.get("participants", 1)
                 promo = PROMO_QUOTE if body.get("promo_code") else records.get("member_quote", NO_DISCOUNT)
@@ -2181,7 +2183,7 @@ def test_portfolio_promo_preview_and_application(page, site, width):
     expect(quote).to_have_attribute("data-state", "ok")
     sent = site[2][-1]
     assert sent["path"] == "/portfolio/club-one/quote"
-    assert sent["body"] == {"applicant": "self", "promo_code": "spring-15", "contact_email": None}
+    assert sent["body"] == {"applicant": "self", "promo_code": "spring-15"}
     form.get_by_label("От организации", exact=True).check()
     expect(quote).to_be_hidden()
     form.get_by_label("Для себя", exact=True).check()
@@ -2195,6 +2197,40 @@ def test_portfolio_promo_preview_and_application(page, site, width):
     receipt = page.locator(".portfolio-receipt")
     expect(receipt).to_contain_text("Промокод применён: скидка 15%")
     assert site[2][-1]["body"]["promo_code"] == "spring-15"
+
+
+def test_portfolio_quote_keeps_kopecks(page, site):
+    site[1]["quote_total"] = 3825050
+    page.goto("/portfolio/club-one")
+    form = page.locator("form[data-application]")
+    form.get_by_label("Промокод", exact=True).fill("spring-15")
+    form.get_by_role("button", name="Применить", exact=True).click()
+    expect(form.locator("[data-quote]")).to_have_text(re.compile(r"итого \(справочно\): 38\s250,50\s₽$"))
+
+
+def test_application_retry_reuses_key_only_for_same_data(page, site):
+    site[1]["application_failure"] = True
+    page.goto("/portfolio/club-one")
+    form = page.locator("form[data-application]")
+    form.get_by_label("ФИО", exact=True).fill("Вымышленный Заявитель")
+    form.get_by_label("Телефон", exact=True).fill("+70000000000")
+    form.get_by_label("Почта", exact=True).fill("applicant@example.test")
+    form.get_by_label("Даю согласие на обработку персональных данных").check()
+    form.get_by_label("Соглашаюсь с условиями обучения").check()
+    send = form.get_by_role("button", name="Отправить заявку", exact=True)
+    keys = []
+    for comment in ("", "", "Нужен договор"):
+        form.get_by_label("Комментарий", exact=True).fill(comment)
+        send.click()
+        expect(form.locator("[data-error]")).to_have_text("Временно недоступно")
+        expect(send).to_be_enabled()
+        keys.append(site[2][-1]["headers"]["idempotency-key"])
+    assert keys[0] == keys[1] != keys[2]
+    site[1]["application_failure"] = False
+    send.click()
+    expect(page.locator(".portfolio-receipt")).to_be_visible()
+    assert site[2][-1]["headers"]["idempotency-key"] == keys[2]
+    assert page.evaluate("localStorage.getItem('club_application:/portfolio/club-one/applications')") is None
 
 
 def test_portfolio_receipt_names_member_discount(page, site):

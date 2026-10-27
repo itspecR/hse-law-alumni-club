@@ -78,11 +78,11 @@ async def write_content(state, table, data, *, id=None, connection=None):
                 return await state.store.update(table, data, id=id, connection=connection)
         return await state.store.update(table, data, id=id, connection=connection)
     if table in ("programs", "products", "news"):
-        data["slug"] = await unique_slug(state.store, table, data["title"])
+        data["slug"] = await unique_slug(state.store, table, data["title"], connection)
     if table == "news":
         data["published_at"] = datetime.now(UTC)
     if table in ("timeline_items", "podcasts") and data.get("sort") is None:
-        rows = await state.store.read(table, fields=("sort",), limit=-1)
+        rows = await state.store.read(table, fields=("sort",), limit=-1, connection=connection)
         data["sort"] = max((row["sort"] or 0 for row in rows), default=0) + 1
     return await state.store.create(table, data, connection=connection)
 

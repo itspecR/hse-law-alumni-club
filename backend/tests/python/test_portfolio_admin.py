@@ -47,6 +47,7 @@ async def test_portfolio_program_saves_card_fields_and_trainer_order(database_ap
         assert row["competencies"] == ["Подготовка позиции", "Ведение переговоров"]
         assert row["communication"] == ["Telegram-чат", "Zoom"] and row["capacity"] == 20
         assert (await app.state.store.one("programs", program["id"]))["catalog"] == "portfolio"
+        assert "seats_taken" not in row
 
 
 async def test_patch_replaces_trainers_only_when_sent(database_app):
