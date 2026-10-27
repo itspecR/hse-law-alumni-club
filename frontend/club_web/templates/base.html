@@ -178,26 +178,6 @@
 {% endif %}
 </div>
 </div>
-<dialog id="support-bot" aria-labelledby="bot-title">
-<header class="site-actions">
-<h2 id="bot-title">Поддержка клуба</h2>
-<button data-action="close-bot" aria-label="Закрыть поддержку">×</button>
-</header>
-<div class="club-bot-log" aria-live="polite">
-<p>Спрашивайте про программы ДПО, вступление в клуб, подкасты, мерч, события или кабинет.</p>
-</div>
-<div class="club-bot-hints">
-{% for hint in ['Подобрать программу','Как вступить','Подкасты','Скидка выпускника','Онлайн'] %}
-<button data-action="bot-hint" data-question="{{ hint }}">{{ hint }}</button>
-{% endfor %}
-</div>
-<form data-bot-form>
-<label>Вопрос<input name="question" minlength="2" maxlength="500" required autocomplete="off">
-</label>
-<button>Спросить</button>
-</form>
-<a href="/support">Написать человеку</a>
-</dialog>
 <div id="toast" role="status" aria-live="polite" hidden>
 </div>
 <dialog id="search-dialog" class="discovery-dialog" aria-labelledby="search-title">
@@ -219,7 +199,6 @@
 </div>
 </aside>
 <button id="install-app" data-action="install" hidden>Установить приложение</button>
-<a href="/support" class="support-launcher" aria-label="Поддержка клуба">Помощь</a>
 </body>
 </html>
 {% endif %}
