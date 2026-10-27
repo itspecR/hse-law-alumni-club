@@ -1,21 +1,38 @@
+{% macro choices(name,label,selected) %}
+<fieldset class="office-choices"><legend>{{ label }}</legend>
+{% for trainer in trainers or [] %}
+<label><input type="checkbox" name="{{ name }}" value="{{ trainer.id }}" data-list {% if trainer.id in selected %}checked{% endif %}>{{ trainer.fio }}{% if trainer.status!='published' %} · {{ labels.get(trainer.status,trainer.status) }}{% endif %}</label>
+{% else %}
+<p class="office-meta">Тренеров пока нет. Добавьте их в разделе <a href="/admin/trainers">«Тренеры»</a>.</p>
+{% endfor %}
+</fieldset>
+{% endmacro %}
 {% macro content_form(record={}) %}
 <form data-api="/admin/{{ section }}{{ '/'+record.id if record.id else '' }}" data-method="{{ 'PATCH' if record.id else 'POST' }}" class="site-admin-form">
 {% for name,label,kind in office_fields.get(section,[]) %}
-{% set value=(record.get('dates') or {}).get('start') if section=='programs' and name=='start' else record.get(name) %}
+{% set value=(record.get('dates') or {}).get('start') if section in ('programs','portfolio') and name=='start' else record.get(name) %}
+{% if kind=='trainers' %}
+{{ choices(name,label,value or []) }}
+{% else %}
 <label class="site-field">{{ label }}{% if '|' in kind %}
 <select name="{{ name }}" aria-label="{{ label }}">
 {% for option in kind.split('|') %}
 <option value="{{ option }}" {% if value==option %}selected{% endif %}>{{ labels.get(option,option) }}</option>
 {% endfor %}
 </select>
+{% elif kind=='lines' %}
+<textarea name="{{ name }}" aria-label="{{ label }}" data-lines>{{ (value or [])|join('\n') }}</textarea>
 {% elif kind in ('textarea','json') %}
 <textarea name="{{ name }}" aria-label="{{ label }}" {% if kind=='json' %}data-json{% endif %}>{{ (value|tojson) if kind=='json' and value else value or '' }}</textarea>
 {% elif kind=='checkbox' %}
 <input type="checkbox" name="{{ name }}" {% if value %}checked{% endif %}>
+{% elif kind=='limit' %}
+<input name="{{ name }}" type="number" min="1" data-nullable value="{{ value if value is not none else '' }}">
 {% else %}
 <input name="{{ name }}" type="{{ kind }}" value="{{ value if value is not none else '0' if name in ('price','stock','sort') else '60' if name=='points' else '' }}">
 {% endif %}
 </label>
+{% endif %}
 {% endfor %}
 <button class="site-primary">{{ 'Сохранить' if record.id else 'Создать' }}</button>
 <p role="alert" data-error hidden>

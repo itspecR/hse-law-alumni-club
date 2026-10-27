@@ -1975,3 +1975,77 @@ def test_catalog_and_detail_photos_keep_shape_without_enlargement(page, site, wi
                 "image => Math.abs(image.clientWidth / image.clientHeight - image.naturalWidth / image.naturalHeight) < .02"
             )
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), path
+
+
+TRAINERS = [
+    {"id": "trainer-a", "fio": "Анна Вымышленная", "status": "published", "bio": "Медиатор и преподаватель"},
+    {"id": "trainer-b", "fio": "Борис Вымышленный", "status": "draft", "bio": None},
+]
+PORTFOLIO_PROGRAM = {
+    "id": "club-1",
+    "slug": "club-1",
+    "title": "Переговоры для юристов",
+    "format": "blended",
+    "duration": "6 недель",
+    "price": 4500000,
+    "enrollment": "actual",
+    "status": "published",
+    "document": "Сертификат об обучении",
+    "dates": {"start": "1 декабря 2026"},
+    "audience": ["Юристы компаний"],
+    "competencies": ["Переговоры"],
+    "communication": ["Zoom"],
+    "capacity": 20,
+    "trainer_ids": ["trainer-b", "trainer-a"],
+}
+
+
+@pytest.mark.parametrize("width", [1440, 390])
+def test_office_portfolio_form_sends_lists_trainers_and_limit(page, site, width):
+    site[1]["/admin/trainers"] = TRAINERS
+    site[1]["/admin/portfolio"] = [PORTFOLIO_PROGRAM]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/portfolio")
+    row = page.locator("article.office-record")
+    expect(row.locator(".office-meta")).to_contain_text("Борис Вымышленный, Анна Вымышленная")
+    row.get_by_text("Редактировать", exact=True).click()
+    choices = row.get_by_role("group", name="Тренеры")
+    expect(choices.get_by_label("Анна Вымышленная")).to_be_checked()
+    choices.get_by_label("Борис Вымышленный · Черновик").uncheck()
+    row.get_by_label("Компетенции, каждая с новой строки").fill("Подготовка позиции\n\n  Ведение переговоров  ")
+    row.get_by_label("Лимит мест").fill("")
+    row.get_by_role("button", name="Сохранить", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
+    write = site[2][-1]
+    assert write["path"] == "/admin/portfolio/club-1" and write["method"] == "PATCH"
+    assert write["body"]["trainer_ids"] == ["trainer-a"] and write["body"]["capacity"] is None
+    assert write["body"]["competencies"] == ["Подготовка позиции", "Ведение переговоров"]
+    assert write["body"]["start"] == "1 декабря 2026" and write["body"]["audience"] == ["Юристы компаний"]
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+def test_office_portfolio_without_trainers_points_to_directory(page, site):
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/portfolio")
+    page.locator("details.office-create summary").click()
+    form = page.locator("details.office-create form")
+    expect(form.get_by_role("link", name="«Тренеры»")).to_have_attribute("href", "/admin/trainers")
+    form.get_by_label("Название", exact=True).fill("Новая программа клуба")
+    form.get_by_label("Продолжительность", exact=True).fill("2 дня")
+    form.get_by_role("button", name="Создать", exact=True).click()
+    expect(page.locator("#toast")).to_be_visible()
+    write = site[2][-1]
+    assert write["path"] == "/admin/portfolio" and write["method"] == "POST"
+    assert "trainer_ids" not in write["body"] and write["body"]["capacity"] is None
+    assert write["body"]["audience"] == [] and write["body"]["format"] == "online"
+
+
+def test_office_trainers_list_and_delete_warning(page, site):
+    site[1]["/admin/trainers"] = TRAINERS
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/trainers")
+    expect(page.get_by_role("heading", name="Анна Вымышленная", exact=True)).to_be_visible()
+    expect(page.locator("article.office-record").last).to_contain_text("Справка не заполнена")
+    delete = page.locator("article.office-record").first.get_by_role("button", name="Удалить", exact=True)
+    expect(delete).to_have_attribute("data-confirm", "Удалить тренера? Он исчезнет из всех программ.")

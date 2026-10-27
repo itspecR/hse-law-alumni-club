@@ -123,11 +123,14 @@ function formBody(form) {
     let value = input.value;
     if (input.type === "checkbox") {
       if (input.name === "interests") { body.interests ||= []; if (input.checked) body.interests.push(value); continue; }
+      if (input.hasAttribute("data-list")) { body[input.name] ||= []; if (input.checked) body[input.name].push(value); continue; }
       value = input.checked;
     } else if (input.type === "number") {
-      if (!value) continue;
+      if (!value) { if (input.hasAttribute("data-nullable")) body[input.name] = null; continue; }
       value = Number(value);
       if (!Number.isFinite(value)) throw new Error("Укажите корректное число.");
+    } else if (input.hasAttribute("data-lines")) {
+      value = value.split("\n").map(line => line.trim()).filter(Boolean);
     } else if (input.hasAttribute("data-json")) {
       if (!value.trim()) continue;
       try { value = JSON.parse(value); } catch { throw new Error("Проверьте формат JSON в поле «" + input.closest("label").childNodes[0].textContent.trim() + "»."); }
