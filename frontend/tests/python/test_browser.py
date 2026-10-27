@@ -1377,6 +1377,102 @@ def test_links_are_prefetched_and_pages_cross_fade(chromium, site, motion, anima
 
 
 @pytest.mark.parametrize(
+    "path,key,content",
+    [
+        ("/lk", "club_token", "Тестовый выпускник"),
+        ("/admin/news", "club_admin_token", "Новости"),
+        ("/cart", "club_cart", "Корзина"),
+    ],
+)
+def test_signed_in_member_sees_skeleton_until_private_page_loads(chromium, site, path, key, content):
+    context = chromium.new_context(base_url=site[0], viewport={"width": 390, "height": 844}, is_mobile=True)
+    tokens = {"club_token": "member-qa", "club_admin_token": "admin-qa", "club_cart": "cart-qa"}
+    context.add_init_script(
+        f"localStorage.setItem('club_cookie_consent','essential');localStorage.setItem('{key}','{tokens[key]}');"
+    )
+    page = context.new_page()
+    held = []
+    page.route("**/views/**", lambda route: held.append(route))
+    page.goto(path)
+    expect(page.locator(".club-skeleton")).to_be_visible()
+    expect(page.locator("#page")).to_be_hidden()
+    assert page.evaluate("document.documentElement.dataset.skeleton") == "panel"
+    for _ in range(50):
+        if held:
+            break
+        page.wait_for_timeout(100)
+    assert held
+    for route in held:
+        route.continue_()
+    page.unroute("**/views/**")
+    expect(page.locator(".club-skeleton")).to_be_hidden()
+    expect(page.locator("#page")).to_contain_text(content)
+    context.close()
+
+
+@pytest.mark.parametrize("path,key", [("/lk", None), ("/podcasts", "club_token"), ("/news", "club_token")])
+def test_pages_without_private_data_show_content_at_once(chromium, site, path, key):
+    context = chromium.new_context(base_url=site[0])
+    script = "localStorage.setItem('club_cookie_consent','essential');"
+    if key:
+        script += f"localStorage.setItem('{key}','member-qa');"
+    context.add_init_script(
+        script
+        + "addEventListener('DOMContentLoaded', () => { window.veiled = 'skeleton' in document.documentElement.dataset; });"
+    )
+    page = context.new_page()
+    page.goto(path)
+    assert page.evaluate("window.veiled") is False
+    expect(page.locator("#main")).to_be_visible()
+    expect(page.locator(".club-skeleton")).to_be_hidden()
+    context.close()
+
+
+SKELETON_STATE = """addEventListener('pageswap', () => {
+  const style = selector => getComputedStyle(document.querySelector(selector));
+  const parts = ['#page', '.club-skeleton', '.club-skeleton__media', '.club-skeleton__grid'];
+  sessionStorage.setItem('skeleton', JSON.stringify({
+    kind: document.documentElement.dataset.skeleton || null,
+    display: parts.map(selector => style(selector).display),
+    pulse: style('.club-skeleton__title').animationName,
+  }));
+});"""
+
+
+@pytest.mark.parametrize("motion,pulse", [("no-preference", "club-skeleton-pulse"), ("reduce", "none")])
+def test_slow_navigation_shows_skeleton_of_target_page(chromium, site, motion, pulse):
+    context = chromium.new_context(
+        base_url=site[0], viewport={"width": 1440, "height": 900}, reduced_motion=motion, service_workers="block"
+    )
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');" + SKELETON_STATE)
+    page = context.new_page()
+    page.goto("/support")
+    kinds = page.evaluate(
+        "import('/assets/skeleton.js').then(module => ['/news', '/news/news-one', '/lk', '/admin/news', '/']"
+        ".map(module.skeletonKind))"
+    )
+    assert kinds == ["list", "article", "panel", "panel", "list"]
+    page.evaluate(
+        "document.body.insertAdjacentHTML('beforeend',"
+        ' \'<a id=slow data-no-prefetch href="/news/news-one">x</a><a id=hash href="#main">y</a>\')'
+    )
+    page.locator("#hash").click()
+    page.wait_for_timeout(500)
+    assert page.evaluate("document.documentElement.dataset.skeleton") is None
+    held = []
+    page.route("**/news/news-one", lambda route: held.append(route))
+    page.locator("#slow").click(no_wait_after=True)
+    page.wait_for_timeout(700)
+    for route in held:
+        route.continue_()
+    page.wait_for_url("**/news/news-one")
+    state = json.loads(page.evaluate("sessionStorage.getItem('skeleton')"))
+    assert state == {"kind": "article", "display": ["none", "block", "block", "none"], "pulse": pulse}
+    expect(page.locator(".club-skeleton")).to_be_hidden()
+    context.close()
+
+
+@pytest.mark.parametrize(
     "viewport,vision", [({"width": 844, "height": 390}, False), ({"width": 390, "height": 844}, True)]
 )
 def test_home_hero_stays_usable_without_scroll_scene(chromium, site, viewport, vision):

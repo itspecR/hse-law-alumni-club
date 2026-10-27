@@ -1,6 +1,6 @@
 {% if not fragment %}
 <!doctype html>
-<html lang="ru" class="lux">
+<html lang="ru" class="lux" data-live="{{ live.kind }}"{% if live.veiled %} data-veil{% endif %}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -19,6 +19,8 @@
 {% endfor %}
 <link rel="stylesheet" href="{{ base }}fonts/fonts.css?v={{ asset_version }}">
 <link rel="stylesheet" href="{{ base }}assets/site.css?v={{ asset_version }}">
+<script src="{{ base }}assets/boot.js?v={{ asset_version }}">
+</script>
 <script type="module" src="{{ base }}assets/site.js?v={{ asset_version }}">
 </script>
 {% if mirror %}
@@ -103,7 +105,7 @@
 </header>
 {% endif %}
 {% endif %}
-<div id="page" data-path="{{ path }}" data-private="{{ 'office' if path.startswith('/admin') else 'member' if path.startswith('/lk') else '' }}">
+<div id="page" data-path="{{ path }}">
 {% if errors %}
 <div role="alert" class="site-errors">
 {% for error in errors|unique %}
@@ -116,6 +118,22 @@
 {% endblock %}
 </div>
 {% if not fragment %}
+<div class="club-skeleton" role="status">
+<span class="club-skeleton__label">Загружаем страницу</span>
+<div class="club-skeleton__frame" aria-hidden="true">
+<span class="club-skeleton__bone club-skeleton__title"></span>
+<span class="club-skeleton__bone club-skeleton__lead"></span>
+<span class="club-skeleton__bone club-skeleton__media"></span>
+<div class="club-skeleton__grid">
+{% for _ in range(6) %}
+<span class="club-skeleton__bone club-skeleton__card"></span>
+{% endfor %}
+</div>
+{% for _ in range(5) %}
+<span class="club-skeleton__bone club-skeleton__text"></span>
+{% endfor %}
+</div>
+</div>
 {% if not path.startswith('/admin') %}
 <footer class="club-footer club-dark">
 <div class="club-footer__inner">
