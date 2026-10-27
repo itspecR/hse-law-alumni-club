@@ -10,7 +10,7 @@ from club_api.core.models import parse_date
 from club_api.core.security import client_ip, trust_proxy, yookassa_ip
 from club_api.core.views import api_view, json_body
 from club_api.db.store import normalize
-from club_api.domain import PORTFOLIO_CATALOG
+from club_api.domain import PORTFOLIO_CATALOG, rubles
 from club_api.modules.auth.service import require_alumni
 from club_api.modules.checkout.store import digest
 from club_api.observability.audit import audit
@@ -357,7 +357,7 @@ async def webhook(request: HttpRequest):
             detail={"payment_id": payment["id"]},
         )
     if order and outcome == "succeeded" and order["contact_email"] and (order["contact_email"] != "-"):
-        text = f"Здравствуйте, {order['contact_fio']}!\n\nОплата по заявке {order['number']} на сумму {order['total_estimate'] / 100:g} ₽ прошла успешно."
+        text = f"Здравствуйте, {order['contact_fio']}!\n\nОплата по заявке {order['number']} на сумму {rubles(order['total_estimate'])} прошла успешно."
         text += (
             "\nПодписка на подкасты клуба активирована на год – приятного прослушивания!"
             if order["type"] == "podcast"

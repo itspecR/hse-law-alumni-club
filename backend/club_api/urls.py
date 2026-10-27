@@ -21,6 +21,7 @@ import club_api.modules.office.routes as office_routes
 import club_api.modules.podcasts.routes as podcasts_routes
 import club_api.modules.portfolio.admin as portfolio_admin
 import club_api.modules.portfolio.applications as portfolio_applications
+import club_api.modules.portfolio.discounts as portfolio_discounts
 import club_api.modules.portfolio.promo as portfolio_promo
 import club_api.modules.portfolio.routes as portfolio_routes
 import club_api.modules.support.routes as support_routes
@@ -87,6 +88,7 @@ routes = (
         path("me/orders", endpoint({"GET": checkout_orders.my_orders})),
         path("admin/orders", endpoint({"GET": checkout_admin.orders})),
         path("admin/orders/<str:id>", endpoint({"PATCH": checkout_admin.patch_order})),
+        path("admin/orders/<str:id>/discount", endpoint({"PATCH": portfolio_discounts.set_discount})),
         path("admin/orders/export.csv", endpoint({"GET": checkout_admin.export_orders})),
         path("podcasts", endpoint({"GET": podcasts_routes.podcasts})),
         path("podcasts/<str:id>/audio", endpoint({"GET": podcasts_routes.audio})),

@@ -7,7 +7,7 @@ from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
 from club_api.core.views import api_view, parse_body
-from club_api.domain import PORTFOLIO_CATALOG, effective_discount, order_totals
+from club_api.domain import PORTFOLIO_CATALOG, effective_discount, order_totals, rubles
 from club_api.modules.auth.routes import Body, EmailBody, RegisterBody
 from club_api.modules.catalog.scope import PUBLISHED_PORTFOLIO
 from club_api.modules.checkout.store import digest
@@ -187,7 +187,7 @@ async def notify(state, number, base):
         base["contact_email"],
         f"Заявка {number} принята – Клуб выпускников факультета права",
         f"Здравствуйте, {base['contact_fio']}!\n\nВаша заявка {number} принята:\n{summary(base)}\n"
-        f"Сумма (справочно): {base['total_estimate'] / 100:g} ₽.\n\n"
+        f"Сумма (справочно): {rubles(base['total_estimate'])}.\n\n"
         "Оплата на сайте не требуется: менеджер учебного офиса свяжется с вами, чтобы согласовать договор и оплату.",
     )
     return notified

@@ -8,7 +8,7 @@ from django.http import HttpRequest, HttpResponse
 
 from club_api.core.models import count, guid, parse_date, query_choice, query_page, query_search
 from club_api.core.views import api_view, defer, parse_body
-from club_api.domain import PORTFOLIO_CATALOG
+from club_api.domain import PORTFOLIO_CATALOG, applied_discount
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin, require_full_admin
 from club_api.observability.audit import audit
@@ -49,6 +49,9 @@ ORDER_FIELDS = (
     "participants",
     "promo_code",
     "discount_source",
+    "member_discount",
+    "office_discount",
+    "office_reason",
 )
 
 
@@ -184,6 +187,8 @@ async def export_orders(request: HttpRequest):
             "Организация",
             "Участников",
             "Промокод",
+            "Скидка офиса, %",
+            "Причина скидки офиса",
         ]
     ]
     for order in orders:
@@ -213,7 +218,7 @@ async def export_orders(request: HttpRequest):
                 order["address"],
                 items,
                 rubles(order["subtotal"]),
-                order["member_discount"],
+                applied_discount(order),
                 rubles(order["total_estimate"]),
                 STATUS_LABELS.get(order["status"], order["status"]),
                 payment,
@@ -221,6 +226,8 @@ async def export_orders(request: HttpRequest):
                 order["organization"],
                 order["participants"],
                 order["promo_code"],
+                order["office_discount"],
+                order["office_reason"],
             ]
         )
     await audit(request, "orders.export", actor="admin:" + admin["userId"], detail={"count": len(orders)})

@@ -529,6 +529,8 @@ class Orders(models.Model):
     )
     promo_code = models.CharField(max_length=32, null=True)
     discount_source = models.CharField(max_length=32, null=True)
+    office_discount = models.IntegerField(null=True)
+    office_reason = models.CharField(max_length=300, null=True)
 
     class Meta:
         db_table = "orders"
