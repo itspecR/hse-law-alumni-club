@@ -47,6 +47,8 @@ ORDER_FIELDS = (
     "comment",
     "organization",
     "participants",
+    "promo_code",
+    "discount_source",
 )
 
 
@@ -181,6 +183,7 @@ async def export_orders(request: HttpRequest):
             "Комментарий",
             "Организация",
             "Участников",
+            "Промокод",
         ]
     ]
     for order in orders:
@@ -217,6 +220,7 @@ async def export_orders(request: HttpRequest):
                 order["comment"],
                 order["organization"],
                 order["participants"],
+                order["promo_code"],
             ]
         )
     await audit(request, "orders.export", actor="admin:" + admin["userId"], detail={"count": len(orders)})

@@ -92,6 +92,7 @@ async def save_content(state, table, data, relation, *, id=None):
         return await write_content(state, table, data, id=id)
     data, links = relation.split(data)
     async with state.database.transaction() as connection:
+        data = await relation.prepare(state, data, links, id, connection)
         row = await write_content(state, table, data, id=id, connection=connection) if data or id is None else {}
         if links is not None:
             await relation.save(state, id or row["id"], links, connection)

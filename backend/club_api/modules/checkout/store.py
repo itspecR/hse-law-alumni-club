@@ -151,12 +151,14 @@ class Checkout:
         )
         return number
 
-    async def commit_single(self, *, key, request_hash, base):
+    async def commit_single(self, *, key, request_hash, build):
         async with self.state.database.transaction() as connection:
             await acquire_lock(connection, "checkout:" + key)
             if previous := await self.replay(key, request_hash, connection):
                 return {"replay": previous, "number": previous["number"]}
-            return {"replay": None, "number": await self.record_order(connection, key, request_hash, base, [])}
+            base = await build(connection)
+            number = await self.record_order(connection, key, request_hash, base, [])
+            return {"replay": None, "number": number, "base": base}
 
     async def release(self, connection, order_id):
         cursor = await connection.execute(

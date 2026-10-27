@@ -45,7 +45,7 @@ def canonical_ids(values):
     try:
         return list(dict.fromkeys(str(UUID(value)) for value in values))
     except ValueError as error:
-        raise ValueError("Некорректный идентификатор тренера") from error
+        raise ValueError("Некорректный идентификатор") from error
 
 
 class TrainerBody(Body):
@@ -99,8 +99,11 @@ class TrainerLinks:
         data = dict(data)
         return data, data.pop("trainer_ids", None)
 
+    async def prepare(self, state, data, trainer_ids, id, connection):
+        await require_trainers(state, trainer_ids or [], connection)
+        return data
+
     async def save(self, state, program_id, trainer_ids, connection):
-        await require_trainers(state, trainer_ids, connection)
         await state.store.delete(LINKS, filters={"program_id": {"_eq": program_id}}, connection=connection)
         for sort, trainer_id in enumerate(trainer_ids):
             await state.store.create(
