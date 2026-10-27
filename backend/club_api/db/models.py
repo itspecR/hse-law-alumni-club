@@ -524,6 +524,11 @@ class Orders(models.Model):
     participants = models.IntegerField(db_default=1)
     organization = models.CharField(max_length=300, null=True)
     consents = models.JSONField(null=True)
+    promo = models.ForeignKey(
+        "PromoCodes", on_delete=models.SET_NULL, db_column="promo_id", related_name="+", null=True
+    )
+    promo_code = models.CharField(max_length=32, null=True)
+    discount_source = models.CharField(max_length=32, null=True)
 
     class Meta:
         db_table = "orders"
@@ -671,6 +676,35 @@ class Programs(models.Model):
         constraints = [
             models.CheckConstraint(condition=models.Q(catalog__in=PROGRAM_CATALOGS), name="programs_catalog_check"),
         ]
+
+
+class PromoCodePrograms(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, db_default=DatabaseUUID())
+    promo = models.ForeignKey("PromoCodes", on_delete=models.CASCADE, db_column="promo_id", related_name="+")
+    program = models.ForeignKey("Programs", on_delete=models.CASCADE, db_column="program_id", related_name="+")
+
+    class Meta:
+        db_table = "promo_code_programs"
+        constraints = [
+            models.UniqueConstraint(fields=("promo", "program"), name="uq_promo_code_programs_promo_program"),
+        ]
+
+
+class PromoCodes(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, db_default=DatabaseUUID())
+    code = models.CharField(max_length=32, unique=True)
+    percent = models.IntegerField()
+    starts_on = models.DateField()
+    ends_on = models.DateField()
+    total_limit = models.IntegerField(null=True)
+    per_person_limit = models.IntegerField(null=True)
+    all_programs = models.BooleanField(db_default=True)
+    status = models.CharField(max_length=32, db_default="active")
+    note = models.TextField(null=True)
+    created_at = models.DateTimeField(db_default=Now())
+
+    class Meta:
+        db_table = "promo_codes"
 
 
 class PushSubs(models.Model):

@@ -21,6 +21,7 @@ import club_api.modules.office.routes as office_routes
 import club_api.modules.podcasts.routes as podcasts_routes
 import club_api.modules.portfolio.admin as portfolio_admin
 import club_api.modules.portfolio.applications as portfolio_applications
+import club_api.modules.portfolio.promo as portfolio_promo
 import club_api.modules.portfolio.routes as portfolio_routes
 import club_api.modules.support.routes as support_routes
 import club_api.modules.telegram.routes as telegram_routes
@@ -65,6 +66,7 @@ routes = (
         path("portfolio", endpoint({"GET": portfolio_routes.programs})),
         path("portfolio/<str:slug>", endpoint({"GET": portfolio_routes.program})),
         path("portfolio/<str:slug>/applications", endpoint({"POST": portfolio_applications.apply})),
+        path("portfolio/<str:slug>/quote", endpoint({"POST": portfolio_applications.quote})),
         path("timeline", endpoint({"GET": content_routes.timeline})),
         path("pages/<str:slug>", endpoint({"GET": content_routes.page})),
         path(
@@ -142,6 +144,7 @@ routes = (
     ]
     + content_admin.urlpatterns
     + portfolio_admin.urlpatterns
+    + portfolio_promo.urlpatterns
     + podcasts_routes.urlpatterns
 )
 routes.sort(key=lambda route: str(route.pattern).count("<"))

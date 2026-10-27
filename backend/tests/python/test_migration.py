@@ -43,8 +43,17 @@ def test_all_legacy_routes_are_present():
         for name in ("trainers", "portfolio")
         for method, suffix in (("GET", ""), ("POST", ""), ("PATCH", "/{id}"), ("DELETE", "/{id}"))
     }
-    public = {("GET", "/portfolio"), ("GET", "/portfolio/{slug}"), ("POST", "/portfolio/{slug}/applications")}
-    assert actual == expected | added | portfolio | public and len(actual) == 130
+    public = {
+        ("GET", "/portfolio"),
+        ("GET", "/portfolio/{slug}"),
+        ("POST", "/portfolio/{slug}/applications"),
+        ("POST", "/portfolio/{slug}/quote"),
+    }
+    promo = {
+        (method, "/admin/promo-codes" + suffix)
+        for method, suffix in (("GET", ""), ("POST", ""), ("PATCH", "/{id}"), ("DELETE", "/{id}"))
+    }
+    assert actual == expected | added | portfolio | public | promo and len(actual) == 135
 
 
 def test_hse_state_dates_and_manual_fields():
