@@ -289,8 +289,8 @@ docs/                     development, operations, product, integrations, decisi
 docker-compose.yml        сервисы и постоянные хранилища приложения
 ```
 
-[AGENTS.md](AGENTS.md) задаёт правила изменений, [DESIGN.md](DESIGN.md) – решения
-интерфейса. [docs/development/context.md](docs/development/context.md) служит коротким указателем для нового участника.
+[AGENTS.md](AGENTS.md) задаёт правила изменений, [CLAUDE.md](CLAUDE.md) – порядок работы с ветками
+`main`, `andrew` и `sergey`, [DESIGN.md](DESIGN.md) – решения интерфейса. [docs/development/context.md](docs/development/context.md) служит коротким указателем для нового участника.
 Справочники и инструкции собраны в [навигации документации](docs/README.md).
 Правила размещения файлов и карта модулей – в [структуре проекта](docs/development/repository-structure.md).
 
