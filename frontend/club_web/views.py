@@ -9,7 +9,7 @@ from django.views.decorators.http import require_safe
 from club_web.client import Api, forwarded_headers
 from club_web.offline import can_save_page
 from club_web.pages import context
-from club_web.rendering import ROOT, templates
+from club_web.rendering import ROOT, published_version, templates
 
 PUBLIC = ROOT / "public" if (ROOT / "public").exists() else ROOT.parent / "public"
 STATIC_FILES = {
@@ -100,7 +100,7 @@ async def render_page(request, path, *, fragment):
     )
     if fragment and data.get("access_error") == 401:
         return JsonResponse({"error": "Сессия завершилась. Войдите снова."}, status=401)
-    data.update(request=request, fragment=fragment, base="/", mirror=False)
+    data.update(request=request, fragment=fragment, base="/", mirror=False, asset_version=published_version(PUBLIC))
     data["offline_reading"] = can_save_page(
         "/" + path, request.GET, data, fragment=fragment, authorized="authorization" in supplied
     )

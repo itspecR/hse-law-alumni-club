@@ -14,12 +14,15 @@
 <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}icon-180.png">
 <link rel="apple-touch-icon" sizes="167x167" href="{{ base }}icon-167.png">
 <link rel="apple-touch-icon" sizes="152x152" href="{{ base }}icon-152.png">
-<link rel="stylesheet" href="{{ base }}fonts/fonts.css">
-<link rel="stylesheet" href="{{ base }}assets/site.css">
-<script type="module" src="{{ base }}assets/site.js">
+{% for font in ('Thin', 'Regular', 'SemiBold') %}
+<link rel="preload" href="{{ base }}fonts/HSESans-{{ font }}.woff2" as="font" type="font/woff2" crossorigin>
+{% endfor %}
+<link rel="stylesheet" href="{{ base }}fonts/fonts.css?v={{ asset_version }}">
+<link rel="stylesheet" href="{{ base }}assets/site.css?v={{ asset_version }}">
+<script type="module" src="{{ base }}assets/site.js?v={{ asset_version }}">
 </script>
 {% if mirror %}
-<script type="module" src="{{ base }}assets/mirror.js">
+<script type="module" src="{{ base }}assets/mirror.js?v={{ asset_version }}">
 </script>
 {% endif %}
 </head>
