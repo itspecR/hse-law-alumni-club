@@ -6,6 +6,7 @@ from club_api.db.queries import Query
 from club_api.modules.catalog.sync import sync_catalog
 from club_api.modules.news.sources import SOURCES, refresh_source
 from club_api.modules.notifications.mail import MAIL_RETENTION_DAYS
+from club_api.modules.portfolio.captcha import forget_expired
 
 
 async def retention(state):
@@ -31,6 +32,7 @@ async def retention(state):
         ),
         (MAIL_RETENTION_DAYS,),
     )
+    await forget_expired(state)
 
 
 async def event_reminders(state):

@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import hashlib
 import json
 import re
 import socket
@@ -40,6 +41,14 @@ WORDS_UNBROKEN = """node => {
 
 PROMO_QUOTE = {"discount": 15, "source": "promo", "message": "Промокод применён: скидка 15%"}
 NO_DISCOUNT = {"discount": 0, "source": None, "message": None}
+CAPTCHA_SALT = "a" * 32 + ".1999999999"
+CHALLENGE = {
+    "algorithm": "SHA-256",
+    "salt": CAPTCHA_SALT,
+    "challenge": hashlib.sha256((CAPTCHA_SALT + "7").encode()).hexdigest(),
+    "maxnumber": 50000,
+    "signature": "f" * 64,
+}
 
 
 def is_cart_change(response):
@@ -65,6 +74,7 @@ def site():
         "/programs/course-one": PROGRAM,
         "/portfolio": [PORTFOLIO],
         "/portfolio/club-one": PORTFOLIO,
+        "/portfolio/challenge": CHALLENGE,
         "/products": [PRODUCT],
         "/events": [EVENT],
         "/podcasts": {"items": [EPISODE], "subscribed": False, "price": 499900},
@@ -2389,6 +2399,7 @@ def test_portfolio_application_from_organization(page, site, width):
         "consent_pdn": True,
         "consent_terms": True,
         "website": "",
+        "captcha": {"salt": CAPTCHA_SALT, "number": 7, "signature": "f" * 64},
     }
 
 

@@ -211,6 +211,15 @@ class MailOutbox(models.Model):
         ]
 
 
+class CaptchaUses(models.Model):
+    salt_hash = models.CharField(max_length=64, primary_key=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        db_table = "club_captcha_uses"
+        indexes = [models.Index(fields=["expires_at"], name="club_captcha_uses_expires_idx")]
+
+
 class NewsInbox(models.Model):
     id = models.CharField(max_length=255, primary_key=True)
     source_url = models.TextField(unique=True)

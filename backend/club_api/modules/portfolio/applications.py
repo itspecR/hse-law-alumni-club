@@ -13,11 +13,16 @@ from club_api.domain import PORTFOLIO_CATALOG, effective_discount, order_totals,
 from club_api.modules.auth.routes import Body, EmailBody, RegisterBody
 from club_api.modules.catalog.scope import PUBLISHED_PORTFOLIO
 from club_api.modules.checkout.store import PENDING_NOTICE, digest
+from club_api.modules.portfolio.captcha import CaptchaBody, require_captcha
 from club_api.modules.portfolio.promo import valid_promo
 from club_api.observability.audit import audit
 from club_api.resources import shared_data
 
-ROUTE_LIMITS = {("POST", "/portfolio/{slug}/applications"): 6, ("POST", "/portfolio/{slug}/quote"): 30}
+ROUTE_LIMITS = {
+    ("POST", "/portfolio/{slug}/applications"): 6,
+    ("POST", "/portfolio/{slug}/quote"): 30,
+    ("GET", "/portfolio/challenge"): 30,
+}
 MAX_PARTICIPANTS = 20
 MIN_GROUP = 2
 PROMO_CODE_LENGTH = 32
@@ -38,6 +43,7 @@ class ApplicationBody(Body):
     consent_pdn: Literal[True]
     consent_terms: Literal[True]
     promo_code: str | None = Field(default=None, max_length=PROMO_CODE_LENGTH)
+    captcha: CaptchaBody | None = None
     website: str = Field(default="", max_length=0)
 
     @field_validator("contact_email")
@@ -226,13 +232,14 @@ async def apply(request: HttpRequest, slug: str):
     key = idempotency_key(request, slug)
     request_hash = digest(
         json.dumps(
-            {"slug": slug, "body": body.model_dump(), "alumni": alumni["id"] if alumni else None},
+            {"slug": slug, "body": body.model_dump(exclude={"captcha"}), "alumni": alumni["id"] if alumni else None},
             ensure_ascii=False,
             sort_keys=True,
         )
     )
     if previous := await state.checkout.replay(key, request_hash):
         return previous
+    await require_captcha(state, body.captcha)
     program = await open_program(state, slug)
     member = applicant_discount(body.applicant, alumni)
 

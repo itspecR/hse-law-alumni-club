@@ -240,9 +240,21 @@ function jsonOrNull(value) {
   try { return JSON.parse(value); } catch { return null; }
 }
 
-async function fingerprint(value) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(value)));
+async function sha256hex(text) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function fingerprint(value) {
+  return sha256hex(JSON.stringify(value));
+}
+
+async function solveCaptcha() {
+  const task = await request("/portfolio/challenge");
+  for (let number = 0; number <= task.maxnumber; number++) {
+    if (await sha256hex(task.salt + number) === task.challenge) return { salt: task.salt, number, signature: task.signature };
+  }
+  throw new Error("Не удалось пройти проверку. Обновите страницу и отправьте заявку ещё раз.");
 }
 
 function showQuote(form, text, failed = false) {
@@ -310,6 +322,7 @@ async function perform(target, body) {
       const id = saved?.print === print ? saved.id : crypto.randomUUID();
       store(key, JSON.stringify({ id, print }));
       headers = { "idempotency-key": id };
+      body = { ...body, captcha: await solveCaptcha() };
     }
     if (target.hasAttribute("data-support-create")) {
       const saved = sessionStorage.getItem("club-support-pending");
