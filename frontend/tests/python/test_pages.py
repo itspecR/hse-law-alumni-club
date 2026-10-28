@@ -440,7 +440,7 @@ async def test_unavailable_changes_source_keeps_saved_materials_and_status(brows
     for path in ("/changes", "/changes/tg-18"):
         response = await browser_client.get(path)
         assert response.status_code == 200
-        assert "Источник временно недоступен. Показаны сохранённые материалы." in response.text
+        assert "Источник временно недоступен. Показаны сохраненные материалы." in response.text
         assert "Последнее успешное обновление" in response.text
 
 
@@ -623,6 +623,29 @@ async def test_dpo_discount_note_only_for_club_applications():
     assert note in open_page and "‹</span> Программы ДПО</a>" in open_page and "<p>Часов: 21</p>" in open_page
     assert note not in await program_page({**PROGRAM, "source_url": "https://www.hse.ru/edu/dpo/1"})
     assert note not in await program_page({**PROGRAM, "enrollment": "nonactual"})
+
+
+async def test_events_podcasts_news_search_saved_texts_follow_glossary(browser_client):
+    pages = {
+        path: (await browser_client.get(path)).text for path in ("/events", "/podcasts", "/news", "/search", "/saved")
+    }
+    assert "<p>Баллы за участие: 60</p>" in pages["/events"] and "Файл для календаря (.ics)</a>" in pages["/events"]
+    assert "Подкаст клуба. Пробный выпуск открыт всем, остальные доступны по подписке на год." in pages["/podcasts"]
+    assert '<span class="club-caps">Пробный выпуск · 30:00</span>' in pages["/podcasts"]
+    assert "<p>Новости факультета и клуба.</p>" in pages["/news"]
+    assert "<h1>Поиск по сайту</h1>" in pages["/search"] and "<h1>Сохраненное</h1>" in pages["/saved"]
+    templates = Path(club_web.__file__).parent / "templates"
+    for name in (
+        "events.html",
+        "podcasts.html",
+        "episode.html",
+        "news.html",
+        "article.html",
+        "search.html",
+        "saved.html",
+        "changes.html",
+    ):
+        assert re.findall(".{0,40}[ёЁ–—].{0,20}", (templates / name).read_text()) == [], name
 
 
 async def test_portfolio_texts_follow_glossary(browser_client):

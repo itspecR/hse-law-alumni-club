@@ -676,7 +676,7 @@ def test_search_page_row_and_support_questions(page, width):
 def test_corrupt_reading_data_is_not_overwritten(page):
     page.add_init_script("localStorage.setItem('club-reading-v1','broken-json');")
     page.goto("/news/news-one")
-    expect(page.locator("#toast")).to_contain_text("Сохранённые материалы повреждены")
+    expect(page.locator("#toast")).to_contain_text("Сохраненные материалы повреждены")
     assert page.evaluate("localStorage.getItem('club-reading-v1')") == "broken-json"
     page.get_by_role("button", name="Сохранить", exact=True).click()
     assert page.evaluate("localStorage.getItem('club-reading-v1')") == "broken-json"
@@ -1103,7 +1103,7 @@ def test_search_keyboard_waits_for_submitted_results(page, width, direction, mov
     page.goto("/news")
     if width < 768:
         page.get_by_role("button", name="Открыть меню", exact=True).click()
-    page.get_by_role("link", name="Поиск по клубу" if width < 768 else "Поиск", exact=True).first.click()
+    page.get_by_role("link", name="Поиск по сайту" if width < 768 else "Поиск", exact=True).first.click()
     dialog = page.locator("#search-dialog")
     field = dialog.get_by_role("searchbox")
     field.fill("правовая")
@@ -1135,7 +1135,7 @@ def test_saved_search_undo_and_recent_limit(page):
     page.goto("/dpo/course-one")
     page.get_by_role("button", name="Сохранить", exact=True).click()
     page.goto("/saved")
-    search = page.get_by_role("searchbox", name="Поиск в сохранённом")
+    search = page.get_by_role("searchbox", name="Поиск в сохраненном")
     search.fill(PROGRAM["title"])
     saved = page.locator("[data-reading-list=saved]")
     expect(saved.get_by_role("link")).to_have_count(1)
@@ -1255,7 +1255,7 @@ def test_search_escape_from_nonempty_field_returns_to_trigger(page, width):
     page.goto("/saved")
     if width < 768:
         page.get_by_role("button", name="Открыть меню", exact=True).click()
-    trigger = page.get_by_role("link", name="Поиск по клубу" if width < 768 else "Поиск", exact=True)
+    trigger = page.get_by_role("link", name="Поиск по сайту" if width < 768 else "Поиск", exact=True)
     trigger.click()
     dialog = page.locator("#search-dialog")
     field = dialog.get_by_role("searchbox")

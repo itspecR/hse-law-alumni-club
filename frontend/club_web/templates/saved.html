@@ -2,13 +2,13 @@
 {% block content %}
 <main id="main" class="site-container saved-page">
 <header class="site-masthead">
-<h1>Сохранённое</h1>
+<h1>Сохраненное</h1>
 <p>Материалы хранятся в этом браузере. Можно сохранить до 200 материалов.</p>
-<p>Ранее открытые публичные страницы доступны без интернета до семи дней. Хранятся последние 60 страниц; аудио требует подключения.</p>
+<p>Открытые раньше страницы доступны без интернета до семи дней, хранятся последние 60. Аудио без интернета не воспроизводится.</p>
 </header>
 <section>
-<h2>Сохранённые материалы</h2>
-<div class="site-filters"><label>Поиск в сохранённом<input type="search" data-reading-search maxlength="200"></label>
+<h2>Сохраненные материалы</h2>
+<div class="site-filters"><label>Поиск в сохраненном<input type="search" data-reading-search maxlength="200"></label>
 <label>Тип материала<select aria-label="Тип материала" data-reading-kind>
 <option value="">Все</option>
 {% for key,label in [("portfolio","Портфель программ"),("program","ДПО"),("news","Новости"),("change","Изменения в праве"),("podcast","Подкасты"),("event","События"),("merch","Мерч")] %}

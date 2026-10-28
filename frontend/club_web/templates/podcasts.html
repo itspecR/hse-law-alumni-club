@@ -4,13 +4,13 @@
 <main id="main" class="site-container podcasts-page">
 <header class="site-masthead">
 <h1>Правовая грамотность</h1>
-<p>Подкасты клуба. Пробный выпуск открыт всем; остальные доступны по годовой подписке.</p>
+<p>Подкаст клуба. Пробный выпуск открыт всем, остальные доступны по подписке на год.</p>
 </header>
 <section class="site-panel" id="podcast-subscription">
 <h2>Подписка на год</h2>
 <p>{{ domain.limits.podcast_year_price|rub }} · 12 месяцев</p>
-{% if mirror %}<p>Демонстрация без оплаты и настоящей подписки.</p><button data-mirror-subscription>Проверить как подписчик</button>{% elif podcasts.subscribed %}
-<p role="status">Подписка активна до {{ podcasts.sub_until|date }}</p>
+{% if mirror %}<p>В демоверсии подписка не оформляется и оплата не проводится.</p><button data-mirror-subscription>Проверить как подписчик</button>{% elif podcasts.subscribed %}
+<p role="status">Подписка активна до {{ podcasts.sub_until|date }}.</p>
 <p>Продление добавит 12 месяцев к текущему сроку подписки.</p>
 <button class="site-primary" data-api="/podcasts/subscribe" data-member-action>Продлить на год</button>
 {% else %}
@@ -25,7 +25,7 @@
 <img src="{{ item.cover|media }}" alt="{{ item.title }}" width="480" height="480" loading="lazy">
 {% endif %}
 <div>
-<span class="club-caps">{{ 'Открытый выпуск' if item.is_free else 'По подписке' }} · {{ item.duration or '' }}</span>
+<span class="club-caps">{{ 'Пробный выпуск' if item.is_free else 'По подписке' }} · {{ item.duration or '' }}</span>
 <h2>
 <a href="/podcasts/{{ item.id }}">{{ item.title }}</a>
 </h2>

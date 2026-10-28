@@ -201,7 +201,7 @@ function subscription() {
     if (active && source.getAttribute("src") !== source.dataset.mirrorAudio) { source.src = source.dataset.mirrorAudio; audio.load(); }
     if (!active) { audio.pause(); source.removeAttribute("src"); }
   }
-  for (const panel of document.querySelectorAll("[data-mirror-locked]")) panel.querySelector("p").textContent = active ? "Деморежим подписчика включён. Оплата и настоящая подписка не оформлялись." : "Демонстрация без оплаты и настоящей подписки.";
+  for (const panel of document.querySelectorAll("[data-mirror-locked]")) panel.querySelector("p").textContent = active ? "Деморежим подписчика включен. Оплата и настоящая подписка не оформлялись." : "В демоверсии подписка не оформляется и оплата не проводится.";
 }
 
 document.addEventListener("click", event => {

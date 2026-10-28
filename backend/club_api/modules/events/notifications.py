@@ -2,6 +2,7 @@ import logging
 from zoneinfo import ZoneInfo
 
 from club_api.core.models import parse_date
+from club_api.modules.notifications.mail import CLUB_NAME, club_subject
 
 logger = logging.getLogger("club.events")
 
@@ -18,8 +19,8 @@ async def announce(state, event):
             if row["email"]:
                 await state.notifications.send_email(
                     row["email"],
-                    "Новое событие клуба: " + event["title"],
-                    f"Здравствуйте{', ' + row['fio'] if row['fio'] else ''}!\n\nВ клубе выпускников новое событие:\n\n{event['title']}\n{when}{' · ' + place if place else ''}\n{('Регистрация: ' + event['reg_url']) if event['reg_url'] else ''}\n\nЗаписаться и добавить в календарь: {state.settings.PUBLIC_URL}/events\nЗа участие начисляются баллы клуба.\n\n– Клуб выпускников факультета права Вышки",
+                    club_subject(f"Новое событие «{event['title']}»"),
+                    f"Здравствуйте{', ' + row['fio'] if row['fio'] else ''}!\n\nВ клубе новое событие.\n\n{event['title']}\n{when}{' · ' + place if place else ''}\n{('Регистрация: ' + event['reg_url']) if event['reg_url'] else ''}\n\nЗаписаться и добавить событие в календарь можно на сайте: {state.settings.PUBLIC_URL}/events\nЗа участие начисляются баллы.\n\n{CLUB_NAME}",
                 )
     except Exception:
         logger.error("Не удалось отправить анонс события")

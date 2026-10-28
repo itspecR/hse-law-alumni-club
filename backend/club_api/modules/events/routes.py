@@ -110,7 +110,7 @@ async def events(request: HttpRequest):
                 else start.replace(month=start.month + 1)
             )
         except ValueError:
-            raise ApiError(400, "Некорректный месяц") from None
+            raise ApiError(400, "Некорректный месяц.") from None
         filters["starts_at"] = {"_gte": start, "_lt": end}
     if id is not None:
         filters["id"] = {"_eq": guid(id)}
@@ -180,7 +180,7 @@ async def calendar(request: HttpRequest, id: str):
         limit=1,
     )
     if not rows:
-        raise ApiError(404, "Событие не найдено")
+        raise ApiError(404, "Событие не найдено.")
     event = rows[0]
     start = parse_date(event["starts_at"])
 
@@ -238,7 +238,7 @@ async def rsvp(request: HttpRequest, id: str):
             connection=connection,
         )
         if not rows:
-            raise ApiError(404, "Событие не найдено")
+            raise ApiError(404, "Событие не найдено.")
         existing = await state.store.read(
             "event_rsvps",
             filters={"event_id": {"_eq": id}, "alumni_id": {"_eq": alumni["id"]}},
@@ -248,7 +248,7 @@ async def rsvp(request: HttpRequest, id: str):
         )
         if existing:
             if existing[0]["attended"]:
-                raise ApiError(400, "Посещение уже отмечено – отменить нельзя")
+                raise ApiError(400, "Посещение уже отмечено, запись отменить нельзя.")
             await state.store.delete("event_rsvps", id=existing[0]["id"], connection=connection)
             return {"going": False}
         await state.store.create(
@@ -349,13 +349,13 @@ async def attend(request: HttpRequest, rsvpId: str):
     state = request.services
     row = await state.store.one("event_rsvps", guid(rsvpId))
     if not row:
-        raise ApiError(404, "RSVP не найден")
+        raise ApiError(404, "Запись на событие не найдена.")
     async with state.database.transaction() as connection:
         await acquire_lock(connection, "rsvp:" + row["event_id"] + ":" + row["alumni_id"])
         cursor = await connection.execute("SELECT attended FROM event_rsvps WHERE id=%s FOR UPDATE", (row["id"],))
         current = await cursor.fetchone()
         if not current:
-            raise ApiError(404, "RSVP не найден")
+            raise ApiError(404, "Запись на событие не найдена.")
         if current["attended"]:
             return {"ok": True, "already": True}
         event = await state.store.one("events", row["event_id"], connection=connection)

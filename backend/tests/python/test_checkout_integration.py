@@ -6,6 +6,7 @@ import pytest
 
 from club_api.core.errors import ApiError
 from club_api.modules.checkout.payments import payment_outcome
+from club_api.modules.notifications.mail import CLUB_NAME
 
 
 def contact():
@@ -110,8 +111,15 @@ async def test_price_and_profile_discount_revalidated(database_app):
 
 
 @pytest.mark.asyncio
-async def test_verified_webhook_is_idempotent_and_cannot_downgrade(database_app):
+async def test_verified_webhook_is_idempotent_and_cannot_downgrade(database_app, monkeypatch):
     app = database_app
+    mails = []
+
+    async def capture(to, subject, text):
+        mails.append({"subject": subject, "text": text})
+        return True
+
+    monkeypatch.setattr(app.state.notifications, "send_email", capture)
     app.state.settings.YOOKASSA_SHOP_ID = "synthetic-shop"
     from pydantic import SecretStr
 
@@ -122,6 +130,8 @@ async def test_verified_webhook_is_idempotent_and_cannot_downgrade(database_app)
         {
             "number": "ALU-2026-000099",
             "alumni_id": alumni["id"],
+            "contact_fio": "Тестовый подписчик",
+            "contact_email": "subscriber@example.test",
             "type": "podcast",
             "status": "new",
             "payment_status": "pending",
@@ -154,6 +164,8 @@ async def test_verified_webhook_is_idempotent_and_cannot_downgrade(database_app)
         assert len(requests) == 2
         until = (await app.state.store.one("alumni", alumni["id"]))["podcast_sub_until"]
         assert until is not None
+        assert {mail["subject"] for mail in mails} == {"Оплата по заявке ALU-2026-000099 получена - " + CLUB_NAME}
+        assert mails[0]["text"].endswith("прошла успешно.\nПодписка на подкаст клуба действует 12 месяцев.")
         assert (await app.state.store.one("orders", order["id"]))["payment_status"] == "succeeded"
         provider["status"] = "canceled"
         assert (await client.post("/payments/yookassa/webhook", json=body)).status_code == 200

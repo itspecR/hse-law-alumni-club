@@ -32,7 +32,7 @@
 <a href="/lk?next=/podcasts%23podcast-subscription">Войти</a>
 </div>
 {% endif %}
-{% if mirror and not item.is_free %}<div data-mirror-locked><p>Демонстрация без оплаты и настоящей подписки.</p><button data-mirror-subscription>Проверить как подписчик</button></div>{% endif %}
+{% if mirror and not item.is_free %}<div data-mirror-locked><p>В демоверсии подписка не оформляется и оплата не проводится.</p><button data-mirror-subscription>Проверить как подписчик</button></div>{% endif %}
 {% if item.video_url %}
 <button data-action="video" data-video="{{ item.video_url|safe_url }}">Смотреть видео на RuTube</button>
 {% endif %}{{ save(path,item.title,'podcasts') }}</main>

@@ -124,10 +124,10 @@ async def audio(request: HttpRequest, id: str):
         or not 1 <= len(holder) <= 64
         or (not re.fullmatch("[a-f0-9]{64}", signature))
     ):
-        raise ApiError(403, "Ссылка недействительна или истекла")
+        raise ApiError(403, "Ссылка недействительна или истекла.")
     expires = int(raw_expires)
     if expires < time.time() or not hmac.compare_digest(audio_signature(state, id, holder, expires), signature):
-        raise ApiError(403, "Ссылка недействительна или истекла")
+        raise ApiError(403, "Ссылка недействительна или истекла.")
     rows = await state.store.read(
         "podcasts",
         filters={"id": {"_eq": id}, "status": {"_eq": "published"}},
@@ -135,28 +135,28 @@ async def audio(request: HttpRequest, id: str):
         limit=1,
     )
     if not rows or not rows[0]["audio_url"]:
-        raise ApiError(404, "Выпуск не найден")
+        raise ApiError(404, "Выпуск не найден.")
     podcast = rows[0]
     if not podcast["is_free"]:
         if holder == "free":
-            raise ApiError(403, "Подписка неактивна")
+            raise ApiError(403, "Подписка не активна.")
         profiles = await state.store.read(
             "alumni", filters={"id": {"_eq": guid(holder)}}, fields=("podcast_sub_until", "status"), limit=1
         )
         if not profiles or profiles[0]["status"] == "alumni_left" or not sub_active(profiles[0]["podcast_sub_until"]):
-            raise ApiError(403, "Подписка неактивна")
+            raise ApiError(403, "Подписка не активна.")
     if not request.headers.get("range") or request.headers["range"].startswith("bytes=0-"):
         await record_play(state, id, holder)
     file_id = media_id(podcast["audio_url"])
     if file_id:
         if await state.media.is_avatar(file_id):
-            raise ApiError(404, "Выпуск не найден")
+            raise ApiError(404, "Выпуск не найден.")
         return await state.media.stream(
             file_id, kind="audio", range=request.headers.get("range"), cache="private, max-age=3600"
         )
     target = urlsplit(podcast["audio_url"])
     if target.scheme not in ("http", "https") or not target.hostname or target.username or target.password:
-        raise ApiError(404, "Выпуск не найден")
+        raise ApiError(404, "Выпуск не найден.")
     return HttpResponseRedirect(podcast["audio_url"], status=302)
 
 

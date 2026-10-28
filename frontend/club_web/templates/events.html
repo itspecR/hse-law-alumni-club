@@ -44,7 +44,7 @@
 </h2>
 <p>{{ event.location or format_labels.get(event.format,event.format) }}</p>
 <p class="site-prose">{{ event.description or '' }}</p>
-<p>За участие: {{ event.points }} баллов</p>
+<p>Баллы за участие: {{ event.points }}</p>
 <div class="site-actions">
 {% if event.past %}
 <span>Событие завершено</span>
@@ -53,7 +53,7 @@
 {% else %}
 <button class="site-primary" data-api="/events/{{ event.id }}/rsvp" data-member-action>{{ 'Отменить запись' if event.my_rsvp else 'Записаться' }}</button>
 {% endif %}
-<a href="{{ "/calendar/" if mirror else "/api/events/" }}{{ event.id }}.ics" download>Файл .ics</a>
+<a href="{{ "/calendar/" if mirror else "/api/events/" }}{{ event.id }}.ics" download>Файл для календаря (.ics)</a>
 <a href="{{ event.calendar_url }}" target="_blank" rel="noopener noreferrer">Google Календарь ↗</a>{{ save('/events/'+event.id,event.title,'events') }}</div>
 </div>
 </article>
