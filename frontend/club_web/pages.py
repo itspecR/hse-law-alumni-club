@@ -296,7 +296,7 @@ async def context(api, path, params, authorized=False):
         )
         needle = params.get("q", "").casefold().replace("ё", "е").strip()
         groups = search_groups(
-            data["portfolio_programs"],
+            page_items(data["portfolio_programs"]),
             data["programs"],
             data["news"],
             data["events"],

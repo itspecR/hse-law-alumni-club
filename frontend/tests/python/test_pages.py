@@ -439,6 +439,19 @@ async def test_global_search_finds_club_programs_first(browser_client):
     assert "Портфель программ</h2>" not in (await browser_client.get("/search", params={"q": "нет такого"})).text
 
 
+async def test_search_survives_unexpected_portfolio_payload(monkeypatch):
+    async def upstream(request):
+        payload = {"path": request.url.path} if request.url.path == "/portfolio" else []
+        return httpx.Response(200, json=payload)
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test")
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=create_app(client)), base_url="http://web.test"
+    ) as browser:
+        response = await browser.get("/search", params={"q": "переговоры"})
+    assert response.status_code == 200 and "<main" in response.text
+
+
 async def test_global_search_includes_events_and_archived_acts(browser_client):
     response = await browser_client.get("/search", params={"q": "Встреча клуба"})
     assert 'href="/events/event-1"' in response.text
