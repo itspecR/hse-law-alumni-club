@@ -73,21 +73,21 @@
 </dl>
 {% if item.enrollment=='nonactual' %}<p role="status">Набор закрыт</p>{% else %}<a href="#application" class="site-primary">Оставить заявку</a>{% endif %}
 {{ save(path,item.title,'portfolio') }}
-<p>Выпускникам клуба и по промокоду — скидка, итог в заявке.</p>
+<p>Выпускникам после входа в кабинет действует скидка. Промокод вводится в заявке, из двух скидок применяется большая.</p>
 </aside>
 </div>
 {% if item.enrollment!='nonactual' %}
 <section id="application" class="site-panel portfolio-application" aria-labelledby="application-title">
 <h2 id="application-title">Заявка на программу</h2>
-{% if item.seats_left==0 and not cohorts %}<p role="status">Места закончились — заявку можно оставить, офис свяжется при освобождении места.</p>{% endif %}
-<p>Оплата на сайте не требуется: учебный офис свяжется с вами, чтобы согласовать договор и оплату.</p>
+{% if item.seats_left==0 and not cohorts %}<p role="status">Мест нет. Заявку можно оставить, учебный офис свяжется с вами, если место освободится.</p>{% endif %}
+<p>Платить на сайте не нужно. Учебный офис свяжется с вами, чтобы согласовать договор и оплату.</p>
 <form data-api="/portfolio/{{ item.slug }}/applications" data-application>
 {{ field('contact_fio','ФИО') }}{{ field('contact_phone','Телефон',type='tel') }}{{ field('contact_email','Почта',type='email') }}
 {% if cohorts %}
 <fieldset class="portfolio-cohorts">
 <legend>Поток</legend>
 {% for cohort in cohorts %}
-<label class="portfolio-cohort"><input type="radio" name="cohort_id" value="{{ cohort.id }}" required data-quote-input data-start="{{ cohort.starts_on|date }}"{% if loop.length==1 %} checked{% endif %}><span>Старт {{ cohort.starts_on|date }}<small>{{ cohort.price|rub }}{% if cohort.seats_left==0 %} · мест нет, офис свяжется при освобождении места{% elif cohort.seats_left is not none %} · свободных мест: {{ cohort.seats_left }}{% endif %}</small></span></label>
+<label class="portfolio-cohort"><input type="radio" name="cohort_id" value="{{ cohort.id }}" required data-quote-input data-start="{{ cohort.starts_on|date }}"{% if loop.length==1 %} checked{% endif %}><span>Старт {{ cohort.starts_on|date }}<small>{{ cohort.price|rub }}{% if cohort.seats_left==0 %} · мест нет, учебный офис свяжется, если место освободится{% elif cohort.seats_left is not none %} · свободных мест: {{ cohort.seats_left }}{% endif %}</small></span></label>
 {% endfor %}
 </fieldset>
 {% endif %}

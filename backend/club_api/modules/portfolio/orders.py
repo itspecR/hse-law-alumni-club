@@ -2,6 +2,7 @@ from club_api.core.errors import ApiError
 from club_api.domain import PORTFOLIO_CATALOG
 
 OPEN_STATUSES = ("new", "in_progress", "confirmed")
+CONTACT_LINE = "Учебный офис свяжется с Вами, чтобы согласовать договор и оплату."
 LOCK_SQL = "SELECT id FROM {table} WHERE id=%s FOR UPDATE"
 USED_SQL = "SELECT id FROM orders WHERE {column}=%s LIMIT 1"
 LOCKED_FIELDS = (
@@ -64,5 +65,5 @@ COHORT_USE = OrderUse(
     "program_cohorts", "cohort_id", "Поток не найден", "В потоке есть заявки: закройте набор вместо удаления"
 )
 PROGRAM_USE = OrderUse(
-    "programs", "program_id", "Программа не найдена", "У программы есть заявки: переведите её в архив вместо удаления"
+    "programs", "program_id", "Программа не найдена.", "У программы есть заявки: переведите её в архив вместо удаления"
 )

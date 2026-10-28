@@ -39,7 +39,7 @@ WORDS_UNBROKEN = """node => {
     });
 }"""
 
-PROMO_QUOTE = {"discount": 15, "source": "promo", "message": "Промокод применён: скидка 15%"}
+PROMO_QUOTE = {"discount": 15, "source": "promo", "message": "Промокод применен, скидка 15%."}
 NO_DISCOUNT = {"discount": 0, "source": None, "message": None}
 CAPTCHA_SALT = "a" * 32 + ".1999999999"
 CHALLENGE = {
@@ -149,7 +149,7 @@ def site():
                 return httpx.Response(200, json={"token": "member-qa"})
             if path.endswith("/quote"):
                 if (body.get("promo_code") or "").upper() != "SPRING-15":
-                    return httpx.Response(400, json={"error": "Промокод не найден"})
+                    return httpx.Response(400, json={"error": "Промокод не найден."})
                 total = PORTFOLIO["price"] * body.get("participants", 1) * 85 // 100
                 return httpx.Response(200, json=PROMO_QUOTE | {"total": records.get("quote_total", total)})
             if path.endswith("/applications") and records.get("application_failure"):
@@ -2207,12 +2207,12 @@ def test_portfolio_promo_preview_and_application(page, site, width):
     expect(quote).to_have_text("Введите промокод.")
     form.get_by_label("Промокод", exact=True).fill("wrong-1")
     apply.click()
-    expect(quote).to_have_text("Промокод не найден")
+    expect(quote).to_have_text("Промокод не найден.")
     expect(quote).to_have_attribute("data-state", "error")
     form.get_by_label("Промокод", exact=True).fill("spring-15")
     expect(quote).to_be_hidden()
     apply.click()
-    expect(quote).to_have_text(re.compile(r"^Промокод применён: скидка 15% · итого \(справочно\): 38\s250\s₽$"))
+    expect(quote).to_have_text(re.compile(r"^Промокод применен, скидка 15%\. Предварительная сумма 38\s250\s₽\.$"))
     expect(quote).to_have_attribute("data-state", "ok")
     sent = site[2][-1]
     assert sent["path"] == "/portfolio/club-one/quote"
@@ -2228,7 +2228,7 @@ def test_portfolio_promo_preview_and_application(page, site, width):
     form.get_by_label("Соглашаюсь с условиями обучения").check()
     form.get_by_role("button", name="Отправить заявку", exact=True).click()
     receipt = page.locator(".portfolio-receipt")
-    expect(receipt).to_contain_text("Промокод применён: скидка 15%")
+    expect(receipt).to_contain_text("Промокод применен, скидка 15%.")
     assert site[2][-1]["body"]["promo_code"] == "spring-15"
 
 
@@ -2238,7 +2238,7 @@ def test_portfolio_quote_keeps_kopecks(page, site):
     form = page.locator("form[data-application]")
     form.get_by_label("Промокод", exact=True).fill("spring-15")
     form.get_by_role("button", name="Применить", exact=True).click()
-    expect(form.locator("[data-quote]")).to_have_text(re.compile(r"итого \(справочно\): 38\s250,50\s₽$"))
+    expect(form.locator("[data-quote]")).to_have_text(re.compile(r"Предварительная сумма 38\s250,50\s₽\.$"))
 
 
 def test_application_retry_reuses_key_only_for_same_data(page, site):
@@ -2277,7 +2277,7 @@ def test_portfolio_receipt_names_member_discount(page, site):
     form.get_by_label("Соглашаюсь с условиями обучения").check()
     form.get_by_role("button", name="Отправить заявку", exact=True).click()
     receipt = page.locator(".portfolio-receipt")
-    expect(receipt).to_contain_text("Скидка выпускника: 10%")
+    expect(receipt).to_contain_text("Скидка выпускника 10%.")
     expect(receipt).not_to_contain_text("Промокод")
 
 
@@ -2493,7 +2493,7 @@ def test_portfolio_pages_fit_and_save_to_reading_list(page, width):
     card = page.locator(".site-catalog-card")
     expect(card).to_have_count(1)
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
-    card.get_by_role("link", name="Подробнее — " + PORTFOLIO["title"]).click()
+    card.get_by_role("link", name="Подробнее о программе «" + PORTFOLIO["title"] + "»").click()
     expect(page.get_by_role("heading", name=PORTFOLIO["title"], level=1)).to_be_visible()
     expect(page.get_by_role("heading", name="Тренер", exact=True)).to_be_visible()
     expect(page.locator("aside.site-panel")).to_contain_text("Мест в группе")
@@ -2567,8 +2567,8 @@ def test_portfolio_application_goes_to_chosen_cohort(page, site, width):
     form = page.locator("form[data-application]")
     cohorts = form.get_by_role("group", name="Поток")
     expect(cohorts.get_by_role("radio")).to_have_count(2)
-    expect(cohorts).to_contain_text("мест нет, офис свяжется при освобождении места")
-    expect(page.get_by_text("Места закончились")).to_have_count(0)
+    expect(cohorts).to_contain_text("мест нет, учебный офис свяжется, если место освободится")
+    expect(page.get_by_text("Мест нет. Заявку можно оставить")).to_have_count(0)
     form.get_by_label("ФИО", exact=True).fill("Вымышленный Заявитель")
     form.get_by_label("Телефон", exact=True).fill("+70000000000")
     form.get_by_label("Почта", exact=True).fill("applicant@example.test")
@@ -2579,7 +2579,7 @@ def test_portfolio_application_goes_to_chosen_cohort(page, site, width):
     cohorts.get_by_text("Старт 1 февраля 2027").click()
     form.get_by_label("Промокод", exact=True).fill("spring-15")
     form.get_by_role("button", name="Применить", exact=True).click()
-    expect(form.locator("[data-quote]")).to_contain_text("Промокод применён")
+    expect(form.locator("[data-quote]")).to_contain_text("Промокод применен")
     assert site[2][-1]["body"]["cohort_id"] == "cohort-2"
     cohorts.get_by_text("Старт 1 декабря 2026").click()
     expect(form.locator("[data-quote]")).to_be_hidden()

@@ -17,6 +17,7 @@ CAPTCHA_TTL_SECONDS = 600
 CAPTCHA_ALGORITHM = "SHA-256"
 SALT_PATTERN = r"^[0-9a-f]{32}\.[0-9]{10}$"
 DIGEST_PATTERN = r"^[0-9a-f]{64}$"
+RETRY_MESSAGE = "Не удалось отправить заявку. Обновите страницу и попробуйте еще раз."
 USE_SQL = Query(
     "INSERT INTO club_captcha_uses(salt_hash,expires_at) VALUES(%s,%s) ON CONFLICT(salt_hash) DO NOTHING",
     "INSERT IGNORE INTO club_captcha_uses(salt_hash,expires_at) VALUES(%s,%s)",
@@ -57,12 +58,12 @@ def expiry(captcha):
 
 def require_solution(settings, captcha, now):
     if captcha is None:
-        raise ApiError(400, "Проверка не пройдена: обновите страницу и отправьте заявку ещё раз")
+        raise ApiError(400, RETRY_MESSAGE)
     if expiry(captcha) < now:
-        raise ApiError(400, "Проверка устарела: отправьте заявку ещё раз")
+        raise ApiError(400, RETRY_MESSAGE)
     expected = signature(settings, sha256(captcha.salt + str(captcha.number)))
     if not hmac.compare_digest(expected, captcha.signature):
-        raise ApiError(400, "Проверка не пройдена: обновите страницу и отправьте заявку ещё раз")
+        raise ApiError(400, RETRY_MESSAGE)
 
 
 async def require_captcha(state, captcha):
@@ -70,7 +71,7 @@ async def require_captcha(state, captcha):
     require_solution(state.settings, captcha, now)
     used = datetime.fromtimestamp(expiry(captcha), UTC)
     if await state.database.execute(USE_SQL, (sha256(captcha.salt), used)) != 1:
-        raise ApiError(400, "Проверка уже использована: отправьте заявку ещё раз")
+        raise ApiError(400, RETRY_MESSAGE)
 
 
 async def forget_expired(state):

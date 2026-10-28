@@ -7,7 +7,8 @@ from club_api.core.views import api_view, defer, parse_body
 from club_api.domain import applied_discount, order_totals, rubles
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin
-from club_api.modules.portfolio.orders import locked_order, reachable, require_open
+from club_api.modules.notifications.mail import club_subject
+from club_api.modules.portfolio.orders import CONTACT_LINE, locked_order, reachable, require_open
 from club_api.observability.audit import audit
 
 MAX_OFFICE_DISCOUNT = 100
@@ -42,10 +43,9 @@ async def notify_discount(state, order, total):
         return
     await state.notifications.mail_applicant(
         order["contact_email"],
-        f"Заявка {order['number']}: сумма изменена – Клуб выпускников факультета права",
-        f"Здравствуйте, {order['contact_fio']}!\n\nПо заявке {order['number']} изменена сумма: "
-        f"{discount_line(order)}.\nСумма (справочно): {rubles(total)}.\n\n"
-        "Менеджер учебного офиса свяжется с вами, чтобы согласовать договор и оплату.",
+        club_subject(f"Сумма по заявке {order['number']} изменена"),
+        f"Здравствуйте, {order['contact_fio']}!\n\nПо Вашей заявке {order['number']} изменена сумма, "
+        f"{discount_line(order)}.\nПредварительная сумма {rubles(total)}.\n\n" + CONTACT_LINE,
     )
 
 

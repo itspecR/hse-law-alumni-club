@@ -13,9 +13,11 @@ from club_api.domain import PORTFOLIO_CATALOG, effective_discount, order_totals,
 from club_api.modules.auth.routes import Body, EmailBody, RegisterBody
 from club_api.modules.catalog.scope import PUBLISHED_PORTFOLIO
 from club_api.modules.checkout.store import PENDING_NOTICE, digest
-from club_api.modules.portfolio.captcha import CaptchaBody, require_captcha
+from club_api.modules.notifications.mail import club_subject
+from club_api.modules.portfolio.captcha import RETRY_MESSAGE, CaptchaBody, require_captcha
 from club_api.modules.portfolio.cohorts import canonical_id, chosen_cohort, cohort_price
 from club_api.modules.portfolio.dates import display_date
+from club_api.modules.portfolio.orders import CONTACT_LINE
 from club_api.modules.portfolio.promo import valid_promo
 from club_api.observability.audit import audit
 from club_api.resources import shared_data
@@ -30,6 +32,7 @@ MIN_GROUP = 2
 PROMO_CODE_LENGTH = 32
 PROMO_SOURCE = "promo"
 MEMBER_SOURCE = "member"
+SELF_MESSAGE = "Заявка для себя подается на одного участника."
 CONSENTS = shared_data("legal-data.json")["portfolio_consents"]
 logger = logging.getLogger("club.portfolio")
 
@@ -79,18 +82,18 @@ def promo_code(value):
 
 def require_group(applicant, participants):
     if applicant == "organization" and participants < MIN_GROUP:
-        raise ApiError(400, f"В заявке от организации — от {MIN_GROUP} до {MAX_PARTICIPANTS} участников")
+        raise ApiError(400, f"В заявке от организации может быть от {MIN_GROUP} до {MAX_PARTICIPANTS} участников.")
     if applicant == "self" and participants != 1:
-        raise ApiError(400, "Заявка для себя оформляется на одного участника")
+        raise ApiError(400, SELF_MESSAGE)
 
 
 def require_applicant(body):
     require_group(body.applicant, body.participants)
     organization = (body.organization or "").strip()
     if body.applicant == "organization" and not organization:
-        raise ApiError(400, "Укажите организацию")
+        raise ApiError(400, "Укажите организацию.")
     if body.applicant == "self" and organization:
-        raise ApiError(400, "Заявка для себя оформляется на одного участника")
+        raise ApiError(400, SELF_MESSAGE)
 
 
 def idempotency_key(request, slug):
@@ -101,7 +104,7 @@ def idempotency_key(request, slug):
                 raise ValueError
             UUID(supplied)
         except ValueError as error:
-            raise ApiError(400, "Некорректный ключ заявки") from error
+            raise ApiError(400, RETRY_MESSAGE) from error
     return digest("portfolio:" + slug + ":" + (supplied or str(uuid4())))
 
 
@@ -113,9 +116,9 @@ async def open_program(state, slug):
         limit=1,
     )
     if not rows:
-        raise ApiError(404, "Программа не найдена")
+        raise ApiError(404, "Программа не найдена.")
     if rows[0]["enrollment"] == "nonactual":
-        raise ApiError(400, "Набор на эту программу закрыт")
+        raise ApiError(400, "Набор на эту программу закрыт.")
     return rows[0]
 
 
@@ -155,11 +158,11 @@ def pricing(program, cohort, participants, member, promo):
 
 def promo_message(code, source, discount, rejected=None):
     if source == PROMO_SOURCE:
-        return f"Промокод применён: скидка {discount}%"
+        return f"Промокод применен, скидка {discount}%."
     if rejected:
-        return f"{rejected} — действует ваша скидка выпускника {discount}%"
+        return f"{rejected} Действует ваша скидка выпускника {discount}%."
     if code:
-        return "Ваша скидка выпускника не меньше — промокод не понадобился"
+        return "Ваша скидка выпускника не меньше, промокод не нужен."
     return None
 
 
@@ -221,10 +224,10 @@ async def notify(state, number, base, starts_on):
     notified = await state.notifications.order_notice(number, text, base["total_estimate"], base["member_discount"])
     await state.notifications.mail_applicant(
         base["contact_email"],
-        f"Заявка {number} принята – Клуб выпускников факультета права",
-        f"Здравствуйте, {base['contact_fio']}!\n\nВаша заявка {number} принята:\n{text}\n"
-        f"Сумма (справочно): {rubles(base['total_estimate'])}.\n\n"
-        "Оплата на сайте не требуется: менеджер учебного офиса свяжется с вами, чтобы согласовать договор и оплату.",
+        club_subject(f"Заявка {number} принята"),
+        f"Здравствуйте, {base['contact_fio']}!\n\nВаша заявка {number} принята.\n{text}\n"
+        f"Предварительная сумма {rubles(base['total_estimate'])}.\n\n"
+        "Платить на сайте не нужно. " + CONTACT_LINE,
     )
     return notified
 

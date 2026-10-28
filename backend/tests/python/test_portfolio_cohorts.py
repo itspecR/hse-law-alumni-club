@@ -70,7 +70,7 @@ async def test_application_goes_to_the_chosen_open_cohort_at_its_price(database_
         ]
         response = await apply(client, item["slug"], {**FORM, "cohort_id": chosen["id"].upper()})
     assert missing.status_code == 400 and "Выберите поток" in missing.json()["error"]
-    assert all(row.status_code == 400 and "Набор в выбранный поток закрыт" in row.json()["error"] for row in refused)
+    assert all(row.status_code == 400 and "Набор в этот поток закрыт" in row.json()["error"] for row in refused)
     assert response.status_code == 200, response.text
     receipt = response.json()
     assert (receipt["starts_on"], receipt["total_estimate"]) == (chosen["starts_on"], COHORT_PRICE)

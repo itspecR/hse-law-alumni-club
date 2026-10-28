@@ -98,7 +98,7 @@ async def test_promo_beats_smaller_member_discount_and_is_recorded(database_app,
         listed = (await client.get("/admin/orders", headers=admin)).json()["items"][0]
         export = (await client.get("/admin/orders/export.csv", headers=admin)).text
     assert (receipt["member_discount"], receipt["discount_source"], receipt["promo_code"]) == (15, "promo", "SPRING-15")
-    assert receipt["total_estimate"] == PRICE * 85 // 100 and "Промокод применён" in receipt["message"]
+    assert receipt["total_estimate"] == PRICE * 85 // 100 and "Промокод применен" in receipt["message"]
     assert (listed["promo_code"], listed["discount_source"]) == ("SPRING-15", "promo")
     assert '"SPRING-15"' in export
 
@@ -113,7 +113,7 @@ async def test_bigger_member_discount_keeps_promo_unused(database_app, mails):
         receipt = (await apply(client, item["slug"], with_code(FORM), member)).json()
         assert (await promo_row(client, admin, id))["used"] == 0
     assert receipt["discount_source"] == "member" and receipt["promo_code"] is None
-    assert receipt["member_discount"] > 1 and "не понадобился" in receipt["message"]
+    assert receipt["member_discount"] > 1 and "промокод не нужен" in receipt["message"]
     assert (await order(app, receipt["number"]))["promo_id"] is None
 
 
@@ -132,8 +132,8 @@ async def test_organization_gets_promo(database_app, mails):
     [
         ({}, "OTHER-10", "Промокод не найден"),
         ({"status": "disabled"}, "SPRING-15", "Промокод не найден"),
-        ({"starts_on": str(TODAY + DAY), "ends_on": str(TODAY + 2 * DAY)}, "SPRING-15", "ещё не действует"),
-        ({"starts_on": str(TODAY - 2 * DAY), "ends_on": str(TODAY - DAY)}, "SPRING-15", "истёк"),
+        ({"starts_on": str(TODAY + DAY), "ends_on": str(TODAY + 2 * DAY)}, "SPRING-15", "еще не действует"),
+        ({"starts_on": str(TODAY - 2 * DAY), "ends_on": str(TODAY - DAY)}, "SPRING-15", "истек"),
     ],
 )
 async def test_unusable_promo_blocks_application(database_app, mails, extra, code, message):
@@ -182,7 +182,7 @@ async def test_canceled_application_returns_promo_use(database_app, mails):
         id = await create_promo(client, admin, total_limit=1)
         first = (await apply(client, item["slug"], with_code(FORM, email="first@example.test"))).json()
         refused = await apply(client, item["slug"], with_code(FORM, email="second@example.test"))
-        assert refused.status_code == 400 and "Лимит промокода исчерпан" in refused.json()["error"]
+        assert refused.status_code == 400 and "использован максимальное число раз" in refused.json()["error"]
         order_id = (await order(app, first["number"]))["id"]
         await client.patch("/admin/orders/" + order_id, headers=admin, json={"status": "canceled"})
         assert (await promo_row(client, admin, id))["used"] == 0
@@ -235,7 +235,7 @@ async def test_quote_matches_server_pricing(database_app):
         ).json()
     assert (plain["subtotal"], plain["total"], plain["source"], plain["message"]) == (3 * PRICE, 3 * PRICE, None, None)
     assert (promo["discount"], promo["source"], promo["total"]) == (1, "promo", 3 * PRICE * 99 // 100)
-    assert member_wins["source"] == "member" and "не понадобился" in member_wins["message"]
+    assert member_wins["source"] == "member" and "промокод не нужен" in member_wins["message"]
 
 
 async def test_deleted_promo_keeps_code_in_application(database_app, mails):
@@ -257,7 +257,7 @@ async def test_patch_of_deleted_promo_is_not_found(database_app):
         id = await create_promo(client, admin)
         await client.delete("/admin/promo-codes/" + id, headers=admin)
         response = await client.patch("/admin/promo-codes/" + id, headers=admin, json={"percent": 10})
-    assert response.status_code == 404 and response.json()["error"] == "Промокод не найден"
+    assert response.status_code == 404 and response.json()["error"] == "Промокод не найден."
 
 
 async def test_promo_dates_are_stored_in_iso_form(database_app):
@@ -292,11 +292,11 @@ async def test_quote_does_not_reveal_who_used_the_code(database_app, mails):
 @pytest.mark.parametrize(
     "extra,code,reason",
     [
-        ({}, "OTHER-10", "Промокод не найден"),
+        ({}, "OTHER-10", "Промокод не найден."),
         (
             {"starts_on": str(TODAY - 2 * DAY), "ends_on": str(TODAY - DAY)},
             "SPRING-15",
-            "Срок действия промокода истёк",
+            "Срок действия промокода истек.",
         ),
     ],
 )
@@ -314,10 +314,10 @@ async def test_member_keeps_discount_when_code_is_unusable(database_app, mails, 
         group = await apply(client, item["slug"], with_code(GROUP, code), member)
     receipt = response.json()
     assert response.status_code == 200 and (receipt["discount_source"], receipt["promo_code"]) == ("member", None)
-    assert receipt["message"] == f"{reason} — действует ваша скидка выпускника {receipt['member_discount']}%"
+    assert receipt["message"] == f"{reason} Действует ваша скидка выпускника {receipt['member_discount']}%."
     assert quote.status_code == 200 and quote.json()["message"] == receipt["message"]
     assert group.status_code == 400 and group.json()["error"] == reason
 
 
 def test_equal_member_discount_message_does_not_claim_it_is_bigger():
-    assert promo_message("SPRING-15", "member", 15) == "Ваша скидка выпускника не меньше — промокод не понадобился"
+    assert promo_message("SPRING-15", "member", 15) == "Ваша скидка выпускника не меньше, промокод не нужен."

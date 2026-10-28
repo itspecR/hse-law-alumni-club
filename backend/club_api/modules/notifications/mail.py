@@ -9,6 +9,11 @@ from club_api.domain import rubles
 
 logger = logging.getLogger("club.mail")
 EMAIL_CONFIRMATION_KIND = "email_confirmation"
+CLUB_NAME = "Клуб выпускников факультета права Вышки"
+
+
+def club_subject(text):
+    return f"{text} - {CLUB_NAME}"
 
 
 def mail_user_lock(user_id):

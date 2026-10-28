@@ -43,7 +43,7 @@ async def program(request: HttpRequest, slug: str):
         "programs", filters={**PUBLISHED_PORTFOLIO, "slug": {"_eq": slug}}, fields=DETAIL_FIELDS, limit=1
     )
     if not rows:
-        raise ApiError(404, "Программа не найдена")
+        raise ApiError(404, "Программа не найдена.")
     program = rows[0]
     async with state.database.connection() as connection:
         seats_left = await PROGRAM_SEATS.free(connection, program)

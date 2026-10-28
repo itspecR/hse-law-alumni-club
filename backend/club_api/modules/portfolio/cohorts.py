@@ -21,7 +21,7 @@ SHARE_SQL = Query(
     "SELECT id FROM program_cohorts WHERE id=%s FOR SHARE",
     "SELECT id FROM program_cohorts WHERE id=%s LOCK IN SHARE MODE",
 )
-CLOSED_MESSAGE = "Набор в выбранный поток закрыт. Обновите страницу и выберите поток"
+CLOSED_MESSAGE = "Набор в этот поток закрыт. Обновите страницу и выберите другой поток."
 
 
 def canonical_id(value):
@@ -95,7 +95,7 @@ async def chosen_cohort(state, program_id, id, connection=None, *, lock=False):
     cohorts = await open_cohorts(state, [program_id], connection)
     if id is None:
         if cohorts:
-            raise ApiError(400, "Выберите поток")
+            raise ApiError(400, "Выберите поток.")
         return None
     cohort = next((row for row in cohorts if row["id"] == id), None)
     if cohort is None:
