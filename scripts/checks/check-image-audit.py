@@ -31,54 +31,77 @@ def blocking_findings(report, non_applicable=()):
     return findings
 
 
-def caddy_applicability(report, image):
-    candidate = ("usr/bin/caddy", "GO-2026-5932", "golang.org/x/crypto", "v0.58.0")
-    found = any(
+OPENPGP = ("usr/bin/caddy", "GO-2026-5932", "golang.org/x/crypto", "v0.58.0")
+GO_JOSE_V3 = ("usr/bin/caddy", "CVE-2026-116587", "github.com/go-jose/go-jose/v3", "v3.0.5")
+MAX_EVIDENCE_BYTES = 1024 * 1024
+JWK_FROM_CLIENTS = re.compile(r"\bacme_server\b")
+
+
+def reported(report, candidate):
+    return any(
         (result.get("Target"), item.get("VulnerabilityID"), item.get("PkgName"), item.get("InstalledVersion"))
         == candidate
         for result in report.get("Results", [])
         for item in result.get("Vulnerabilities") or []
     )
-    if not found or not image:
-        return (), []
+
+
+def docker(*args, timeout):
+    return subprocess.run(
+        [shutil.which("docker") or "docker", *args], check=True, capture_output=True, text=True, timeout=timeout
+    ).stdout
+
+
+def verified_image(report, image):
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/@-]*", image) or report.get("ArtifactName") != image:
         raise ValueError("Имя проверяемого образа не совпало с отчётом")
-    inspected = subprocess.run(
-        [shutil.which("docker") or "docker", "image", "inspect", "--format", "{{.Id}}", image],
-        check=True,
-        capture_output=True,
-        text=True,
-        timeout=15,
-    ).stdout.strip()
+    inspected = docker("image", "inspect", "--format", "{{.Id}}", image, timeout=15).strip()
     if not re.fullmatch(r"sha256:[a-f0-9]{64}", inspected) or inspected != report.get("Metadata", {}).get("ImageID"):
         raise ValueError("Digest образа не совпал с отчётом")
-    dependencies = subprocess.run(
-        [
-            shutil.which("docker") or "docker",
-            "run",
-            "--rm",
-            "--network",
-            "none",
-            "--read-only",
-            "--cap-drop",
-            "ALL",
-            "--security-opt",
-            "no-new-privileges",
-            "--entrypoint",
-            "cat",
-            inspected,
-            "/usr/share/caddy/dependencies.txt",
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
+    return inspected
+
+
+def image_file(inspected, path):
+    content = docker(
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--entrypoint",
+        "cat",
+        inspected,
+        path,
         timeout=30,
-    ).stdout
+    )
+    if not content or len(content) > MAX_EVIDENCE_BYTES:
+        raise ValueError("Файл доказательства в образе пуст или слишком велик")
+    return content
+
+
+def evidence_for(candidate, inspected, reason, source, **proof):
+    return {
+        "VulnerabilityID": candidate[1],
+        "PkgName": candidate[2],
+        "InstalledVersion": candidate[3],
+        "Target": candidate[0],
+        "ImageID": inspected,
+        "Status": "not_affected",
+        "Reason": reason,
+        "Source": source,
+        **proof,
+    }
+
+
+def openpgp_evidence(inspected):
+    dependencies = image_file(inspected, "/usr/share/caddy/dependencies.txt")
     packages = dependencies.splitlines()
     if (
-        not packages
-        or len(dependencies) > 1024 * 1024
-        or "github.com/caddyserver/caddy/v2/cmd" not in packages
+        "github.com/caddyserver/caddy/v2/cmd" not in packages
         or any(not package or any(character.isspace() for character in package) for package in packages)
         or any(
             package == "golang.org/x/crypto/openpgp" or package.startswith("golang.org/x/crypto/openpgp/")
@@ -86,19 +109,40 @@ def caddy_applicability(report, image):
         )
     ):
         raise ValueError("Не подтверждено отсутствие OpenPGP в сборке Caddy")
-    evidence = {
-        "VulnerabilityID": candidate[1],
-        "PkgName": candidate[2],
-        "InstalledVersion": candidate[3],
-        "Target": candidate[0],
-        "ImageID": inspected,
-        "Status": "not_affected",
-        "Reason": "GO-2026-5932 затрагивает только OpenPGP; go list -deps собранного Caddy не содержит этих пакетов.",
-        "Source": "https://pkg.go.dev/vuln/GO-2026-5932",
-        "DependenciesSHA256": hashlib.sha256(dependencies.encode()).hexdigest(),
-        "DependencyPackages": packages,
-    }
-    return (candidate,), [evidence]
+    return evidence_for(
+        OPENPGP,
+        inspected,
+        "GO-2026-5932 затрагивает только OpenPGP; go list -deps собранного Caddy не содержит этих пакетов.",
+        "https://pkg.go.dev/vuln/GO-2026-5932",
+        DependenciesSHA256=hashlib.sha256(dependencies.encode()).hexdigest(),
+        DependencyPackages=packages,
+    )
+
+
+def go_jose_evidence(inspected):
+    caddyfile = image_file(inspected, "/etc/caddy/Caddyfile")
+    if JWK_FROM_CLIENTS.search(caddyfile):
+        raise ValueError("Caddyfile включает ACME-сервер: разбор чужих JWK достижим")
+    return evidence_for(
+        GO_JOSE_V3,
+        inspected,
+        "CVE-2026-116587 – отказ в обслуживании при разборе чужих RSA JWK. В Caddy go-jose v3 используется "
+        "провижионерами smallstep и ACME-сервером; Caddyfile образа не включает acme_server, встроенный CA только "
+        "подписывает своим ключом. Исправленной версии v3 нет; решение владельца от 2026-10-28.",
+        "https://github.com/go-jose/go-jose/security/advisories/GHSA-mgcc-cww5-fp2q",
+        CaddyfileSHA256=hashlib.sha256(caddyfile.encode()).hexdigest(),
+    )
+
+
+APPLICABILITY = {OPENPGP: openpgp_evidence, GO_JOSE_V3: go_jose_evidence}
+
+
+def caddy_applicability(report, image):
+    present = tuple(candidate for candidate in APPLICABILITY if reported(report, candidate))
+    if not present or not image:
+        return (), []
+    inspected = verified_image(report, image)
+    return present, [APPLICABILITY[candidate](inspected) for candidate in present]
 
 
 def redacted_report(report):
