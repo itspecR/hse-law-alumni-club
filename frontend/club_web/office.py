@@ -1,8 +1,21 @@
+from club_web.formatting import date, rub
+
 GROUPS = [
     ("Работа клуба", ("overview", "orders", "promo-codes", "members", "subs", "support")),
     (
         "Публикации",
-        ("portfolio", "trainers", "programs", "products", "news", "news-sources", "events", "podcasts", "timeline"),
+        (
+            "portfolio",
+            "cohorts",
+            "trainers",
+            "programs",
+            "products",
+            "news",
+            "news-sources",
+            "events",
+            "podcasts",
+            "timeline",
+        ),
     ),
     ("Управление", ("analytics", "pages", "media", "audit")),
 ]
@@ -14,6 +27,7 @@ DESCRIPTIONS = {
     "members": "Профили выпускников, проверка статуса и возможности клуба.",
     "subs": "Доступ к подкастам и прослушивания выпусков.",
     "portfolio": "Программы клуба: карточки, тренеры, цена и набор.",
+    "cohorts": "Потоки программ клуба: старт, цена, места и набор.",
     "trainers": "Тренеры программ клуба: ФИО, фото и справка.",
     "programs": "Каталог программ дополнительного образования.",
     "products": "Товары клуба, варианты и остатки.",
@@ -35,6 +49,7 @@ ICONS = {
     "subs": "M3 5h18v14H3zM3 10h18M7 15h4",
     "support": "M21 11a8 8 0 0 1-8 8H7l-4 3V7a4 4 0 0 1 4-4h6a8 8 0 0 1 8 8M7 8h10M7 12h7",
     "portfolio": "M3 7h18v13H3zM8 7V4h8v3M3 12h18M10 12v2h4v-2",
+    "cohorts": "M4 5h16v16H4zM8 3v4M16 3v4M4 10h16M8 15h8",
     "trainers": "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1",
     "programs": "m2 8 10-5 10 5-10 5-10-5M6 10v7c4 3 8 3 12 0v-7M22 8v8",
     "products": "M5 7h14l1 14H4L5 7M8 7V5a4 4 0 0 1 8 0v2",
@@ -58,12 +73,67 @@ CHOICES = {
     "trainers": ("fio", "Тренеров пока нет."),
     "portfolio": ("title", "Программ портфеля пока нет."),
 }
+SINGLE_CHOICES = {"program": "portfolio"}
 CREATE_DEFAULTS = {"promo-codes": {"per_person_limit": 1, "all_programs": True}}
-SECTION_LABELS = {"promo-codes": {"active": "Действует", "disabled": "Отключён"}}
+SECTION_LABELS = {
+    "promo-codes": {"active": "Действует", "disabled": "Отключён"},
+    "cohorts": {"open": "Набор идёт", "closed": "Набор закрыт"},
+}
 
 
 def choice_sources(section):
-    return [kind for _, _, kind in FIELDS.get(section, []) if kind in CHOICES]
+    kinds = [kind for _, _, kind in FIELDS.get(section, [])]
+    return [SINGLE_CHOICES.get(kind, kind) for kind in kinds if kind in CHOICES or kind in SINGLE_CHOICES]
+
+
+def cohort_price_label(row):
+    return "цена программы" if row.get("price") is None else rub(row["price"])
+
+
+def cohort_title(row, names):
+    program = names.get("portfolio", {}).get(row.get("program_id"), "Программа удалена")
+    return f"{program} · старт {date(row.get('starts_on'))}"
+
+
+def cohort_closure(row):
+    if row.get("open"):
+        return ""
+    return "старт прошёл" if row.get("enrollment") == "actual" else "набор закрыт вручную"
+
+
+def cohort_record(row, names):
+    return {
+        **row,
+        "title": cohort_title(row, names),
+        "status": "open" if row.get("open") else "closed",
+        "price_label": cohort_price_label(row),
+        "closure": cohort_closure(row),
+    }
+
+
+RECORDS = {"cohorts": cohort_record}
+STATUS_FILTERS = {"cohorts": ("open", "closed")}
+
+
+def status_values(section):
+    kinds = [kind.split("|") for name, _, kind in FIELDS.get(section, []) if name == "status"]
+    return STATUS_FILTERS.get(section) or (kinds[0] if kinds else [])
+
+
+def section_records(section, rows, names):
+    record = RECORDS.get(section)
+    return [record(row, names) for row in rows] if record else rows
+
+
+def cohort_options(rows):
+    grouped = {}
+    for row in rows:
+        label = " · ".join(
+            ["старт " + date(row.get("starts_on")), cohort_price_label(row)]
+            + ([] if row.get("open") else ["набор закрыт"])
+        )
+        grouped.setdefault(row.get("program_id"), []).append({"id": row.get("id"), "label": label})
+    return grouped
 
 
 def choice_options(source, rows):
@@ -103,6 +173,13 @@ FIELDS = {
         ("communication", "Коммуникация, каждый канал с новой строки", "lines"),
         ("cover", "Обложка", "text"),
         ("status", "Статус", "published|draft|archived"),
+    ],
+    "cohorts": [
+        ("program_id", "Программа", "program"),
+        ("starts_on", "Старт", "date"),
+        ("price", "Цена потока, копейки; пусто — цена программы", "optional"),
+        ("capacity", "Лимит мест, пусто — без лимита", "limit"),
+        ("enrollment", "Набор", "actual|nonactual"),
     ],
     "promo-codes": [
         ("code", "Код: латиница, цифры и дефис", "text"),

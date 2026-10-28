@@ -7,6 +7,15 @@
 {% endfor %}
 </fieldset>
 {% endmacro %}
+{% macro single(name,label,selected,source) %}
+<label class="site-field">{{ label }}<select name="{{ name }}" aria-label="{{ label }}" required>
+<option value="">Выберите</option>
+{% for option in office_options.get(source) or [] %}
+<option value="{{ option.id }}" {% if option.id==selected %}selected{% endif %}>{{ option.label }}{% if option.status!='published' %} · {{ labels.get(option.status,option.status) }}{% endif %}</option>
+{% endfor %}
+</select></label>
+{% if not office_options.get(source) %}<p class="office-meta">{{ office_choices[source][1] }} Добавьте их в разделе <a href="/admin/{{ source }}">«{{ dict(office_nav)[source] }}»</a>.</p>{% endif %}
+{% endmacro %}
 {% macro content_form(record={}) %}
 <form data-api="/admin/{{ section }}{{ '/'+record.id if record.id else '' }}" data-method="{{ 'PATCH' if record.id else 'POST' }}" class="site-admin-form">
 {% for name,label,kind in office_fields.get(section,[]) %}
@@ -14,6 +23,8 @@
 {% set value=(office_defaults.get(section) or {}).get(name) if value is none and not record.id else value %}
 {% if kind in office_choices %}
 {{ choices(name,label,value or [],kind) }}
+{% elif kind in office_single %}
+{{ single(name,label,value,office_single[kind]) }}
 {% else %}
 <label class="site-field">{{ label }}{% if '|' in kind %}
 <select name="{{ name }}" aria-label="{{ label }}">
@@ -27,8 +38,8 @@
 <textarea name="{{ name }}" aria-label="{{ label }}" {% if kind=='json' %}data-json{% endif %}>{{ (value|tojson) if kind=='json' and value else value or '' }}</textarea>
 {% elif kind=='checkbox' %}
 <input type="checkbox" name="{{ name }}" {% if value %}checked{% endif %}>
-{% elif kind=='limit' %}
-<input name="{{ name }}" type="number" min="1" data-nullable value="{{ value if value is not none else '' }}">
+{% elif kind in ('limit','optional') %}
+<input name="{{ name }}" type="number" min="{{ 1 if kind=='limit' else 0 }}" data-nullable value="{{ value if value is not none else '' }}">
 {% else %}
 <input name="{{ name }}" type="{{ kind }}" value="{{ value if value is not none else '0' if name in ('price','stock','sort') else '60' if name=='points' else '' }}">
 {% endif %}

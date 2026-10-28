@@ -11,6 +11,8 @@ from club_api.core.views import api_view, defer, parse_body
 from club_api.domain import PORTFOLIO_CATALOG, applied_discount
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin, require_full_admin
+from club_api.modules.portfolio.cohorts import with_starts
+from club_api.modules.portfolio.dates import display_date
 from club_api.observability.audit import audit
 
 STATUS_LABELS = {
@@ -52,6 +54,8 @@ ORDER_FIELDS = (
     "member_discount",
     "office_discount",
     "office_reason",
+    "program_id",
+    "cohort_id",
 )
 
 
@@ -109,8 +113,16 @@ async def orders(request: HttpRequest):
         )
     where = {"_and": filters} if filters else None
     return {
-        "items": await store.read(
-            "orders", filters=where, fields=ORDER_FIELDS, sort=("-created_at",), limit=limit, offset=(page - 1) * limit
+        "items": await with_starts(
+            request.services,
+            await store.read(
+                "orders",
+                filters=where,
+                fields=ORDER_FIELDS,
+                sort=("-created_at",),
+                limit=limit,
+                offset=(page - 1) * limit,
+            ),
         ),
         "total": await count(store, "orders", where),
         "page": page,
@@ -159,7 +171,9 @@ def fulfillment_label(order):
 @api_view(permission=require_full_admin)
 async def export_orders(request: HttpRequest):
     admin = await require_full_admin(request)
-    orders = await request.services.store.read("orders", sort=("-created_at",), limit=-1)
+    orders = await with_starts(
+        request.services, await request.services.store.read("orders", sort=("-created_at",), limit=-1)
+    )
     types = {
         "dpo": "ДПО",
         "merch": "Мерч",
@@ -189,6 +203,7 @@ async def export_orders(request: HttpRequest):
             "Промокод",
             "Скидка офиса, %",
             "Причина скидки офиса",
+            "Старт потока",
         ]
     ]
     for order in orders:
@@ -228,6 +243,7 @@ async def export_orders(request: HttpRequest):
                 order["promo_code"],
                 order["office_discount"],
                 order["office_reason"],
+                display_date(order["starts_on"]) if order["starts_on"] else "",
             ]
         )
     await audit(request, "orders.export", actor="admin:" + admin["userId"], detail={"count": len(orders)})

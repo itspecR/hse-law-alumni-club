@@ -84,6 +84,7 @@ def snapshot(data):
         "/admin/portfolio": [],
         "/admin/trainers": [],
         "/admin/promo-codes": [],
+        "/admin/cohorts": [],
     }
     for name in ("programs", "products", "news", "events", "podcasts"):
         result["/admin/" + name] = data[name]
