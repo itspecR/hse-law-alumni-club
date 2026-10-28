@@ -207,7 +207,7 @@ async def notify(state, number, base):
     notified = await state.notifications.order_notice(
         number, summary(base), base["total_estimate"], base["member_discount"]
     )
-    await state.notifications.send_email(
+    await state.notifications.mail_applicant(
         base["contact_email"],
         f"Заявка {number} принята – Клуб выпускников факультета права",
         f"Здравствуйте, {base['contact_fio']}!\n\nВаша заявка {number} принята:\n{summary(base)}\n"

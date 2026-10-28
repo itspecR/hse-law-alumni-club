@@ -122,7 +122,7 @@ async def notify_status(state, id, status):
     order = await state.store.one("orders", id, fields=("number", "contact_email", "contact_fio", "alumni_id"))
     verb = STATUS_VERBS[status]
     if order["contact_email"] and order["contact_email"] != "-":
-        await state.notifications.send_email(
+        await state.notifications.mail_applicant(
             order["contact_email"],
             f"Заявка {order['number']}: {verb}",
             f"Здравствуйте, {order['contact_fio']}!\n\nСтатус вашей заявки {order['number']} изменился: {verb}.\nДетали – в личном кабинете клуба.\n\n– Клуб выпускников факультета права Вышки",

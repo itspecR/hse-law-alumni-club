@@ -5,6 +5,7 @@ from club_api.core.models import parse_date
 from club_api.db.queries import Query
 from club_api.modules.catalog.sync import sync_catalog
 from club_api.modules.news.sources import SOURCES, refresh_source
+from club_api.modules.notifications.mail import MAIL_RETENTION_DAYS
 
 
 async def retention(state):
@@ -22,6 +23,13 @@ async def retention(state):
             "DELETE FROM audit_log WHERE created_at<DATE_SUB(now(),INTERVAL %s DAY)",
         ),
         (state.settings.AUDIT_RETENTION_DAYS,),
+    )
+    await state.database.execute(
+        Query(
+            "DELETE FROM club_mail_outbox WHERE status IN ('sent','failed') AND created_at<now()-%s*interval '1 day'",
+            "DELETE FROM club_mail_outbox WHERE status IN ('sent','failed') AND created_at<DATE_SUB(now(),INTERVAL %s DAY)",
+        ),
+        (MAIL_RETENTION_DAYS,),
     )
 
 
