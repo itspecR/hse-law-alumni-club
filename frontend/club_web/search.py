@@ -1,11 +1,12 @@
 from club_web.changes import select_changes
 
 
-def search_groups(programs, news, events, podcasts, changes, query=None):
+def search_groups(portfolio, programs, news, events, podcasts, changes, query=None):
     words = (query or "").casefold().replace("ё", "е").split()
     groups = []
     changes = select_changes(changes, {"view": "all"})
     for prefix, label, records, fields, identifier in (
+        ("portfolio", "Портфель программ", portfolio, ("title", "direction"), "slug"),
         ("dpo", "Программы ДПО", programs, ("title", "direction"), "slug"),
         ("news", "Новости", news, ("title", "excerpt"), "slug"),
         ("events", "События", events, ("title", "description", "location"), "id"),

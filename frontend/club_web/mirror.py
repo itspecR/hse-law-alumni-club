@@ -157,7 +157,7 @@ async def export(destination, base, data):
                 page["next_page"] = ""
             if path == "/search":
                 page["groups"] = search_groups(
-                    data["programs"], data["news"], data["events"], data["podcasts"], changes["items"]
+                    [], data["programs"], data["news"], data["events"], data["podcasts"], changes["items"]
                 )
             page.update(base=base, mirror=True, request=None, asset_version=published_version(destination))
             target = destination / path.lstrip("/") / "index.html" if path != "/404" else destination / "404.html"

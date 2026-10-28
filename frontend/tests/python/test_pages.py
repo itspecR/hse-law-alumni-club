@@ -432,6 +432,13 @@ async def test_unavailable_changes_source_keeps_saved_materials_and_status(brows
         assert "Последнее успешное обновление" in response.text
 
 
+async def test_global_search_finds_club_programs_first(browser_client):
+    response = await browser_client.get("/search", params={"q": "переговоры"})
+    assert 'href="/portfolio/club-one"' in response.text
+    assert response.text.index("Портфель программ</h2>") < response.text.index('href="/portfolio/club-one"')
+    assert "Портфель программ</h2>" not in (await browser_client.get("/search", params={"q": "нет такого"})).text
+
+
 async def test_global_search_includes_events_and_archived_acts(browser_client):
     response = await browser_client.get("/search", params={"q": "Встреча клуба"})
     assert 'href="/events/event-1"' in response.text
