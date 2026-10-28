@@ -289,5 +289,35 @@ async def test_quote_does_not_reveal_who_used_the_code(database_app, mails):
     assert again.status_code == 400 and "уже использовали" in again.json()["error"]
 
 
+@pytest.mark.parametrize(
+    "extra,code,reason",
+    [
+        ({}, "OTHER-10", "Промокод не найден"),
+        (
+            {"starts_on": str(TODAY - 2 * DAY), "ends_on": str(TODAY - DAY)},
+            "SPRING-15",
+            "Срок действия промокода истёк",
+        ),
+    ],
+)
+async def test_member_keeps_discount_when_code_is_unusable(database_app, mails, extra, code, reason):
+    app = database_app
+    item = await program(app)
+    _, admin = await account(app, "admin")
+    _, member = await account(app)
+    async with client_for(app) as client:
+        await create_promo(client, admin, **extra)
+        response = await apply(client, item["slug"], with_code(FORM, code), member)
+        quote = await client.post(
+            f"/portfolio/{item['slug']}/quote", headers=member, json={"applicant": "self", "promo_code": code}
+        )
+        group = await apply(client, item["slug"], with_code(GROUP, code), member)
+    receipt = response.json()
+    assert response.status_code == 200 and (receipt["discount_source"], receipt["promo_code"]) == ("member", None)
+    assert receipt["message"] == f"{reason} — действует ваша скидка выпускника {receipt['member_discount']}%"
+    assert quote.status_code == 200 and quote.json()["message"] == receipt["message"]
+    assert group.status_code == 400 and group.json()["error"] == reason
+
+
 def test_equal_member_discount_message_does_not_claim_it_is_bigger():
     assert promo_message("SPRING-15", "member", 15) == "Ваша скидка выпускника не меньше — промокод не понадобился"
