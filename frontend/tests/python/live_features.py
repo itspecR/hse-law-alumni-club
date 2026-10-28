@@ -277,7 +277,7 @@ def section_walk(page, office):
             assert response.status == 200, path
             expect(target.locator("#main")).to_be_visible()
             if path.startswith("/admin/"):
-                expect(target.locator("#main")).not_to_contain_text("Служебный вход")
+                expect(target.locator("#main")).not_to_contain_text("Вход для сотрудников учебного офиса")
             elif path in ("/lk", "/lk/profile"):
                 expect(target.locator("#main")).not_to_contain_text("Вход для выпускников")
             assert target.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"), path

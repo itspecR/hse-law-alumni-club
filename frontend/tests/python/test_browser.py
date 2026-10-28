@@ -778,20 +778,18 @@ def test_mirror_mobile_preview_navigation_and_exit(chromium, mirror_site, width)
     page.on("request", lambda request: telegram.append(request.url) if "telegram.org" in request.url else None)
     page.on("request", lambda request: writes.append(request.url) if request.method not in ("GET", "HEAD") else None)
     page.goto(mirror_site)
-    page.get_by_role("navigation", name="Просмотр зеркала").get_by_role(
-        "link", name="Мобильный просмотр", exact=True
-    ).click()
+    page.get_by_role("navigation", name="Демоверсия").get_by_role("link", name="Мобильный просмотр", exact=True).click()
     expect(page).to_have_url(mirror_site + "tg/?pwa=1")
     expect(page.locator("html")).to_have_class(re.compile("pwa-shell"))
     expect(page.locator("[data-mini-preview]")).to_have_text("Мобильный просмотр")
     assert page.locator("#site-stage").bounding_box()["width"] == min(width, 430)
-    for label, path in (("ДПО", "dpo"), ("Лента", "news"), ("Мерч", "merch"), ("Кабинет", "lk"), ("Клуб", "tg")):
+    for label, path in (("ДПО", "dpo"), ("Новости", "news"), ("Мерч", "merch"), ("Кабинет", "lk"), ("Клуб", "tg")):
         page.get_by_role("navigation", name="Основные разделы").get_by_role("link", name=label, exact=True).click()
         expect(page).to_have_url(re.compile(re.escape(mirror_site + path) + r"/?$"))
         expect(page.locator("#main")).to_be_visible()
         expect(page.locator("html")).to_have_class(re.compile("pwa-shell"))
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), path
-    page.get_by_role("navigation", name="Просмотр зеркала").get_by_role("link", name="Панель офиса").click()
+    page.get_by_role("navigation", name="Демоверсия").get_by_role("link", name="Учебный офис").click()
     expect(page.locator(".office-page-header")).to_be_visible()
     expect(page.locator("html")).not_to_have_class(re.compile("pwa-shell|telegram-mini"))
     assert page.locator(".site-office").bounding_box()["width"] == width
@@ -800,11 +798,11 @@ def test_mirror_mobile_preview_navigation_and_exit(chromium, mirror_site, width)
     page.wait_for_load_state("load")
     page.reload()
     expect(page.locator("html")).to_have_class(re.compile("pwa-shell"))
-    page.get_by_role("navigation", name="Просмотр зеркала").get_by_role("link", name="Обычный сайт").click()
+    page.get_by_role("navigation", name="Демоверсия").get_by_role("link", name="Обычный сайт").click()
     expect(page).to_have_url(mirror_site + "?site=1")
     expect(page.locator("html")).not_to_have_class(re.compile("pwa-shell|telegram-mini"))
     expect(page.locator(".lux-hero")).to_be_visible()
-    page.get_by_role("navigation", name="Просмотр зеркала").get_by_role("link", name="Панель офиса").click()
+    page.get_by_role("navigation", name="Демоверсия").get_by_role("link", name="Учебный офис").click()
     expect(page.locator(".office-page-header")).to_be_visible()
     assert (
         page.locator(".office-brand-row").bounding_box()["y"] >= page.locator(".site-notice").bounding_box()["height"]
@@ -939,7 +937,7 @@ def test_public_reading_works_offline_and_refreshes_online(chromium, site, width
     context.set_offline(True)
     page.reload()
     expect(page.get_by_role("heading", name=NEWS["title"], exact=True)).to_be_visible()
-    expect(page.locator("#offline-notice")).to_contain_text("Сохранённая копия от")
+    expect(page.locator("#offline-notice")).to_contain_text("Сохраненная копия от")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     page.goto("/saved")
     saved = page.locator("[data-reading-list='saved']").get_by_role("link", name=NEWS["title"], exact=True)
@@ -993,7 +991,7 @@ def test_offline_catalog_cannot_send_cart_changes(chromium, site):
     context.set_offline(True)
     page.reload()
     page.get_by_role("button", name="В корзину", exact=True).click()
-    expect(page.locator("[data-cart] [data-error]")).to_contain_text("Для отправки данных нужен интернет")
+    expect(page.locator("[data-cart] [data-error]")).to_contain_text("Нет подключения к интернету")
     assert not [write for write in site[2] if write["path"] == "/cart"]
     context.close()
 
@@ -1050,7 +1048,7 @@ def test_event_api_outage_keeps_offline_copy(chromium, site):
     context.set_offline(True)
     page.reload()
     expect(page.get_by_role("heading", name=EVENT["title"], exact=True, level=1)).to_be_visible()
-    expect(page.locator("#offline-notice")).to_contain_text("Сохранённая копия от")
+    expect(page.locator("#offline-notice")).to_contain_text("Сохраненная копия от")
     context.close()
 
 
@@ -1930,7 +1928,7 @@ def test_login_and_join_layout(page, width):
     page.set_viewport_size({"width": width, "height": 900})
     page.goto("/lk")
     expect(page.get_by_text("Почта", exact=True)).to_have_css("text-transform", "none")
-    expect(page.get_by_role("heading", name="Ваше место в клубе", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Кабинет выпускника", exact=True)).to_be_visible()
     page.goto("/join")
     photo = page.locator(".club-auth__aside img").bounding_box()
     copy = page.locator(".club-auth__aside-copy").bounding_box()

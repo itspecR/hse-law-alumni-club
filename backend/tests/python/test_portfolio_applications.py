@@ -107,10 +107,10 @@ async def test_verified_member_gets_discount_only_for_self(database_app, mails):
         ({**GROUP, "organization": " "}, "Укажите организацию"),
         ({**GROUP, "participants": 1}, "от 2 до 20"),
         ({**FORM, "participants": 2}, "на одного участника"),
-        ({**GROUP, "participants": 21}, "Некорректные данные"),
-        ({**FORM, "consent_terms": False}, "Некорректные данные"),
-        ({key: value for key, value in FORM.items() if key != "consent_pdn"}, "Некорректные данные"),
-        ({**FORM, "website": "bot"}, "Некорректные данные"),
+        ({**GROUP, "participants": 21}, "Проверьте данные в форме"),
+        ({**FORM, "consent_terms": False}, "Проверьте данные в форме"),
+        ({key: value for key, value in FORM.items() if key != "consent_pdn"}, "Проверьте данные в форме"),
+        ({**FORM, "website": "bot"}, "Проверьте данные в форме"),
     ],
 )
 async def test_invalid_applications_are_rejected(database_app, mails, body, message):

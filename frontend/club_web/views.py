@@ -35,7 +35,7 @@ async def health(request):
 
 async def api_proxy(request, path):
     if request.method not in {"GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"}:
-        return JsonResponse({"error": "Метод не поддерживается"}, status=405)
+        return JsonResponse({"error": "Метод не поддерживается."}, status=405)
     try:
         size = int(request.headers.get("content-length", "0"))
         if size < 0:

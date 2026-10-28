@@ -62,7 +62,7 @@ function safeLink(value, payment = false) {
 }
 
 async function request(path, method = "GET", body, extra = {}) {
-  if (!navigator.onLine && method !== "GET") throw new Error("Для отправки данных нужен интернет. Подключитесь и повторите действие.");
+  if (!navigator.onLine && method !== "GET") throw new Error("Нет подключения к интернету. Подключитесь и повторите.");
   if (mirror) {
     if (path === "/cart" && window.clubMirrorCart) return window.clubMirrorCart(method, body);
     if (method !== "GET") throw new Error("В демоверсии отправка и изменение данных отключены.");
@@ -132,7 +132,7 @@ function formBody(form) {
     } else if (input.type === "number") {
       if (!value) { if (input.hasAttribute("data-nullable")) body[input.name] = null; continue; }
       value = Number(value);
-      if (!Number.isFinite(value)) throw new Error("Укажите корректное число.");
+      if (!Number.isFinite(value)) throw new Error("Введите число.");
     } else if (input.hasAttribute("data-lines")) {
       value = value.split("\n").map(line => line.trim()).filter(Boolean);
     } else if (input.hasAttribute("data-json")) {
@@ -472,7 +472,7 @@ function setupPage() {
     link.dataset.guestLabel ||= link.textContent;
     link.dataset.guestHref ||= link.getAttribute("href");
     link.href = token(false) ? url("lk") : link.dataset.guestHref;
-    link.textContent = token(false) ? "Мой кабинет" : link.dataset.guestLabel;
+    link.textContent = token(false) ? "Кабинет" : link.dataset.guestLabel;
   });
   document.querySelectorAll("[data-reveal]").forEach(node => { node.setAttribute("data-revealed", "true"); node.classList.add("is-visible", "is-in"); });
   document.querySelectorAll("audio").forEach(audio => {
@@ -515,7 +515,7 @@ function setupPage() {
       else { failure.textContent = "Не удалось загрузить аудио. Проверьте соединение и повторите."; failure.hidden = false; retry.hidden = mirror; }
     });
   });
-  if (mirror) document.querySelectorAll("[data-api] button,button[data-api],input[type='file']").forEach(button => { if (!button.closest("[data-cart]")) { button.disabled = true; button.title = "Демоверсия: изменение данных отключено"; } });
+  if (mirror) document.querySelectorAll("[data-api] button,button[data-api],input[type='file']").forEach(button => { if (!button.closest("[data-cart]")) { button.disabled = true; button.title = "В демоверсии отправка и изменение данных отключены."; } });
   document.dispatchEvent(new Event("club-page-ready"));
 }
 
@@ -766,8 +766,8 @@ function offlineNotice() {
   box.hidden = navigator.onLine && !timestamp;
   const message = box.querySelector("[data-offline-message]");
   message.textContent = timestamp
-    ? "Сохранённая копия от " + new Date(timestamp).toLocaleString("ru-RU") + ". Для актуальных данных подключитесь к интернету и обновите страницу."
-    : "Нет подключения. Можно читать сохранённые страницы. Вход и отправка заявок требуют интернета.";
+    ? "Сохраненная копия от " + new Date(timestamp).toLocaleString("ru-RU") + ". Для актуальных данных подключитесь к интернету и обновите страницу."
+    : "Нет подключения к интернету. Открытые раньше страницы можно читать, вход и отправка заявок недоступны.";
   box.querySelector("button").hidden = !navigator.onLine;
 }
 

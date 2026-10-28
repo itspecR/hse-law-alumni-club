@@ -81,7 +81,9 @@ def login(page, email, password, office=False):
         page.get_by_role("button", name="Войти" if office else "Войти в кабинет", exact=True).click()
     result(response.value)
     key = "club_admin_token" if office else "club_token"
-    expect(page.locator("#page")).not_to_contain_text("Служебный вход" if office else "Вход для выпускников")
+    expect(page.locator("#page")).not_to_contain_text(
+        "Вход для сотрудников учебного офиса" if office else "Вход для выпускников"
+    )
     token = page.evaluate("key => localStorage.getItem(key)", key)
     assert token
     return token
