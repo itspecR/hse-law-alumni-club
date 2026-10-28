@@ -590,6 +590,41 @@ async def test_portfolio_pages_show_club_program_without_cart(browser_client):
     assert 'href="/portfolio-consent"' in card.text and 'href="/portfolio-terms"' in card.text
 
 
+async def program_page(program):
+    async def upstream(request):
+        if request.url.path == "/programs/" + program["slug"]:
+            return httpx.Response(200, json=program)
+        return httpx.Response(200, json=[])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            return (await client.get("/dpo/" + program["slug"])).text
+
+
+async def test_dpo_merch_and_cart_texts_follow_glossary(browser_client):
+    dpo = (await browser_client.get("/dpo")).text
+    merch = (await browser_client.get("/merch")).text
+    cart = (await browser_client.get("/cart", headers={"x-cart-session": "cart-test"})).text
+    assert '<option value="">Не важно</option>' in dpo and "<p>Стоимость указана без скидки выпускника.</p>" in dpo
+    assert '<span class="lux-sr"> о программе «Правовая программа»</span>' in dpo
+    assert '<span class="lux-sr"> о товаре «Сумка клуба»</span>' in merch
+    assert "Скидка выпускника на программы ДПО" not in cart
+    assert "Скидка выпускника действует только на программы ДПО." in cart
+    templates = Path(club_web.__file__).parent / "templates"
+    for name in ("catalog.html", "program.html", "cart.html", "product.html"):
+        assert re.findall(".{0,40}[ёЁ–—].{0,20}", (templates / name).read_text()) == [], name
+
+
+async def test_dpo_discount_note_only_for_club_applications():
+    note = "Скидка выпускника учитывается при оформлении заявки после входа в кабинет."
+    open_page = await program_page({**PROGRAM, "modules": [{"title": "Модуль", "hours": 21}]})
+    assert note in open_page and "‹</span> Программы ДПО</a>" in open_page and "<p>Часов: 21</p>" in open_page
+    assert note not in await program_page({**PROGRAM, "source_url": "https://www.hse.ru/edu/dpo/1"})
+    assert note not in await program_page({**PROGRAM, "enrollment": "nonactual"})
+
+
 async def test_portfolio_texts_follow_glossary(browser_client):
     listing = (await browser_client.get("/portfolio")).text
     card = (await browser_client.get("/portfolio/club-one")).text

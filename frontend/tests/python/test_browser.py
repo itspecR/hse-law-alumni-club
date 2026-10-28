@@ -330,9 +330,9 @@ def test_catalog_card_states_and_targets(page, site, width):
     page.goto("/dpo")
     card = page.locator(".site-catalog-card").filter(has_text=PROGRAM["title"])
     expect(card.locator(".site-card-media--empty")).to_have_attribute("aria-hidden", "true")
-    expect(card.get_by_role("link", name="Подробнее — " + PROGRAM["title"], exact=True)).to_have_attribute(
-        "href", "/dpo/" + PROGRAM["slug"]
-    )
+    expect(
+        card.get_by_role("link", name="Подробнее о программе «" + PROGRAM["title"] + "»", exact=True)
+    ).to_have_attribute("href", "/dpo/" + PROGRAM["slug"])
     compare = card.get_by_role("button", name="Сравнить", exact=True)
     idle = compare.evaluate("node => getComputedStyle(node).backgroundColor")
     compare.click()
@@ -351,7 +351,7 @@ def test_program_page_panel_and_teachers(page, site, width, position):
     site[1]["/programs/course-one"] = program
     page.set_viewport_size({"width": width, "height": 900})
     page.goto("/dpo/course-one")
-    expect(page.get_by_role("link", name="Каталог программ", exact=True)).to_have_attribute("href", "/dpo")
+    expect(page.get_by_role("link", name="Программы ДПО", exact=True)).to_have_attribute("href", "/dpo")
     panel = page.locator(".program-page aside.site-panel")
     assert panel.evaluate("node => getComputedStyle(node).position") == position
     expect(panel.locator(".lux-price")).to_have_text(rub(PROGRAM["price"]))
@@ -405,7 +405,7 @@ def test_dpo_finder_starts_and_shareable_comparison(page, site, width):
     expect(page.locator("[data-action='compare'][aria-pressed='true']")).to_have_count(2)
     page.locator("[data-action='compare']").first.click()
     page.locator("[data-action='compare']").nth(2).click()
-    expect(page.locator("#toast")).to_contain_text("до трёх программ")
+    expect(page.locator("#toast")).to_contain_text("до трех программ")
     expect(page.locator("[data-action='compare'][aria-pressed='true']")).to_have_count(3)
     if width == 390:
         assert page.locator("#program-compare").bounding_box()["height"] <= 220

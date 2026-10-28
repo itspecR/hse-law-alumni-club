@@ -2,7 +2,7 @@
 {% from 'macros.html' import save,add_cart %}
 {% block content %}
 <main id="main" class="site-container program-page" data-reading-title="{{ item.title }}" data-reading-kind="dpo">
-<a href="/dpo" class="foc lux-back"><span aria-hidden="true">‹</span> Каталог программ</a>
+<a href="/dpo" class="foc lux-back"><span aria-hidden="true">‹</span> Программы ДПО</a>
 <header class="site-masthead">
 <span class="club-caps">{{ item.direction }}</span>
 <h1>{{ item.title }}</h1>
@@ -42,7 +42,7 @@
 {% endfor %}
 </ul>
 {% if module.hours %}
-<p>{{ module.hours }} часов</p>
+<p>Часов: {{ module.hours }}</p>
 {% endif %}
 </details>
 {% endfor %}
@@ -81,7 +81,7 @@
 <a href="{{ item.source_url|safe_url }}" class="site-primary" target="_blank" rel="noopener noreferrer">Перейти к организатору ↗</a>
 {% elif item.enrollment=='nonactual' %}
 <p role="status">Набор закрыт</p>
-{% else %}{{ add_cart(item,'dpo') }}{% endif %}{{ save(path,item.title,'dpo') }}<p>Скидка выпускника применяется сервером при оформлении заявки только на ДПО.</p>
+{% else %}{{ add_cart(item,'dpo') }}{% endif %}{{ save(path,item.title,'dpo') }}{% if not item.source_url|safe_url and item.enrollment!='nonactual' %}<p>Скидка выпускника учитывается при оформлении заявки после входа в кабинет.</p>{% endif %}
 </aside>
 </div>
 </main>

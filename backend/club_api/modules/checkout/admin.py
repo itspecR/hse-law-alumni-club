@@ -11,6 +11,7 @@ from club_api.core.views import api_view, defer, parse_body
 from club_api.domain import PORTFOLIO_CATALOG, applied_discount
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin, require_full_admin
+from club_api.modules.notifications.mail import CLUB_NAME, club_subject
 from club_api.modules.portfolio.cohorts import with_starts
 from club_api.modules.portfolio.dates import display_date
 from club_api.observability.audit import audit
@@ -29,7 +30,7 @@ STATUS_VERBS = {
     "confirmed": "подтверждена",
     "done": "выполнена",
     "canceled": "отменена",
-    "expired": "закрыта: истёк резерв",
+    "expired": "закрыта, истек срок резерва",
 }
 ORDER_FIELDS = (
     "id",
@@ -136,8 +137,10 @@ async def notify_status(state, id, status):
     if order["contact_email"] and order["contact_email"] != "-":
         await state.notifications.mail_applicant(
             order["contact_email"],
-            f"Заявка {order['number']}: {verb}",
-            f"Здравствуйте, {order['contact_fio']}!\n\nСтатус вашей заявки {order['number']} изменился: {verb}.\nДетали – в личном кабинете клуба.\n\n– Клуб выпускников факультета права Вышки",
+            club_subject(f"Заявка {order['number']} {verb}"),
+            f"Здравствуйте, {order['contact_fio']}!\n\nСтатус Вашей заявки {order['number']} изменился, заявка {verb}."
+            + ("\nПодробности в личном кабинете." if order["alumni_id"] else "")
+            + f"\n\n{CLUB_NAME}",
         )
     if order["alumni_id"]:
         await state.push.to_alumni(

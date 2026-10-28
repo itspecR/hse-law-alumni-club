@@ -15,6 +15,8 @@ from club_api.modules.catalog.lookup import lookup_catalog
 from club_api.modules.checkout.cart import cart_session, load_cart
 from club_api.modules.checkout.payments import SAFE_INTEGER_MAX, secure_payment_url
 from club_api.modules.checkout.store import digest
+from club_api.modules.notifications.mail import club_subject
+from club_api.modules.portfolio.captcha import RETRY_MESSAGE
 from club_api.modules.portfolio.cohorts import with_starts
 from club_api.observability.audit import audit
 
@@ -52,7 +54,7 @@ async def create_order(request: HttpRequest):
     body = parse_body(request, OrderBody)
     state, session = (request.services, cart_session(request))
     if body.fulfillment == "delivery" and (not (body.address or "").strip()):
-        raise ApiError(400, "Укажите адрес доставки")
+        raise ApiError(400, "Укажите адрес доставки.")
     alumni = await state.auth.resolve_alumni(request)
     supplied_key = request.headers.get("idempotency-key")
     if supplied_key is not None:
@@ -61,7 +63,7 @@ async def create_order(request: HttpRequest):
                 raise ValueError
             UUID(supplied_key)
         except ValueError as error:
-            raise ApiError(400, "Некорректный ключ заявки") from error
+            raise ApiError(400, RETRY_MESSAGE) from error
     key = digest(session + ":" + (supplied_key or str(uuid4())))
     request_hash = digest(
         json_string({"body": body.model_dump(exclude_unset=True), "alumni": alumni["id"] if alumni else None})
@@ -70,7 +72,7 @@ async def create_order(request: HttpRequest):
         return previous
     cart = await load_cart(state.store, session)
     if not cart or not cart["items"]:
-        raise ApiError(400, "Корзина пуста")
+        raise ApiError(400, "Корзина пуста.")
     items = cart["items"]
     catalog = await lookup_catalog(state.store, items)
     unavailable = []
@@ -85,7 +87,7 @@ async def create_order(request: HttpRequest):
         unavailable = list(dict.fromkeys(unavailable))
         return JsonResponse(
             {
-                "error": f"Эти позиции больше недоступны: {', '.join(unavailable)}. Удалите их из корзины и оформите заказ заново.",
+                "error": f"Эти позиции больше недоступны: {', '.join(unavailable)}. Удалите их из корзины и оформите заявку заново.",
                 "unavailable": unavailable,
             },
             status=409,
@@ -98,7 +100,7 @@ async def create_order(request: HttpRequest):
     )
     totals = order_totals(priced, discount)
     if not all(type(totals[name]) is int and 0 <= totals[name] <= SAFE_INTEGER_MAX for name in ("subtotal", "total")):
-        raise ApiError(400, "Некорректная сумма заказа")
+        raise ApiError(400, "Некорректная сумма заявки.")
     types = {item["type"] for item in priced}
     order_type = "mixed" if len(types) > 1 else next(iter(types))
     base = {
@@ -133,8 +135,9 @@ async def create_order(request: HttpRequest):
     notified = await state.notifications.order_notice(number, summary, totals["total"], discount)
     await state.notifications.mail_applicant(
         body.contact_email,
-        f"Заявка {number} принята – Клуб выпускников факультета права",
-        f"Здравствуйте, {body.contact_fio}!\n\nВаша заявка {number} принята:\n{summary}\nСумма (справочно): {rubles(totals['total'])}.\n\nМенеджер учебного офиса свяжется с вами для подтверждения деталей.",
+        club_subject(f"Заявка {number} принята"),
+        f"Здравствуйте, {body.contact_fio}!\n\nВаша заявка {number} принята.\n{summary}\n"
+        f"Предварительная сумма {rubles(totals['total'])}.\n\nУчебный офис свяжется с Вами, чтобы подтвердить детали.",
     )
     receipt = {
         "number": number,
