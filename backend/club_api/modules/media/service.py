@@ -21,6 +21,7 @@ from club_api.db.queries import Query
 from club_api.db.store import MEDIA_FIELDS, normalize
 
 THUMBNAIL_WORKERS = 1
+BUSY_MESSAGE = "Сервер занят обработкой изображений. Попробуйте позже."
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 MAX_AUDIO_BYTES = 128 * 1024 * 1024
 IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"}
@@ -105,7 +106,7 @@ def parse_range(value, size):
 
 def render_thumbnail(data):
     if sniff_media(data[:512]) not in IMAGE_TYPES:
-        raise ApiError(415, "Не удалось прочитать изображение")
+        raise ApiError(415, "Не удалось прочитать изображение.")
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)
@@ -124,7 +125,7 @@ def render_thumbnail(data):
     except ApiError:
         raise
     except Exception:
-        raise ApiError(415, "Не удалось прочитать изображение") from None
+        raise ApiError(415, "Не удалось прочитать изображение.") from None
 
 
 class Media:
@@ -299,7 +300,7 @@ class Media:
         try:
             info = await asyncio.to_thread(os.fstat, descriptor)
             if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= MAX_IMAGE_BYTES:
-                raise ApiError(415, "Не удалось прочитать изображение")
+                raise ApiError(415, "Не удалось прочитать изображение.")
             key = (str(path), info.st_size, info.st_mtime_ns)
             cached = self.cache.get(key)
             if cached and time.monotonic() - cached[0] < 300:
@@ -308,7 +309,7 @@ class Media:
             task = self.pending.get(key)
             if task is None:
                 if len(self.pending) >= 8:
-                    raise ApiError(503, "Обработка изображений занята. Попробуйте позже")
+                    raise ApiError(503, BUSY_MESSAGE)
                 owned = os.dup(descriptor)
 
                 async def render():
@@ -345,7 +346,7 @@ class Media:
             try:
                 return await asyncio.wait_for(asyncio.shield(task), 3)
             except TimeoutError:
-                raise ApiError(503, "Обработка изображения занята. Попробуйте позже") from None
+                raise ApiError(503, BUSY_MESSAGE) from None
         finally:
             await asyncio.to_thread(os.close, descriptor)
 

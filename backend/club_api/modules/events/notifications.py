@@ -9,7 +9,7 @@ logger = logging.getLogger("club.events")
 
 async def announce(state, event):
     try:
-        await state.push.to_all({"title": "Новое событие клуба 📅", "body": event["title"], "url": "/events"})
+        await state.push.to_all({"title": "Новое событие", "body": event["title"], "url": "/events"})
         rows = await state.database.rows(
             "SELECT a.fio,u.email FROM alumni a JOIN directus_users u ON u.id=a.user_id WHERE a.verification_status='verified' AND a.telegram_id IS NULL AND NOT EXISTS(SELECT 1 FROM push_subs p WHERE p.alumni_id=a.id)"
         )

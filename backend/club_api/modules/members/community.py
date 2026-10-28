@@ -14,6 +14,7 @@ from club_api.modules.gamification.routes import verified_alumni
 from club_api.observability.audit import audit
 
 ROUTE_LIMITS = {"/me/classmates": 30, "/me/friends": 20, "/me/friends/{alumniId}": 20}
+ALUMNI_NOT_FOUND = "Выпускник не найден."
 
 
 class FriendBody(Body):
@@ -153,13 +154,13 @@ async def friend(request: HttpRequest):
     try:
         UUID(body.alumni_id)
     except ValueError as error:
-        raise ApiError(400, "Некорректный участник") from error
+        raise ApiError(400, ALUMNI_NOT_FOUND) from error
     if body.alumni_id == me["id"]:
-        raise ApiError(400, "Нельзя добавить в друзья себя")
+        raise ApiError(400, "Нельзя добавить в друзья себя.")
     state = request.services
     target = await state.store.one("alumni", body.alumni_id, fields=("verification_status",))
     if target["verification_status"] != "verified":
-        raise ApiError(404, "Выпускник не найден")
+        raise ApiError(404, ALUMNI_NOT_FOUND)
     async with state.database.transaction() as connection:
         key = "friends:" + ":".join(sorted((me["id"], body.alumni_id)))
         await acquire_lock(connection, key)
@@ -190,9 +191,9 @@ async def friend(request: HttpRequest):
     await state.push.to_alumni(
         body.alumni_id,
         {
-            "title": "Заявка принята 🤝" if status == "accepted" else "Заявка в друзья",
+            "title": "Приглашение в друзья принято" if status == "accepted" else "Приглашение в друзья",
             "body": (me["fio"] or "Выпускник")
-            + (" принял(а) вашу заявку в друзья" if status == "accepted" else " хочет добавить вас в друзья"),
+            + (": приглашение в друзья принято." if status == "accepted" else " приглашает вас в друзья."),
             "url": "/lk",
         },
     )

@@ -11,6 +11,7 @@ from club_api.core.views import api_view, defer, parse_body
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin, require_full_admin
 from club_api.modules.members.service import alumni_email, anonymize
+from club_api.modules.notifications.mail import CLUB_NAME, club_subject
 from club_api.observability.audit import audit
 
 MEMBER_FIELDS = (
@@ -132,15 +133,19 @@ async def notify_verification(state, id, status):
     if not email:
         return
     if status == "verified":
-        subject = "Кабинет выпускника активирован 🎓"
+        subject = club_subject("Статус выпускника подтвержден")
         text = (
-            "Учебный офис подтвердил ваш выпуск – личный кабинет клуба активирован.\n\nВойти: "
+            "Здравствуйте!\n\nУчебный офис подтвердил Ваш статус выпускника, кабинет открыт.\n\nВойти: "
             + state.settings.PUBLIC_URL
-            + "/lk\n\n– Клуб выпускников факультета права Вышки"
+            + "/lk\n\n"
+            + CLUB_NAME
         )
     else:
-        subject = "По вашей заявке на вступление"
-        text = "Учебный офис не смог подтвердить данные вашей заявки. Если считаете это ошибкой – ответьте на письмо или свяжитесь с офисом.\n\n– Клуб выпускников факультета права Вышки"
+        subject = club_subject("Заявка на вступление в клуб")
+        text = (
+            "Здравствуйте!\n\nУчебный офис не смог подтвердить данные Вашей заявки. "
+            "Если это ошибка, ответьте на это письмо или напишите в учебный офис.\n\n" + CLUB_NAME
+        )
     await state.notifications.send_email(email, subject, text)
 
 

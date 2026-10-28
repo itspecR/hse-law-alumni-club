@@ -5,6 +5,7 @@ from jinja2 import Environment
 
 from club_web.formatting import (
     FORMAT_LABELS,
+    ORDER_STATUS_LABELS,
     date,
     discount_label,
     media,
@@ -51,7 +52,7 @@ def environment(**options):
         program_start=program_start,
         program_price=program_price,
     )
-    renderer.globals.update(format_labels=FORMAT_LABELS)
+    renderer.globals.update(format_labels=FORMAT_LABELS, order_status_labels=ORDER_STATUS_LABELS)
     return renderer
 
 

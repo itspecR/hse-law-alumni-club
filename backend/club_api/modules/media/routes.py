@@ -21,14 +21,14 @@ async def upload_form(request):
             raise ValueError
         return uploads[0]
     except Exception:
-        raise ApiError(400, "Прикрепите один файл") from None
+        raise ApiError(400, "Прикрепите один файл.") from None
 
 
 @api_view
 async def public_media(request: HttpRequest, fileId: str):
     media, id = (request.services.media, guid(fileId))
     if not await media.is_published_image(id):
-        raise ApiError(404, "Файл не найден")
+        raise ApiError(404, "Файл не найден.")
     return await media.stream(id, kind="image", range=request.headers.get("range"), cache="public, max-age=300")
 
 
@@ -67,7 +67,7 @@ async def upload_office(request: HttpRequest):
 async def office_file(media, id):
     file = await media.get(id)
     if not file or (file["metadata"] or {}).get("club_upload_kind") == "avatar" or await media.is_avatar(id):
-        raise ApiError(404, "Файл не найден")
+        raise ApiError(404, "Файл не найден.")
     return file
 
 
@@ -95,14 +95,14 @@ async def delete_media(request: HttpRequest, fileId: str):
 async def upload_avatar(request: HttpRequest):
     alumni = await require_alumni(request)
     if alumni["verification_status"] == "rejected":
-        raise ApiError(403, "Заявка отклонена – загрузка фото недоступна")
+        raise ApiError(403, "Заявка отклонена, загрузка фото недоступна.")
     if alumni["verification_status"] not in ("pending", "verified"):
-        raise ApiError(403, "Доступно после подачи заявки")
+        raise ApiError(403, "Доступно после подачи заявки.")
     upload = await upload_form(request)
     state = request.services
     try:
         if upload.content_type not in ("image/jpeg", "image/png", "image/webp"):
-            raise ApiError(400, "Поддерживаются JPEG, PNG или WebP")
+            raise ApiError(400, "Поддерживаются JPEG, PNG или WebP.")
         try:
             file = await state.media.save(
                 upload, filename="avatar-" + alumni["id"], kind="avatar", max_bytes=3 * 1024 * 1024
@@ -113,7 +113,7 @@ async def upload_avatar(request: HttpRequest):
                     request, "avatar.reject", actor="alumni:" + alumni["id"], detail={"declared": upload.content_type}
                 )
                 raise ApiError(
-                    400, "Файл больше 3 МБ" if error.status == 413 else "Это не изображение JPEG, PNG или WebP"
+                    400, "Файл больше 3 МБ." if error.status == 413 else "Это не изображение JPEG, PNG или WebP."
                 ) from None
             raise
     finally:
@@ -133,7 +133,7 @@ async def upload_avatar(request: HttpRequest):
                 or current["telegram_id"] != alumni["telegram_id"]
                 or (current["token_version"] or 0) != (alumni["token_version"] or 0)
             ):
-                raise ApiError(409, "Профиль изменился. Обновите страницу перед загрузкой фото")
+                raise ApiError(409, "Профиль изменился. Обновите страницу перед загрузкой фото.")
             previous_avatar = current["avatar"]
             await connection.execute("UPDATE alumni SET avatar=%s WHERE id=%s", (file["id"], alumni["id"]))
     except BaseException:

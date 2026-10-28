@@ -14,8 +14,8 @@
 {% if me.alumni.verification_status != 'verified' %}
 <section class="site-panel">
 <h2>{{ 'Заявка отклонена' if me.alumni.verification_status=='rejected' else 'Заявка на проверке' }}</h2>
-<p>Учебный офис сверяет выпуск с реестром факультета. Кабинет и скидка откроются после подтверждения.</p>
-<a href="/lk/profile">Загрузить фото профиля</a>
+<p>{{ 'Учебный офис не смог подтвердить данные заявки. Если это ошибка, напишите в поддержку.' if me.alumni.verification_status=='rejected' else 'Учебный офис сверяет выпуск с реестром факультета. Кабинет и скидка откроются после подтверждения.' }}</p>
+{% if me.alumni.verification_status!='rejected' %}<a href="/lk/profile">Загрузить фото профиля</a>{% endif %}
 <a href="/support">Поддержка</a>
 </section>
 {% else %}
@@ -23,18 +23,18 @@
 <aside class="site-panel">
 <h2>Участие в клубе</h2>
 <dl class="cabinet-stats">
-<div class="cabinet-stats__wide"><dt>Уровень</dt><dd>{{ me.level.level_title }}{% if me.level.next_level %}<span class="cabinet-stats__next">До «{{ me.level.next_level }}» — {{ me.level.to_next }}&nbsp;баллов</span>{% endif %}</dd></div>
+<div class="cabinet-stats__wide"><dt>Уровень</dt><dd>{{ me.level.level_title }}{% if me.level.next_level %}<span class="cabinet-stats__next">До уровня «{{ me.level.next_level }}» осталось баллов: {{ me.level.to_next }}</span>{% endif %}</dd></div>
 <div><dt>Баллы</dt><dd>{{ me.level.points }}</dd></div>
-<div><dt>Скидка на ДПО</dt><dd>{{ me.level.discount }}%</dd></div>
+<div><dt>Скидка выпускника</dt><dd>{{ me.level.discount }}%</dd></div>
 <div class="cabinet-stats__wide cabinet-stats__code"><dt>Код приглашения</dt><dd>{{ me.alumni.referral_code }}</dd></div>
 </dl>
 <p>По вашему приглашению: подтверждено {{ me.alumni.referrals_verified or 0 }}, на проверке {{ me.alumni.referrals_pending or 0 }}.</p>
-<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="copy-invite" data-code="{{ me.alumni.referral_code }}">Скопировать приглашение</button>
+<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="copy-invite" data-code="{{ me.alumni.referral_code }}">Скопировать ссылку-приглашение</button>
 {% if me.activity %}
 <h3>Активность за полгода</h3>
 <div class="site-chart">
 {% for month in me.activity %}
-<p>{{ month.month }} <meter aria-label="Баллы за {{ month.month }}" value="{{ month.points }}" max="{{ (me.activity|map(attribute='points')|max) or 1 }}">{{ month.points }}</meter> {{ month.points }} баллов</p>
+<p>{{ month.month }} <meter aria-label="Баллы за {{ month.month }}" value="{{ month.points }}" max="{{ (me.activity|map(attribute='points')|max) or 1 }}">{{ month.points }}</meter> {{ month.points }}</p>
 {% endfor %}
 </div>
 {% endif %}
@@ -48,22 +48,22 @@
 </aside>
 <div>
 <nav class="cabinet-nav" aria-label="Разделы кабинета">
-<a href="#club-overview">Обзор</a><a href="#orders">Мои заявки</a><a href="#community">Сообщество</a><a href="#achievements">Достижения</a>
+<a href="#club-overview">Обзор</a><a href="#orders">Мои заявки</a><a href="#community">Однокурсники</a><a href="#achievements">Достижения</a>
 </nav>
 <section id="club-overview">
-<h2>В клубе</h2>
+<h2>Обзор</h2>
 {% if not me.alumni.contacts %}
-<p>Добавьте контакт для связи, чтобы учебный офис мог связаться с вами по заявкам.</p>
+<p>Добавьте контакт, чтобы учебный офис мог связаться с вами по заявкам.</p>
 <a href="/lk/profile">Заполнить профиль</a>
 {% endif %}
-<h3>Ближайшая встреча</h3>
+<h3>Ближайшее событие</h3>
 {% if next_event %}
 <article class="site-panel">
 <h3><a href="/events/{{ next_event.id }}">{{ next_event.title }}</a></h3>
 <p>{{ next_event.starts_at|date }} · {{ next_event.location or format_labels.get(next_event.format,'') }}</p>
-<a href="/events/{{ next_event.id }}">{{ 'Вы записаны – детали встречи' if next_event.my_rsvp else 'Подробнее и запись' }}</a>
+<a href="/events/{{ next_event.id }}">{{ 'Вы записаны. Подробнее о событии' if next_event.my_rsvp else 'Подробнее и запись' }}</a>
 </article>
-{% else %}{{ empty('Ближайших встреч пока нет.') }}{% endif %}
+{% else %}{{ empty('Ближайших событий пока нет.') }}{% endif %}
 <h3>Новости клуба</h3>
 {% for article in club_news or [] %}
 <p><a href="/news/{{ article.slug }}">{{ article.title }}</a> · {{ article.published_at|date }}</p>
@@ -81,12 +81,12 @@
 {% for order in orders %}
 <article class="site-panel">
 <h3>Заявка {{ order.number }}</h3>
-<p>{{ order.created_at|date }} · {{ {'new':'Новая','confirmed':'Подтверждена','in_progress':'В работе','done':'Исполнена','canceled':'Отменена','expired':'Резерв истёк'}.get(order.status,order.status) }}</p>
+<p>{{ order.created_at|date }} · {{ order_status_labels.get(order.status,order.status) }}</p>
 <p>{{ order.total_estimate|rub }} · {{ 'Оплачено' if order.payment_status=='succeeded' else 'Не оплачено' }}</p>
 {% if order.type=='portfolio' %}
 <p>До скидки: {{ order.subtotal|rub }} · {{ order|discount_label }} · участников: {{ order.participants }}{% if order.organization %} · {{ order.organization }}{% endif %}{% if order.starts_on %} · старт потока {{ order.starts_on|date }}{% endif %}.</p>
 {% else %}
-<p>До скидки: {{ order.subtotal|rub }} · скидка на ДПО: {{ order.member_discount or 0 }}% · {{ 'Доставка' if order.fulfillment=='delivery' else 'Самовывоз' }}.</p>
+<p>До скидки: {{ order.subtotal|rub }} · скидка выпускника: {{ order.member_discount or 0 }}% · {{ 'доставка' if order.fulfillment=='delivery' else 'самовывоз' }}.</p>
 {% endif %}
 {% for line in order.items_json or [] %}
 <p>{{ line.title }} × {{ line.qty }}</p>
@@ -95,10 +95,10 @@
 <a href="{{ order.payment_url|payment_url }}">Оплатить через ЮKassa</a>
 {% endif %}
 {% if order.status not in ('done','canceled','expired') and order.type!='portfolio' %}
-<button data-api="/orders/{{ order.number }}/pay" data-member-action>Получить ссылку оплаты</button>
+<button data-api="/orders/{{ order.number }}/pay" data-member-action>Получить ссылку на оплату</button>
 {% endif %}
 </article>
-{% else %}{{ empty('Вы ещё не оформляли заявки.') }}{% endfor %}
+{% else %}{{ empty('Вы еще не оформляли заявки.') }}{% endfor %}
 </section>
 <section>
 <h2>Уведомления</h2>
@@ -109,12 +109,12 @@
 <button data-api="/me/friends" data-body='{{ {"alumni_id":notice.from_id}|tojson }}' data-member-action>Принять</button>
 <button data-api="/me/friends/{{ notice.from_id }}" data-method="DELETE" data-member-action>Отклонить</button>
 {% elif notice.kind=='friend_accepted' %}
-<p>{{ notice.by_fio or 'Выпускник' }} принял приглашение в друзья.</p>
+<p>{{ notice.by_fio or 'Выпускник' }}: приглашение в друзья принято.</p>
 {% elif notice.kind=='order_status' %}
-<p>Заявка {{ notice.number }} · {{ labels.get(notice.status,notice.status) }}{% if notice.paid %} · Оплачено{% endif %}
+<p>Заявка {{ notice.number }} · {{ order_status_labels.get(notice.status,notice.status) }}{% if notice.paid %} · Оплачено{% endif %}
 </p>
 {% elif notice.kind=='podcast_expiring' %}
-<p>Подписка на подкасты истекает через {{ notice.days_left }} дней.</p>
+<p>Дней до окончания подписки на подкаст: {{ notice.days_left }}.</p>
 <a href="/podcasts#podcast-subscription">Продлить подписку</a>
 {% endif %}
 </article>

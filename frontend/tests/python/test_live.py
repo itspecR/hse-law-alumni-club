@@ -238,12 +238,12 @@ def test_live_system(name, width, height):
         page.get_by_label("Почта", exact=True).fill(email)
         page.get_by_label("Год выпуска", exact=True).fill("2020")
         page.get_by_label("Образовательная программа", exact=True).fill("Право")
-        page.get_by_label("Пароль – от 8 символов", exact=True).fill(value("E2E_LIVE_PASSWORD"))
+        page.get_by_label("Пароль, не меньше 8 символов", exact=True).fill(value("E2E_LIVE_PASSWORD"))
         page.locator("input[name=consent_pdn]").check()
         with page.expect_response(
             lambda response: response.url.endswith("/api/auth/register") and response.request.method == "POST"
         ) as registration:
-            page.get_by_role("button", name="Подать заявку", exact=True).click()
+            page.get_by_role("button", name="Отправить заявку", exact=True).click()
         result(registration.value)
         page.goto(mail_link(request, email, "/confirm"))
         with page.expect_response(
@@ -379,7 +379,7 @@ def test_live_system(name, width, height):
         ):
             page.get_by_role("button", name="Отправить ссылку", exact=True).first.click()
         page.goto(mail_link(request, email, "/reset"))
-        page.get_by_label("Новый пароль – от 8 символов", exact=True).fill(value("E2E_LIVE_NEW_PASSWORD"))
+        page.get_by_label("Новый пароль, не меньше 8 символов", exact=True).fill(value("E2E_LIVE_NEW_PASSWORD"))
         page.get_by_label("Повторите пароль", exact=True).fill(value("E2E_LIVE_NEW_PASSWORD"))
         with page.expect_response(
             lambda response: response.url.endswith("/api/auth/reset") and response.request.method == "POST"

@@ -1,6 +1,15 @@
 import pytest
 
-from club_api.domain import decay_delta, effective_discount, level_info, member_discount, order_totals
+from club_api.domain import (
+    ACHIEVEMENT_FLAGS,
+    ACHIEVEMENTS,
+    achievement_progress,
+    decay_delta,
+    effective_discount,
+    level_info,
+    member_discount,
+    order_totals,
+)
 
 
 @pytest.mark.parametrize(
@@ -41,3 +50,10 @@ def test_discount_preserves_integer_precision_at_safe_money_limit(discount):
     expected = (amount * discount + 50) // 100
     assert type(totals["discountAmount"]) is int and totals["discountAmount"] == expected
     assert type(totals["total"]) is int and totals["total"] == amount - expected
+
+
+def test_hidden_achievement_is_not_shown_or_seeded_as_column():
+    keys = {item["key"] for item in achievement_progress({})}
+    assert "club_voice" not in keys and "first_step" in keys
+    assert all("hidden" not in item for item in ACHIEVEMENTS)
+    assert "hidden" in ACHIEVEMENT_FLAGS

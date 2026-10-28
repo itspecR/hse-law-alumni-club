@@ -18,6 +18,14 @@ MONTHS = (
     "декабря",
 )
 FORMAT_LABELS = {"online": "онлайн", "offline": "очно", "blended": "смешанный"}
+ORDER_STATUS_LABELS = {
+    "new": "Новая",
+    "confirmed": "Подтверждена",
+    "in_progress": "В работе",
+    "done": "Выполнена",
+    "canceled": "Отменена",
+    "expired": "Истек срок резерва",
+}
 LEADING_SYMBOLS = re.compile(r"^[^\w«\"№(]+")
 
 

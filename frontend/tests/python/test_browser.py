@@ -1315,7 +1315,7 @@ def test_invitation_can_be_copied_manually_when_clipboard_is_unavailable(page, s
     page.add_init_script("localStorage.setItem('club_token','member-qa');")
     page.goto("/lk")
     page.evaluate("Object.defineProperty(navigator,'clipboard',{value:" + clipboard + ",configurable:true})")
-    button = page.get_by_role("button", name="Скопировать приглашение", exact=True)
+    button = page.get_by_role("button", name="Скопировать ссылку-приглашение", exact=True)
     button.click()
     field = page.get_by_role("textbox", name="Текст для копирования", exact=True)
     expect(field).to_be_visible(timeout=3000)
@@ -1632,8 +1632,8 @@ def test_cabinet_stats_and_sections(page, site, width):
     page.add_init_script("localStorage.setItem('club_token','member-qa');")
     page.goto("/lk")
     stats = page.locator(".cabinet-stats")
-    expect(stats.locator("dt")).to_have_text(["Уровень", "Баллы", "Скидка на ДПО", "Код приглашения"])
-    expect(stats.locator(".cabinet-stats__next")).to_have_text("До «Друг клуба» — 100\u00a0баллов")
+    expect(stats.locator("dt")).to_have_text(["Уровень", "Баллы", "Скидка выпускника", "Код приглашения"])
+    expect(stats.locator(".cabinet-stats__next")).to_have_text("До уровня «Друг клуба» осталось баллов: 100")
     for link in page.get_by_role("navigation", name="Разделы кабинета").get_by_role("link").all():
         assert link.bounding_box()["height"] >= 44
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
