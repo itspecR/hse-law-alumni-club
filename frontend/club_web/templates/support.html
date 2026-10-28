@@ -10,7 +10,7 @@
 <h2>Частые вопросы</h2>
 {% for answer in faq.answers %}
 <details class="lux-disclosure">
-<summary>{{ answer.triggers[0]|capitalize }}</summary>
+<summary>{{ answer.question }}</summary>
 <p>{{ answer.text }}</p>
 {% if answer.anchor|safe_url %}
 <a href="{{ answer.anchor|safe_url }}">Открыть раздел →</a>
@@ -24,7 +24,7 @@
 <form data-api="/support" data-support-create>
 <label class="site-field">Тема<select name="topic">
 <option value="account">Доступ в кабинет</option>
-<option value="order">Заявка или заказ</option>
+<option value="order">Заявка</option>
 <option value="personal_data">Персональные данные</option>
 <option value="other">Другой вопрос</option>
 </select>
@@ -35,7 +35,7 @@
 <p>{{ support.consent }}</p>
 </details>
 <label class="site-consent">
-<input type="checkbox" name="consent" required>Согласен на обработку данных обращения</label>
+<input type="checkbox" name="consent" required>Даю согласие на обработку данных обращения</label>
 <button class="site-primary">Отправить обращение</button>
 <p role="alert" data-error hidden>
 </p>

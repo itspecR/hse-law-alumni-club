@@ -151,6 +151,10 @@ def parse_query(query):
     return result
 
 
+def thousands(value):
+    return f"{value:,}".replace(",", " ")
+
+
 def program_to_bot(program):
     raw_format = (program.get("format") or "").lower()
     format = (
@@ -254,7 +258,9 @@ def duration_text(programs):
             text = (
                 minimum[1]
                 if minimum[1] == maximum[1]
-                else f"{minimum[2] if minimum[3] == maximum[3] else minimum[1]} – {maximum[1]}"
+                else f"{minimum[2]}-{maximum[1]}"
+                if minimum[3] == maximum[3]
+                else f"{minimum[1]} - {maximum[1]}"
             )
             lines.append(f"{title}: длительность обычно {text}.")
     return "\n".join(lines)
@@ -306,11 +312,9 @@ async def site_reply(state, query):
     if re.search(r"сколько стоят программ|цены программ|диапазон цен", query, re.I):
         prices = [program["price"] for program in programs if program["price"] is not None]
         text = (
-            f"Программы стоят от {min(prices):,} до {max(prices):,} ₽. Можно отобрать по цене: «до 30000» или «от 50000».".replace(
-                ",", " "
-            )
+            f"Программы стоят от {thousands(min(prices))} до {thousands(max(prices))} ₽. Чтобы отобрать по цене, напишите, например, «до 30000» или «от 50000»."
             if prices
-            else "Цены сейчас не в каталоге. Загляните в раздел ДПО."
+            else "Цен сейчас нет в каталоге. Посмотрите раздел «Программы ДПО»."
         )
         return {"text": text, "anchor": "/dpo", "programs": []}
     if re.search(r"ближайш.*старт|начал.*обучени", query, re.I):
@@ -378,7 +382,7 @@ async def answer_faq(state, query):
         )
     ]
     if duration and (text := duration_text(programs)):
-        return html.escape(text) + "\n\n🌐 " + link(FAQ["duration"]["anchor"], "Витрина ДПО")
+        return html.escape(text) + "\n\n🌐 " + link(FAQ["duration"]["anchor"], "Программы ДПО")
     if duration:
         answer, gap = find_trigger(tokens, FAQ["answers"]), find_trigger(tokens, FAQ["gaps"])
         if answer:
@@ -402,19 +406,19 @@ async def answer_faq(state, query):
         ]
         selected = strong or found["programs"]
         intro = (
-            "Отобрала по вашим условиям:"
+            "Подходят по вашим условиям:"
             if found["reason"] == "filter"
-            else "Нашла одну программу:"
+            else "Подходит одна программа:"
             if len(strong) == 1
-            else "Вот что нашла:"
+            else "Подходящие программы:"
             if strong
-            else "Точного совпадения нет, вот близкое:"
+            else "Точного совпадения нет, похожие программы:"
         )
         lines = [intro, ""]
         for program in selected[:5]:
             meta = [
                 program["formatLabel"] or program["format"],
-                f"{program['price']:,} ₽".replace(",", " ") if program["price"] is not None else None,
+                f"{thousands(program['price'])} ₽" if program["price"] is not None else None,
                 program["start"],
             ]
             lines.extend(
@@ -431,5 +435,5 @@ async def answer_faq(state, query):
         "Ответ не найден. Уточните вопрос или обратитесь в поддержку.\n🌐 "
         + link("/support", "Поддержка на сайте")
         + "\n🌐 "
-        + link("/dpo", "Витрина ДПО")
+        + link("/dpo", "Программы ДПО")
     )

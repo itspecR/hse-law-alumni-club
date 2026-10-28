@@ -86,7 +86,7 @@ class QuestionBody(StrictBody):
 def support_key(request):
     value = request.headers.get("x-support-key", "")
     if not re.fullmatch("[a-f0-9]{64}", value):
-        raise ApiError(400, "Некорректный код доступа")
+        raise ApiError(400, "Проверьте номер обращения и код доступа.")
     return digest(value)
 
 
@@ -120,7 +120,7 @@ async def create_ticket(request: HttpRequest):
     state = request.services
     cfg = support_config(state.settings)
     if not cfg["enabled"]:
-        raise ApiError(503, "Поддержка пока не принимает обращения")
+        raise ApiError(503, "Поддержка пока не принимает обращения.")
     if body.consentVersion != cfg["version"]:
         raise ApiError(409, "Условия изменились. Обновите страницу и ознакомьтесь с согласием.")
     request_hash = digest(
@@ -155,7 +155,7 @@ async def create_ticket(request: HttpRequest):
             (body.id, digest(body.key), request_hash),
         )
         if not prior:
-            raise ApiError(409, "Повторная отправка отличается от исходной")
+            raise ApiError(409, "Обновите страницу и отправьте обращение еще раз.")
     return {"id": body.id, "status": "open"}
 
 
@@ -166,7 +166,7 @@ async def ticket(request: HttpRequest, id: str):
         (guid(id), support_key(request)),
     )
     if not rows:
-        raise ApiError(404, "Обращение не найдено или код доступа неверен")
+        raise ApiError(404, "Обращение не найдено. Проверьте номер и код доступа.")
     return normalize(rows[0])
 
 
@@ -193,7 +193,7 @@ async def message(request: HttpRequest, id: str):
             (addition(body.message, "visitor"), state.settings.SUPPORT_RETENTION_DAYS, guid(id), support_key(request)),
         )
     if not rows:
-        raise ApiError(409, "Обращение недоступно, закрыто или достигнут лимит сообщений")
+        raise ApiError(409, "Обращение закрыто или в нем уже максимум сообщений.")
     return {"ok": True}
 
 
@@ -209,7 +209,7 @@ async def delete_ticket(request: HttpRequest, id: str):
             (guid(id), support_key(request)),
         )
     if not rows:
-        raise ApiError(404, "Обращение не найдено")
+        raise ApiError(404, "Обращение не найдено.")
     return {"ok": True}
 
 
@@ -252,7 +252,7 @@ async def answer_ticket(request: HttpRequest, id: str):
             ),
         )
     if not rows:
-        raise ApiError(404, "Обращение недоступно")
+        raise ApiError(404, "Обращение недоступно.")
     await audit(request, "support.update", actor="admin:" + admin["userId"], subject=id, detail={"status": body.status})
     return {"ok": True}
 
