@@ -23,9 +23,9 @@ LOCKED_FIELDS = (
 
 def require_open(order, subject):
     if order["type"] != PORTFOLIO_CATALOG:
-        raise ApiError(400, f"{subject.capitalize()} можно изменить только в заявке на программу клуба")
+        raise ApiError(400, f"{subject.capitalize()} можно изменить только в заявке на программу клуба.")
     if order["status"] not in OPEN_STATUSES:
-        raise ApiError(409, f"Заявка завершена или отменена – {subject} изменить нельзя")
+        raise ApiError(409, f"Заявка завершена или отменена, {subject} изменить нельзя.")
 
 
 async def locked_order(state, id, connection):
@@ -34,7 +34,7 @@ async def locked_order(state, id, connection):
         "orders", filters={"id": {"_eq": id}}, fields=LOCKED_FIELDS, limit=1, connection=connection
     )
     if not rows:
-        raise ApiError(404, "Заявка не найдена")
+        raise ApiError(404, "Заявка не найдена.")
     return rows[0]
 
 
@@ -62,8 +62,8 @@ class OrderUse:
 
 
 COHORT_USE = OrderUse(
-    "program_cohorts", "cohort_id", "Поток не найден", "В потоке есть заявки: закройте набор вместо удаления"
+    "program_cohorts", "cohort_id", "Поток не найден.", "В потоке есть заявки. Вместо удаления закройте набор."
 )
 PROGRAM_USE = OrderUse(
-    "programs", "program_id", "Программа не найдена.", "У программы есть заявки: переведите её в архив вместо удаления"
+    "programs", "program_id", "Программа не найдена.", "У программы есть заявки. Вместо удаления переведите ее в архив."
 )

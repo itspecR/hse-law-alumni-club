@@ -138,7 +138,7 @@ class Connection:
         name = hashlib.sha256((self.config["NAME"] + ":" + str(key)).encode()).hexdigest()
         row = await (await self.execute("SELECT GET_LOCK(%s,%s) AS acquired", (name, wait))).fetchone()
         if row["acquired"] != 1 and wait:
-            raise ApiError(503, "Данные сейчас изменяются. Повторите действие позже")
+            raise ApiError(503, "Данные сейчас изменяются. Повторите действие позже.")
         return row["acquired"] == 1
 
     async def unlock(self, key):

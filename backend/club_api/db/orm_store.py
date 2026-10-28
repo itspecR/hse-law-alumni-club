@@ -111,7 +111,7 @@ async def media_references(connection, table, data):
         model = apps.get_model("club_data", "MediaFile")
         files = list(model.objects.filter(pk__in=sorted(ids)).order_by("pk").select_for_update())
         if len(files) != len(ids):
-            raise ApiError(400, "Один из файлов удалён. Выберите файл заново.")
+            raise ApiError(400, "Один из файлов удален. Выберите файл заново.")
         if table != "alumni":
             avatars = set(model_for("alumni").objects.filter(avatar__in=ids).values_list("avatar", flat=True))
             if avatars or any((item.metadata or {}).get("club_upload_kind") == "avatar" for item in files):
@@ -219,7 +219,7 @@ class ORMStore(Store):
             query.update(**{mapping[key]: value for key, value in data.items()})
             rows = normalize(records(table, query))
             if id is not None and not rows:
-                raise ApiError(404, "Запись не найдена")
+                raise ApiError(404, "Запись не найдена.")
             return rows[0] if id is not None else rows
 
         return await connection.run(update_rows)

@@ -1,7 +1,7 @@
 {% if bot %}
 <section class="site-panel">
 <h2>Бот и вопросы сайта</h2>
-{% if bot.telegram %}<p>Telegram: {{ bot.telegram.username }} · {{ 'подключён' if bot.telegram.tokenConfigured else 'не подключён' }} · {{ 'получение сообщений включено' if bot.telegram.polling else 'получение сообщений выключено' }}</p>{% if bot.telegram.link|safe_url %}<a href="{{ bot.telegram.link|safe_url }}" target="_blank" rel="noopener noreferrer">Открыть бота ↗</a>{% endif %}{% endif %}
+{% if bot.telegram %}<p>Telegram: {{ bot.telegram.username }} · {{ 'подключен' if bot.telegram.tokenConfigured else 'не подключен' }} · {{ 'получение сообщений включено' if bot.telegram.polling else 'получение сообщений выключено' }}</p>{% if bot.telegram.link|safe_url %}<a href="{{ bot.telegram.link|safe_url }}" target="_blank" rel="noopener noreferrer">Открыть бота ↗</a>{% endif %}{% endif %}
 {% if bot.siteFaq %}<p>Ответов FAQ: {{ bot.siteFaq.answers }} · Вопросов без готового ответа: {{ bot.siteFaq.gaps }}</p><p>{{ bot.siteFaq.note }}</p>{% if bot.siteFaq.hits %}<p>Обращений к незаполненным темам: {{ bot.siteFaq.hits.gap_hits }} · Нераспознанных вопросов: {{ bot.siteFaq.hits.none_hits }}</p>{% for channel in bot.siteFaq.hits.by_channel or [] %}<p>{{ {'site':'Сайт','telegram':'Telegram'}.get(channel.channel,channel.channel) }}: {{ channel.count }}</p>{% endfor %}{% endif %}{% endif %}
 </section>
 {% endif %}

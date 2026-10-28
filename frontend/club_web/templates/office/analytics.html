@@ -11,7 +11,7 @@
 <div class="site-metrics">
 {% for key,value in (records.pulse or {}).items() %}
 <article>
-<strong>{{ value if value is not none else '–' }}</strong>
+<strong>{{ value if value is not none else 'нет данных' }}</strong>
 <span>{{ metrics.get(key,key) }}</span>
 </article>
 {% endfor %}
@@ -60,7 +60,7 @@
 <p>{{ row.title }} · прослушиваний: {{ row.plays }} · слушателей: {{ row.listeners }}</p>
 {% else %}{{ empty('Прослушиваний за период нет.') }}{% endfor %}
 <h2>Страницы сайта</h2>
-<p>Просмотров: {{ pageviews.hits if pageviews.hits is not none and pageviews.hits is defined else '–' }}</p>
+<p>Просмотров: {{ pageviews.hits if pageviews.hits is not none and pageviews.hits is defined else 'нет данных' }}</p>
 {{ counts('Популярные страницы',pageviews.paths_top,'path') }}
 <h2>Поддержка</h2>
 <p>Открыто: {{ support.open or 0 }} · создано за период: {{ support.created_in_range or 0 }}</p>

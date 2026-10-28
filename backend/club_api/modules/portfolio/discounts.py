@@ -26,7 +26,7 @@ def office_change(body):
         return {"office_discount": None, "office_reason": None}
     reason = (body.reason or "").strip()
     if len(reason) < MIN_REASON_LENGTH:
-        raise ApiError(400, "Укажите причину скидки")
+        raise ApiError(400, "Укажите причину скидки.")
     return {"office_discount": body.discount, "office_reason": reason}
 
 

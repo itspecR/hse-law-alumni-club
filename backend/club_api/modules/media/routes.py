@@ -38,7 +38,7 @@ async def media_list(request: HttpRequest):
     page, limit = query_page(request, default_limit=20)
     search = request.GET.get("q", "")
     if len(search) > 120 or page > 100000:
-        raise ApiError(400, "Некорректные параметры")
+        raise ApiError(400, "Некорректные параметры.")
     return await request.services.media.list(page, limit, search)
 
 
@@ -157,5 +157,5 @@ async def upload_avatar(request: HttpRequest):
 async def avatar(request: HttpRequest, fileId: str):
     media, id = (request.services.media, guid(fileId))
     if not await media.is_avatar(id):
-        raise ApiError(404, "Не найдено")
+        raise ApiError(404, "Не найдено.")
     return await media.avatar(id)

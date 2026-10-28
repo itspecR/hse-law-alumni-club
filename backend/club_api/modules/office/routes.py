@@ -67,7 +67,7 @@ async def audit_rows(request: HttpRequest):
         if not 1 <= limit <= 500:
             raise ValueError
     except ValueError:
-        raise ApiError(400, "Некорректный размер списка") from None
+        raise ApiError(400, "Некорректный размер списка.") from None
     return await request.services.store.read(
         "audit_log",
         sort=("-created_at",),

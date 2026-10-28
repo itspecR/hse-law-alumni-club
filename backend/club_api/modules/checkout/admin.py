@@ -22,7 +22,7 @@ STATUS_LABELS = {
     "confirmed": "Подтверждена",
     "done": "Выполнена",
     "canceled": "Отменена",
-    "expired": "Истёк резерв",
+    "expired": "Истек срок резерва",
 }
 STATUS_VERBS = {
     "new": "принята",
@@ -189,7 +189,7 @@ async def export_orders(request: HttpRequest):
             "Номер",
             "Дата",
             "Тип",
-            "Клиент",
+            "Заявитель",
             "Телефон",
             "Email",
             "Получение",
@@ -214,7 +214,7 @@ async def export_orders(request: HttpRequest):
             f"{item['title']}{(' (' + item['variant_sku'] + ')' if item.get('variant_sku') else '')} ×{item['qty']}"
             for item in order["items_json"] or []
         )
-        payment = {"succeeded": "Оплачено", "canceled": "Отменена", "review": "ТРЕБУЕТ СВЕРКИ ПЛАТЕЖА"}.get(
+        payment = {"succeeded": "Оплачено", "canceled": "Отменена", "review": "Требует сверки платежа"}.get(
             order["payment_status"], ""
         )
 

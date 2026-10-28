@@ -146,7 +146,7 @@ class Media:
 
     async def path(self, filename):
         if not re.fullmatch("[A-Za-z0-9][A-Za-z0-9._-]{0,254}", filename or ""):
-            raise ApiError(404, "Файл не найден")
+            raise ApiError(404, "Файл не найден.")
         return await self.directory() / filename
 
     async def get(self, id):
@@ -211,7 +211,7 @@ class Media:
     async def save(self, upload, *, filename, uploaded_by=None, kind="office", max_bytes=MAX_AUDIO_BYTES):
         directory = await self.directory()
         if (await asyncio.to_thread(shutil.disk_usage, directory)).free < max_bytes + 64 * 1024 * 1024:
-            raise ApiError(507, "Недостаточно места для загрузки")
+            raise ApiError(507, "Недостаточно места для загрузки.")
         id = str(uuid4())
         temporary, final = (directory / (id + ".upload"), None)
         descriptor = await asyncio.to_thread(
@@ -226,12 +226,12 @@ class Media:
                 detected = sniff_media(header)
                 maximum = min(max_bytes, MAX_IMAGE_BYTES) if detected in IMAGE_TYPES else max_bytes
                 if size > maximum:
-                    raise ApiError(413, "Файл превышает допустимый размер")
+                    raise ApiError(413, "Файл превышает допустимый размер.")
                 await asyncio.to_thread(file.write, chunk)
             await asyncio.to_thread(file.close)
             detected = sniff_media(header)
             if detected not in UPLOAD_TYPES or (kind == "avatar" and detected not in IMAGE_TYPES):
-                raise ApiError(415, "Поддерживаются JPEG, PNG, WebP, MP3, WAV, OGG и M4A")
+                raise ApiError(415, "Поддерживаются JPEG, PNG, WebP, MP3, WAV, OGG и M4A.")
             if kind == "avatar":
                 await self.thumbnail(temporary.name)
             disk_name = id + "." + UPLOAD_TYPES[detected]
@@ -278,7 +278,7 @@ class Media:
                 )
             ).fetchone()
             if shared:
-                raise ApiError(409, "Файл связан с другой записью медиатеки")
+                raise ApiError(409, "Файл связан с другой записью медиатеки.")
             for table, fields in sorted(MEDIA_FIELDS.items()):
                 condition = " OR ".join(f'''strpos(COALESCE("{field}"::text,''),%s)>0''' for field in fields)
                 if self.state.database.vendor == "mysql":
@@ -289,7 +289,7 @@ class Media:
                 if await (await connection.execute(query, [id] * len(fields))).fetchone():
                     raise ApiError(409, "Файл используется. Сначала уберите его из материалов или профиля.")
             if file["storage"] != "local":
-                raise ApiError(409, "Файл хранится вне локального каталога")
+                raise ApiError(409, "Файл хранится вне локального каталога.")
             path = await self.path(file["filename_disk"])
             await connection.execute("DELETE FROM directus_files WHERE id=%s", (id,))
         await asyncio.to_thread(path.unlink, missing_ok=True)
@@ -357,15 +357,15 @@ class Media:
     async def avatar(self, id):
         file = await self.get(id)
         if not file or file["storage"] != "local":
-            raise ApiError(404, "Файл не найден")
+            raise ApiError(404, "Файл не найден.")
         try:
             data = await self.thumbnail(file["filename_disk"])
         except ApiError as error:
             if error.status == 503:
                 raise
-            raise ApiError(404, "Файл не найден") from None
+            raise ApiError(404, "Файл не найден.") from None
         except OSError:
-            raise ApiError(404, "Файл не найден") from None
+            raise ApiError(404, "Файл не найден.") from None
         return HttpResponse(
             data,
             content_type="image/png",
@@ -375,21 +375,21 @@ class Media:
     async def stream(self, id, *, kind, range=None, cache="private, no-store"):
         file = await self.get(id)
         if not file or file["storage"] != "local":
-            raise ApiError(404, "Файл не найден")
+            raise ApiError(404, "Файл не найден.")
         try:
             descriptor = await asyncio.to_thread(
                 os.open, await self.path(file["filename_disk"]), os.O_RDONLY | os.O_NOFOLLOW
             )
         except OSError:
-            raise ApiError(404, "Файл не найден") from None
+            raise ApiError(404, "Файл не найден.") from None
         owned = True
         try:
             info = await asyncio.to_thread(os.fstat, descriptor)
             if not stat.S_ISREG(info.st_mode) or not info.st_size:
-                raise ApiError(404, "Файл не найден")
+                raise ApiError(404, "Файл не найден.")
             detected = sniff_media(await asyncio.to_thread(os.read, descriptor, 512))
             if not detected or (detected not in IMAGE_TYPES if kind == "image" else not detected.startswith("audio/")):
-                raise ApiError(404, "Файл не найден")
+                raise ApiError(404, "Файл не найден.")
             selected = parse_range(range, info.st_size)
             if selected is False:
                 return HttpResponse(status=416, headers={"Content-Range": f"bytes */{info.st_size}"})

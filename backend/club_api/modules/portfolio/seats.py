@@ -25,7 +25,7 @@ class SeatPool:
             return
         taken = await self.taken(connection, id)
         if taken + participants > row["capacity"]:
-            raise ApiError(409, f"Мест не осталось: подтверждено {taken} из {row['capacity']}")
+            raise ApiError(409, f"Мест не осталось: подтверждено {taken} из {row['capacity']}.")
 
 
 PROGRAM_SEATS = SeatPool("programs", "program_id=%s AND cohort_id IS NULL")

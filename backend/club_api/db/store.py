@@ -155,7 +155,7 @@ async def assert_media_references(connection, table, data):
     )
     rows = await cursor.fetchall()
     if len(rows) != len(ids):
-        raise ApiError(400, "Один из файлов удалён. Выберите файл заново.")
+        raise ApiError(400, "Один из файлов удален. Выберите файл заново.")
     if table != "alumni" and any(row["upload_kind"] == "avatar" or row["is_avatar"] for row in rows):
         raise ApiError(
             400, "Фотографию профиля нельзя использовать в материалах. Загрузите отдельный файл в медиатеку."
@@ -225,7 +225,7 @@ class Store:
     async def one(self, table, id, *, fields=None, connection=None):
         rows = await self.read(table, filters={"id": {"_eq": id}}, fields=fields, limit=1, connection=connection)
         if not rows:
-            raise ApiError(404, "Запись не найдена")
+            raise ApiError(404, "Запись не найдена.")
         return rows[0]
 
     async def create(self, table, data, *, connection=None):
@@ -267,7 +267,7 @@ class Store:
         cursor = await connection.execute(query, params)
         rows = normalize(await cursor.fetchall())
         if id is not None and not rows:
-            raise ApiError(404, "Запись не найдена")
+            raise ApiError(404, "Запись не найдена.")
         return rows[0] if id is not None else rows
 
     async def delete(self, table, *, id=None, filters=None, connection=None):

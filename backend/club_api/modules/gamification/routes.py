@@ -22,7 +22,7 @@ class PointsBody(Body):
 async def verified_alumni(request: HttpRequest):
     alumni = await require_alumni(request)
     if alumni["verification_status"] != "verified":
-        raise ApiError(403, "Доступно после верификации")
+        raise ApiError(403, "Доступно после подтверждения статуса выпускника.")
     return alumni
 
 
@@ -31,11 +31,11 @@ async def points(request: HttpRequest):
     body = parse_body(request, PointsBody)
     state = request.services
     if not state.auth.service_token(request):
-        raise ApiError(401, "Требуется сервисный токен")
+        raise ApiError(401, "Требуется сервисный токен.")
     try:
         UUID(body.alumni_id)
     except ValueError as error:
-        raise ApiError(400, "Некорректный участник") from error
+        raise ApiError(400, "Некорректный участник.") from error
     result = await state.gamification.add(**body.model_dump())
     await audit(
         request,
@@ -50,7 +50,7 @@ async def points(request: HttpRequest):
 @api_view
 async def decay(request: HttpRequest):
     if not request.services.auth.service_token(request):
-        raise ApiError(401, "Требуется сервисный токен")
+        raise ApiError(401, "Требуется сервисный токен.")
     return await request.services.gamification.decay()
 
 

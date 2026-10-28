@@ -49,13 +49,13 @@ async def webhook(request: HttpRequest):
     body = parse_body(request, UpdateBody)
     state = request.services
     if not state.settings.secret("TELEGRAM_BOT_TOKEN"):
-        raise ApiError(503, "Telegram-бот не настроен")
+        raise ApiError(503, "Telegram-бот не настроен.")
     if not state.settings.secret("TELEGRAM_WEBHOOK_SECRET"):
-        raise ApiError(503, "Webhook не настроен")
+        raise ApiError(503, "Webhook не настроен.")
     if not constant_equal(
         request.headers.get("x-telegram-bot-api-secret-token"), state.settings.secret("TELEGRAM_WEBHOOK_SECRET")
     ):
-        raise ApiError(403, "Доступ запрещён")
+        raise ApiError(403, "Нет доступа.")
     update = body.model_dump(by_alias=True, exclude_none=True)
     if body.message_reaction:
         await state.telegram.handle(update)

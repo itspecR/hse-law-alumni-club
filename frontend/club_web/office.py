@@ -76,8 +76,8 @@ CHOICES = {
 SINGLE_CHOICES = {"program": "portfolio"}
 CREATE_DEFAULTS = {"promo-codes": {"per_person_limit": 1, "all_programs": True}}
 SECTION_LABELS = {
-    "promo-codes": {"active": "Действует", "disabled": "Отключён"},
-    "cohorts": {"open": "Набор идёт", "closed": "Набор закрыт"},
+    "promo-codes": {"active": "Действует", "disabled": "Отключен"},
+    "cohorts": {"open": "Набор открыт", "closed": "Набор закрыт"},
 }
 
 
@@ -98,7 +98,7 @@ def cohort_title(row, names):
 def cohort_closure(row):
     if row.get("open"):
         return ""
-    return "старт прошёл" if row.get("enrollment") == "actual" else "набор закрыт вручную"
+    return "старт прошел" if row.get("enrollment") == "actual" else "набор закрыт вручную"
 
 
 def cohort_record(row, names):
@@ -177,8 +177,8 @@ FIELDS = {
     "cohorts": [
         ("program_id", "Программа", "program"),
         ("starts_on", "Старт", "date"),
-        ("price", "Цена потока, копейки; пусто — цена программы", "optional"),
-        ("capacity", "Лимит мест, пусто — без лимита", "limit"),
+        ("price", "Цена потока в копейках. Пусто - цена программы", "optional"),
+        ("capacity", "Лимит мест. Пусто - без лимита", "limit"),
         ("enrollment", "Набор", "actual|nonactual"),
     ],
     "promo-codes": [
@@ -186,8 +186,8 @@ FIELDS = {
         ("percent", "Скидка, % (до 50)", "number"),
         ("starts_on", "Действует с", "date"),
         ("ends_on", "Действует по", "date"),
-        ("total_limit", "Всего использований, пусто — без лимита", "limit"),
-        ("per_person_limit", "На одного человека, пусто — без лимита", "limit"),
+        ("total_limit", "Всего использований. Пусто - без лимита", "limit"),
+        ("per_person_limit", "На одного человека. Пусто - без лимита", "limit"),
         ("all_programs", "Все программы портфеля", "checkbox"),
         ("program_ids", "Программы, если не все", "portfolio"),
         ("note", "Заметка офиса", "textarea"),
@@ -230,7 +230,7 @@ FIELDS = {
     "events": [
         ("title", "Название", "text"),
         ("description", "Описание", "textarea"),
-        ("starts_at", "Дата и время ISO 8601", "text"),
+        ("starts_at", "Дата и время с часовым поясом, например 2026-11-20T19:00+03:00", "text"),
         ("location", "Место", "text"),
         ("cover", "Обложка", "text"),
         ("reg_url", "Внешняя регистрация", "text"),
@@ -245,7 +245,7 @@ FIELDS = {
         ("audio_url", "Аудиофайл или ссылка", "text"),
         ("video_url", "RuTube", "text"),
         ("duration", "Продолжительность", "text"),
-        ("is_free", "Открытый выпуск", "checkbox"),
+        ("is_free", "Пробный выпуск", "checkbox"),
         ("sort", "Порядок", "number"),
         ("status", "Статус", "published|draft"),
     ],
@@ -280,7 +280,7 @@ LABELS = {
     "new": "Новая",
     "confirmed": "Подтверждена",
     "in_progress": "В работе",
-    "expired": "Истёк резерв",
+    "expired": "Истек срок резерва",
     "succeeded": "Оплачено",
     "pending": "На проверке",
     "waiting_for_capture": "Ожидает подтверждения",
@@ -299,7 +299,7 @@ METRICS = {
     "orders_paid": "Оплаченные заявки",
     "pending_verifications": "Ожидают проверки",
     "alumni_count": "Выпускники",
-    "alumni_verified": "Верифицированы",
+    "alumni_verified": "Подтверждены",
     "points_total": "Баллы клуба",
     "programs_actual": "Открытый набор ДПО",
     "programs_total": "Программы ДПО",

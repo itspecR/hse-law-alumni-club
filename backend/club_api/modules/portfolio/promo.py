@@ -70,7 +70,7 @@ class PromoBody(Body):
 async def require_unique_code(state, code, id, connection):
     filters = {"code": {"_eq": code}, **({"id": {"_neq": id}} if id else {})}
     if await state.store.read("promo_codes", filters=filters, fields=("id",), limit=1, connection=connection):
-        raise ApiError(409, "Такой промокод уже есть")
+        raise ApiError(409, "Такой промокод уже есть.")
 
 
 async def promo_uses(state, promo_ids):
@@ -97,7 +97,7 @@ class PromoRules:
         if "code" in data:
             await require_unique_code(state, data["code"], id, connection)
         if date.fromisoformat(merged["ends_on"]) < date.fromisoformat(merged["starts_on"]):
-            raise ApiError(400, "Дата окончания раньше даты начала")
+            raise ApiError(400, "Дата окончания раньше даты начала.")
         programs = (
             program_ids
             if program_ids is not None
@@ -110,7 +110,7 @@ class PromoRules:
             "programs",
             program_ids,
             PORTFOLIO_PROGRAMS,
-            "Программа не найдена. Обновите страницу и выберите программы заново",
+            "Программа не найдена. Обновите страницу и выберите программы заново.",
             connection,
         )
         return data

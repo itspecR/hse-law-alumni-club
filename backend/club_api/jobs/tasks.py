@@ -8,15 +8,17 @@ from club_api.modules.news.sources import SOURCES, refresh_source
 from club_api.modules.notifications.mail import MAIL_RETENTION_DAYS
 from club_api.modules.portfolio.captcha import forget_expired
 
+EXPIRED_NAME = "срок хранения истек"
+
 
 async def retention(state):
     await state.database.execute("DELETE FROM club_support_tickets WHERE expires_at<=now()")
     await state.database.execute(
         Query(
-            "UPDATE orders SET contact_fio='срок хранения истёк',contact_phone='-',contact_email='-',address=NULL,comment=NULL WHERE created_at<now()-%s*interval '1 day' AND (contact_email IS NULL OR contact_email<>'-')",
-            "UPDATE orders SET contact_fio='срок хранения истёк',contact_phone='-',contact_email='-',address=NULL,comment=NULL WHERE created_at<DATE_SUB(now(),INTERVAL %s DAY) AND (contact_email IS NULL OR contact_email<>'-')",
+            "UPDATE orders SET contact_fio=%s,contact_phone='-',contact_email='-',address=NULL,comment=NULL WHERE created_at<now()-%s*interval '1 day' AND (contact_email IS NULL OR contact_email<>'-')",
+            "UPDATE orders SET contact_fio=%s,contact_phone='-',contact_email='-',address=NULL,comment=NULL WHERE created_at<DATE_SUB(now(),INTERVAL %s DAY) AND (contact_email IS NULL OR contact_email<>'-')",
         ),
-        (state.settings.ORDER_RETENTION_DAYS,),
+        (EXPIRED_NAME, state.settings.ORDER_RETENTION_DAYS),
     )
     await state.database.execute(
         Query(
@@ -54,8 +56,8 @@ async def event_reminders(state):
         await state.push.to_many(
             [row["alumni_id"] for row in rsvps],
             {
-                "title": "Завтра событие клуба 📅",
-                "body": f"{event['title']} – в {when}{', ' + place if place else ''}",
+                "title": "Завтра событие клуба",
+                "body": f"{event['title']}, начало в {when}{', ' + place if place else ''}",
                 "url": "/events",
             },
         )

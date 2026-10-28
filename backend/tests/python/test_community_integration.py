@@ -242,7 +242,7 @@ async def test_self_delete_and_admin_anonymize_revoke_access_and_remove_data(dat
         assert (await client.get("/me", headers=headers)).status_code == 401
         assert (await client.get("/avatars/" + avatar)).status_code == 404
         member_row = await app.state.store.one("alumni", member)
-        assert member_row["fio"] == "Удалённый участник"
+        assert member_row["fio"] == "Удаленный участник"
         assert member_row["contacts_json"] is None and member_row["user_id"] is None
         assert not await app.state.store.read("alumni_friends", fields=("id",))
         assert (await client.get("/me", headers=other_headers)).status_code == 200

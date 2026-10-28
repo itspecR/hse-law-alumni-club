@@ -36,9 +36,9 @@ async def target_cohort(state, order, id, connection):
         connection=connection,
     )
     if not rows:
-        raise ApiError(400, "Поток не найден в этой программе. Обновите страницу")
+        raise ApiError(400, "Поток не найден в этой программе. Обновите страницу.")
     if rows[0]["id"] == order["cohort_id"]:
-        raise ApiError(409, "Заявка уже в этом потоке")
+        raise ApiError(409, "Заявка уже в этом потоке.")
     return rows[0]
 
 
