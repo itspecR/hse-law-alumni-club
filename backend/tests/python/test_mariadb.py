@@ -234,6 +234,6 @@ async def test_operator_cli_imports_with_django_async_dispatch(database_app, tmp
         timeout=30,
     )
     assert result.returncode == 0, result.stderr
-    assert "таблиц 46, записей 1" in result.stdout
+    assert "таблиц 47, записей 1" in result.stdout
     async with database_app.state.database.connection() as connection:
         assert await connection.run(lambda: Alumnus.objects.get().fio) == "Перенос через команду оператора"

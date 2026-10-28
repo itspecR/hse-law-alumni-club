@@ -4,8 +4,9 @@ from club_api.core.errors import ApiError
 from club_api.core.views import api_view
 from club_api.modules.catalog.scope import PUBLISHED_PORTFOLIO
 from club_api.modules.portfolio.applications import MAX_PARTICIPANTS, MIN_GROUP
+from club_api.modules.portfolio.cohorts import public_cohorts
 from club_api.modules.portfolio.links import published_trainers
-from club_api.modules.portfolio.seats import free_seats
+from club_api.modules.portfolio.seats import PROGRAM_SEATS
 
 CARD_FIELDS = (
     "id",
@@ -41,9 +42,13 @@ async def program(request: HttpRequest, slug: str):
     if not rows:
         raise ApiError(404, "Программа не найдена")
     program = rows[0]
+    async with state.database.connection() as connection:
+        seats_left = await PROGRAM_SEATS.free(connection, program)
+        cohorts = await public_cohorts(state, program, connection)
     return {
         **program,
         "trainers": await published_trainers(state, program["id"]),
-        "seats_left": await free_seats(state, program),
+        "seats_left": seats_left,
+        "cohorts": cohorts,
         "group": {"min": MIN_GROUP, "max": MAX_PARTICIPANTS},
     }

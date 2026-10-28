@@ -540,6 +540,9 @@ class Orders(models.Model):
     discount_source = models.CharField(max_length=32, null=True)
     office_discount = models.IntegerField(null=True)
     office_reason = models.CharField(max_length=300, null=True)
+    cohort = models.ForeignKey(
+        "ProgramCohorts", on_delete=models.SET_NULL, db_column="cohort_id", related_name="+", null=True
+    )
 
     class Meta:
         db_table = "orders"
@@ -639,6 +642,19 @@ class Products(models.Model):
 
     class Meta:
         db_table = "products"
+
+
+class ProgramCohorts(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, db_default=DatabaseUUID())
+    program = models.ForeignKey("Programs", on_delete=models.CASCADE, db_column="program_id", related_name="+")
+    starts_on = models.DateField()
+    price = models.BigIntegerField(null=True)
+    capacity = models.IntegerField(null=True)
+    enrollment = models.CharField(max_length=32, db_default="actual")
+    created_at = models.DateTimeField(db_default=Now())
+
+    class Meta:
+        db_table = "program_cohorts"
 
 
 class ProgramTrainers(models.Model):

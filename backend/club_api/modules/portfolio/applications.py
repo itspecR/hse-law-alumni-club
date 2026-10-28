@@ -14,6 +14,8 @@ from club_api.modules.auth.routes import Body, EmailBody, RegisterBody
 from club_api.modules.catalog.scope import PUBLISHED_PORTFOLIO
 from club_api.modules.checkout.store import PENDING_NOTICE, digest
 from club_api.modules.portfolio.captcha import CaptchaBody, require_captcha
+from club_api.modules.portfolio.cohorts import chosen_cohort, cohort_id, cohort_price
+from club_api.modules.portfolio.dates import display_date
 from club_api.modules.portfolio.promo import valid_promo
 from club_api.observability.audit import audit
 from club_api.resources import shared_data
@@ -43,6 +45,7 @@ class ApplicationBody(Body):
     consent_pdn: Literal[True]
     consent_terms: Literal[True]
     promo_code: str | None = Field(default=None, max_length=PROMO_CODE_LENGTH)
+    cohort_id: str | None = None
     captcha: CaptchaBody | None = None
     website: str = Field(default="", max_length=0)
 
@@ -56,6 +59,11 @@ class ApplicationBody(Body):
     def clean_code(cls, value):
         return promo_code(value)
 
+    @field_validator("cohort_id")
+    @classmethod
+    def valid_cohort(cls, value):
+        return cohort_id(value)
+
     @field_validator("consent_pdn", "consent_terms", mode="before")
     @classmethod
     def explicit_consent(cls, value):
@@ -66,11 +74,17 @@ class QuoteBody(Body):
     applicant: Literal["self", "organization"]
     participants: int = Field(default=1, ge=1, le=MAX_PARTICIPANTS)
     promo_code: str | None = Field(default=None, max_length=PROMO_CODE_LENGTH)
+    cohort_id: str | None = None
 
     @field_validator("promo_code")
     @classmethod
     def clean_code(cls, value):
         return promo_code(value)
+
+    @field_validator("cohort_id")
+    @classmethod
+    def valid_cohort(cls, value):
+        return cohort_id(value)
 
 
 def promo_code(value):
@@ -139,14 +153,14 @@ async def chosen_promo(connection, code, program, email, member, *, lock):
     return (promo if promo["percent"] > member else None), None
 
 
-def pricing(program, participants, member, promo):
+def pricing(program, cohort, participants, member, promo):
     discount, source = (promo["percent"], PROMO_SOURCE) if promo else (member, MEMBER_SOURCE if member else None)
     items = [
         {
             "type": PORTFOLIO_CATALOG,
             "ref_id": program["slug"],
             "title": program["title"],
-            "price": program["price"] or 0,
+            "price": cohort_price(program, cohort),
             "qty": participants,
         }
     ]
@@ -163,12 +177,13 @@ def promo_message(code, source, discount, rejected=None):
     return None
 
 
-def order_base(body, program, alumni, member, promo):
-    items, totals, discount, source = pricing(program, body.participants, member, promo)
+def order_base(body, program, cohort, alumni, member, promo):
+    items, totals, discount, source = pricing(program, cohort, body.participants, member, promo)
     return {
         "alumni_id": alumni["id"] if alumni else None,
         "type": PORTFOLIO_CATALOG,
         "program_id": program["id"],
+        "cohort_id": cohort["id"] if cohort else None,
         "items_json": items,
         "subtotal": totals["subtotal"],
         "member_discount": discount,
@@ -189,6 +204,10 @@ def order_base(body, program, alumni, member, promo):
     }
 
 
+def cohort_start(choice):
+    return choice["cohort"]["starts_on"] if choice.get("cohort") else None
+
+
 def application_receipt(code, choice, number, base, notified=PENDING_NOTICE):
     return {
         "number": number,
@@ -198,25 +217,26 @@ def application_receipt(code, choice, number, base, notified=PENDING_NOTICE):
         "discount_source": base["discount_source"],
         "promo_code": base["promo_code"],
         "message": promo_message(code, base["discount_source"], base["member_discount"], choice.get("rejected")),
+        "starts_on": cohort_start(choice),
         "subtotal": base["subtotal"],
         "total_estimate": base["total_estimate"],
         "notified": notified,
     }
 
 
-def summary(base):
-    text = f"{base['items_json'][0]['title']} · участников: {base['participants']}"
+def summary(base, starts_on=None):
+    text = base["items_json"][0]["title"] + (f" · поток с {display_date(starts_on)}" if starts_on else "")
+    text += f" · участников: {base['participants']}"
     return text + (f" · {base['organization']}" if base["organization"] else "")
 
 
-async def notify(state, number, base):
-    notified = await state.notifications.order_notice(
-        number, summary(base), base["total_estimate"], base["member_discount"]
-    )
+async def notify(state, number, base, starts_on):
+    text = summary(base, starts_on)
+    notified = await state.notifications.order_notice(number, text, base["total_estimate"], base["member_discount"])
     await state.notifications.mail_applicant(
         base["contact_email"],
         f"Заявка {number} принята – Клуб выпускников факультета права",
-        f"Здравствуйте, {base['contact_fio']}!\n\nВаша заявка {number} принята:\n{summary(base)}\n"
+        f"Здравствуйте, {base['contact_fio']}!\n\nВаша заявка {number} принята:\n{text}\n"
         f"Сумма (справочно): {rubles(base['total_estimate'])}.\n\n"
         "Оплата на сайте не требуется: менеджер учебного офиса свяжется с вами, чтобы согласовать договор и оплату.",
     )
@@ -246,17 +266,18 @@ async def apply(request: HttpRequest, slug: str):
     choice = {}
 
     async def build(connection):
+        choice["cohort"] = await chosen_cohort(state, program["id"], body.cohort_id, connection, lock=True)
         choice["promo"], choice["rejected"] = await chosen_promo(
             connection, body.promo_code, program, body.contact_email, member, lock=True
         )
-        return order_base(body, program, alumni, member, choice["promo"])
+        return order_base(body, program, choice["cohort"], alumni, member, choice["promo"])
 
     receipt = partial(application_receipt, body.promo_code, choice)
     result = await state.checkout.commit_single(key=key, request_hash=request_hash, build=build, receipt=receipt)
     if result["replay"]:
         return result["replay"]
     number, base = result["number"], result["base"]
-    receipt = receipt(number, base, await notify(state, number, base))
+    receipt = receipt(number, base, await notify(state, number, base, cohort_start(choice)))
     await audit(
         request,
         "order.created",
@@ -267,6 +288,7 @@ async def apply(request: HttpRequest, slug: str):
             "discount": base["member_discount"],
             "type": PORTFOLIO_CATALOG,
             "promo": base["promo_code"],
+            "cohort": base["cohort_id"],
         },
     )
     try:
@@ -285,8 +307,9 @@ async def quote(request: HttpRequest, slug: str):
     program = await open_program(state, slug)
     member = applicant_discount(body.applicant, alumni)
     async with state.database.connection() as connection:
+        cohort = await chosen_cohort(state, program["id"], body.cohort_id, connection)
         promo, rejected = await chosen_promo(connection, body.promo_code, program, None, member, lock=False)
-    _, totals, discount, source = pricing(program, body.participants, member, promo)
+    _, totals, discount, source = pricing(program, cohort, body.participants, member, promo)
     return {
         "subtotal": totals["subtotal"],
         "discount": discount,
