@@ -15,7 +15,7 @@
 <section class="site-panel">
 <h2>{{ 'Заявка отклонена' if me.alumni.verification_status=='rejected' else 'Заявка на проверке' }}</h2>
 <p>{{ 'Учебный офис не смог подтвердить данные заявки. Если это ошибка, напишите в поддержку.' if me.alumni.verification_status=='rejected' else 'Учебный офис сверяет выпуск с реестром факультета. Кабинет и скидка откроются после подтверждения.' }}</p>
-<a href="/lk/profile">Загрузить фото профиля</a>
+{% if me.alumni.verification_status!='rejected' %}<a href="/lk/profile">Загрузить фото профиля</a>{% endif %}
 <a href="/support">Поддержка</a>
 </section>
 {% else %}

@@ -1633,7 +1633,7 @@ def test_cabinet_stats_and_sections(page, site, width):
     page.goto("/lk")
     stats = page.locator(".cabinet-stats")
     expect(stats.locator("dt")).to_have_text(["Уровень", "Баллы", "Скидка выпускника", "Код приглашения"])
-    expect(stats.locator(".cabinet-stats__next")).to_have_text("До «Друг клуба» — 100\u00a0баллов")
+    expect(stats.locator(".cabinet-stats__next")).to_have_text("До уровня «Друг клуба» осталось баллов: 100")
     for link in page.get_by_role("navigation", name="Разделы кабинета").get_by_role("link").all():
         assert link.bounding_box()["height"] >= 44
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")

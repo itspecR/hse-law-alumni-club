@@ -671,6 +671,7 @@ async def test_join_cabinet_and_profile_texts_follow_glossary(browser_client):
     assert "> 60</p>" in cabinet and "60 баллов" not in cabinet
     rejected = await cabinet_page({**PROFILE, "alumni": {**PROFILE["alumni"], "verification_status": "rejected"}})
     assert "Учебный офис не смог подтвердить данные заявки. Если это ошибка, напишите в поддержку." in rejected
+    assert "Загрузить фото профиля" not in rejected
     templates = Path(club_web.__file__).parent / "templates"
     for name in ("auth.html", "cabinet.html", "profile.html"):
         assert re.findall(".{0,40}[ёЁ–—].{0,20}", (templates / name).read_text()) == [], name
