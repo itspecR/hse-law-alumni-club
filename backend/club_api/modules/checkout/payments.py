@@ -363,7 +363,7 @@ async def webhook(request: HttpRequest):
             if order["type"] == "podcast"
             else "\nЗаявка передана учебному офису в работу."
         )
-        await state.notifications.send_email(
+        await state.notifications.mail_applicant(
             order["contact_email"], "Оплата получена – заявка " + order["number"], text
         )
     return {"ok": True}

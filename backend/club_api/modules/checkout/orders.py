@@ -130,7 +130,7 @@ async def create_order(request: HttpRequest):
         for item in priced
     )
     notified = await state.notifications.order_notice(number, summary, totals["total"], discount)
-    await state.notifications.send_email(
+    await state.notifications.mail_applicant(
         body.contact_email,
         f"Заявка {number} принята – Клуб выпускников факультета права",
         f"Здравствуйте, {body.contact_fio}!\n\nВаша заявка {number} принята:\n{summary}\nСумма (справочно): {rubles(totals['total'])}.\n\nМенеджер учебного офиса свяжется с вами для подтверждения деталей.",

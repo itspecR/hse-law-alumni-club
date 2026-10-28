@@ -68,7 +68,7 @@ def discount_line(order):
 async def notify_discount(state, order, total):
     if not order["contact_email"] or order["contact_email"] == "-":
         return
-    await state.notifications.send_email(
+    await state.notifications.mail_applicant(
         order["contact_email"],
         f"Заявка {order['number']}: сумма изменена – Клуб выпускников факультета права",
         f"Здравствуйте, {order['contact_fio']}!\n\nПо заявке {order['number']} изменена сумма: "

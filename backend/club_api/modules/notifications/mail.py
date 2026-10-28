@@ -30,6 +30,10 @@ async def confirmation_owner(connection, *, user_id=None, email=None):
     return rows[0] if len(rows) == 1 else None
 
 
+APPLICANT_MAIL_KIND = "applicant"
+MAIL_RETENTION_DAYS = 30
+
+
 class Notifications:
     def __init__(self, settings, database, client):
         self.settings = settings
@@ -96,6 +100,9 @@ class Notifications:
         if sent is None:
             sent = await self.send_email(to, subject, body)
         return {"id": id, "sent": sent, "blocked": not self.mail_enabled}
+
+    async def mail_applicant(self, to, subject, body):
+        return await self.enqueue_mail(to, subject, body, kind=APPLICANT_MAIL_KIND)
 
     async def enqueue_confirmation(self, to, subject, body, owner_user_id):
         if not owner_user_id or not self.database.pool:
