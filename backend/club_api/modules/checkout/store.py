@@ -60,7 +60,7 @@ class Checkout:
         if not row:
             return None
         if row["request_hash"] != request_hash:
-            raise ApiError(409, "Этот ключ уже использован для другой заявки. Проверьте сохранённую заявку в кабинете.")
+            raise ApiError(409, "Этот ключ уже использован для другой заявки. Проверьте сохраненную заявку в кабинете.")
         return row["receipt"]
 
     async def save_receipt(self, key, receipt):
@@ -77,7 +77,7 @@ class Checkout:
             )
             cart = await cursor.fetchone()
             if not cart or cart["items_json"] != cart_items:
-                raise ApiError(409, "Корзина изменилась. Обновите её перед оформлением.")
+                raise ApiError(409, "Корзина изменилась. Обновите ее перед оформлением.")
             if base["alumni_id"]:
                 cursor = await connection.execute(
                     Query(
@@ -123,7 +123,7 @@ class Checkout:
                         raise ApiError(409, "Вариант товара больше недоступен.")
                     stock = variant["stock"] if variant else product["stock"]
                     if type(stock) is not int or stock < item["qty"]:
-                        raise ApiError(409, f"Недостаточно на складе: {item['title']}.")
+                        raise ApiError(409, f"Товара «{item['title']}» не хватает на складе.")
                     if variant:
                         variant["stock"] -= item["qty"]
                         await connection.execute(

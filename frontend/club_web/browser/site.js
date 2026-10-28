@@ -40,7 +40,7 @@ function token(office = currentPath().startsWith("/admin")) {
 
 function cartSession() {
   const key = stored("club_cart") || crypto.randomUUID();
-  if (!store("club_cart", key)) throw new Error("Корзина требует доступ к хранилищу браузера.");
+  if (!store("club_cart", key)) throw new Error("Для корзины нужен доступ к хранилищу браузера. Разрешите его в настройках.");
   return key;
 }
 
@@ -207,7 +207,7 @@ async function updateCartCount() {
 function checkoutReceipt(result) {
   const section = element("main", undefined, { id: "main", class: "site-article" });
   const heading = element("h1", "Заявка отправлена в учебный офис", { tabindex: "-1" });
-  section.append(heading, element("p", "Номер заявки: " + result.number), element("p", "Учебный офис проверит состав и сумму заявки и свяжется с вами по указанным контактам."), element("p", "Итого: " + rubles(result.total_estimate)));
+  section.append(heading, element("p", "Номер заявки: " + result.number), element("p", "Учебный офис проверит состав и сумму заявки и свяжется с вами по указанным контактам."), element("p", "Предварительная сумма " + rubles(result.total_estimate)));
   if (!result.notified?.ok) section.append(element("p", notNotifiedText, { role: "alert" }));
   const payment = safeLink(result.payment_url, true);
   if (payment) section.append(element("a", "Оплатить через ЮKassa", { href: payment, class: "site-primary" }));
@@ -361,10 +361,10 @@ async function perform(target, body) {
       await supportThread({ id: result.id, key: body.key });
     } else if (result.payment_url) {
       const payment = safeLink(result.payment_url, true);
-      if (!payment) throw new Error("Не удалось получить безопасную ссылку оплаты. Обратитесь в поддержку.");
+      if (!payment) throw new Error("Не удалось получить ссылку на оплату. Обратитесь в поддержку.");
       const link = element("a", "Оплатить через ЮKassa", { href: payment, class: "site-primary" });
       target.after(link);
-      notice("Заявка сохранена: " + result.number);
+      notice("Заявка " + result.number + " сохранена.");
     } else if (path === "/me/tg-link" && result.url) {
       const link = safeLink(result.url);
       if (link && new URL(link).hostname === "t.me") target.after(element("a", "Открыть Telegram", { href: link, target: "_blank", rel: "noopener noreferrer" }));
@@ -377,8 +377,8 @@ async function perform(target, body) {
       if (cart) store("club_checkout:" + cartSession(), null);
       if (cart && currentPath() !== "/cart") {
         void updateCartCount();
-        notice("Корзина обновлена");
-      } else if (await refresh()) notice(cart ? "Корзина обновлена" : "Изменения сохранены");
+        notice("Корзина обновлена.");
+      } else if (await refresh()) notice(cart ? "Корзина обновлена." : "Изменения сохранены");
     }
   } finally {
     if (checkout) pendingCheckout = false;

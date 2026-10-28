@@ -6,7 +6,7 @@ from test_community_integration import account
 from test_portfolio_applications import FORM, apply, order, program
 
 from club_api.jobs.tasks import retention
-from club_api.modules.notifications.mail import APPLICANT_MAIL_KIND, MAIL_RETENTION_DAYS
+from club_api.modules.notifications.mail import APPLICANT_MAIL_KIND, CLUB_NAME, MAIL_RETENTION_DAYS
 
 
 def client_for(app):
@@ -46,6 +46,27 @@ async def test_status_letter_goes_through_queue(database_app, monkeypatch):
         await client.patch("/admin/orders/" + row["id"], headers=admin, json={"status": "in_progress"})
     letters = await applicant_letters(state)
     assert [letter["status"] for letter in letters] == ["sent", "sent"]
+
+
+async def test_status_letter_mentions_cabinet_only_to_members(database_app, monkeypatch):
+    app = database_app
+    state = app.state
+    item = await program(app)
+    _, admin = await account(app, "admin")
+    _, member = await account(app)
+    monkeypatch.setattr(state.notifications, "send_email", AsyncMock(return_value=True))
+    async with client_for(app) as client:
+        for headers in (None, member):
+            number = (await apply(client, item["slug"], FORM, headers)).json()["number"]
+            row = await order(app, number)
+            await client.patch("/admin/orders/" + row["id"], headers=admin, json={"status": "in_progress"})
+    guest, own = await state.database.rows(
+        "SELECT subject,body FROM club_mail_outbox WHERE kind=%s AND subject LIKE %s ORDER BY id",
+        (APPLICANT_MAIL_KIND, "%взята в работу%"),
+    )
+    assert guest["subject"].endswith(" взята в работу - " + CLUB_NAME)
+    assert "изменился, заявка взята в работу." in guest["body"] and "кабинет" not in guest["body"]
+    assert "\nПодробности в личном кабинете." in own["body"] and own["body"].endswith("\n\n" + CLUB_NAME)
 
 
 async def test_retention_removes_only_old_finished_letters(database_app):

@@ -76,7 +76,7 @@ export function prepareCatalog(url, notice) {
     dialog.querySelector("thead").replaceChildren(head);
     const body = dialog.querySelector("tbody");
     body.replaceChildren();
-    for (const [key, label] of [["direction", "Направление"], ["document", "Документ"], ["format_label", "Формат"], ["duration", "Длительность"], ["start_label", "Дата старта"], ["price_label", "Стоимость"], ["enrollment", "Набор"]]) {
+    for (const [key, label] of [["direction", "Направление"], ["document", "Документ"], ["format_label", "Формат"], ["duration", "Длительность"], ["start_label", "Начало"], ["price_label", "Стоимость"], ["enrollment", "Набор"]]) {
       const row = node("tr");
       row.append(node("th", label, { scope: "row" }));
       for (const program of rows) row.append(node("td", key === "enrollment" ? ({ actual: "Набор открыт", nonactual: "Набор закрыт" }[program[key]] || "Уточняется") : program[key] || "Не указано"));
@@ -96,7 +96,7 @@ export function prepareCatalog(url, notice) {
       if (!slug) return;
       if (selected.has(slug)) selected.delete(slug);
       else if (selected.size < MAX_PROGRAMS) selected.add(slug);
-      else { notice("Можно сравнить до трёх программ. Уберите одну из выбранных."); return; }
+      else { notice("Можно сравнить до трех программ. Уберите одну из выбранных."); return; }
       persist();
     } else if (action === "clear-compare") { selected.clear(); persist(); root.querySelector("[data-action='compare']")?.focus(); }
     else if (button.dataset.compareRemove) { selected.delete(button.dataset.compareRemove); persist(); (selected.size ? bar.querySelector("[data-action='show-compare']") : root.querySelector("[data-action='compare']"))?.focus(); }
@@ -105,7 +105,7 @@ export function prepareCatalog(url, notice) {
     else if (button.hasAttribute("data-compare-copy")) {
       const share = new URL(url("dpo/"), location.origin);
       share.searchParams.set("compare", [...selected].join(","));
-      try { await navigator.clipboard.writeText(share.href); dialog.querySelector("[data-compare-message]").textContent = "Ссылка скопирована"; }
+      try { await navigator.clipboard.writeText(share.href); dialog.querySelector("[data-compare-message]").textContent = "Ссылка скопирована."; }
       catch {
         const fallback = dialog.querySelector("[data-compare-fallback]");
         fallback.hidden = false;

@@ -36,7 +36,7 @@ def cart_session(request):
         if len(value) != 36 or str(UUID(value)) != value.lower():
             raise ValueError
     except ValueError as error:
-        raise ApiError(400, "Нет сессии корзины") from error
+        raise ApiError(400, "Корзина недоступна. Обновите страницу.") from error
     return value
 
 
@@ -101,25 +101,27 @@ async def add_cart(request: HttpRequest):
     state, token = (request.services, cart_session(request))
     info = (await lookup_catalog(state.store, [body.model_dump()])).get(body.type + ":" + body.ref_id)
     if not info:
-        raise ApiError(404, "Позиция не найдена")
+        raise ApiError(404, "Позиция не найдена.")
     if body.type == "dpo":
         if info["enrollment"] == "nonactual":
-            raise ApiError(400, "Набор на эту программу закрыт")
+            raise ApiError(400, "Набор на эту программу закрыт.")
         if info["source_url"]:
-            raise ApiError(400, "Запись на эту программу – на hse.ru")
+            raise ApiError(400, "Запись на эту программу идет на сайте hse.ru.")
     elif info["variants"]:
         if not body.variant_sku:
-            raise ApiError(400, "Выберите вариант товара")
+            raise ApiError(400, "Выберите вариант товара.")
         if not any(value["sku"] == body.variant_sku for value in info["variants"]):
-            raise ApiError(400, "Такого варианта товара нет")
+            raise ApiError(400, "Такого варианта товара нет.")
     elif body.variant_sku:
-        raise ApiError(400, "У этого товара нет вариантов")
+        raise ApiError(400, "У этого товара нет вариантов.")
     async with locked_cart(state, token) as connection:
         existing = await load_cart(state.store, token, connection)
         items = existing["items"] if existing else []
         match = next((item for item in items if same_line(item, body.type, body.ref_id, body.variant_sku)), None)
         if not match and len(items) >= MAX_CART_LINES:
-            raise ApiError(409, f"В корзине уже {MAX_CART_LINES} позиций – оформите заявку или удалите лишнее")
+            raise ApiError(
+                409, f"В корзине может быть не больше {MAX_CART_LINES} позиций. Оформите заявку или удалите лишнее."
+            )
         if match and body.type == "merch":
             match["qty"] = min(MAX_LINE_QTY, match["qty"] + body.qty)
         elif not match:
@@ -149,15 +151,15 @@ async def change_qty(request: HttpRequest):
             if item["ref_id"] == body.ref_id and item.get("variant_sku") == body.variant_sku
         }
         if body.type is None and len(types) > 1:
-            raise ApiError(409, "Укажите тип позиции корзины")
+            raise ApiError(409, "Укажите тип позиции корзины.")
         kind = body.type or next(iter(types), None)
         match = next((item for item in items if same_line(item, kind, body.ref_id, body.variant_sku)), None)
         if match and match["type"] == "merch" and (body.qty > match["qty"]):
             info = (await lookup_catalog(state.store, [match], connection)).get("merch:" + body.ref_id)
             if not info:
-                raise ApiError(404, "Позиция не найдена")
+                raise ApiError(404, "Позиция не найдена.")
             if info["variants"] and (not any(value["sku"] == body.variant_sku for value in info["variants"])):
-                raise ApiError(400, "Такого варианта товара нет")
+                raise ApiError(400, "Такого варианта товара нет.")
             if exceeds_stock(info, body.variant_sku, body.qty):
                 raise ApiError(409, "Недостаточно товара в наличии.")
         for item in items:

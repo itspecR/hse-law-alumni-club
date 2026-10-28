@@ -104,12 +104,12 @@ class Payments:
                 raise ValueError
             return payment
         except Exception as error:
-            raise ApiError(502, "Не удалось получить ответ платёжного сервиса") from error
+            raise ApiError(502, "Не удалось получить ответ платежного сервиса.") from error
 
     async def fetch(self, id):
         payment = await self.provider("GET", "/payments/" + quote(id, safe=""))
         if payment["id"] != id:
-            raise ApiError(502, "Не удалось проверить платёж")
+            raise ApiError(502, "Не удалось проверить платеж.")
         return payment
 
     async def find_order_payment(self, order):
@@ -151,7 +151,7 @@ class Payments:
                 params["cursor"] = cursor
             raise ValueError
         except Exception as error:
-            raise ApiError(502, "Не удалось сверить платёж заявки") from error
+            raise ApiError(502, "Не удалось сверить платеж заявки.") from error
 
     async def flag_missing_payment(self, number):
         async with self.state.database.transaction() as connection:
@@ -174,7 +174,7 @@ class Payments:
 
     async def create(self, number, amount, description, email=None):
         if type(amount) is not int or not 0 < amount <= SAFE_INTEGER_MAX:
-            raise ApiError(400, "Некорректная сумма оплаты")
+            raise ApiError(400, "Некорректная сумма оплаты.")
         value = f"{amount // 100}.{amount % 100:02d}"
         body = {
             "amount": {"value": value, "currency": "RUB"},
@@ -224,19 +224,19 @@ class Payments:
             cursor = await connection.execute("SELECT * FROM orders WHERE number=%s FOR UPDATE", (number,))
             order = normalize(await cursor.fetchone())
             if not order:
-                raise ApiError(404, "Заявка не найдена")
+                raise ApiError(404, "Заявка не найдена.")
             if order["alumni_id"] != alumni_id:
-                raise ApiError(403, "Оплата доступна владельцу заявки")
+                raise ApiError(403, "Оплатить заявку может только тот, кто ее оформил.")
             if order["type"] == PORTFOLIO_CATALOG:
-                raise ApiError(400, "Программу клуба оплачивают по договору с учебным офисом")
+                raise ApiError(400, "Программу клуба оплачивают по договору с учебным офисом.")
             if order["status"] in ("canceled", "expired"):
-                raise ApiError(400, "Заявка закрыта")
+                raise ApiError(400, "Заявка закрыта.")
             if order["payment_status"] == "succeeded":
-                raise ApiError(400, "Заявка уже оплачена")
+                raise ApiError(400, "Заявка уже оплачена.")
             if order["payment_status"] == "review":
-                raise ApiError(409, "Платёж требует сверки с учебным офисом")
+                raise ApiError(409, "Платеж требует сверки с учебным офисом.")
             if type(order["total_estimate"]) is not int or not 0 < order["total_estimate"] <= SAFE_INTEGER_MAX:
-                raise ApiError(400, "Некорректная сумма оплаты")
+                raise ApiError(400, "Некорректная сумма оплаты.")
             if not order["payment_id"]:
                 await connection.execute("UPDATE orders SET payment_status='pending' WHERE id=%s", (order["id"],))
             return order
@@ -293,7 +293,7 @@ async def payment_config(request: HttpRequest):
 async def pay(request: HttpRequest, number: str):
     payments = request.services.payments
     if not payments.enabled:
-        raise ApiError(503, "Оплата на сайте пока не подключена")
+        raise ApiError(503, "Оплата на сайте пока не подключена.")
     alumni = await require_alumni(request)
     order = await payments.prepare(number, alumni["id"])
     if order["payment_id"]:
@@ -305,9 +305,9 @@ async def pay(request: HttpRequest, number: str):
             return {"payment_url": url}
         raise ApiError(
             409,
-            "Предыдущий платёж отменён. Обратитесь в учебный офис для новой заявки."
+            "Предыдущий платеж отменен. Чтобы оплатить заново, обратитесь в учебный офис."
             if existing["status"] == "canceled"
-            else "Платёж уже обрабатывается. Проверьте статус заявки позже.",
+            else "Платеж уже обрабатывается. Проверьте статус заявки позже.",
         )
     try:
         payment = await payments.create(
@@ -322,7 +322,7 @@ async def pay(request: HttpRequest, number: str):
         raise
     url = secure_payment_url(payment.get("confirmation", {}).get("confirmation_url"))
     if not url:
-        raise ApiError(502, "ЮKassa не вернула защищённую ссылку на оплату")
+        raise ApiError(502, "Не удалось получить ссылку на оплату. Повторите позже.")
     return {"payment_url": url}
 
 

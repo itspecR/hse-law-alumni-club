@@ -4,7 +4,7 @@
 <main id="main" class="site-container cart-page">
 <header class="site-masthead">
 <h1>Корзина</h1>
-<p>Заявки на программы ДПО и мерч клуба.</p>
+<p>Программы ДПО и товары, которые войдут в заявку.</p>
 </header>
 {% if mirror %}<section data-mirror-cart></section>{% elif cart and cart['items'] %}
 <div class="site-two-col">
@@ -33,8 +33,8 @@
 <aside class="site-panel">
 <h2>Оформить заявку</h2>
 <p class="site-price">{{ (cart.estimated_total if cart.estimated_total is defined else cart.subtotal)|rub }}</p>
-<p>Скидка выпускника на ДПО: {{ cart.member_discount or 0 }}%.</p>
-<p>Итоговая сумма и скидка выпускника рассчитываются сервером при оформлении заявки. На мерч скидка не распространяется.</p>
+{% if cart.member_discount %}<p>Скидка выпускника на программы ДПО: {{ cart.member_discount }}%.</p>{% endif %}
+<p>Итоговая сумма считается при оформлении заявки. Скидка выпускника действует только на программы ДПО.</p>
 <form data-api="/orders" data-checkout>{{ field('contact_fio','ФИО') }}{{ field('contact_phone','Телефон',type='tel') }}{{ field('contact_email','Почта',type='email') }}{% if cart['items']|selectattr('type','equalto','merch')|list %}
 <label class="site-field">Получение<select name="fulfillment">
 <option value="pickup">Самовывоз</option>

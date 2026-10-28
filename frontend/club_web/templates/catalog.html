@@ -13,7 +13,7 @@
 <form method="get" action="/dpo#program-list" data-dpo-picker>
 <input type="hidden" name="compare" value="{{ query.get('compare','') }}">
 {% for name,question in [('direction','1. Какая область права вас интересует?'),('document','2. Какой документ об обучении нужен?'),('format','3. Как вам удобно учиться?')] %}
-<label>{{ question }}<select name="{{ name }}" aria-label="{{ question }}"><option value="">Пока не определился</option>
+<label>{{ question }}<select name="{{ name }}" aria-label="{{ question }}"><option value="">Не важно</option>
 {% for value in filters[name] %}<option value="{{ value }}" {% if query.get(name)==value %}selected{% endif %}>{{ format_labels.get(value,value) }}</option>{% endfor %}
 </select></label>
 {% endfor %}
@@ -30,7 +30,7 @@
 <p>{{ item.price_label }}</p>
 </article>{% endfor %}
 </div>
-<p data-starts-empty {% if upcoming %}hidden{% endif %}>Ближайшие даты пока не объявлены. Программы с открытым набором можно найти в каталоге.</p>
+<p data-starts-empty {% if upcoming %}hidden{% endif %}>Ближайшие даты пока не объявлены. Все программы с открытым набором в списке ниже.</p>
 </section>
 <script type="application/json" id="program-data">{{ program_data|tojson }}</script>
 {% endif %}
@@ -83,7 +83,7 @@
 {% endif %}
 <p class="site-price">{{ item.price|rub }}</p>
 <div class="site-actions">
-<a href="/{{ kind }}/{{ item.slug }}" class="foc lux-more">Подробнее<span class="lux-sr"> — {{ item.title }}</span> <span class="lux-more__arrow" aria-hidden="true">›</span></a>{{ save('/'+kind+'/'+item.slug,item.title,kind) }}{% if kind=='dpo' and not item.source_url and item.enrollment!='nonactual' %}{{ add_cart(item,kind) }}{% endif %}
+<a href="/{{ kind }}/{{ item.slug }}" class="foc lux-more">Подробнее<span class="lux-sr"> о {{ 'программе' if kind=='dpo' else 'товаре' }} «{{ item.title }}»</span> <span class="lux-more__arrow" aria-hidden="true">›</span></a>{{ save('/'+kind+'/'+item.slug,item.title,kind) }}{% if kind=='dpo' and not item.source_url and item.enrollment!='nonactual' %}{{ add_cart(item,kind) }}{% endif %}
 {% if kind=='dpo' %}
 <button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="compare" data-id="{{ item.id }}" aria-pressed="false">Сравнить</button>
 {% endif %}
@@ -97,7 +97,7 @@
 
 <dialog id="program-compare-dialog" aria-labelledby="program-compare-title">
 <header><h2 id="program-compare-title">Сравнение программ</h2><button type="button" data-compare-close aria-label="Закрыть сравнение">×</button></header>
-<p>Стоимость указана без персональной скидки. Условия уточняются при оформлении.</p>
+<p>Стоимость указана без скидки выпускника.</p>
 <p class="dpo-compare-hint">Таблицу можно прокручивать вправо и влево.</p>
 <div class="dpo-compare-scroll" tabindex="0" role="region" aria-label="Параметры программ"><table><caption>Сравнение выбранных программ</caption><thead></thead><tbody></tbody></table></div>
 <button type="button" data-compare-copy>Скопировать ссылку на сравнение</button>
