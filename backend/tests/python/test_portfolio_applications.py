@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 from uuid import uuid4
 
 import httpx
@@ -29,7 +30,19 @@ async def program(app, **extra):
     return await app.state.store.create("programs", {**data, **extra})
 
 
+async def solved_captcha(client):
+    task = (await client.get("/portfolio/challenge")).json()
+    number = next(
+        number
+        for number in range(task["maxnumber"] + 1)
+        if hashlib.sha256((task["salt"] + str(number)).encode()).hexdigest() == task["challenge"]
+    )
+    return {"salt": task["salt"], "number": number, "signature": task["signature"]}
+
+
 async def apply(client, slug, body, headers=None):
+    if "captcha" not in body:
+        body = {**body, "captcha": await solved_captcha(client)}
     return await client.post(f"/portfolio/{slug}/applications", json=body, headers=headers or {})
 
 

@@ -21,6 +21,7 @@ import club_api.modules.office.routes as office_routes
 import club_api.modules.podcasts.routes as podcasts_routes
 import club_api.modules.portfolio.admin as portfolio_admin
 import club_api.modules.portfolio.applications as portfolio_applications
+import club_api.modules.portfolio.captcha as portfolio_captcha
 import club_api.modules.portfolio.discounts as portfolio_discounts
 import club_api.modules.portfolio.promo as portfolio_promo
 import club_api.modules.portfolio.routes as portfolio_routes
@@ -65,6 +66,7 @@ routes = (
         path("programs/<str:slug>", endpoint({"GET": content_routes.program_detail})),
         path("products", endpoint({"GET": content_routes.products})),
         path("portfolio", endpoint({"GET": portfolio_routes.programs})),
+        path("portfolio/challenge", endpoint({"GET": portfolio_captcha.challenge})),
         path("portfolio/<str:slug>", endpoint({"GET": portfolio_routes.program})),
         path("portfolio/<str:slug>/applications", endpoint({"POST": portfolio_applications.apply})),
         path("portfolio/<str:slug>/quote", endpoint({"POST": portfolio_applications.quote})),
