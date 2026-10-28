@@ -156,6 +156,61 @@ class SecurityEvidenceTests(unittest.TestCase):
         self.assertEqual((exclusions, evidence), ((), []))
         self.assertEqual(len(audit.blocking_findings(report, exclusions)), 2)
 
+    def go_jose_report(self, version="v3.0.5"):
+        report = self.caddy_report()
+        report["Results"][0]["Vulnerabilities"] = [
+            {
+                "Severity": "HIGH",
+                "VulnerabilityID": "CVE-2026-116587",
+                "PkgName": "github.com/go-jose/go-jose/v3",
+                "InstalledVersion": version,
+            }
+        ]
+        return report
+
+    def test_go_jose_v3_exception_requires_caddyfile_without_acme_server(self):
+        report = self.go_jose_report()
+        inspected = subprocess.CompletedProcess([], 0, report["Metadata"]["ImageID"], "")
+        caddyfile = subprocess.CompletedProcess([], 0, "example.test {\n\treverse_proxy web:80\n}\n", "")
+        with patch.object(audit.subprocess, "run", side_effect=[inspected, caddyfile]) as run:
+            exclusions, evidence = audit.caddy_applicability(report, "synthetic-caddy")
+        self.assertEqual(audit.blocking_findings(report, exclusions), [])
+        self.assertEqual(evidence[0]["VulnerabilityID"], "CVE-2026-116587")
+        self.assertEqual(len(evidence[0]["CaddyfileSHA256"]), 64)
+        self.assertIn("/etc/caddy/Caddyfile", run.call_args.args[0])
+        self.assertEqual(len(report["Results"][0]["Vulnerabilities"]), 1)
+
+    def test_acme_server_blocks_go_jose_exception(self):
+        report = self.go_jose_report()
+        inspected = subprocess.CompletedProcess([], 0, report["Metadata"]["ImageID"], "")
+        caddyfile = subprocess.CompletedProcess([], 0, "example.test {\n\tacme_server\n}\n", "")
+        with patch.object(audit.subprocess, "run", side_effect=[inspected, caddyfile]):
+            with self.assertRaisesRegex(ValueError, "ACME"):
+                audit.caddy_applicability(report, "synthetic-caddy")
+
+    def test_new_go_jose_version_requires_new_applicability_review(self):
+        report = self.go_jose_report("v3.0.6")
+        with patch.object(audit.subprocess, "run") as run:
+            exclusions, evidence = audit.caddy_applicability(report, "synthetic-caddy")
+            run.assert_not_called()
+        self.assertEqual((exclusions, evidence), ((), []))
+        self.assertEqual(len(audit.blocking_findings(report, exclusions)), 1)
+
+    def test_both_caddy_exceptions_use_one_verified_image(self):
+        report = self.caddy_report()
+        report["Results"][0]["Vulnerabilities"] += self.go_jose_report()["Results"][0]["Vulnerabilities"]
+        inspected = subprocess.CompletedProcess([], 0, report["Metadata"]["ImageID"], "")
+        dependencies = subprocess.CompletedProcess([], 0, "github.com/caddyserver/caddy/v2/cmd\n", "")
+        caddyfile = subprocess.CompletedProcess([], 0, ":80 {\n\trespond ok\n}\n", "")
+        with patch.object(audit.subprocess, "run", side_effect=[inspected, dependencies, caddyfile]) as run:
+            exclusions, evidence = audit.caddy_applicability(report, "synthetic-caddy")
+        self.assertEqual(run.call_count, 3)
+        self.assertEqual([item["VulnerabilityID"] for item in evidence], ["GO-2026-5932", "CVE-2026-116587"])
+        self.assertEqual(
+            audit.blocking_findings(report, exclusions),
+            [{"id": "synthetic-other", "package": "golang.org/x/crypto", "severity": "HIGH"}],
+        )
+
     def test_image_evidence_excludes_environment_and_config(self):
         report = {
             "ArtifactName": "synthetic",
