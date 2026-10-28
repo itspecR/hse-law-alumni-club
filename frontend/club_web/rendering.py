@@ -8,6 +8,7 @@ from club_web.formatting import (
     ORDER_STATUS_LABELS,
     date,
     discount_label,
+    local_datetime,
     media,
     open_cohorts,
     page_items,
@@ -42,6 +43,7 @@ def environment(**options):
     renderer.filters.update(
         rub=rub,
         date=date,
+        local_datetime=local_datetime,
         discount_label=discount_label,
         safe_url=safe_url,
         payment_url=payment_url,

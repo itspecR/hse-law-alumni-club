@@ -25,7 +25,7 @@
 <p>Программы с открытым набором и указанной датой начала.</p>
 <div class="dpo-starts-grid">
 {% for item in upcoming %}<article data-program-start="{{ item.start_day }}">
-<time datetime="{{ item.start_day }}">{{ item.start_label|date }}</time>
+<time datetime="{{ item.start_day }}">{{ item.start_label }}</time>
 <h3><a href="/dpo/{{ item.slug }}">{{ item.title }}</a></h3>
 <p>{{ item.price_label }}</p>
 </article>{% endfor %}

@@ -230,7 +230,7 @@ FIELDS = {
     "events": [
         ("title", "Название", "text"),
         ("description", "Описание", "textarea"),
-        ("starts_at", "Дата и время с часовым поясом, например 2026-11-20T19:00+03:00", "text"),
+        ("starts_at", "Дата и время начала по Москве", "datetime-local"),
         ("location", "Место", "text"),
         ("cover", "Обложка", "text"),
         ("reg_url", "Внешняя регистрация", "text"),

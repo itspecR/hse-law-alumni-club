@@ -20,6 +20,7 @@ from club_api.modules.gamification.routes import verified_alumni
 from club_api.observability.audit import audit
 
 ROUTE_LIMITS = {("POST", "/events/{id}/rsvp"): 20}
+CLUB_TIMEZONE = ZoneInfo("Europe/Moscow")
 UNNAMED = "ФИО не указано"
 EVENT_FIELDS = ("id", "title", "description", "starts_at", "location", "cover", "reg_url", "format", "points", "status")
 
@@ -48,8 +49,8 @@ class EventBody(Body):
     @field_validator("starts_at")
     @classmethod
     def valid_date(cls, value):
-        parse_date(value)
-        return value
+        moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return value if moment.tzinfo else moment.replace(tzinfo=CLUB_TIMEZONE).isoformat()
 
 
 EventPatch = partial(EventBody)
@@ -104,7 +105,7 @@ async def events(request: HttpRequest):
         try:
             if not re.fullmatch(r"[0-9]{4}-[0-9]{2}", month):
                 raise ValueError
-            start = datetime.strptime(month, "%Y-%m").replace(tzinfo=ZoneInfo("Europe/Moscow"))
+            start = datetime.strptime(month, "%Y-%m").replace(tzinfo=CLUB_TIMEZONE)
             end = (
                 start.replace(year=start.year + 1, month=1)
                 if start.month == 12
