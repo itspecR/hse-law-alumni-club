@@ -1,3 +1,5 @@
+import asyncio
+
 from test_community_integration import account
 from test_portfolio_applications import FORM, GROUP, PRICE, apply, client_for, mails, order, program
 from test_portfolio_cohorts import COHORT_PRICE, cohort
@@ -127,3 +129,22 @@ async def test_export_names_the_cohort_start(database_app, mails):
         export = (await client.get("/admin/orders/export.csv", headers=admin)).text
     header, line = export.splitlines()[0], next(line for line in export.splitlines() if row["number"] in line)
     assert header.endswith('"Старт потока"') and line.endswith(f'"{display_date(chosen["starts_on"])}"')
+
+
+async def test_move_and_confirmation_share_the_last_seat(database_app, mails):
+    app = database_app
+    item = await program(app)
+    first, last = await cohort(app, item, 10), await cohort(app, item, 20, capacity=1)
+    _, admin = await account(app, "admin")
+    async with client_for(app) as client:
+        moving = await submitted(app, client, item, {**FORM, "cohort_id": first["id"]})
+        waiting = await submitted(app, client, item, {**FORM, "cohort_id": last["id"]})
+        await set_status(client, admin, moving["id"], "confirmed")
+        results = await asyncio.gather(
+            move(client, admin, moving["id"], last["id"]), set_status(client, admin, waiting["id"], "confirmed")
+        )
+    assert sorted(response.status_code for response in results) == [200, 409]
+    seated = await app.state.store.read(
+        "orders", filters={"cohort_id": {"_eq": last["id"]}, "status": {"_eq": "confirmed"}}, fields=("id",)
+    )
+    assert len(seated) == 1
