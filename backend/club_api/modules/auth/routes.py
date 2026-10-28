@@ -236,7 +236,7 @@ async def resend_confirmation(request: HttpRequest):
             if until <= now:
                 del entries[address]
         if len(entries) >= RESEND_CACHE_LIMIT:
-            raise ApiError(429, "Слишком много запросов – попробуйте позже")
+            raise ApiError(429, "Слишком много запросов. Попробуйте позже.")
     entries[email] = now + RESEND_COOLDOWN_SECONDS
     try:
         recent = await service.database.rows(

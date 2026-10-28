@@ -46,7 +46,7 @@ def build_api(routes):
         ApiError, lambda request, error: JsonResponse({"error": error.message}, status=error.status)
     )
     api.add_exception_handler(
-        ValidationError, lambda request, error: JsonResponse({"error": "Некорректные данные"}, status=400)
+        ValidationError, lambda request, error: JsonResponse({"error": "Проверьте данные в форме."}, status=400)
     )
     for route in routes:
         pattern = re.sub(r"<str:(\w+)>", r"{\1}", str(route.pattern))

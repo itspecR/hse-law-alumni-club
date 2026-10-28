@@ -39,7 +39,7 @@ class CorsMiddleware:
                     if method.strip() and method.strip() != "HEAD"
                 )
             )
-            response = JsonResponse({"error": "Метод не поддерживается"}, status=405)
+            response = JsonResponse({"error": "Метод не поддерживается."}, status=405)
             response.headers["Allow"] = allowed_methods
         if origin in allowed:
             response.headers["Access-Control-Allow-Origin"] = origin

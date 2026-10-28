@@ -36,7 +36,7 @@ async def test_django_validation_methods_and_error_redaction(monkeypatch, tmp_pa
         monkeypatch.setattr(app.state.store, "read", failure)
         response = await client.get("/news")
         assert response.status_code == 500
-        assert response.json() == {"error": "Внутренняя ошибка"}
+        assert response.json() == {"error": "Внутренняя ошибка."}
         assert "synthetic-secret" not in response.text + caplog.text
 
 

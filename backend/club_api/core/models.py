@@ -25,7 +25,7 @@ def guid(value):
             raise ValueError
         return value
     except ValueError, AttributeError:
-        raise ApiError(400, "Некорректный идентификатор") from None
+        raise ApiError(400, "Некорректный идентификатор.") from None
 
 
 def query_page(request, *, default_limit=50):
@@ -36,20 +36,20 @@ def query_page(request, *, default_limit=50):
             raise ValueError
         return (page, limit)
     except ValueError:
-        raise ApiError(400, "Некорректные параметры страницы") from None
+        raise ApiError(400, "Некорректные параметры страницы.") from None
 
 
 def query_choice(request, name, choices):
     value = request.GET.get(name) or None
     if value is not None and value not in choices:
-        raise ApiError(400, "Некорректный фильтр")
+        raise ApiError(400, "Некорректный фильтр.")
     return value
 
 
 def query_search(request):
     value = request.GET.get("q", "")
     if len(value) > 100:
-        raise ApiError(400, "Слишком длинный поисковый запрос")
+        raise ApiError(400, "Слишком длинный поисковый запрос.")
     return value.strip()
 
 

@@ -4,8 +4,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>{{ title }} – Клуб выпускников факультета права Вышки</title>
-<meta name="description" content="Клуб выпускников факультета права НИУ ВШЭ: встречи, программы ДПО и кабинет участника.">
+<title>{{ title }} - Клуб выпускников факультета права Вышки</title>
+<meta name="description" content="Клуб выпускников факультета права Вышки. Программы клуба и ДПО, события, подкасты, новости и изменения в праве.">
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="robots" content="{{ 'noindex,nofollow' if mirror or path.startswith(('/lk','/admin','/cart','/join','/reset','/confirm','/saved')) else 'index,follow' }}">
@@ -33,17 +33,17 @@
 {% if mirror %}
 <aside class="site-notice">
 <span>Демоверсия · отправка заявок отключена</span>
-<nav aria-label="Просмотр зеркала">
+<nav aria-label="Демоверсия">
 <a href="{{ base }}tg/?pwa=1" data-mobile-preview>Мобильный просмотр</a>
 <a href="{{ base }}lk/">Кабинет</a>
-<a href="{{ base }}admin/">Панель офиса</a>
+<a href="{{ base }}admin/">Учебный офис</a>
 </nav>
 </aside>
 {% endif %}
 <div id="site-shell">
 <div id="site-stage">
 <aside id="offline-notice" class="offline-notice" role="status" hidden>
-<span data-offline-message>Нет подключения. Отправка заявок и вход требуют интернета.</span>
+<span data-offline-message>Нет подключения к интернету. Открытые раньше страницы можно читать, вход и отправка заявок недоступны.</span>
 <button type="button" data-action="reload-online" hidden>Обновить</button>
 </aside>
 <div class="vis-bar" id="vision" hidden>
@@ -74,7 +74,7 @@
 <path d="m20 20-3.5-3.5"/>
 </svg>
 </a>
-<a href="/saved" class="foc club-chrome-icon-btn" aria-label="Сохранённое">
+<a href="/saved" class="foc club-chrome-icon-btn" aria-label="Сохраненное">
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
 <path d="M6 3h12v18l-6-4-6 4z"/>
 </svg>
@@ -97,7 +97,7 @@
 {% for href,label in nav %}
 <a href="{{ href }}">{{ label }}</a>
 {% endfor %}
-<a href="/saved">Сохранённое</a>
+<a href="/saved">Сохраненное</a>
 <a href="/cart">Корзина</a>
 <button data-action="vision">Версия для слабовидящих</button>
 <a href="/join" data-member-link>Вступить в клуб</a>
@@ -141,7 +141,7 @@
 <img src="{{ base }}assets/themis-club.svg" width="40" height="40" alt="">
 <div>
 <strong>Клуб выпускников факультета права Вышки</strong>
-<p>Встречи выпускников, программы ДПО, подкасты и изменения в праве.</p>
+<p>Программы клуба и ДПО, события, подкасты и изменения в праве.</p>
 </div>
 </div>
 <div>
@@ -191,7 +191,7 @@
 </footer>
 <nav class="mobile-tabs" aria-label="Основные разделы">
 <a href="/">Клуб</a>
-<a href="/news">Лента</a>
+<a href="/news">Новости</a>
 <a href="/dpo">ДПО</a>
 <a href="/merch">Мерч</a>
 <a href="/lk">Кабинет</a>
@@ -212,7 +212,7 @@
 </div>
 </dialog>
 <aside class="club-cookie-banner" id="cookie-banner" role="dialog" aria-label="Согласие на использование cookies" hidden>
-<p class="club-cookie-banner__text">Необходимое хранилище обеспечивает вход и работу корзины. С вашего согласия учитываем обезличенные просмотры страниц. <a href="/privacy#cookies">Подробнее</a>
+<p class="club-cookie-banner__text">Сайт хранит в браузере данные для входа и корзины. С вашего согласия мы также считаем обезличенные просмотры страниц. <a href="/privacy#cookies">Подробнее</a>
 </p>
 <div class="club-cookie-banner__actions">
 <button data-action="cookies-essential" class="club-cookie-banner__btn club-cookie-banner__btn--secondary">Только необходимые</button>

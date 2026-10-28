@@ -17,16 +17,15 @@
 <aside class="cabinet-gate__intro club-dark">
 <a href="/">Клуб выпускников<small>факультета права Вышки</small>
 </a>
-<h2>{% if office %}Учебный <br>офис клуба{% else %}Ваше место <br>в <em>клубе</em>{% endif %}
+<h2>{% if office %}Учебный <br>офис клуба{% else %}Кабинет <br><em>выпускника</em>{% endif %}
 </h2>
-<p>{{ 'Работа с выпускниками и материалами сайта.' if office else 'Знакомые лица, новые встречи и знания после выпуска.' }}</p>
 <div class="cabinet-gate__benefits">
-{% if office %}<span>Заявки и проверка выпускников</span><span>Программы, события и публикации</span><span>Поддержка и показатели клуба</span>{% else %}<span>Программы ДПО с ценой выпускника</span><span>События и подкасты клуба</span><span>Ваши заявки и статус участия</span>{% endif %}
+{% if office %}<span>Заявки и проверка выпускников</span><span>Программы, события и публикации</span><span>Поддержка и показатели клуба</span>{% else %}<span>Скидка выпускника на программы</span><span>Запись на события</span><span>Заявки и баллы</span>{% endif %}
 </div>
 </aside>
 <form class="cabinet-gate__form" data-api="/auth/{{ 'admin-login' if office else 'login' }}" data-login="{{ 'office' if office else 'member' }}">
 <h1>{{ 'Панель учебного офиса' if office else 'Вход для выпускников' }}</h1>
-<p>{{ 'Служебный вход для редакторов и администраторов учебного офиса.' if office else 'Доступ открывается после верификации учебным офисом.' }}</p>{{ field('email','Почта',type='email') }}{{ field('password','Пароль',type='password') }}<p role="alert" data-error hidden>
+<p>{{ 'Вход для сотрудников учебного офиса.' if office else 'Войти можно после того, как учебный офис подтвердит статус выпускника.' }}</p>{{ field('email','Почта',type='email') }}{{ field('password','Пароль',type='password') }}<p role="alert" data-error hidden>
 </p>
 <button class="site-primary">{{ 'Войти' if office else 'Войти в кабинет' }}</button>
 {% if not office %}
@@ -40,7 +39,7 @@
 {% endmacro %}
 {% macro consent(purpose='registration') %}
 <label class="site-consent">
-<input type="checkbox" name="consent_pdn" required>Даю <a href="/consent#{{ purpose }}">согласие на обработку персональных данных</a>. <a href="/privacy">Политика обработки данных</a>
+<input type="checkbox" name="consent_pdn" required>Даю <a href="/consent#{{ purpose }}">согласие на обработку персональных данных</a>. <a href="/privacy">Политика обработки персональных данных</a>
 </label>
 <input type="text" name="website" class="site-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true">
 {% endmacro %}

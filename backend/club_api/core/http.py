@@ -71,7 +71,7 @@ class SecurityMiddleware:
 
         if path not in ("/health", "/ready"):
             if not self.limits.check((ip, "global"), self.settings.RATE_LIMIT_MAX):
-                return await error(429, "Слишком много запросов – попробуйте позже")
+                return await error(429, "Слишком много запросов. Попробуйте позже.")
             for pattern, policy in self.route_limits.items():
                 if isinstance(pattern, tuple):
                     if pattern[0] != method:
@@ -81,7 +81,7 @@ class SecurityMiddleware:
                 if re.fullmatch(expression, path):
                     maximum, window = policy if isinstance(policy, tuple) else (policy, 60)
                     if not self.limits.check((ip, method, pattern), maximum, window):
-                        return await error(429, "Слишком много запросов – попробуйте позже")
+                        return await error(429, "Слишком много запросов. Попробуйте позже.")
                     break
         maximum = (
             UPLOAD_BODY_LIMIT
@@ -95,9 +95,9 @@ class SecurityMiddleware:
             if size < 0:
                 raise ValueError
         except ValueError:
-            return await error(400, "Некорректный запрос")
+            return await error(400, "Некорректный запрос.")
         if size > maximum:
-            return await error(413, "Запрос превышает допустимый размер")
+            return await error(413, "Запрос слишком большой.")
         if maximum == JSON_BODY_LIMIT:
             chunks, size = [], 0
             while True:
@@ -107,7 +107,7 @@ class SecurityMiddleware:
                 chunk = message.get("body", b"")
                 size += len(chunk)
                 if size > maximum:
-                    return await error(413, "Запрос превышает допустимый размер")
+                    return await error(413, "Запрос слишком большой.")
                 chunks.append(chunk)
                 if not message.get("more_body"):
                     break
@@ -129,7 +129,7 @@ class SecurityMiddleware:
                 message = await receive()
                 size += len(message.get("body", b""))
                 if size > maximum:
-                    raise ApiError(413, "Файл превышает допустимый размер")
+                    raise ApiError(413, "Файл слишком большой.")
                 return message
 
             actual_receive = bounded_receive
@@ -146,6 +146,6 @@ class SecurityMiddleware:
             logger.error("Не удалось обработать запрос")
             if response_started:
                 raise RuntimeError("Ошибка после начала ответа") from None
-            await error(500, "Внутренняя ошибка")
+            await error(500, "Внутренняя ошибка.")
         finally:
             logger.info("%s %s %s", method, path, status if response_started else "disconnected")
