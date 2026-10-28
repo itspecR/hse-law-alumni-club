@@ -9,6 +9,7 @@ const mirror = document.body.dataset.mirror === "true";
 const memberKey = "club_token";
 const officeKey = "club_admin_token";
 const readingKey = "club-reading-v1";
+const notNotifiedText = "Заявка сохранена, но учебный офис не получил уведомление. Сообщите номер заявки в поддержку.";
 let pendingCart = 0;
 let pendingCheckout = false;
 let installPrompt = null;
@@ -207,7 +208,7 @@ function checkoutReceipt(result) {
   const section = element("main", undefined, { id: "main", class: "site-article" });
   const heading = element("h1", "Заявка отправлена в учебный офис", { tabindex: "-1" });
   section.append(heading, element("p", "Номер заявки: " + result.number), element("p", "Учебный офис проверит состав и сумму заявки и свяжется с вами по указанным контактам."), element("p", "Итого: " + rubles(result.total_estimate)));
-  if (!result.notified?.ok) section.append(element("p", "Заявка сохранена, но уведомление офиса не прошло. Сообщите номер заявки в поддержку.", { role: "alert" }));
+  if (!result.notified?.ok) section.append(element("p", notNotifiedText, { role: "alert" }));
   const payment = safeLink(result.payment_url, true);
   if (payment) section.append(element("a", "Оплатить через ЮKassa", { href: payment, class: "site-primary" }));
   section.append(element("a", token() ? "К моим заявкам" : "Войти в кабинет", { href: url("lk#orders") }));
@@ -222,17 +223,17 @@ function rubles(value) {
 
 function discountText(discount, source, message) {
   if (message) return message;
-  return source === "member" ? "Скидка выпускника: " + discount + "%" : "";
+  return source === "member" ? "Скидка выпускника " + discount + "%." : "";
 }
 
 function applicationReceipt(form, result) {
   const receipt = element("div", undefined, { role: "status", class: "portfolio-receipt", tabindex: "-1" });
-  receipt.append(element("h3", "Заявка " + result.number + " принята"), element("p", "Участников: " + result.participants + " · сумма (справочно): " + rubles(result.total_estimate)));
+  receipt.append(element("h3", "Заявка " + result.number + " принята"), element("p", "Участников: " + result.participants + " · предварительная сумма " + rubles(result.total_estimate)));
   if (result.starts_on) receipt.append(element("p", "Старт потока: " + (form.querySelector("[name='cohort_id']:checked")?.dataset.start || result.starts_on)));
   const discount = discountText(result.member_discount, result.discount_source, result.message);
   if (discount) receipt.append(element("p", discount));
   receipt.append(element("p", "Учебный офис свяжется с вами по указанным контактам, чтобы согласовать договор и оплату."));
-  if (!result.notified?.ok) receipt.append(element("p", "Заявка сохранена, но уведомление офиса не прошло. Сообщите номер заявки в поддержку.", { role: "alert" }));
+  if (!result.notified?.ok) receipt.append(element("p", notNotifiedText, { role: "alert" }));
   form.replaceWith(receipt);
   receipt.focus();
 }
@@ -255,7 +256,7 @@ async function solveCaptcha() {
   for (let number = 0; number <= task.maxnumber; number++) {
     if (await sha256hex(task.salt + number) === task.challenge) return { salt: task.salt, number, signature: task.signature };
   }
-  throw new Error("Не удалось пройти проверку. Обновите страницу и отправьте заявку ещё раз.");
+  throw new Error("Не удалось отправить заявку. Обновите страницу и попробуйте еще раз.");
 }
 
 function showQuote(form, text, failed = false) {
@@ -274,7 +275,7 @@ async function quotePromo(button) {
   button.disabled = true;
   try {
     const quote = await request(button.dataset.quoteApi, "POST", body);
-    showQuote(form, [discountText(quote.discount, quote.source, quote.message), "итого (справочно): " + rubles(quote.total)].filter(Boolean).join(" · "));
+    showQuote(form, [discountText(quote.discount, quote.source, quote.message), "Предварительная сумма " + rubles(quote.total) + "."].filter(Boolean).join(" "));
   } catch (error) { showQuote(form, error.message, true); }
   finally { button.disabled = false; }
 }

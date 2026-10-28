@@ -10,7 +10,16 @@ from test_community_integration import account
 from test_portfolio_applications import FORM, apply, mails, program, solved_captcha
 
 from club_api.core.errors import ApiError
-from club_api.modules.portfolio.captcha import CAPTCHA_MAX_NUMBER, CaptchaBody, expiry, forget_expired, require_solution
+from club_api.modules.portfolio.captcha import (
+    CAPTCHA_MAX_NUMBER,
+    RETRY_MESSAGE,
+    CaptchaBody,
+    expiry,
+    forget_expired,
+    require_solution,
+    sha256,
+    signature,
+)
 
 __all__ = ("mails",)
 
@@ -42,7 +51,7 @@ async def test_application_without_valid_solution_is_rejected(database_app, mail
     async with client_for(app) as client:
         captcha = spoil(await solved_captcha(client))
         response = await apply(client, item["slug"], {**FORM, "captcha": captcha})
-    assert response.status_code == 400 and "Проверка не пройдена" in response.json()["error"]
+    assert response.status_code == 400 and "Не удалось отправить заявку" in response.json()["error"]
     assert await app.state.store.read("orders", fields=("id",)) == [] and mails == []
 
 
@@ -54,7 +63,7 @@ async def test_solution_is_accepted_once(database_app, mails):
         first = await apply(client, item["slug"], {**FORM, "captcha": captcha})
         second = await apply(client, item["slug"], {**FORM, "captcha": captcha})
     assert first.status_code == 200
-    assert second.status_code == 400 and "уже использована" in second.json()["error"]
+    assert second.status_code == 400 and second.json()["error"] == RETRY_MESSAGE
 
 
 async def test_simultaneous_reuse_of_one_solution_creates_one_application(database_app, mails):
@@ -99,9 +108,12 @@ async def test_retry_with_new_solution_returns_same_application(database_app, ma
 
 
 def test_expired_solution_is_rejected(database_app):
-    captcha = CaptchaBody(salt="a" * 32 + ".1800000000", number=1, signature="0" * 64)
-    with pytest.raises(ApiError, match="устарела"):
-        require_solution(database_app.state.settings, captcha, expiry(captcha) + 1)
+    settings = database_app.state.settings
+    salt = "a" * 32 + ".1800000000"
+    captcha = CaptchaBody(salt=salt, number=1, signature=signature(settings, sha256(salt + "1")))
+    require_solution(settings, captcha, expiry(captcha) - 1)
+    with pytest.raises(ApiError, match=RETRY_MESSAGE):
+        require_solution(settings, captcha, expiry(captcha) + 1)
 
 
 async def test_expired_uses_are_forgotten(database_app):

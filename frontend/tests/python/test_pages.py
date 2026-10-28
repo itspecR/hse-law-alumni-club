@@ -584,8 +584,22 @@ async def test_portfolio_pages_show_club_program_without_cart(browser_client):
     assert "Сертификат об обучении" in card.text and 'data-reading-kind="portfolio"' in card.text
     assert 'data-api="/cart"' not in card.text and 'href="#application"' in card.text
     assert 'data-api="/portfolio/club-one/applications" data-application' in card.text
-    assert "Свободных мест" in card.text and 'max="20"' in card.text and "Места закончились" not in card.text
+    assert (
+        "Свободных мест" in card.text and 'max="20"' in card.text and "Мест нет. Заявку можно оставить" not in card.text
+    )
     assert 'href="/portfolio-consent"' in card.text and 'href="/portfolio-terms"' in card.text
+
+
+async def test_portfolio_texts_follow_glossary(browser_client):
+    listing = (await browser_client.get("/portfolio")).text
+    card = (await browser_client.get("/portfolio/club-one")).text
+    assert "<p>Программы дополнительного образования, которые проводит клуб.</p>" in listing
+    assert '<span class="lux-sr"> о программе «' in listing
+    assert "Промокод вводится в заявке, из двух скидок применяется большая." in card
+    assert "Платить на сайте не нужно. Учебный офис свяжется с вами" in card
+    templates = Path(club_web.__file__).parent / "templates"
+    for name in ("portfolio.html", "portfolio-program.html"):
+        assert re.findall(".{0,40}[ёЁ–—].{0,20}", (templates / name).read_text()) == [], name
 
 
 def test_portfolio_start_and_price_follow_open_cohorts():

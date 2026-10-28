@@ -92,7 +92,7 @@ class PromoRules:
     async def prepare(self, state, data, program_ids, id, connection):
         current = await state.store.read("promo_codes", filters={"id": {"_eq": id}}, limit=1, connection=connection)
         if id and not current:
-            raise ApiError(404, "Промокод не найден")
+            raise ApiError(404, "Промокод не найден.")
         merged = {**(current[0] if current else {}), **data}
         if "code" in data:
             await require_unique_code(state, data["code"], id, connection)
@@ -131,9 +131,9 @@ async def count(connection, sql, params):
 def require_window(promo):
     today = moscow_today()
     if today < date.fromisoformat(promo["starts_on"]):
-        raise ApiError(400, "Промокод ещё не действует")
+        raise ApiError(400, "Промокод еще не действует.")
     if today > date.fromisoformat(promo["ends_on"]):
-        raise ApiError(400, "Срок действия промокода истёк")
+        raise ApiError(400, "Срок действия промокода истек.")
 
 
 async def require_program(connection, promo, program_id):
@@ -143,25 +143,25 @@ async def require_program(connection, promo, program_id):
         "SELECT id FROM promo_code_programs WHERE promo_id=%s AND program_id=%s", (promo["id"], program_id)
     )
     if not await cursor.fetchone():
-        raise ApiError(400, "Промокод не действует на эту программу")
+        raise ApiError(400, "Промокод не действует на эту программу.")
 
 
 async def require_uses(connection, promo, email):
     released = (promo["id"], *RELEASED_STATUSES)
     if promo["total_limit"] and await count(connection, USES_SQL, released) >= promo["total_limit"]:
-        raise ApiError(400, "Лимит промокода исчерпан")
+        raise ApiError(400, "Промокод использован максимальное число раз.")
     if (
         email is not None
         and promo["per_person_limit"]
         and (await count(connection, PERSON_USES_SQL, (*released, email)) >= promo["per_person_limit"])
     ):
-        raise ApiError(400, "Вы уже использовали этот промокод")
+        raise ApiError(400, "Вы уже использовали этот промокод.")
 
 
 async def valid_promo(connection, code, program_id, email, *, lock):
     promo = normalize(await (await connection.execute(PROMO_SQL[lock], (code,))).fetchone())
     if not promo or promo["status"] != "active":
-        raise ApiError(400, "Промокод не найден")
+        raise ApiError(400, "Промокод не найден.")
     require_window(promo)
     await require_program(connection, promo, program_id)
     await require_uses(connection, promo, email)

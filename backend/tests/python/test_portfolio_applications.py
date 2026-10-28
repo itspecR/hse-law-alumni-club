@@ -8,6 +8,7 @@ from test_community_integration import account
 
 from club_api.core.errors import ApiError
 from club_api.domain import order_totals
+from club_api.modules.portfolio.orders import CONTACT_LINE
 
 PRICE = 4500000
 FORM = {
@@ -84,8 +85,10 @@ async def test_guest_application_is_priced_on_server_and_confirmed_by_mail(datab
     )
     assert row["consent_pdn"] is True and set(row["consents"]) == {"pdn", "terms"}
     assert row["items_json"][0]["qty"] == 1 and row["items_json"][0]["price"] == PRICE
-    assert mails[0]["to"] == "applicant@example.test" and receipt["number"] in mails[0]["subject"]
-    assert "Переговоры" in mails[0]["text"]
+    assert mails[0]["to"] == "applicant@example.test"
+    assert mails[0]["subject"] == f"Заявка {receipt['number']} принята - Клуб выпускников факультета права Вышки"
+    assert "Переговоры" in mails[0]["text"] and f"Ваша заявка {receipt['number']} принята." in mails[0]["text"]
+    assert mails[0]["text"].endswith("Платить на сайте не нужно. " + CONTACT_LINE)
 
 
 async def test_verified_member_gets_discount_only_for_self(database_app, mails):

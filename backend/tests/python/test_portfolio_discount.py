@@ -35,7 +35,7 @@ async def test_application_mail_shows_large_sum_in_rubles(database_app, mails):
     app = database_app
     async with client_for(app) as client:
         await submitted(app, client, GROUP, price=45000000)
-    assert "Сумма (справочно): 1 350 000 ₽." in mails[0]["text"]
+    assert "Предварительная сумма 1 350 000 ₽." in mails[0]["text"]
 
 
 async def test_office_discount_replaces_member_discount_and_can_be_reset(database_app, mails):

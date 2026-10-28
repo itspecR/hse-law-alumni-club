@@ -6,6 +6,7 @@ from test_portfolio_cohorts import COHORT_PRICE, cohort
 
 from club_api.domain import rubles
 from club_api.modules.portfolio.dates import display_date
+from club_api.modules.portfolio.orders import CONTACT_LINE
 
 __all__ = ("mails",)
 
@@ -56,7 +57,11 @@ async def test_office_moves_application_and_recalculates_total(database_app, mai
         total,
     )
     assert f"со стартом {display_date(second['starts_on'])}" in mails[-1]["text"]
-    assert rubles(total) in mails[-1]["text"] and row["number"] in mails[-1]["subject"]
+    assert f"Предварительная сумма {rubles(total)}." in mails[-1]["text"] and mails[-1]["text"].endswith(CONTACT_LINE)
+    assert (
+        mails[-1]["subject"]
+        == f"Заявка {row['number']} перенесена в другой поток - Клуб выпускников факультета права Вышки"
+    )
     events = await app.state.store.read("audit_log", filters={"event": {"_eq": "order.cohort"}})
     assert [event["subject"] for event in events] == ["order:" + row["number"]]
 
