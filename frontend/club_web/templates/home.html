@@ -17,17 +17,17 @@
 <p class="lux-hero__lede">{{ hero.subtitle or 'Клуб выпускников факультета права Вышки' }}</p>
 <div class="lux-hero__acts">
 <a href="/join" class="foc lux-btn" data-member-link>{{ hero.cta_primary or 'Вступить в клуб' }}</a>
-<a href="/dpo" class="foc lux-more">Программы ДПО <span class="lux-more__arrow" aria-hidden="true">›</span></a>
+<a href="/portfolio" class="foc lux-more">Программы клуба <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </div>
 </div>
-<p class="lux-hero__next">Встречи выпускников, программы ДПО по&nbsp;цене выпускника, подкасты и&nbsp;изменения в&nbsp;праве.</p>
+<p class="lux-hero__next">Программы клуба и&nbsp;ДПО по&nbsp;цене выпускника, события, подкасты и&nbsp;изменения в&nbsp;праве.</p>
 </div>
 </section>
 
 <section class="lux-section lux-join" id="join-steps" aria-labelledby="lux-join-title">
 <div class="lux-wrap lux-join__head">
 <h2 class="lux-h2 lux-reveal" id="lux-join-title">{{ cta.title or 'Три шага, и вы в клубе.' }}</h2>
-<p class="lux-lede lux-reveal" style="--d:1">{{ cta.text or 'Учебный офис сверит выпуск с реестром факультета. Обычно это 1–2 рабочих дня.' }}</p>
+<p class="lux-lede lux-reveal" style="--d:1">{{ cta.text or 'Проверка обычно занимает 1-2 рабочих дня.' }}</p>
 </div>
 <figure class="lux-wrap lux-frame lux-join__photo lux-reveal" style="--d:2">
 <img src="{{ base }}assets/photos/club/graduates-1440.webp" srcset="{{ base }}assets/photos/club/graduates-900.webp 900w, {{ base }}assets/photos/club/graduates-1440.webp 1440w" sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 1180px) calc(100vw - 56px), 1124px" width="1440" height="960" alt="Выпускники факультета права на выпускном 2026 года" loading="lazy" decoding="async">
@@ -35,7 +35,7 @@
 <ol class="lux-wrap lux-steps">
 <li class="lux-step lux-reveal"><h3>Заявка</h3><p>Анкета с&nbsp;годом выпуска и&nbsp;образовательной программой.</p></li>
 <li class="lux-step lux-reveal" style="--d:1"><h3>Проверка</h3><p>Учебный офис сверяет выпуск с&nbsp;реестром факультета и&nbsp;подтверждает статус.</p></li>
-<li class="lux-step lux-reveal" style="--d:2"><h3>Кабинет</h3><p>Откроются цена выпускника на&nbsp;ДПО, запись на&nbsp;встречи и&nbsp;разделы клуба.</p></li>
+<li class="lux-step lux-reveal" style="--d:2"><h3>Кабинет</h3><p>Откроются скидка выпускника, запись на&nbsp;события, подписка на&nbsp;подкасты и&nbsp;раздел однокурсников.</p></li>
 </ol>
 <div class="lux-wrap lux-join__cta lux-reveal"><a href="/join" class="foc lux-btn" data-member-link>{{ join_label }}</a></div>
 </section>
@@ -43,7 +43,7 @@
 <section class="lux-section lux-dpo" id="dpo-prices" aria-labelledby="lux-dpo-title">
 <div class="lux-wrap lux-split">
 <h2 class="lux-h2 lux-reveal" id="lux-dpo-title">ДПО по&nbsp;цене выпускника.</h2>
-<p class="lux-lede lux-reveal" style="--d:1">{% if 'programs' not in load_errors %}Программ в&nbsp;каталоге: {{ programs_total }}, набор открыт на&nbsp;{{ programs_open }}. {% endif %}Скидка растёт с&nbsp;уровнем в&nbsp;клубе&nbsp;— от&nbsp;{{ levels[0].discount_percent }} до&nbsp;{{ levels[-1].discount_percent }}%.</p>
+<p class="lux-lede lux-reveal" style="--d:1">{% if 'programs' not in load_errors %}Программ в&nbsp;каталоге: {{ programs_total }}, набор открыт на&nbsp;{{ programs_open }}. {% endif %}Скидка растет вместе с&nbsp;уровнем в&nbsp;клубе, от&nbsp;{{ levels[0].discount_percent }} до&nbsp;{{ levels[-1].discount_percent }}%.</p>
 </div>
 <div class="lux-wrap">
 <div class="lux-tile lux-calc lux-reveal" style="--d:2">
@@ -73,11 +73,11 @@
 {% endfor %}
 </ul>
 {% endif %}
-<p data-starts-empty {% if home_programs %}hidden{% endif %}>Ближайшие даты пока не объявлены. Программы с&nbsp;открытым набором&nbsp;— в&nbsp;каталоге.</p>
+<p data-starts-empty {% if home_programs %}hidden{% endif %}>Ближайшие даты пока не объявлены. Программы с&nbsp;открытым набором есть в&nbsp;каталоге.</p>
 {% endif %}
 <p class="lux-sr" role="status" data-level-status></p>
 <div class="lux-calc__foot">
-<p>Уровни: {% for level in levels[1:] %}{{ level.title }}&nbsp;— с&nbsp;{{ level.min_points }}&nbsp;баллов{{ ', ' if not loop.last else '' }}{% endfor %}. Личная скидка&nbsp;— ещё до&nbsp;{{ domain.limits.personal_discount_max }}%, всего не&nbsp;больше {{ domain.limits.member_discount_cap }}%. Итог считается при&nbsp;оформлении.</p>
+<p>Уровни: {% for level in levels[1:] %}«{{ level.title }}» с&nbsp;{{ level.min_points }}{% if loop.first %}&nbsp;баллов{% endif %}{{ ', ' if not loop.last else '' }}{% endfor %}. Личная скидка добавляет еще до&nbsp;{{ domain.limits.personal_discount_max }}%, всего не&nbsp;больше {{ domain.limits.member_discount_cap }}%. Итоговая цена считается при&nbsp;оформлении заявки.</p>
 <a href="/dpo" class="foc lux-more">Весь каталог <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </div>
 </div>
@@ -88,10 +88,10 @@
 <div class="lux-wrap lux-split">
 <h2 class="lux-h2 lux-reveal" id="lux-meet-title">Встречи выпускников.</h2>
 <div class="lux-reveal" style="--d:1">
-<p class="lux-lede">27&nbsp;февраля 2026&nbsp;года на&nbsp;традиционной встрече выпускников обсудили развитие клуба на&nbsp;ближайшие 5–10&nbsp;лет. Лучшие идеи выбрали общим голосованием.</p>
+<p class="lux-lede">27&nbsp;февраля 2026&nbsp;года на&nbsp;традиционной встрече выпускников обсудили развитие клуба на&nbsp;ближайшие 5-10&nbsp;лет. Лучшие идеи выбрали общим голосованием.</p>
 <div class="lux-links">
 <a href="https://pravo.hse.ru/news/1133936920.html" class="foc lux-more" target="_blank" rel="noopener noreferrer">Репортаж на&nbsp;pravo.hse.ru <span class="lux-more__arrow" aria-hidden="true">↗</span><span class="lux-sr">, откроется в&nbsp;новой вкладке</span></a>
-<a href="/events" class="foc lux-more">Все встречи <span class="lux-more__arrow" aria-hidden="true">›</span></a>
+<a href="/events" class="foc lux-more">Все события <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </div>
 </div>
 </div>
@@ -109,7 +109,7 @@
 <figure class="lux-wrap lux-voice">
 <div class="lux-frame lux-voice__photo lux-reveal"><img src="{{ base }}assets/photos/club/voice-576.webp" width="576" height="720" alt="Екатерина Салугина-Сороковая, выпускница факультета права 2006 года" loading="lazy" decoding="async"></div>
 <blockquote class="lux-voice__quote lux-reveal" style="--d:1"><p>«Вышка в&nbsp;моей жизни сыграла огромную роль».</p></blockquote>
-<figcaption class="lux-voice__cap lux-reveal" style="--d:2"><p><b>Екатерина Салугина-Сороковая</b>, выпуск 2006. В&nbsp;интервью 2024&nbsp;года, тогда первый вице-президент Газпромбанка, рассказала об&nbsp;учёбе в&nbsp;Вышке, профессиональном пути и&nbsp;встречах выпускников.</p>
+<figcaption class="lux-voice__cap lux-reveal" style="--d:2"><p><b>Екатерина Салугина-Сороковая</b>, выпуск 2006&nbsp;года, в&nbsp;2024&nbsp;году первый вице-президент Газпромбанка. В&nbsp;интервью рассказала об&nbsp;учебе в&nbsp;Вышке, профессиональном пути и&nbsp;встречах выпускников.</p>
 <a href="https://pravo.hse.ru/news/894336073.html" class="foc lux-more" target="_blank" rel="noopener noreferrer">Читать интервью <span class="lux-more__arrow" aria-hidden="true">↗</span><span class="lux-sr">, откроется в&nbsp;новой вкладке</span></a></figcaption>
 </figure>
 {% if news %}
@@ -142,7 +142,7 @@
 <article class="lux-tile lux-pod lux-reveal" style="--d:1" id="podcasts-preview" aria-labelledby="lux-pod-title">
 <div class="lux-tile__media lux-cover"><img src="{{ base }}assets/themis-figure.svg" width="313" height="549" alt="" loading="lazy" decoding="async"></div>
 <h3 class="lux-tile__title" id="lux-pod-title">Подкасты клуба</h3>
-<p class="lux-tile__lede">Пробный выпуск открыт всем, остальные&nbsp;— по&nbsp;подписке: <span class="lux-nobr">{{ domain.limits.podcast_year_price|rub }}</span> за&nbsp;12&nbsp;месяцев.</p>
+<p class="lux-tile__lede">Пробный выпуск открыт всем, остальные доступны по&nbsp;подписке за&nbsp;<span class="lux-nobr">{{ domain.limits.podcast_year_price|rub }}</span> на&nbsp;12&nbsp;месяцев.</p>
 <ul class="lux-eps">
 {% for episode in episodes %}
 <li><a class="foc" href="/podcasts/{{ episode.id }}"><span>{{ episode.title }}</span><span>{{ episode.duration or '' }}{% if episode.is_free %} · открыт{% endif %}</span></a></li>
@@ -157,7 +157,7 @@
 <div class="lux-wrap lux-last__inner">
 <img class="lux-last__mark lux-reveal" src="{{ base }}assets/themis-club.svg" width="64" height="64" alt="">
 <h2 class="lux-h2 lux-reveal" id="lux-last-title" style="--d:1">{{ title_pre }} {{ title_accent }}</h2>
-<p class="lux-lede lux-reveal" style="--d:2">Цена выпускника на&nbsp;ДПО, запись на&nbsp;встречи и&nbsp;разделы клуба&nbsp;— в&nbsp;кабинете участника.</p>
+<p class="lux-lede lux-reveal" style="--d:2">В&nbsp;кабинете скидка выпускника, запись на&nbsp;события и&nbsp;подписка на&nbsp;подкасты.</p>
 <div class="lux-reveal" style="--d:3"><a href="/join" class="foc lux-btn" data-member-link>{{ join_label }}</a></div>
 </div>
 </section>
