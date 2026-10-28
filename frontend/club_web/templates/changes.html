@@ -3,12 +3,12 @@
 {% block content %}
 <main id="main" class="site-container changes-page{% if item %} changes-page--reading{% endif %}">
 <header class="site-masthead changes-head"><h1>Изменения в праве</h1><p>Справки, обзоры и опубликованные правовые акты.</p></header>
-{% if snapshot.syncStatus=='unavailable' %}<div class="site-panel changes-notice" role="status">Источник временно недоступен. Показаны сохранённые материалы.{% if snapshot.lastSuccessAt %} Последнее успешное обновление: {{ snapshot.lastSuccessAt|date(true) }}.{% endif %}<p><a href="{{ changes_back }}">Повторить загрузку</a></p></div>{% endif %}
+{% if snapshot.syncStatus=='unavailable' %}<div class="site-panel changes-notice" role="status">Источник временно недоступен. Показаны сохраненные материалы.{% if snapshot.lastSuccessAt %} Последнее успешное обновление: {{ snapshot.lastSuccessAt|date(true) }}.{% endif %}<p><a href="{{ changes_back }}">Повторить загрузку</a></p></div>{% endif %}
 <section class="changes-controls" aria-label="Фильтры материалов">
-<p class="changes-muted">{{ 'Попытка обновления' if snapshot.syncStatus=='unavailable' else 'Проверено' }}: {{ snapshot.checkedAt|date(true) }}. Период: {{ snapshot.periodFrom|date }} – {{ snapshot.periodTo|date }}.</p>
+<p class="changes-muted">{{ 'Попытка обновления' if snapshot.syncStatus=='unavailable' else 'Проверено' }}: {{ snapshot.checkedAt|date(true) }}. Период: с {{ snapshot.periodFrom|date }} по {{ snapshot.periodTo|date }}.</p>
 <button type="button" class="changes-button changes-filter-launch" data-changes-filter-open>Поиск и фильтры</button>
 <div data-changes-filter-home><form method="get" action="/changes" class="site-filters" data-changes-form>
-<label>Материалы<select aria-label="Материалы" name="view"><option value="digest">Справки и обзоры</option><option value="act" {% if query.get('view')=='act' %}selected{% endif %}>Архив актов</option><option value="all" {% if query.get('view')=='all' %}selected{% endif %}>Всё</option></select></label>
+<label>Материалы<select aria-label="Материалы" name="view"><option value="digest">Справки и обзоры</option><option value="act" {% if query.get('view')=='act' %}selected{% endif %}>Архив актов</option><option value="all" {% if query.get('view')=='all' %}selected{% endif %}>Все материалы</option></select></label>
 <label>Название, номер или ключевые слова<input type="search" name="q" maxlength="200" value="{{ query.get('q','') }}"></label>
 {% for name,values in filters.items() %}<label>{{ 'Тип материала' if name=='kind' else 'Рубрика' }}<select aria-label="{{ 'Тип материала' if name=='kind' else 'Рубрика' }}" name="{{ name }}"><option value="">Все</option>{% for value in values %}<option {% if query.get(name)==value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select></label>{% endfor %}
 <label>Опубликовано с<input type="date" name="from" value="{{ query.get('from','') }}"></label><label>Опубликовано по<input type="date" name="to" value="{{ query.get('to','') }}"></label>
@@ -26,7 +26,7 @@
 <div class="site-actions">{{ save('/changes/'+entry.id,entry.title,'change') }}<button data-action="mark-read" data-href="/changes/{{ entry.id }}" aria-pressed="false">Отметить прочитанным</button></div>
 </article>{% endfor %}</div>
 {% if not items %}<div class="changes-empty" role="status">{{ 'По выбранным фильтрам ничего не найдено.' if snapshot['items'] else 'Материалы пока не опубликованы.' }}{% if snapshot['items'] %} <a href="/changes">Сбросить фильтры</a>{% endif %}</div>{% endif %}
-<nav class="changes-pagination" aria-label="Страницы материалов" data-changes-pagination>{% if previous_page %}<a href="{{ previous_page }}">← Предыдущая</a>{% endif %}<span>Страница {{ page_number }}</span>{% if next_page %}<a href="{{ next_page }}">Следующая страница →</a>{% endif %}</nav>
+<nav class="changes-pagination" aria-label="Страницы материалов" data-changes-pagination>{% if previous_page %}<a href="{{ previous_page }}">← Предыдущая</a>{% endif %}<span>Страница {{ page_number }}</span>{% if next_page %}<a href="{{ next_page }}">Следующая →</a>{% endif %}</nav>
 </section>
 {% if item %}<article class="changes-reader" data-reading-title="{{ item.title }}" data-reading-kind="change">
 <a class="changes-back" href="{{ changes_back }}" data-changes-back>← Все материалы</a>
@@ -39,6 +39,6 @@
 {% if item.url|safe_url %}<p><a href="{{ item.url|safe_url }}" target="_blank" rel="noopener noreferrer">Открыть источник ↗</a></p>{% endif %}</div>
 <div class="changes-actions">{{ save(path,item.title,'change') }}<button data-action="mark-read" data-href="{{ path }}" aria-pressed="false">Отметить прочитанным</button><button type="button" data-changes-copy>Копировать текст</button></div>
 <p role="status" data-changes-copy-status></p><textarea class="changes-copy-field" data-changes-copy-field aria-label="Текст для ручного копирования" readonly hidden></textarea><p class="changes-reader-footer">Дата публикации не означает дату вступления норм в силу.</p>
-</article>{% else %}<aside class="changes-reader changes-reader-hint"><h2>Выберите материал</h2><p>Текст откроется рядом со списком. На телефоне – на отдельной странице.</p></aside>{% endif %}
+</article>{% else %}<aside class="changes-reader changes-reader-hint"><h2>Выберите материал</h2><p>Текст откроется рядом со списком, на телефоне на отдельной странице.</p></aside>{% endif %}
 </div></main>
 {% endblock %}

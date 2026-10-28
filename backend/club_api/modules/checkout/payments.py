@@ -13,6 +13,7 @@ from club_api.db.store import normalize
 from club_api.domain import PORTFOLIO_CATALOG, rubles
 from club_api.modules.auth.service import require_alumni
 from club_api.modules.checkout.store import digest
+from club_api.modules.notifications.mail import club_subject
 from club_api.observability.audit import audit
 
 logger = logging.getLogger("club.payments")
@@ -208,7 +209,7 @@ class Payments:
         cursor = await connection.execute("SELECT podcast_sub_until FROM alumni WHERE id=%s FOR UPDATE", (alumni_id,))
         profile = await cursor.fetchone()
         if not profile:
-            raise ApiError(404, "Профиль подписчика не найден")
+            raise ApiError(404, "Профиль подписчика не найден.")
         until = next_podcast_expiry(profile["podcast_sub_until"], months)
         await connection.execute(
             "UPDATE alumni SET podcast_sub_until=%s,podcast_reminder_sent=false WHERE id=%s", (until, alumni_id)
@@ -359,11 +360,11 @@ async def webhook(request: HttpRequest):
     if order and outcome == "succeeded" and order["contact_email"] and (order["contact_email"] != "-"):
         text = f"Здравствуйте, {order['contact_fio']}!\n\nОплата по заявке {order['number']} на сумму {rubles(order['total_estimate'])} прошла успешно."
         text += (
-            "\nПодписка на подкасты клуба активирована на год – приятного прослушивания!"
+            "\nПодписка на подкаст клуба действует 12 месяцев."
             if order["type"] == "podcast"
             else "\nЗаявка передана учебному офису в работу."
         )
         await state.notifications.mail_applicant(
-            order["contact_email"], "Оплата получена – заявка " + order["number"], text
+            order["contact_email"], club_subject(f"Оплата по заявке {order['number']} получена"), text
         )
     return {"ok": True}

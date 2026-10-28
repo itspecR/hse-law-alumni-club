@@ -105,7 +105,7 @@ async def news_detail(request: HttpRequest, slug: str):
         "news", filters={**PUBLISHED, "slug": {"_eq": slug}}, fields=NEWS_FIELDS, limit=1
     )
     if not rows:
-        raise ApiError(404, "Новость не найдена")
+        raise ApiError(404, "Новость не найдена.")
     return rows[0]
 
 
@@ -125,7 +125,7 @@ async def program_detail(request: HttpRequest, slug: str):
         limit=1,
     )
     if not rows:
-        raise ApiError(404, "Программа не найдена")
+        raise ApiError(404, "Программа не найдена.")
     return rows[0]
 
 
@@ -164,7 +164,7 @@ async def page(request: HttpRequest, slug: str):
         ),
     )
     if not rows:
-        raise ApiError(404, "Страница не найдена")
+        raise ApiError(404, "Страница не найдена.")
     page = rows[0]
     blocks = {
         block["collection"].removeprefix("block_"): block["item"]

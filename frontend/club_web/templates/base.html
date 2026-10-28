@@ -93,7 +93,7 @@
 <button class="foc club-header__burger" data-action="menu" aria-expanded="false" aria-controls="club-menu" aria-label="Открыть меню">☰</button>
 </div>
 <nav id="club-menu" class="club-menu" data-open="false" aria-label="Меню">
-<a href="/search">Поиск по клубу</a>
+<a href="/search">Поиск по сайту</a>
 {% for href,label in nav %}
 <a href="{{ href }}">{{ label }}</a>
 {% endfor %}
@@ -202,7 +202,7 @@
 <div id="toast" role="status" aria-live="polite" hidden>
 </div>
 <dialog id="search-dialog" class="discovery-dialog" aria-labelledby="search-title">
-<div class="discovery-dialog-head"><h2 id="search-title">Поиск по клубу</h2><button type="button" data-search-close aria-label="Закрыть поиск">×</button></div>
+<div class="discovery-dialog-head"><h2 id="search-title">Поиск по сайту</h2><button type="button" data-search-close aria-label="Закрыть поиск">×</button></div>
 <form data-search-dialog-form><label>Программа, новость или изменение в праве<input type="search" name="q" minlength="2" maxlength="200" autocomplete="off"></label><button>Найти</button></form>
 <p data-search-status role="status">Введите хотя бы две буквы.</p><div data-search-results></div>
 </dialog>
