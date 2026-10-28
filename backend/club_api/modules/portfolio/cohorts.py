@@ -15,7 +15,7 @@ from club_api.modules.portfolio.seats import COHORT_SEATS, SEATED_STATUSES
 
 OPEN_ENROLLMENT = "actual"
 COHORT_FIELDS = ("id", "program_id", "starts_on", "price", "capacity", "enrollment", "created_at")
-PUBLIC_FIELDS = ("id", "starts_on", "price", "capacity")
+PUBLIC_FIELDS = ("id", "program_id", "starts_on", "price", "capacity")
 SHARE_SQL = Query(
     "SELECT id FROM program_cohorts WHERE id=%s FOR SHARE",
     "SELECT id FROM program_cohorts WHERE id=%s LOCK IN SHARE MODE",
@@ -51,11 +51,11 @@ def cohort_price(program, cohort):
     return program["price"] or 0
 
 
-async def open_cohorts(state, program_id, connection=None):
+async def open_cohorts(state, program_ids, connection=None):
     return await state.store.read(
         "program_cohorts",
         filters={
-            "program_id": {"_eq": program_id},
+            "program_id": {"_in": program_ids},
             "enrollment": {"_eq": OPEN_ENROLLMENT},
             "starts_on": {"_gte": moscow_today()},
         },
@@ -69,14 +69,29 @@ async def open_cohorts(state, program_id, connection=None):
 async def public_cohorts(state, program, connection):
     return [
         {**row, "price": cohort_price(program, row), "seats_left": await COHORT_SEATS.free(connection, row)}
-        for row in await open_cohorts(state, program["id"], connection)
+        for row in await open_cohorts(state, [program["id"]], connection)
     ]
+
+
+async def cohorts_by_program(state, programs):
+    owners, grouped = {program["id"]: program for program in programs}, {}
+    for row in await open_cohorts(state, list(owners)):
+        price = cohort_price(owners[row["program_id"]], row)
+        grouped.setdefault(row["program_id"], []).append({"starts_on": row["starts_on"], "price": price})
+    return grouped
+
+
+async def with_starts(state, orders):
+    ids = list({order["cohort_id"] for order in orders if order["cohort_id"]})
+    rows = await state.store.read("program_cohorts", filters={"id": {"_in": ids}}, fields=("id", "starts_on"), limit=-1)
+    starts = {row["id"]: row["starts_on"] for row in rows}
+    return [{**order, "starts_on": starts.get(order["cohort_id"])} for order in orders]
 
 
 async def chosen_cohort(state, program_id, id, connection=None, *, lock=False):
     if id and lock:
         await connection.execute(SHARE_SQL, (id,))
-    cohorts = await open_cohorts(state, program_id, connection)
+    cohorts = await open_cohorts(state, [program_id], connection)
     if id is None:
         if cohorts:
             raise ApiError(400, "Выберите поток")

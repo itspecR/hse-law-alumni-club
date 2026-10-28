@@ -35,6 +35,13 @@ html.lux .portfolio-application :is(input:not([type=checkbox]):not([type=radio])
 html.lux .portfolio-applicant { margin: 20px 0 8px; padding: 0; border: 0; }
 html.lux .portfolio-applicant legend { margin-bottom: 10px; font-size: 14px; color: var(--c-text-3); }
 html.lux .portfolio-applicant .lux-seg__opt input:checked + span { border-radius: 999px; background: var(--c-text); }
+html.lux .portfolio-cohorts { display: grid; gap: 8px; margin: 20px 0 8px; padding: 0; border: 0; }
+html.lux .portfolio-cohorts legend { margin-bottom: 10px; font-size: 14px; color: var(--c-text-3); }
+html.lux .portfolio-cohort { display: flex; align-items: flex-start; gap: 12px; min-height: 44px; padding: 12px 16px; border-radius: var(--r-md); background: var(--lux-control); cursor: pointer; }
+html.lux .portfolio-cohort:has(input:checked) { background: var(--c-text); color: var(--c-text-inverse); }
+html.lux .portfolio-cohort:has(input:focus-visible) { outline: 3px solid var(--c-text); outline-offset: 2px; }
+html.lux .portfolio-cohort input[type=radio] { flex: none; width: 20px; height: 20px; min-height: 0; margin: 2px 0 0; padding: 0; accent-color: var(--c-accent); }
+html.lux .portfolio-cohort small { display: block; margin-top: 2px; font-size: 14px; opacity: .8; }
 html.lux .portfolio-promo { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin: 16px 0 0; }
 html.lux .portfolio-promo .site-field { flex: 1 1 160px; margin: 0; }
 html.lux .portfolio-promo input { text-transform: uppercase; }

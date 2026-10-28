@@ -228,6 +228,7 @@ function discountText(discount, source, message) {
 function applicationReceipt(form, result) {
   const receipt = element("div", undefined, { role: "status", class: "portfolio-receipt", tabindex: "-1" });
   receipt.append(element("h3", "Заявка " + result.number + " принята"), element("p", "Участников: " + result.participants + " · сумма (справочно): " + rubles(result.total_estimate)));
+  if (result.starts_on) receipt.append(element("p", "Старт потока: " + (form.querySelector("[name='cohort_id']:checked")?.dataset.start || result.starts_on)));
   const discount = discountText(result.member_discount, result.discount_source, result.message);
   if (discount) receipt.append(element("p", discount));
   receipt.append(element("p", "Учебный офис свяжется с вами по указанным контактам, чтобы согласовать договор и оплату."));
@@ -268,7 +269,7 @@ async function quotePromo(button) {
   const code = form.elements.promo_code.value.trim();
   if (!code) { showQuote(form, "Введите промокод.", true); return; }
   const applicant = form.querySelector("[data-applicant]:checked").value;
-  const body = { applicant, promo_code: code };
+  const body = { applicant, promo_code: code, cohort_id: form.querySelector("[name='cohort_id']:checked")?.value };
   if (applicant === "organization") body.participants = Number(form.elements.participants.value) || undefined;
   button.disabled = true;
   try {

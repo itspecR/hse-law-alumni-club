@@ -8,9 +8,12 @@ from club_web.formatting import (
     date,
     discount_label,
     media,
+    open_cohorts,
     page_items,
     payment_url,
     plain_title,
+    program_price,
+    program_start,
     rub,
     safe_url,
 )
@@ -44,6 +47,9 @@ def environment(**options):
         media=media,
         page_items=page_items,
         plain_title=plain_title,
+        program_cohorts=open_cohorts,
+        program_start=program_start,
+        program_price=program_price,
     )
     renderer.globals.update(format_labels=FORMAT_LABELS)
     return renderer

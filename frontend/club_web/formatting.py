@@ -31,6 +31,21 @@ def rub(value):
     return formatted.replace(",", "\u00a0").replace(".", ",") + " ₽"
 
 
+def open_cohorts(item):
+    cohorts = item.get("cohorts")
+    return cohorts if isinstance(cohorts, list) else []
+
+
+def program_start(item):
+    cohorts = open_cohorts(item)
+    return cohorts[0].get("starts_on") if cohorts else (item.get("dates") or {}).get("start")
+
+
+def program_price(item):
+    prices = sorted({cohort.get("price") or 0 for cohort in open_cohorts(item)}) or [item.get("price")]
+    return ("от " if len(prices) > 1 else "") + rub(prices[0])
+
+
 def discount_label(order, automatic=False):
     if order.get("office_discount") is not None and not automatic:
         return f"скидка учебного офиса: {order['office_discount']}%"

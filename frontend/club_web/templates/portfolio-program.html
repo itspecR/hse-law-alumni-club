@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import save,field %}
 {% block content %}
+{% set cohorts = item|program_cohorts %}
 <main id="main" class="site-container program-page portfolio-program" data-reading-title="{{ item.title }}" data-reading-kind="portfolio">
 <a href="/portfolio" class="foc lux-back"><span aria-hidden="true">‹</span> Портфель программ</a>
 <header class="site-masthead">
@@ -52,18 +53,23 @@
 <dd>{{ (format_labels.get(item.format,item.format) or '')|capitalize }}</dd>
 <dt>Продолжительность</dt>
 <dd>{{ item.duration }}</dd>
+{% if cohorts|length>1 %}
+<dt>Потоки</dt>
+<dd>{{ cohorts|map(attribute='starts_on')|map('date')|join(', ') }}</dd>
+{% else %}
 <dt>Начало</dt>
-<dd>{{ ((item.dates or {}).get('start') or 'По мере набора')|date }}</dd>
+<dd>{{ (item|program_start or 'По мере набора')|date }}</dd>
+{% endif %}
 <dt>Документ</dt>
 <dd>{{ item.document }}</dd>
-{% if item.capacity %}
+{% if item.capacity and not cohorts %}
 <dt>Мест в группе</dt>
 <dd>{{ item.capacity }}</dd>
 <dt>Свободных мест</dt>
 <dd>{{ item.seats_left }}</dd>
 {% endif %}
 <dt>Стоимость</dt>
-<dd class="lux-price">{{ item.price|rub }}</dd>
+<dd class="lux-price">{{ item|program_price }}</dd>
 </dl>
 {% if item.enrollment=='nonactual' %}<p role="status">Набор закрыт</p>{% else %}<a href="#application" class="site-primary">Оставить заявку</a>{% endif %}
 {{ save(path,item.title,'portfolio') }}
@@ -73,10 +79,18 @@
 {% if item.enrollment!='nonactual' %}
 <section id="application" class="site-panel portfolio-application" aria-labelledby="application-title">
 <h2 id="application-title">Заявка на программу</h2>
-{% if item.seats_left==0 %}<p role="status">Места закончились — заявку можно оставить, офис свяжется при освобождении места.</p>{% endif %}
+{% if item.seats_left==0 and not cohorts %}<p role="status">Места закончились — заявку можно оставить, офис свяжется при освобождении места.</p>{% endif %}
 <p>Оплата на сайте не требуется: учебный офис свяжется с вами, чтобы согласовать договор и оплату.</p>
 <form data-api="/portfolio/{{ item.slug }}/applications" data-application>
 {{ field('contact_fio','ФИО') }}{{ field('contact_phone','Телефон',type='tel') }}{{ field('contact_email','Почта',type='email') }}
+{% if cohorts %}
+<fieldset class="portfolio-cohorts">
+<legend>Поток</legend>
+{% for cohort in cohorts %}
+<label class="portfolio-cohort"><input type="radio" name="cohort_id" value="{{ cohort.id }}" required data-quote-input data-start="{{ cohort.starts_on|date }}"{% if loop.length==1 %} checked{% endif %}><span>Старт {{ cohort.starts_on|date }}<small>{{ cohort.price|rub }}{% if cohort.seats_left==0 %} · мест нет, офис свяжется при освобождении места{% elif cohort.seats_left is not none %} · свободных мест: {{ cohort.seats_left }}{% endif %}</small></span></label>
+{% endfor %}
+</fieldset>
+{% endif %}
 <fieldset class="portfolio-applicant">
 <legend>Кто будет учиться</legend>
 <div class="lux-seg" style="--seg-n:2">
