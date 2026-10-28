@@ -21,7 +21,7 @@
 {% if section=='events' %}
 <a href="/admin/events?id={{ record.id }}">Список участников · {{ record.rsvp_count or 0 }}</a>
 {% endif %}
-<button class="site-danger" data-api="/admin/{{ section }}/{{ record.id }}" data-method="DELETE" data-confirm="{{ 'Удалить тренера? Он исчезнет из всех программ.' if section=='trainers' else 'Удалить промокод? В отправленных заявках код сохранится.' if section=='promo-codes' else 'Удалить поток? Поток с заявками удалить нельзя — закройте набор.' if section=='cohorts' else 'Удалить эту запись?' }}">Удалить</button>
+<button class="site-danger" data-api="/admin/{{ section }}/{{ record.id }}" data-method="DELETE" data-confirm="{{ 'Удалить тренера? Он исчезнет из всех программ.' if section=='trainers' else 'Удалить промокод? В отправленных заявках код сохранится.' if section=='promo-codes' else 'Удалить поток? Поток с заявками удалить нельзя — закройте набор.' if section=='cohorts' else 'Удалить программу? Программу с заявками удалить нельзя — переведите её в архив.' if section=='portfolio' else 'Удалить эту запись?' }}">Удалить</button>
 </div>
 </article>
 {% else %}{{ empty('По выбранным фильтрам записей нет.' if query.get('q') or query.get('status') else 'Записей пока нет.') }}{% endfor %}

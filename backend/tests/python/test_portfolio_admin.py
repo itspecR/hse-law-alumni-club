@@ -26,6 +26,20 @@ async def listed(client, headers, route, id):
     return next((row for row in rows if row["id"] == id), None)
 
 
+async def test_program_with_applications_is_archived_instead_of_deleted(database_app):
+    app = database_app
+    _, editor = await account(app, "editor")
+    async with client_for(app) as client:
+        used = await create(client, editor, "/admin/portfolio", PORTFOLIO)
+        spare = await create(client, editor, "/admin/portfolio", {**PORTFOLIO, "title": "Медиация в спорах"})
+        await app.state.store.create("orders", {"program_id": used["id"], "type": "portfolio", "number": "ALU-TEST-1"})
+        refused = await client.delete("/admin/portfolio/" + used["id"], headers=editor)
+        removed = await client.delete("/admin/portfolio/" + spare["id"], headers=editor)
+    assert refused.status_code == 409 and "переведите её в архив" in refused.json()["error"]
+    assert removed.status_code == 200
+    assert [row["id"] for row in await app.state.store.read("programs", fields=("id",))] == [used["id"]]
+
+
 async def test_portfolio_program_saves_card_fields_and_trainer_order(database_app):
     app = database_app
     _, editor = await account(app, "editor")

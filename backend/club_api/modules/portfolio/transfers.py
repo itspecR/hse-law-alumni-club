@@ -7,9 +7,9 @@ from club_api.core.views import api_view, defer, parse_body
 from club_api.domain import applied_discount, order_totals, rubles
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin
-from club_api.modules.portfolio.cohorts import canonical_id, cohort_price, lock_cohort
+from club_api.modules.portfolio.cohorts import canonical_id, cohort_price
 from club_api.modules.portfolio.dates import display_date
-from club_api.modules.portfolio.orders import locked_order, reachable, require_open
+from club_api.modules.portfolio.orders import COHORT_USE, locked_order, reachable, require_open
 from club_api.modules.portfolio.seats import COHORT_SEATS, SEATED_STATUSES
 from club_api.observability.audit import audit
 
@@ -26,7 +26,7 @@ class MoveBody(Body):
 
 
 async def target_cohort(state, order, id, connection):
-    await lock_cohort(connection, id)
+    await COHORT_USE.lock(connection, id)
     rows = await state.store.read(
         "program_cohorts",
         filters={"id": {"_eq": id}, "program_id": {"_eq": order["program_id"]}},
