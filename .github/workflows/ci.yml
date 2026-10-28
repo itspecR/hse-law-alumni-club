@@ -46,6 +46,7 @@ jobs:
           uv run --directory frontend ruff check club_web tests/python
           uv run --directory frontend ruff format --check club_web tests/python
           uv run --directory frontend python ../scripts/checks/check-comments.py
+          uv run --directory frontend python ../scripts/checks/check-text-style.py
       - name: Validate operator commands and deployment configuration
         run: |
           while IFS= read -r -d '' script; do bash -n "$script"; done < <(find scripts -type d -name .venv -prune -o -type f -name '*.sh' -print0)
@@ -59,6 +60,7 @@ jobs:
           uv run --directory frontend ruff format --check ../scripts/diagnostics/security-inventory.py ../scripts/checks/check-image-audit.py ../scripts/tests/test-security-inventory.py
           uv run --directory backend python ../scripts/tests/test-measure-load.py
           uv run --directory frontend python ../scripts/tests/test-comments.py
+          uv run --directory frontend python ../scripts/tests/test-text-style.py
           docker compose --env-file .env.example config --quiet
           docker compose --env-file .env.example config --format json | python3 scripts/checks/check-compose.py
       - name: Build and check native web files

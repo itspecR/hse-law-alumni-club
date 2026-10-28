@@ -84,6 +84,8 @@ uv run --directory frontend ruff check club_web tests/python
 uv run --directory frontend python -m club_web.build --output /tmp/club-web
 uv run --directory frontend python ../scripts/checks/check-web-build.py /tmp/club-web
 uv run --directory frontend python ../scripts/checks/check-comments.py
+uv run --directory frontend python ../scripts/checks/check-text-style.py
+uv run --directory frontend python ../scripts/tests/test-text-style.py
 uv run --directory frontend pytest -q
 uv export --directory backend --frozen --no-dev --no-emit-project --format requirements-txt --output-file /tmp/club-requirements.txt
 uv run --directory backend --frozen pip-audit -r /tmp/club-requirements.txt --no-deps --disable-pip
