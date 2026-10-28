@@ -689,6 +689,16 @@ async def test_portfolio_texts_follow_glossary(browser_client):
         assert re.findall(".{0,40}[ёЁ–—].{0,20}", (templates / name).read_text()) == [], name
 
 
+async def test_support_texts_follow_glossary(browser_client):
+    support = (await browser_client.get("/support")).text
+    assert "<summary>Как вступить в клуб?</summary>" in support
+    assert "<summary>Чем отличаются ПК и ПП?</summary>" in support and "<summary>Пк" not in support
+    assert '<option value="order">Заявка</option>' in support
+    assert "Даю согласие на обработку данных обращения</label>" in support
+    template = Path(club_web.__file__).parent / "templates" / "support.html"
+    assert re.findall(".{0,40}[ёЁ–—].{0,20}", template.read_text()) == []
+
+
 def test_portfolio_start_and_price_follow_open_cohorts():
     cohorts = [{"starts_on": "2026-12-01", "price": 3900000}, {"starts_on": "2027-02-01", "price": 4500000}]
     item = {**PORTFOLIO, "cohorts": cohorts}
