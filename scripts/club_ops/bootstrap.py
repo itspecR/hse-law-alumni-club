@@ -9,7 +9,7 @@ from psycopg.types.json import Jsonb
 from club_api.db.operator import is_operator
 from club_api.db.queries import Query, acquire_lock
 from club_api.db.store import Store
-from club_api.domain import DOMAIN
+from club_api.domain import ACHIEVEMENT_FLAGS, DOMAIN
 from club_api.modules.auth.passwords import hash_password
 
 HOME_HERO = {
@@ -205,7 +205,10 @@ async def bootstrap(connection, config):
             (
                 "achievements",
                 "key",
-                [{key: value for key, value in row.items() if key != "star"} for row in DOMAIN["achievements"]],
+                [
+                    {key: value for key, value in row.items() if key not in ACHIEVEMENT_FLAGS}
+                    for row in DOMAIN["achievements"]
+                ],
             ),
         ):
             result["createdRows"] += await seed_missing(connection, store, table, key, rows)

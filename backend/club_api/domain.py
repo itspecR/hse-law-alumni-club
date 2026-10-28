@@ -4,7 +4,8 @@ from club_api.resources import shared_data
 
 DOMAIN = shared_data("domain-data.json")
 LEVELS = DOMAIN["levels"]
-ACHIEVEMENTS = DOMAIN["achievements"]
+ACHIEVEMENTS = [item for item in DOMAIN["achievements"] if not item.get("hidden")]
+ACHIEVEMENT_FLAGS = ("star", "hidden")
 PERSONAL_DISCOUNT_MAX = DOMAIN["limits"]["personal_discount_max"]
 MEMBER_DISCOUNT_CAP = DOMAIN["limits"]["member_discount_cap"]
 MAX_LINE_QTY = DOMAIN["limits"]["max_line_qty"]

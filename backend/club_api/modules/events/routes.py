@@ -211,7 +211,7 @@ async def calendar(request: HttpRequest, id: str):
             "BEGIN:VALARM",
             "TRIGGER:-PT2H",
             "ACTION:DISPLAY",
-            "DESCRIPTION:" + ics_escape(event["title"]) + " – через 2 часа",
+            "DESCRIPTION:" + ics_escape("Через 2 часа: " + event["title"]),
             "END:VALARM",
             "END:VEVENT",
             "END:VCALENDAR",

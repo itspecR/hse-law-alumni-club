@@ -648,6 +648,34 @@ async def test_events_podcasts_news_search_saved_texts_follow_glossary(browser_c
         assert re.findall(".{0,40}[ёЁ–—].{0,20}", (templates / name).read_text()) == [], name
 
 
+async def cabinet_page(profile):
+    async def upstream(request):
+        return httpx.Response(200, json=profile if request.url.path == "/me" else [])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            return (await client.get("/views/lk", headers={"authorization": "Bearer member-test"})).text
+
+
+async def test_join_cabinet_and_profile_texts_follow_glossary(browser_client):
+    join = (await browser_client.get("/join")).text
+    assert "Как вступить <em>в клуб</em>" in join and "<li>Откроется кабинет</li>" in join
+    assert "Пароль, не меньше 8 символов" in join and ">Отправить заявку</button>" in join
+    level = {"level_title": "Выпускник", "points": 123, "discount": 5, "next_level": "Друг клуба", "to_next": 77}
+    cabinet = await cabinet_page({**PROFILE, "level": level})
+    assert "До уровня «Друг клуба» осталось баллов: 77" in cabinet and "<dt>Скидка выпускника</dt>" in cabinet
+    assert '<a href="#community">Однокурсники</a>' in cabinet and "<h2>Обзор</h2>" in cabinet
+    assert "<h3>Ближайшее событие</h3>" in cabinet and "Ближайших событий пока нет." in cabinet
+    assert "> 60</p>" in cabinet and "60 баллов" not in cabinet
+    rejected = await cabinet_page({**PROFILE, "alumni": {**PROFILE["alumni"], "verification_status": "rejected"}})
+    assert "Учебный офис не смог подтвердить данные заявки. Если это ошибка, напишите в поддержку." in rejected
+    templates = Path(club_web.__file__).parent / "templates"
+    for name in ("auth.html", "cabinet.html", "profile.html"):
+        assert re.findall(".{0,40}[ёЁ–—].{0,20}", (templates / name).read_text()) == [], name
+
+
 async def test_portfolio_texts_follow_glossary(browser_client):
     listing = (await browser_client.get("/portfolio")).text
     card = (await browser_client.get("/portfolio/club-one")).text

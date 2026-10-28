@@ -206,7 +206,7 @@ def profile_tools(page, request, headers, image):
     with page.expect_response(lambda response: response.url.endswith("/api/me/tg-link")) as link:
         page.get_by_role("button", name="Подключить Telegram", exact=True).click()
     assert link.value.status == 503
-    expect(page.locator("#toast")).to_contain_text("Telegram пока не подключён")
+    expect(page.locator("#toast")).to_contain_text("Подключение Telegram пока недоступно")
 
 
 def office_exports(office):

@@ -195,7 +195,7 @@ async def subscribe(request: HttpRequest):
                             "ref_id": "podcast-sub-year",
                             "qty": 1,
                             "price": PODCAST_SUB_PRICE_KOP,
-                            "title": "Подписка на подкасты клуба · 1 год",
+                            "title": "Подписка на подкаст клуба на 12 месяцев",
                         }
                     ],
                     "subtotal": PODCAST_SUB_PRICE_KOP,
@@ -280,7 +280,7 @@ urlpatterns = content_crud(
     sort=("sort",),
     fields=("id", "title", "description", "cover", "audio_url", "video_url", "duration", "is_free", "sort", "status"),
     subject="podcast",
-    notify="Новый подкаст 🎧",
+    notify="Новый выпуск подкаста",
 )
 
 

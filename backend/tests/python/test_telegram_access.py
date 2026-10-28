@@ -27,6 +27,8 @@ async def test_private_bot_profile_uses_current_account_access(active):
     state.auth.user.assert_awaited_once_with(id=user_id, alumni=True, active=True)
     assert ("Вымышленный участник" in result) is active
     assert ("15%" in result) is active
+    assert ("До уровня «Друг клуба» осталось баллов: 77" in result) is active
+    assert ("«Подключить Telegram»" in result and "/lk/profile" in result) is not active
 
 
 @pytest.mark.parametrize("active", [True, False])
@@ -56,4 +58,4 @@ async def test_bot_calendar_keeps_rsvp_private_when_account_is_blocked(active):
     )
     result = await Telegram(state).reply("/calendar", "", "12345")
     assert "Публичное событие" in result
-    assert ("вы идёте" in result) is active
+    assert ("вы записаны" in result) is active

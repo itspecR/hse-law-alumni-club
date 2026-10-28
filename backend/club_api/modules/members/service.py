@@ -41,7 +41,7 @@ async def anonymize(state, alumni_id):
         if not alumni:
             return False
         if alumni["user_id"] != user_id:
-            raise ApiError(503, "Данные сейчас изменяются. Повторите действие позже")
+            raise ApiError(503, "Данные сейчас изменяются. Повторите позже.")
         if user_id:
             await connection.execute(
                 "DELETE FROM club_mail_outbox WHERE kind=%s AND owner_user_id=%s",

@@ -348,7 +348,7 @@ async function perform(target, body) {
       checkoutReceipt(result);
       void updateCartCount();
     } else if (target.hasAttribute("data-registration")) {
-      target.replaceWith(element("div", result.confirm_required ? "Проверьте почту: подтвердите адрес по ссылке из письма. Затем заявку проверит учебный офис." : "Заявка сохранена. Учебный офис проверит выпуск. Обычно это занимает 1–2 рабочих дня.", { role: "status", class: "site-panel" }));
+      target.replaceWith(element("div", result.confirm_required ? "Мы отправили письмо со ссылкой. Подтвердите почту, затем заявку проверит учебный офис." : "Заявка сохранена. Учебный офис проверит выпуск, обычно это занимает 1-2 рабочих дня.", { role: "status", class: "site-panel" }));
     } else if (target.hasAttribute("data-delete-profile")) {
       store(memberKey, null);
       location.href = url("/");

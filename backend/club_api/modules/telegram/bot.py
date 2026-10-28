@@ -70,20 +70,20 @@ class Telegram:
         if command == "/start" and argument.startswith("l"):
             owner = await consume_link(self.state.database, argument, telegram_id)
             if owner:
-                return f"✅ Telegram привязан к аккаунту <b>{html.escape(owner['fio'])}</b>.\n\nТеперь /points покажет ваши баллы, а /calendar отметит события, куда вы записаны."
-            return "Ссылка привязки истекла, уже использована или аккаунт уже связан с Telegram. Откройте кабинет и получите новую ссылку. Для смены связанного аккаунта обратитесь в поддержку."
+                return f"✅ Telegram подключен к аккаунту <b>{html.escape(owner['fio'])}</b>.\n\nТеперь /points покажет ваши баллы, а /calendar отметит события, куда вы записаны."
+            return "Ссылка для подключения устарела или уже использована, либо Telegram уже подключен. Получите новую ссылку в профиле на сайте. Чтобы сменить подключенный аккаунт, обратитесь в поддержку."
         if command in ("/start", "/help"):
             lines = [
                 "👋 <b>Клуб выпускников факультета права Вышки</b>" if command == "/start" else "ℹ️ <b>Команды бота</b>",
                 "",
-                "/points – баллы и уровень",
-                "/calendar – ближайшие события",
-                "/cabinet – личный кабинет",
-                "/dpo – программы обучения",
-                "/support – обратиться в поддержку",
-                "/help – подсказка",
+                "/points - баллы и уровень",
+                "/calendar - ближайшие события",
+                "/cabinet - личный кабинет",
+                "/dpo - программы обучения",
+                "/support - обратиться в поддержку",
+                "/help - подсказка",
                 "",
-                "Можно написать вопрос про клуб или ДПО – отвечу по сайту.",
+                "Можно написать вопрос о клубе или ДПО, бот ответит по материалам сайта.",
             ]
             if command == "/start":
                 lines.extend(
@@ -97,7 +97,7 @@ class Telegram:
                 )
                 if not await self.alumni(telegram_id):
                     lines.append(
-                        "Чтобы /points показывал ваши данные, нажмите «Привязать Telegram» в личном кабинете на сайте клуба."
+                        "Чтобы /points показывал ваши данные, нажмите «Подключить Telegram» в профиле на сайте клуба."
                     )
             lines.extend(["", "🌐 " + self.link("/", "Сайт клуба")])
             return "\n".join(lines)
@@ -105,16 +105,16 @@ class Telegram:
             alumni = await self.alumni(telegram_id)
             if not alumni:
                 return (
-                    "🔒 <b>Telegram не привязан</b>\n\nЗайдите в "
-                    + self.link("/lk", "личный кабинет")
-                    + " и нажмите «Привязать Telegram» – после этого /points покажет ваши баллы, уровень и скидку."
+                    "🔒 <b>Telegram не подключен</b>\n\nОткройте "
+                    + self.link("/lk/profile", "профиль")
+                    + " и нажмите «Подключить Telegram». После этого /points покажет баллы, уровень и скидку."
                 )
             name = html.escape(alumni["fio"] or "Выпускник")
             if alumni["verification_status"] != "verified":
                 return (
                     "⏳ <b>Профиль на проверке</b>\n\n"
                     + name
-                    + ", учебный офис ещё подтверждает ваш статус.\nПосле верификации здесь появятся баллы и уровень.\n\n🌐 "
+                    + ", учебный офис еще проверяет ваш статус выпускника.\nПосле подтверждения здесь появятся баллы и уровень.\n\n🌐 "
                     + self.link("/lk", "Личный кабинет")
                 )
             info = level_info(alumni["points_cached"] or 0, alumni["personal_discount"] or 0)
@@ -123,10 +123,10 @@ class Telegram:
                 "",
                 f"Уровень: <b>{html.escape(info['level_title'])}</b>",
                 f"Баллы: <b>{info['points']}</b>",
-                f"Скидка на ДПО: <b>{info['discount']}%</b>",
+                f"Скидка выпускника: <b>{info['discount']}%</b>",
             ]
             if info["next_level"]:
-                lines.append(f"До «{html.escape(info['next_level'])}»: ещё {info['to_next']} баллов")
+                lines.append(f"До уровня «{html.escape(info['next_level'])}» осталось баллов: {info['to_next']}")
             return "\n".join([*lines, "", "🌐 " + self.link("/lk", "Открыть кабинет")])
         if command == "/calendar":
             events = await self.state.store.read(
@@ -150,23 +150,23 @@ class Telegram:
             lines = (
                 ["📅 <b>Ближайшие события</b>", ""]
                 if events
-                else ["📅 <b>Календарь клуба</b>", "", "Ближайших событий пока нет – загляните позже.", ""]
+                else ["📅 <b>Календарь клуба</b>", "", "Ближайших событий пока нет.", ""]
             )
             for event in events:
                 going = [row for row in rsvps if row["event_id"] == event["id"]]
                 mine = alumni and any(row["alumni_id"] == alumni["id"] for row in going)
-                place = "онлайн" if event["format"] == "online" else event["location"] or "офлайн"
+                place = "онлайн" if event["format"] == "online" else event["location"] or "очно"
                 when = parse_date(event["starts_at"]).astimezone(ZoneInfo("Europe/Moscow")).strftime("%d.%m.%Y %H:%M")
                 lines.extend(
                     [
                         "▸ <b>" + html.escape(event["title"]) + "</b>",
-                        f"  {when} · {html.escape(place)} · {len(going)} чел.{' · вы идёте ✓' if mine else ''}",
+                        f"  {when} · {html.escape(place)} · записались: {len(going)}{' · вы записаны ✓' if mine else ''}",
                     ]
                 )
                 if event["reg_url"]:
                     lines.append(f'  📝 <a href="{html.escape(event["reg_url"])}">Регистрация</a>')
                 lines.append("")
-            return "\n".join([*lines, "🌐 " + self.link("/events", "Вся афиша и RSVP")])
+            return "\n".join([*lines, "🌐 " + self.link("/events", "Все события и запись")])
         routes = {
             "/cabinet": ("/lk", "Личный кабинет"),
             "/dpo": ("/dpo", "Программы ДПО"),
@@ -199,7 +199,7 @@ class Telegram:
                 "sendMessage",
                 {
                     "chat_id": chat["id"],
-                    "text": "Не знаю такой команды. Нажмите /help или напишите вопрос про клуб и ДПО.",
+                    "text": "Такой команды нет. Нажмите /help или напишите вопрос о клубе и ДПО.",
                 },
             )
 

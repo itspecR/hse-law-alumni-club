@@ -55,7 +55,7 @@ async def telegram_link(request: HttpRequest):
     alumni = await verified_alumni(request)
     state = request.services
     if not state.settings.secret("TELEGRAM_BOT_TOKEN"):
-        raise ApiError(503, "Telegram пока не подключён")
+        raise ApiError(503, "Подключение Telegram пока недоступно.")
     code = await make_link(state.database, alumni["id"])
     return {
         "linked": bool(alumni["telegram_id"]),

@@ -13,8 +13,8 @@ from club_api.core.security import client_ip
 from club_api.core.views import api_view, parse_body
 from club_api.db.queries import Query
 from club_api.domain import MAX_INTERESTS
-from club_api.modules.auth.service import auth_service, require_admin
-from club_api.modules.notifications.mail import EMAIL_CONFIRMATION_KIND
+from club_api.modules.auth.service import DUPLICATE_ACCOUNT, auth_service, require_admin
+from club_api.modules.notifications.mail import CLUB_NAME, EMAIL_CONFIRMATION_KIND, club_subject
 from club_api.modules.telegram.signature import validate_init_data
 from club_api.observability.audit import audit
 from club_api.resources import shared_data
@@ -22,6 +22,8 @@ from club_api.resources import shared_data
 PDN_POLICY_VERSION = shared_data("legal-data.json")["version"]
 RESEND_COOLDOWN_SECONDS = 600
 RESEND_CACHE_LIMIT = 10000
+NOT_ALUMNI = "Этот аккаунт не связан с профилем выпускника."
+TELEGRAM_LOGIN_FAILED = "Не удалось проверить вход через Telegram."
 ROUTE_LIMITS = {
     "/auth/login": 5,
     "/auth/admin-login": 5,
@@ -94,10 +96,10 @@ class TelegramBody(Body):
 async def queue_confirmation(request, user_id, email):
     service = auth_service(request)
     token = service.token({"sub": user_id, "purpose": "email-confirm"}, 86400)
-    body = f"Здравствуйте!\n\nВы подали заявку на вступление в клуб выпускников факультета права Вышки.\nПодтвердите, что почта ваша – ссылка действует 24 часа:\n{service.settings.PUBLIC_URL}/confirm?token={quote(token)}\n\nПосле подтверждения заявку проверит учебный офис.\n\nЕсли заявку подавали не вы – просто проигнорируйте письмо, аккаунт останется неактивным."
+    body = f"Здравствуйте!\n\nВы подали заявку на вступление в {CLUB_NAME}. Чтобы подтвердить почту, откройте ссылку, она действует 24 часа:\n{service.settings.PUBLIC_URL}/confirm?token={quote(token)}\n\nПосле подтверждения заявку проверит учебный офис.\n\nЕсли заявку подавали не Вы, проигнорируйте письмо, аккаунт останется неактивным."
     return await request.services.notifications.enqueue_mail(
         email,
-        "Подтвердите почту – Клуб выпускников факультета права",
+        club_subject("Подтвердите почту"),
         body,
         kind=EMAIL_CONFIRMATION_KIND,
         owner_user_id=user_id,
@@ -114,25 +116,23 @@ async def login(request, body, scope):
     prefix = "admin.login" if scope == "admin" else "login"
     if service.attempts.locked(email, ip):
         await audit(request, prefix + ".locked", actor="email:" + email)
-        raise ApiError(429, "Слишком много неудачных попыток – попробуйте позже")
+        raise ApiError(429, "Слишком много неудачных попыток. Попробуйте позже.")
     status, user = await service.authenticate(email, body.password, scope=scope)
     if status != "ok":
         service.attempts.fail(email, ip)
         await audit(request, prefix + ".fail", actor="email:" + email)
         if status == "unverified":
-            raise ApiError(403, "Почта не подтверждена – откройте ссылку из письма (проверьте папку «Спам»)")
+            raise ApiError(403, "Почта не подтверждена. Откройте ссылку из письма, проверьте и папку «Спам».")
         if status == "forbidden":
-            raise ApiError(
-                403, "Доступ в кабинет офиса закрыт" if scope == "admin" else "Аккаунт не привязан к профилю выпускника"
-            )
-        raise ApiError(401, "Неверная почта или пароль")
+            raise ApiError(403, "Доступ в кабинет офиса закрыт" if scope == "admin" else NOT_ALUMNI)
+        raise ApiError(401, "Неверная почта или пароль.")
     if scope == "admin":
         service.attempts.success(email, ip)
         await audit(request, "admin.login.ok", actor="user:" + user["id"])
         return {"token": service.staff_session(user["id"], user["role"], user["staff_version"]), "role": user["role"]}
     alumni = await service.profile(user["id"])
     if not alumni or alumni["id"] != user["alumni_id"]:
-        raise ApiError(403, "Аккаунт не привязан к профилю выпускника")
+        raise ApiError(403, NOT_ALUMNI)
     service.attempts.success(email, ip)
     await audit(request, "login.ok", actor="alumni:" + alumni["id"])
     return {
@@ -174,7 +174,7 @@ async def register(request: HttpRequest):
     service = auth_service(request)
     email = body.email.lower().strip()
     if await service.user(email=email):
-        raise ApiError(409, "Аккаунт с этой почтой уже есть – войдите или восстановите пароль")
+        raise ApiError(409, DUPLICATE_ACCOUNT)
     referred_by = None
     if body.ref:
         rows = await service.store.read("alumni", filters={"referral_code": {"_eq": body.ref}}, fields=["id"], limit=1)
@@ -225,7 +225,7 @@ async def register(request: HttpRequest):
 async def resend_confirmation(request: HttpRequest):
     body = parse_body(request, EmailBody)
     if not request.services.notifications.mail_enabled:
-        raise ApiError(503, "Почта временно недоступна – повторите позже")
+        raise ApiError(503, "Отправка писем временно недоступна. Повторите позже.")
     service = auth_service(request)
     email, now = (body.email.lower().strip(), time.monotonic())
     entries = service.confirmation_resends
@@ -263,12 +263,12 @@ async def confirm(request: HttpRequest):
     service = auth_service(request)
     payload = service.decode(body.token)
     if not payload:
-        raise ApiError(400, "Ссылка недействительна или истекла – подайте заявку заново")
+        raise ApiError(400, "Ссылка недействительна или истекла. Подайте заявку заново.")
     if payload.get("purpose") != "email-confirm":
-        raise ApiError(400, "Ссылка недействительна")
+        raise ApiError(400, "Ссылка недействительна.")
     result = await service.confirm(payload["sub"])
     if result == "invalid":
-        raise ApiError(400, "Ссылка недействительна")
+        raise ApiError(400, "Ссылка недействительна.")
     if result == "already":
         return {"ok": True, "already": True}
     await audit(request, "email.confirm", actor="user:" + payload["sub"])
@@ -283,9 +283,7 @@ async def forgot(request: HttpRequest):
     body = parse_body(request, ForgotBody)
     service = auth_service(request)
     if not request.services.notifications.mail_enabled:
-        raise ApiError(
-            503, "Восстановление пароля временно недоступно: почтовый канал не настроен. Напишите в учебный офис."
-        )
+        raise ApiError(503, "Восстановление пароля временно недоступно. Напишите в учебный офис.")
     user = await service.user(email=body.email.lower().strip(), alumni=True)
     if user:
         profile = await service.profile(user["id"])
@@ -299,8 +297,8 @@ async def forgot(request: HttpRequest):
         await audit(request, "password.forgot", actor="email:" + body.email)
         await request.services.notifications.send_email(
             body.email,
-            "Восстановление пароля – Клуб выпускников факультета права Вышки",
-            f"Вы запросили восстановление пароля.\n\nСсылка действует 30 минут и срабатывает один раз:\n{url}\n\nЕсли это были не вы – просто проигнорируйте письмо.",
+            club_subject("Восстановление пароля"),
+            f"Здравствуйте!\n\nВы запросили восстановление пароля. Ссылка действует 30 минут и срабатывает один раз:\n{url}\n\nЕсли это были не Вы, проигнорируйте письмо.",
         )
     return {"ok": True}
 
@@ -311,19 +309,19 @@ async def reset(request: HttpRequest):
     service = auth_service(request)
     payload = service.decode(body.token)
     if not payload:
-        raise ApiError(400, "Ссылка недействительна или истекла – запросите новую")
+        raise ApiError(400, "Ссылка недействительна или истекла. Запросите новую.")
     if (
         payload.get("purpose") != "reset"
         or not isinstance(payload.get("jti"), str)
         or (not await service.user(id=payload["sub"], alumni=True))
     ):
-        raise ApiError(400, "Ссылка недействительна")
+        raise ApiError(400, "Ссылка недействительна.")
     result = await service.reset(payload["sub"], body.password, payload["jti"], payload.get("ver"))
     if result == "invalid":
-        raise ApiError(400, "Ссылка недействительна")
+        raise ApiError(400, "Ссылка недействительна.")
     if result == "used":
         await audit(request, "password.reset.replay", actor="user:" + payload["sub"])
-        raise ApiError(400, "Ссылка уже использована – запросите новую")
+        raise ApiError(400, "Ссылка уже использована. Запросите новую.")
     await audit(request, "password.reset", actor="user:" + payload["sub"])
     return {"ok": True}
 
@@ -334,21 +332,21 @@ async def telegram_login(request: HttpRequest):
     service = auth_service(request)
     token = service.settings.secret("TELEGRAM_BOT_TOKEN")
     if not token:
-        raise ApiError(503, "Вход через Telegram временно недоступен")
+        raise ApiError(503, "Вход через Telegram временно недоступен.")
     user = validate_init_data(body.initData, token)
     if not user:
-        raise ApiError(401, "Невалидная подпись Telegram")
+        raise ApiError(401, TELEGRAM_LOGIN_FAILED)
     if type(user.get("id")) is not int or not 0 < user["id"] <= 9007199254740991:
-        raise ApiError(401, "Нет корректного пользователя Telegram")
+        raise ApiError(401, TELEGRAM_LOGIN_FAILED)
     telegram_id = str(user["id"])
     rows = await service.store.read(
         "alumni", filters={"telegram_id": {"_eq": telegram_id}}, fields=ALUMNI_FIELDS_TELEGRAM, limit=1
     )
     if not rows:
-        raise ApiError(404, "Профиль выпускника не привязан к Telegram")
+        raise ApiError(404, "Telegram не подключен к профилю выпускника.")
     alumni = rows[0]
     if alumni["user_id"] and (not await service.user(id=alumni["user_id"], alumni=True, active=True)):
-        raise ApiError(403, "Вход в профиль закрыт – обратитесь в учебный офис")
+        raise ApiError(403, "Вход в профиль закрыт. Обратитесь в учебный офис.")
     return {
         "token": service.session(alumni["id"], alumni["user_id"] or telegram_id, alumni["token_version"] or 0),
         "alumni": alumni_view(alumni),

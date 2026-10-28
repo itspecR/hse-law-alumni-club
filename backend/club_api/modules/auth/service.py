@@ -16,6 +16,7 @@ from club_api.modules.auth.passwords import hash_password, verify_password
 logger = logging.getLogger("club.auth")
 STAFF_ROLES = frozenset(("admin", "Administrator", "editor"))
 FULL_ROLES = frozenset(("admin", "Administrator"))
+DUPLICATE_ACCOUNT = "Аккаунт с этой почтой уже есть. Войдите или восстановите пароль."
 ALUMNI_FIELDS = (
     "id",
     "user_id",
@@ -217,7 +218,7 @@ class AuthService:
         async with self.database.transaction() as connection:
             await acquire_lock(connection, "auth-email:" + email)
             if await find_user(connection, email=email, lock=True):
-                raise ApiError(409, "Аккаунт с этой почтой уже есть – войдите или восстановите пароль")
+                raise ApiError(409, DUPLICATE_ACCOUNT)
             cursor = await connection.execute("SELECT id FROM directus_roles WHERE name='alumni' LIMIT 2")
             roles = await cursor.fetchall()
             if len(roles) != 1:
@@ -315,5 +316,5 @@ async def require_full_admin(request: HttpRequest):
 async def require_alumni(request: HttpRequest):
     alumni = await auth_service(request).resolve_alumni(request)
     if not alumni:
-        raise ApiError(401, "Требуется вход выпускника")
+        raise ApiError(401, "Войдите в кабинет.")
     return alumni
