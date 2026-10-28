@@ -1,9 +1,10 @@
 import asyncio
-from datetime import timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from test_community_integration import account
 from test_portfolio_applications import FORM, GROUP, PRICE, apply, client_for, mails, order, program
 
+from club_api.modules.portfolio import dates
 from club_api.modules.portfolio.dates import display_date, moscow_today
 
 COHORT_PRICE = 3900000
@@ -26,6 +27,16 @@ async def details(client, item):
 async def status(client, admin, number, app, value):
     id = (await order(app, number))["id"]
     return await client.patch("/admin/orders/" + id, headers=admin, json={"status": value})
+
+
+def test_cohort_day_follows_moscow_time(monkeypatch):
+    class LateEvening(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 10, 28, 22, 30, tzinfo=UTC).astimezone(tz)
+
+    monkeypatch.setattr(dates, "datetime", LateEvening)
+    assert moscow_today() == date(2026, 10, 29)
 
 
 async def test_program_lists_only_open_cohorts_with_their_price_and_seats(database_app, mails):

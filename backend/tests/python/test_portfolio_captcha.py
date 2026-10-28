@@ -1,3 +1,4 @@
+import asyncio
 import re
 import time
 from datetime import UTC, datetime, timedelta
@@ -5,6 +6,7 @@ from uuid import uuid4
 
 import httpx
 import pytest
+from test_community_integration import account
 from test_portfolio_applications import FORM, apply, mails, program, solved_captcha
 
 from club_api.core.errors import ApiError
@@ -53,6 +55,36 @@ async def test_solution_is_accepted_once(database_app, mails):
         second = await apply(client, item["slug"], {**FORM, "captcha": captcha})
     assert first.status_code == 200
     assert second.status_code == 400 and "уже использована" in second.json()["error"]
+
+
+async def test_simultaneous_reuse_of_one_solution_creates_one_application(database_app, mails):
+    app = database_app
+    item = await program(app)
+    async with client_for(app) as client:
+        captcha = await solved_captcha(client)
+        results = await asyncio.gather(
+            *(
+                apply(client, item["slug"], {**FORM, "captcha": captcha}, {"idempotency-key": str(uuid4())})
+                for _ in range(2)
+            )
+        )
+    assert sorted(response.status_code for response in results) == [200, 400]
+    assert len(await app.state.store.read("orders", fields=("id",))) == 1
+
+
+async def test_challenge_is_never_cached(database_app):
+    async with client_for(database_app) as client:
+        response = await client.get("/portfolio/challenge")
+    assert response.headers["cache-control"] == "no-store"
+
+
+async def test_program_cannot_take_the_challenge_address(database_app):
+    app = database_app
+    _, editor = await account(app, "editor")
+    body = {"title": "Challenge", "format": "online", "duration": "4 недели", "price": 100000}
+    async with client_for(app) as client:
+        created = await client.post("/admin/portfolio", headers=editor, json=body)
+    assert created.status_code == 200 and created.json()["slug"].startswith("challenge-")
 
 
 async def test_retry_with_new_solution_returns_same_application(database_app, mails):

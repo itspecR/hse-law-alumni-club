@@ -48,6 +48,7 @@ def test_all_legacy_routes_are_present():
         ("GET", "/portfolio/{slug}"),
         ("POST", "/portfolio/{slug}/applications"),
         ("POST", "/portfolio/{slug}/quote"),
+        ("GET", "/portfolio/challenge"),
     }
     promo = {
         (method, "/admin/promo-codes" + suffix)
@@ -56,7 +57,6 @@ def test_all_legacy_routes_are_present():
     office = {
         ("PATCH", "/admin/orders/{id}/discount"),
         ("PATCH", "/admin/orders/{id}/cohort"),
-        ("GET", "/portfolio/challenge"),
     }
     assert actual == expected | added | portfolio | public | promo | office and len(actual) == 142
 

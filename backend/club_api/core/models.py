@@ -7,6 +7,8 @@ from pydantic import create_model
 
 from club_api.core.errors import ApiError
 
+RESERVED_SLUGS = {"programs": ("challenge",)}
+
 
 def partial(model):
     fields = {}
@@ -121,7 +123,9 @@ def slugify(value):
 
 async def unique_slug(store, table, title, connection=None):
     slug = slugify(title)
-    if await store.read(table, filters={"slug": {"_eq": slug}}, fields=("id",), limit=1, connection=connection):
+    if slug in RESERVED_SLUGS.get(table, ()) or await store.read(
+        table, filters={"slug": {"_eq": slug}}, fields=("id",), limit=1, connection=connection
+    ):
         import secrets
 
         return slug + "-" + secrets.token_hex(4)

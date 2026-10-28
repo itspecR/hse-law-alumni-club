@@ -14,7 +14,7 @@ from club_api.modules.auth.routes import Body, EmailBody, RegisterBody
 from club_api.modules.catalog.scope import PUBLISHED_PORTFOLIO
 from club_api.modules.checkout.store import PENDING_NOTICE, digest
 from club_api.modules.portfolio.captcha import CaptchaBody, require_captcha
-from club_api.modules.portfolio.cohorts import chosen_cohort, cohort_id, cohort_price
+from club_api.modules.portfolio.cohorts import canonical_id, chosen_cohort, cohort_price
 from club_api.modules.portfolio.dates import display_date
 from club_api.modules.portfolio.promo import valid_promo
 from club_api.observability.audit import audit
@@ -34,42 +34,6 @@ CONSENTS = shared_data("legal-data.json")["portfolio_consents"]
 logger = logging.getLogger("club.portfolio")
 
 
-class ApplicationBody(Body):
-    contact_fio: str = Field(min_length=2, max_length=200)
-    contact_phone: str = Field(min_length=5, max_length=40)
-    contact_email: str = Field(max_length=200)
-    applicant: Literal["self", "organization"]
-    organization: str | None = Field(default=None, max_length=300)
-    participants: int = Field(default=1, ge=1, le=MAX_PARTICIPANTS)
-    comment: str | None = Field(default=None, max_length=2000)
-    consent_pdn: Literal[True]
-    consent_terms: Literal[True]
-    promo_code: str | None = Field(default=None, max_length=PROMO_CODE_LENGTH)
-    cohort_id: str | None = None
-    captcha: CaptchaBody | None = None
-    website: str = Field(default="", max_length=0)
-
-    @field_validator("contact_email")
-    @classmethod
-    def valid_email(cls, value):
-        return EmailBody.email_valid(value)
-
-    @field_validator("promo_code")
-    @classmethod
-    def clean_code(cls, value):
-        return promo_code(value)
-
-    @field_validator("cohort_id")
-    @classmethod
-    def valid_cohort(cls, value):
-        return cohort_id(value)
-
-    @field_validator("consent_pdn", "consent_terms", mode="before")
-    @classmethod
-    def explicit_consent(cls, value):
-        return RegisterBody.explicit_consent(value)
-
-
 class QuoteBody(Body):
     applicant: Literal["self", "organization"]
     participants: int = Field(default=1, ge=1, le=MAX_PARTICIPANTS)
@@ -84,7 +48,29 @@ class QuoteBody(Body):
     @field_validator("cohort_id")
     @classmethod
     def valid_cohort(cls, value):
-        return cohort_id(value)
+        return canonical_id(value)
+
+
+class ApplicationBody(QuoteBody):
+    contact_fio: str = Field(min_length=2, max_length=200)
+    contact_phone: str = Field(min_length=5, max_length=40)
+    contact_email: str = Field(max_length=200)
+    organization: str | None = Field(default=None, max_length=300)
+    comment: str | None = Field(default=None, max_length=2000)
+    consent_pdn: Literal[True]
+    consent_terms: Literal[True]
+    captcha: CaptchaBody | None = None
+    website: str = Field(default="", max_length=0)
+
+    @field_validator("contact_email")
+    @classmethod
+    def valid_email(cls, value):
+        return EmailBody.email_valid(value)
+
+    @field_validator("consent_pdn", "consent_terms", mode="before")
+    @classmethod
+    def explicit_consent(cls, value):
+        return RegisterBody.explicit_consent(value)
 
 
 def promo_code(value):

@@ -24,7 +24,7 @@ LOCK_SQL = "SELECT id FROM program_cohorts WHERE id=%s FOR UPDATE"
 CLOSED_MESSAGE = "Набор в выбранный поток закрыт. Обновите страницу и выберите поток"
 
 
-def cohort_id(value):
+def canonical_id(value):
     return canonical_ids([value])[0] if value else None
 
 
@@ -38,7 +38,7 @@ class CohortBody(Body):
     @field_validator("program_id")
     @classmethod
     def valid_program(cls, value):
-        return cohort_id(value)
+        return canonical_id(value)
 
     @field_validator("starts_on")
     @classmethod
