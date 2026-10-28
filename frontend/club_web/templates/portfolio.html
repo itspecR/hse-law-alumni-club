@@ -20,8 +20,8 @@
 <div>
 {% if item.direction %}<span class="club-caps">{{ item.direction }}</span>{% endif %}
 <h2><a href="/portfolio/{{ item.slug }}">{{ item.title }}</a></h2>
-<p>{{ [(format_labels.get(item.format,item.format) or '')|capitalize, item.duration, ((item.dates or {}).get('start') or '')|date, 'набор закрыт' if item.enrollment=='nonactual' else '']|select|join(' · ') }}</p>
-<p class="site-price">{{ item.price|rub }}</p>
+<p>{{ [(format_labels.get(item.format,item.format) or '')|capitalize, item.duration, (item|program_start or '')|date, 'набор закрыт' if item.enrollment=='nonactual' else '']|select|join(' · ') }}</p>
+<p class="site-price">{{ item|program_price }}</p>
 <div class="site-actions">
 <a href="/portfolio/{{ item.slug }}" class="foc lux-more">Подробнее<span class="lux-sr"> — {{ item.title }}</span> <span class="lux-more__arrow" aria-hidden="true">›</span></a>{{ save('/portfolio/'+item.slug,item.title,'portfolio') }}
 </div>

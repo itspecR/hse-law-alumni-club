@@ -164,3 +164,31 @@ async def test_office_manages_cohorts_of_club_programs(database_app, mails):
     assert "закройте набор" in deleted.json()["error"]
     assert relocated.status_code == 200 and removed.status_code == 200
     assert [row["id"] for row in await app.state.store.read("program_cohorts", fields=("id",))] == [id]
+
+
+async def test_catalog_cards_carry_open_cohort_dates_and_prices(database_app, mails):
+    app = database_app
+    item, plain = await program(app), await program(app)
+    later = await cohort(app, item, 21)
+    sooner = await cohort(app, item, 3, price=COHORT_PRICE)
+    await cohort(app, item, -2)
+    async with client_for(app) as client:
+        cards = {row["id"]: row for row in (await client.get("/portfolio")).json()}
+    assert cards[item["id"]]["cohorts"] == [
+        {"starts_on": sooner["starts_on"], "price": COHORT_PRICE},
+        {"starts_on": later["starts_on"], "price": PRICE},
+    ]
+    assert cards[plain["id"]]["cohorts"] == []
+
+
+async def test_cabinet_shows_the_cohort_start(database_app, mails):
+    app = database_app
+    item = await program(app)
+    chosen = await cohort(app, item, 9)
+    _, member = await account(app)
+    async with client_for(app) as client:
+        await apply(client, item["slug"], {**FORM, "cohort_id": chosen["id"]}, member)
+        await app.state.store.update("program_cohorts", {"enrollment": "nonactual"}, id=chosen["id"])
+        await apply(client, item["slug"], FORM, member)
+        rows = (await client.get("/me/orders", headers=member)).json()
+    assert sorted(row["starts_on"] or "" for row in rows) == ["", chosen["starts_on"]]

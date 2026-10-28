@@ -15,6 +15,7 @@ from club_api.modules.catalog.lookup import lookup_catalog
 from club_api.modules.checkout.cart import cart_session, load_cart
 from club_api.modules.checkout.payments import SAFE_INTEGER_MAX, secure_payment_url
 from club_api.modules.checkout.store import digest
+from club_api.modules.portfolio.cohorts import with_starts
 from club_api.observability.audit import audit
 
 logger = logging.getLogger("club.orders")
@@ -174,7 +175,7 @@ async def create_order(request: HttpRequest):
 @api_view(permission=require_alumni)
 async def my_orders(request: HttpRequest):
     alumni = await require_alumni(request)
-    return await request.services.store.read(
+    orders = await request.services.store.read(
         "orders",
         filters={"alumni_id": {"_eq": alumni["id"]}},
         sort=("-created_at",),
@@ -195,5 +196,7 @@ async def my_orders(request: HttpRequest):
             "office_discount",
             "discount_source",
             "promo_code",
+            "cohort_id",
         ),
     )
+    return await with_starts(request.services, orders)

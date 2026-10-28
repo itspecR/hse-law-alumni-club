@@ -51,6 +51,27 @@ CHALLENGE = {
 }
 
 
+COHORTS = [
+    {
+        "id": "cohort-1",
+        "program_id": "club-1",
+        "starts_on": "2026-12-01",
+        "price": 4500000,
+        "capacity": None,
+        "seats_left": None,
+    },
+    {
+        "id": "cohort-2",
+        "program_id": "club-1",
+        "starts_on": "2027-02-01",
+        "price": 3900000,
+        "capacity": 12,
+        "seats_left": 0,
+    },
+]
+COHORT_STARTS = {row["id"]: row["starts_on"] for row in COHORTS}
+
+
 def is_cart_change(response):
     return response.url.endswith("/api/cart") and response.request.method == "PATCH"
 
@@ -145,6 +166,7 @@ def site():
                         "discount_source": promo["source"],
                         "message": promo["message"],
                         "total_estimate": PORTFOLIO["price"] * participants * (100 - promo["discount"]) // 100,
+                        "starts_on": COHORT_STARTS.get(body.get("cohort_id")),
                         "notified": {"ok": True},
                     },
                 )
@@ -2329,15 +2351,24 @@ def test_office_discount_shows_reason_and_resets(page, site):
 def test_cabinet_names_club_application_discount(page, site, width):
     site[1]["/me/orders"] = [
         CLUB_ORDER,
-        {**CLUB_ORDER, "number": "ALU-2026-000104", "office_discount": 20, "total_estimate": 10800000},
+        {
+            **CLUB_ORDER,
+            "number": "ALU-2026-000104",
+            "office_discount": 20,
+            "total_estimate": 10800000,
+            "starts_on": "2027-02-01",
+        },
     ]
     page.set_viewport_size({"width": width, "height": 900})
     page.add_init_script("localStorage.setItem('club_token','member-qa');")
     page.goto("/lk#orders")
     orders = page.locator("#orders article")
     expect(orders.first).to_contain_text("промокод SPRING-15: 15% · участников: 3")
-    expect(orders.nth(1)).to_contain_text("скидка учебного офиса: 20% · участников: 3")
+    expect(orders.nth(1)).to_contain_text(
+        "скидка учебного офиса: 20% · участников: 3 · ООО «Пример» · старт потока 1 февраля 2027."
+    )
     expect(orders.first).not_to_contain_text("скидка выпускника")
+    expect(orders.first).not_to_contain_text("старт потока")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
@@ -2401,6 +2432,47 @@ def test_portfolio_application_from_organization(page, site, width):
         "website": "",
         "captcha": {"salt": CAPTCHA_SALT, "number": 7, "signature": "f" * 64},
     }
+
+
+@pytest.mark.parametrize("width", [1440, 390])
+def test_portfolio_application_goes_to_chosen_cohort(page, site, width):
+    site[1]["/portfolio"] = [
+        {**PORTFOLIO, "cohorts": [{"starts_on": row["starts_on"], "price": row["price"]} for row in COHORTS]}
+    ]
+    site[1]["/portfolio/club-one"] = {**PORTFOLIO, "cohorts": COHORTS}
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/portfolio")
+    card = page.locator(".site-catalog-card")
+    expect(card).to_contain_text("1 декабря 2026")
+    expect(card.locator(".site-price")).to_have_text("от 39\u00a0000 ₽")
+    page.goto("/portfolio/club-one")
+    panel = page.locator("aside.site-panel")
+    expect(panel).to_contain_text(re.compile(r"Потоки\s*1 декабря 2026, 1 февраля 2027"))
+    expect(panel.locator(".lux-price")).to_have_text("от 39\u00a0000 ₽")
+    expect(panel).not_to_contain_text("Мест в группе")
+    form = page.locator("form[data-application]")
+    cohorts = form.get_by_role("group", name="Поток")
+    expect(cohorts.get_by_role("radio")).to_have_count(2)
+    expect(cohorts).to_contain_text("мест нет, офис свяжется при освобождении места")
+    expect(page.get_by_text("Места закончились")).to_have_count(0)
+    form.get_by_label("ФИО", exact=True).fill("Вымышленный Заявитель")
+    form.get_by_label("Телефон", exact=True).fill("+70000000000")
+    form.get_by_label("Почта", exact=True).fill("applicant@example.test")
+    form.get_by_label("Даю согласие на обработку персональных данных").check()
+    form.get_by_label("Соглашаюсь с условиями обучения").check()
+    form.get_by_role("button", name="Отправить заявку", exact=True).click()
+    assert not [write for write in site[2] if write["path"].endswith("/applications")]
+    cohorts.get_by_text("Старт 1 февраля 2027").click()
+    form.get_by_label("Промокод", exact=True).fill("spring-15")
+    form.get_by_role("button", name="Применить", exact=True).click()
+    expect(form.locator("[data-quote]")).to_contain_text("Промокод применён")
+    assert site[2][-1]["body"]["cohort_id"] == "cohort-2"
+    cohorts.get_by_text("Старт 1 декабря 2026").click()
+    expect(form.locator("[data-quote]")).to_be_hidden()
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    form.get_by_role("button", name="Отправить заявку", exact=True).click()
+    expect(page.locator(".portfolio-receipt")).to_contain_text("Старт потока: 1 декабря 2026")
+    assert site[2][-1]["body"]["cohort_id"] == "cohort-1"
 
 
 def test_portfolio_application_for_self_skips_organization(page, site):

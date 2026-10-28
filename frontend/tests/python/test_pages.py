@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from club_web.build import build_public
-from club_web.formatting import payment_url, rub, safe_url
+from club_web.formatting import payment_url, program_price, program_start, rub, safe_url
 from club_web.main import create_app
 from club_web.office import filter_content
 from club_web.pages import NAV, OFFICE_NAV, PUBLIC_PAGES
@@ -574,6 +574,15 @@ async def test_portfolio_pages_show_club_program_without_cart(browser_client):
     assert 'data-api="/portfolio/club-one/applications" data-application' in card.text
     assert "Свободных мест" in card.text and 'max="20"' in card.text and "Места закончились" not in card.text
     assert 'href="/portfolio-consent"' in card.text and 'href="/portfolio-terms"' in card.text
+
+
+def test_portfolio_start_and_price_follow_open_cohorts():
+    cohorts = [{"starts_on": "2026-12-01", "price": 3900000}, {"starts_on": "2027-02-01", "price": 4500000}]
+    item = {**PORTFOLIO, "cohorts": cohorts}
+    assert (program_start(item), program_price(item)) == ("2026-12-01", "от 39\u00a0000 ₽")
+    assert program_price({**PORTFOLIO, "cohorts": cohorts[:1]}) == "39\u00a0000 ₽"
+    assert (program_start(PORTFOLIO), program_price(PORTFOLIO)) == ("1 декабря 2026", "45\u00a0000 ₽")
+    assert program_start({**PORTFOLIO, "cohorts": {"unexpected": True}}) == "1 декабря 2026"
 
 
 async def test_portfolio_leads_the_navigation():

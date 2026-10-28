@@ -4,7 +4,7 @@ from club_api.core.errors import ApiError
 from club_api.core.views import api_view
 from club_api.modules.catalog.scope import PUBLISHED_PORTFOLIO
 from club_api.modules.portfolio.applications import MAX_PARTICIPANTS, MIN_GROUP
-from club_api.modules.portfolio.cohorts import public_cohorts
+from club_api.modules.portfolio.cohorts import cohorts_by_program, public_cohorts
 from club_api.modules.portfolio.links import published_trainers
 from club_api.modules.portfolio.seats import PROGRAM_SEATS
 
@@ -28,9 +28,12 @@ OPEN_FIRST = ("enrollment", "title")
 
 @api_view
 async def programs(request: HttpRequest):
-    return await request.services.store.read(
+    state = request.services
+    rows = await state.store.read(
         "programs", filters=PUBLISHED_PORTFOLIO, fields=CARD_FIELDS, sort=OPEN_FIRST, limit=-1
     )
+    cohorts = await cohorts_by_program(state, rows)
+    return [{**row, "cohorts": cohorts.get(row["id"], [])} for row in rows]
 
 
 @api_view
