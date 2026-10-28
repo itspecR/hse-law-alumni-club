@@ -1,8 +1,10 @@
 import re
+from pathlib import Path
 
 import httpx
 import pytest
 
+import club_web
 from club_web.build import build_public
 from club_web.formatting import payment_url, program_price, program_start, rub, safe_url
 from club_web.main import create_app
@@ -368,6 +370,16 @@ async def test_home_uses_only_sourced_photos(browser_client):
     response = await browser_client.get("/")
     photos = set(re.findall(r"assets/photos/club/([a-z]+)-", response.text))
     assert photos == {"graduates", "meeting", "conversation", "voice"}
+
+
+async def test_home_texts_follow_glossary(browser_client):
+    page = (await browser_client.get("/")).text
+    assert '<a href="/portfolio" class="foc lux-more">Программы клуба' in page
+    assert '<a href="/events" class="foc lux-more">Все события' in page
+    assert "Проверка обычно занимает 1-2\u00a0рабочих дня." in page
+    assert "«Друг клуба» с&nbsp;200&nbsp;баллов, «Знаток» с&nbsp;500, «Амбассадор» с&nbsp;1000." in page
+    home = (Path(club_web.__file__).parent / "templates/home.html").read_text()
+    assert re.findall(".{0,40}[ёЁ–—].{0,20}", home) == []
 
 
 async def test_cart_line_has_no_empty_variant(browser_client):
