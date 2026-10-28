@@ -3,6 +3,7 @@ from datetime import datetime
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
+MOSCOW = ZoneInfo("Europe/Moscow")
 MONTHS = (
     "января",
     "февраля",
@@ -63,17 +64,27 @@ def discount_label(order, automatic=False):
     return f"скидка выпускника: {percent}%" if percent else "без скидки"
 
 
+def moscow_time(value):
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return parsed.astimezone(MOSCOW) if parsed.tzinfo else parsed
+
+
 def date(value, time=False):
     if not value:
         return ""
     try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        if parsed.tzinfo:
-            parsed = parsed.astimezone(ZoneInfo("Europe/Moscow"))
+        parsed = moscow_time(value)
         result = f"{parsed.day} {MONTHS[parsed.month - 1]} {parsed.year}"
         return result + (parsed.strftime(" · %H:%M") if time else "")
     except ValueError, TypeError:
         return str(value)
+
+
+def local_datetime(value):
+    try:
+        return moscow_time(value).strftime("%Y-%m-%dT%H:%M") if value else ""
+    except ValueError, TypeError:
+        return ""
 
 
 def safe_url(value):

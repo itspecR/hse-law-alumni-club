@@ -7,7 +7,7 @@ import pytest
 import club_web
 from club_web import office
 from club_web.build import build_public
-from club_web.formatting import payment_url, program_price, program_start, rub, safe_url
+from club_web.formatting import local_datetime, payment_url, program_price, program_start, rub, safe_url
 from club_web.main import create_app
 from club_web.office import filter_content
 from club_web.pages import NAV, OFFICE_NAV, PUBLIC_PAGES
@@ -704,9 +704,7 @@ def test_office_texts_follow_glossary():
     assert (
         office.SECTION_LABELS["cohorts"]["open"] == "Набор открыт" and office.LABELS["expired"] == "Истек срок резерва"
     )
-    assert ("starts_at", "Дата и время с часовым поясом, например 2026-11-20T19:00+03:00", "text") in office.FIELDS[
-        "events"
-    ]
+    assert ("starts_at", "Дата и время начала по Москве", "datetime-local") in office.FIELDS["events"]
     assert ("is_free", "Пробный выпуск", "checkbox") in office.FIELDS["podcasts"]
     labels = [office.DESCRIPTIONS, office.SECTION_LABELS, office.FIELDS, office.LABELS, office.METRICS]
     assert re.findall("[ёЁ–—]", repr(labels)) == []
@@ -717,6 +715,26 @@ def test_office_texts_follow_glossary():
         templates / "themis.html",
     ]:
         assert re.findall(".{0,40}[ёЁ–—].{0,20}", template.read_text()) == [], template.name
+
+
+async def test_event_form_picks_moscow_date_and_time():
+    async def upstream(request):
+        if request.url.path == "/auth/admin-session":
+            return httpx.Response(200, json={"role": "admin"})
+        return httpx.Response(200, json=[EVENT] if request.url.path == "/admin/events" else [])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            page = (await client.get("/views/admin/events", headers={"authorization": "Bearer admin-test"})).text
+    assert '<input name="starts_at" type="datetime-local" value="2026-11-01T15:00" required>' in page
+    assert '<input name="starts_at" type="datetime-local" value="" required>' in page
+    assert (local_datetime("2026-11-01T12:00:00Z"), local_datetime(None), local_datetime("скоро")) == (
+        "2026-11-01T15:00",
+        "",
+        "",
+    )
 
 
 def test_portfolio_start_and_price_follow_open_cohorts():

@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from club_api.modules.telegram import bot
 from club_api.modules.telegram.bot import Telegram
 
 
@@ -59,3 +60,13 @@ async def test_bot_calendar_keeps_rsvp_private_when_account_is_blocked(active):
     result = await Telegram(state).reply("/calendar", "", "12345")
     assert "Публичное событие" in result
     assert ("вы записаны" in result) is active
+
+
+async def test_used_link_points_to_profile(monkeypatch):
+    monkeypatch.setattr(bot, "consume_link", AsyncMock(return_value=None))
+    state = SimpleNamespace(database=None, settings=SimpleNamespace(PUBLIC_URL="https://synthetic.invalid"))
+    result = await Telegram(state).reply("/start", "l-used", "12345")
+    assert result == (
+        "Ссылка для подключения устарела или уже использована, либо Telegram уже подключен. "
+        "Получите новую ссылку в профиле на сайте."
+    )

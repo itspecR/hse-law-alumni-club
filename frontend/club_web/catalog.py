@@ -3,6 +3,7 @@ from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
 from club_web.formatting import FORMAT_LABELS, MONTHS, rub
+from club_web.formatting import date as date_label
 
 UPCOMING_LIMIT = 6
 
@@ -34,7 +35,7 @@ def prepare_catalog(items, params, today=None):
                 **item,
                 "id": str(item.get("id") or item["slug"]),
                 "document": item.get("document") or "",
-                "start_label": start,
+                "start_label": date_label(start),
                 "start_day": day.isoformat() if day else "",
                 "price_label": rub(item["price"]) if item.get("price") is not None else "Стоимость уточняется",
                 "format_label": FORMAT_LABELS.get(item.get("format"), item.get("format") or "Не указан"),

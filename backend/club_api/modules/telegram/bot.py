@@ -71,7 +71,7 @@ class Telegram:
             owner = await consume_link(self.state.database, argument, telegram_id)
             if owner:
                 return f"✅ Telegram подключен к аккаунту <b>{html.escape(owner['fio'])}</b>.\n\nТеперь /points покажет ваши баллы, а /calendar отметит события, куда вы записаны."
-            return "Ссылка для подключения устарела или уже использована, либо Telegram уже подключен. Получите новую ссылку в профиле на сайте. Чтобы сменить подключенный аккаунт, обратитесь в поддержку."
+            return "Ссылка для подключения устарела или уже использована, либо Telegram уже подключен. Получите новую ссылку в профиле на сайте."
         if command in ("/start", "/help"):
             lines = [
                 "👋 <b>Клуб выпускников факультета права Вышки</b>" if command == "/start" else "ℹ️ <b>Команды бота</b>",

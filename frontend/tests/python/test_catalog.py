@@ -40,3 +40,13 @@ def test_catalog_filters_and_upcoming_do_not_invent_dates():
     assert data["filters"]["document"] == ["Диплом"]
     assert data["program_data"][1]["price_label"] == "100 ₽"
     assert not any("dates" in row for row in data["program_data"])
+
+
+def test_start_label_is_a_russian_date_for_office_programs():
+    base = {"title": "Курс", "format": "online", "price": 10000, "enrollment": "actual"}
+    rows = [
+        {**base, "slug": "office", "dates": {"start": "2027-01-10"}},
+        {**base, "slug": "catalog", "dates": {"start": "24 октября 2026 г."}},
+    ]
+    labels = [row["start_label"] for row in prepare_catalog(rows, {}, date(2026, 10, 20))["program_data"]]
+    assert labels == ["10 января 2027", "24 октября 2026 г."]

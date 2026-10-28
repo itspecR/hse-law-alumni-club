@@ -38,6 +38,8 @@
 <textarea name="{{ name }}" aria-label="{{ label }}" {% if kind=='json' %}data-json{% endif %}>{{ (value|tojson) if kind=='json' and value else value or '' }}</textarea>
 {% elif kind=='checkbox' %}
 <input type="checkbox" name="{{ name }}" {% if value %}checked{% endif %}>
+{% elif kind=='datetime-local' %}
+<input name="{{ name }}" type="datetime-local" value="{{ value|local_datetime }}" required>
 {% elif kind in ('limit','optional') %}
 <input name="{{ name }}" type="number" min="{{ 1 if kind=='limit' else 0 }}" data-nullable value="{{ value if value is not none else '' }}">
 {% else %}
