@@ -2068,6 +2068,9 @@ def test_office_portfolio_form_sends_lists_trainers_and_limit(page, site, width)
     page.goto("/admin/portfolio")
     row = page.locator("article.office-record")
     expect(row.locator(".office-meta")).to_contain_text("Борис Вымышленный, Анна Вымышленная")
+    expect(row.get_by_role("button", name="Удалить", exact=True)).to_have_attribute(
+        "data-confirm", "Удалить программу? Программу с заявками удалить нельзя — переведите её в архив."
+    )
     row.get_by_text("Редактировать", exact=True).click()
     choices = row.get_by_role("group", name="Тренеры")
     expect(choices.get_by_label("Анна Вымышленная")).to_be_checked()

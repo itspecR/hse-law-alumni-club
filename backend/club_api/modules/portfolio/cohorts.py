@@ -10,6 +10,7 @@ from club_api.modules.checkout.payments import SAFE_INTEGER_MAX
 from club_api.modules.content.admin import content_crud
 from club_api.modules.portfolio.admin import MAX_CAPACITY, canonical_ids
 from club_api.modules.portfolio.dates import iso_date, moscow_today
+from club_api.modules.portfolio.orders import COHORT_USE
 from club_api.modules.portfolio.relations import require_existing
 from club_api.modules.portfolio.seats import COHORT_SEATS, SEATED_STATUSES
 
@@ -20,11 +21,10 @@ SHARE_SQL = Query(
     "SELECT id FROM program_cohorts WHERE id=%s FOR SHARE",
     "SELECT id FROM program_cohorts WHERE id=%s LOCK IN SHARE MODE",
 )
-LOCK_SQL = "SELECT id FROM program_cohorts WHERE id=%s FOR UPDATE"
 CLOSED_MESSAGE = "Набор в выбранный поток закрыт. Обновите страницу и выберите поток"
 
 
-def cohort_id(value):
+def canonical_id(value):
     return canonical_ids([value])[0] if value else None
 
 
@@ -38,7 +38,7 @@ class CohortBody(Body):
     @field_validator("program_id")
     @classmethod
     def valid_program(cls, value):
-        return cohort_id(value)
+        return canonical_id(value)
 
     @field_validator("starts_on")
     @classmethod
@@ -103,21 +103,6 @@ async def chosen_cohort(state, program_id, id, connection=None, *, lock=False):
     return cohort
 
 
-async def has_orders(connection, id):
-    return bool(await (await connection.execute("SELECT id FROM orders WHERE cohort_id=%s LIMIT 1", (id,))).fetchone())
-
-
-async def lock_cohort(connection, id):
-    return await (await connection.execute(LOCK_SQL, (id,))).fetchone()
-
-
-async def require_unused(connection, id):
-    if not await lock_cohort(connection, id):
-        raise ApiError(404, "Поток не найден")
-    if await has_orders(connection, id):
-        raise ApiError(409, "В потоке есть заявки: закройте набор вместо удаления")
-
-
 async def seated(state, ids):
     if not ids:
         return {}
@@ -140,7 +125,7 @@ class CohortRules:
 
     async def prepare(self, state, data, links, id, connection):
         if id:
-            await lock_cohort(connection, id)
+            await COHORT_USE.lock(connection, id)
         current = await state.store.read("program_cohorts", filters={"id": {"_eq": id}}, limit=1, connection=connection)
         if id and not current:
             raise ApiError(404, "Поток не найден")
@@ -154,7 +139,7 @@ class CohortRules:
             "Программа не найдена. Обновите страницу и выберите программу заново",
             connection,
         )
-        if current and current[0]["program_id"] != data["program_id"] and await has_orders(connection, id):
+        if current and current[0]["program_id"] != data["program_id"] and await COHORT_USE.used(connection, id):
             raise ApiError(409, "В потоке есть заявки: программу потока изменить нельзя")
         return data
 
@@ -168,7 +153,7 @@ urlpatterns = content_crud(
     "program_cohorts",
     CohortBody,
     relation=CohortRules(),
-    guard=require_unused,
+    guard=COHORT_USE.guard,
     sort=("starts_on",),
     fields=COHORT_FIELDS,
     subject="cohort",

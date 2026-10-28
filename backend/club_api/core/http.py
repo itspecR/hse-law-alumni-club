@@ -10,6 +10,7 @@ logger = logging.getLogger("club.http")
 JSON_BODY_LIMIT = 256 * 1024
 UPLOAD_BODY_LIMIT = 129 * 1024 * 1024
 AVATAR_BODY_LIMIT = 4 * 1024 * 1024
+UNCACHED_PATHS = ("/ready", "/portfolio/challenge")
 HEADERS = {
     "content-security-policy": "default-src 'none'; frame-ancestors 'none'",
     "strict-transport-security": "max-age=15552000; includeSubDomains",
@@ -49,7 +50,10 @@ class SecurityMiddleware:
                 headers = dict(message["headers"])
                 for key, value in HEADERS.items():
                     headers.setdefault(key.encode(), value.encode())
-                if path.startswith(("/me", "/admin", "/auth", "/podcasts", "/orders", "/support")) or path == "/ready":
+                if (
+                    path.startswith(("/me", "/admin", "/auth", "/podcasts", "/orders", "/support"))
+                    or path in UNCACHED_PATHS
+                ):
                     headers[b"cache-control"] = b"no-store"
                 message["headers"] = list(headers.items())
             await send(message)
