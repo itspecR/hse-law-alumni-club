@@ -22,6 +22,7 @@ import club_api.modules.podcasts.routes as podcasts_routes
 import club_api.modules.portfolio.admin as portfolio_admin
 import club_api.modules.portfolio.applications as portfolio_applications
 import club_api.modules.portfolio.captcha as portfolio_captcha
+import club_api.modules.portfolio.cohorts as portfolio_cohorts
 import club_api.modules.portfolio.discounts as portfolio_discounts
 import club_api.modules.portfolio.promo as portfolio_promo
 import club_api.modules.portfolio.routes as portfolio_routes
@@ -149,6 +150,7 @@ routes = (
     + content_admin.urlpatterns
     + portfolio_admin.urlpatterns
     + portfolio_promo.urlpatterns
+    + portfolio_cohorts.urlpatterns
     + podcasts_routes.urlpatterns
 )
 routes.sort(key=lambda route: str(route.pattern).count("<"))

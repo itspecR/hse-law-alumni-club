@@ -95,6 +95,7 @@ DATA_COLUMNS = {
         "discount_source",
         "office_discount",
         "office_reason",
+        "cohort_id",
     ),
     "pages": ("id", "slug", "title", "status", "sort"),
     "pages_blocks": ("id", "collection", "item", "sort", "pages_id"),
@@ -154,6 +155,7 @@ DATA_COLUMNS = {
         "competencies",
         "communication",
     ),
+    "program_cohorts": ("id", "program_id", "starts_on", "price", "capacity", "enrollment", "created_at"),
     "program_trainers": ("id", "program_id", "trainer_id", "sort"),
     "promo_code_programs": ("id", "promo_id", "program_id"),
     "promo_codes": (

@@ -121,7 +121,7 @@ async def product_reservations(connection, id):
         raise ApiError(409, "У товара есть резерв в незавершённой заявке. Сначала завершите или отмените её")
 
 
-def content_crud(route, table, model, *, sort, fields, subject, notify=None, scope=None, relation=None):
+def content_crud(route, table, model, *, sort, fields, subject, notify=None, scope=None, relation=None, guard=None):
     patch_model = partial(model)
     scope = scope or {}
     filters = {name: {"_eq": value} for name, value in scope.items()}
@@ -181,9 +181,9 @@ def content_crud(route, table, model, *, sort, fields, subject, notify=None, sco
         admin = await require_admin(request)
         state, id = (request.services, guid(id))
         await require_scope(state, table, id, filters)
-        if table == "products":
+        if guard:
             async with state.database.transaction() as connection:
-                await product_reservations(connection, id)
+                await guard(connection, id)
                 await state.store.delete(table, id=id, connection=connection)
         else:
             await state.store.delete(table, id=id)
@@ -242,6 +242,7 @@ urlpatterns += content_crud(
     "/admin/products",
     "products",
     ProductBody,
+    guard=product_reservations,
     sort=("title",),
     fields=("id", "slug", "title", "category", "price", "stock", "status", "variants_json", "description", "images"),
     subject="product",

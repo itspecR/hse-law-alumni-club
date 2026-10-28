@@ -198,7 +198,8 @@ class Checkout:
     async def change_status(self, id, status, *, expected_status=None):
         async with self.state.database.transaction() as connection:
             cursor = await connection.execute(
-                "SELECT status,payment_status,program_id,participants FROM orders WHERE id=%s FOR UPDATE", (id,)
+                "SELECT status,payment_status,program_id,cohort_id,participants FROM orders WHERE id=%s FOR UPDATE",
+                (id,),
             )
             order = await cursor.fetchone()
             if not order:

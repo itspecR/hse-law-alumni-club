@@ -1,6 +1,5 @@
-from datetime import date, datetime
+from datetime import date
 from typing import Literal
-from zoneinfo import ZoneInfo
 
 from pydantic import Field, field_validator
 
@@ -10,6 +9,7 @@ from club_api.modules.auth.routes import Body
 from club_api.modules.catalog.scope import PORTFOLIO_PROGRAMS
 from club_api.modules.content.admin import content_crud
 from club_api.modules.portfolio.admin import canonical_ids
+from club_api.modules.portfolio.dates import iso_date, moscow_today
 from club_api.modules.portfolio.relations import PROMO_PROGRAMS, require_existing
 
 PROMO_MAX_PERCENT = 50
@@ -18,7 +18,6 @@ MAX_PROMO_LIMIT = 100000
 MAX_PROMO_PROGRAMS = 50
 CODE_PATTERN = r"^[A-Za-z0-9-]{3,32}$"
 RELEASED_STATUSES = ("canceled", "expired")
-MOSCOW = ZoneInfo("Europe/Moscow")
 PROMO_FIELDS = (
     "id",
     "code",
@@ -38,10 +37,6 @@ PROMO_SQL = {
 }
 USES_SQL = "SELECT COUNT(*) AS used FROM orders WHERE promo_id=%s AND status NOT IN (%s,%s)"
 PERSON_USES_SQL = USES_SQL + " AND LOWER(contact_email)=LOWER(%s)"
-
-
-def iso_date(value):
-    return date.fromisoformat(value).isoformat()
 
 
 class PromoBody(Body):
@@ -134,7 +129,7 @@ async def count(connection, sql, params):
 
 
 def require_window(promo):
-    today = datetime.now(MOSCOW).date()
+    today = moscow_today()
     if today < date.fromisoformat(promo["starts_on"]):
         raise ApiError(400, "Промокод ещё не действует")
     if today > date.fromisoformat(promo["ends_on"]):
