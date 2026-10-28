@@ -167,7 +167,7 @@ async def patch_member(request: HttpRequest, id: str):
             row["referred_by"],
             reason="referral",
             ref=id,
-            comment="Приглашённый выпускник верифицирован",
+            comment="Приглашенный выпускник подтвержден",
             idempotency_key="referral-" + id,
         )
     return {"ok": True}
@@ -178,7 +178,7 @@ async def points(request: HttpRequest, id: str):
     admin = await require_full_admin(request)
     body = parse_body(request, PointsBody)
     result = await request.services.gamification.add(
-        guid(id), reason=body.reason, delta=body.delta, comment=body.comment or "Ручное начисление офисом"
+        guid(id), reason=body.reason, delta=body.delta, comment=body.comment or "Начисление учебного офиса"
     )
     await audit(
         request, "member.points", actor="admin:" + admin["userId"], subject="alumni:" + id, detail=body.model_dump()
@@ -190,6 +190,6 @@ async def points(request: HttpRequest, id: str):
 async def erase(request: HttpRequest, id: str):
     admin = await require_full_admin(request)
     if not await anonymize(request.services, guid(id)):
-        raise ApiError(404, "Участник не найден")
+        raise ApiError(404, "Выпускник не найден.")
     await audit(request, "admin.member.anonymize", actor="admin:" + admin["userId"], subject="alumni:" + id)
     return {"ok": True}

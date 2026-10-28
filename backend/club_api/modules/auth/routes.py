@@ -24,6 +24,7 @@ RESEND_COOLDOWN_SECONDS = 600
 RESEND_CACHE_LIMIT = 10000
 NOT_ALUMNI = "Этот аккаунт не связан с профилем выпускника."
 TELEGRAM_LOGIN_FAILED = "Не удалось проверить вход через Telegram."
+OFFICE_REVIEW = "Проверьте ее в учебном офисе, раздел «Выпускники»."
 ROUTE_LIMITS = {
     "/auth/login": 5,
     "/auth/admin-login": 5,
@@ -124,7 +125,7 @@ async def login(request, body, scope):
         if status == "unverified":
             raise ApiError(403, "Почта не подтверждена. Откройте ссылку из письма, проверьте и папку «Спам».")
         if status == "forbidden":
-            raise ApiError(403, "Доступ в кабинет офиса закрыт" if scope == "admin" else NOT_ALUMNI)
+            raise ApiError(403, "Доступ в учебный офис закрыт." if scope == "admin" else NOT_ALUMNI)
         raise ApiError(401, "Неверная почта или пароль.")
     if scope == "admin":
         service.attempts.success(email, ip)
@@ -215,9 +216,7 @@ async def register(request: HttpRequest):
             "confirm_required": True,
             "confirmation_queued": result["sent"] or result["id"] is not None,
         }
-    await request.services.notifications.office_text(
-        "🎓 Новая заявка на вступление в клуб – очередь верификации в админ-панели."
-    )
+    await request.services.notifications.office_text(f"Новая заявка на вступление в клуб. {OFFICE_REVIEW}")
     return {"ok": True, "pending": True, "confirm_required": False}
 
 
@@ -273,7 +272,7 @@ async def confirm(request: HttpRequest):
         return {"ok": True, "already": True}
     await audit(request, "email.confirm", actor="user:" + payload["sub"])
     await request.services.notifications.office_text(
-        "🎓 Новая заявка на вступление в клуб (почта подтверждена) – очередь верификации в админ-панели."
+        f"Новая заявка на вступление в клуб, почта подтверждена. {OFFICE_REVIEW}"
     )
     return {"ok": True}
 

@@ -160,7 +160,7 @@ async def test_office_manages_cohorts_of_club_programs(database_app, mails):
         assert [response.status_code for response in wrong] == [400, 400, 400]
         assert (await client.patch("/admin/cohorts/" + id, headers=admin, json={"price": None})).status_code == 200
         missing = await client.patch(f"/admin/cohorts/{item['id']}", headers=admin, json={"price": 1})
-        assert missing.status_code == 404 and missing.json()["error"] == "Поток не найден"
+        assert missing.status_code == 404 and missing.json()["error"] == "Поток не найден."
         applied = (await apply(client, item["slug"], {**FORM, "cohort_id": id})).json()
         assert applied["total_estimate"] == PRICE
         await status(client, admin, applied["number"], app, "confirmed")

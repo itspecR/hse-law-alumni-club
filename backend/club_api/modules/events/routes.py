@@ -20,6 +20,7 @@ from club_api.modules.gamification.routes import verified_alumni
 from club_api.observability.audit import audit
 
 ROUTE_LIMITS = {("POST", "/events/{id}/rsvp"): 20}
+UNNAMED = "ФИО не указано"
 EVENT_FIELDS = ("id", "title", "description", "starts_at", "location", "cover", "reg_url", "format", "points", "status")
 
 
@@ -63,7 +64,7 @@ async def roster(store, event_id=None):
     )
     names = (
         {
-            row["id"]: row["fio"] or "–"
+            row["id"]: row["fio"] or UNNAMED
             for row in await store.read(
                 "alumni",
                 filters={"id": {"_in": list({row["alumni_id"] for row in rows})}},
@@ -74,7 +75,7 @@ async def roster(store, event_id=None):
         if rows
         else {}
     )
-    return [{**row, "fio": names.get(row["alumni_id"], "–")} for row in rows]
+    return [{**row, "fio": names.get(row["alumni_id"], UNNAMED)} for row in rows]
 
 
 @api_view

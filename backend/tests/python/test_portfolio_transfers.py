@@ -118,7 +118,7 @@ async def test_move_is_limited_to_open_applications_and_own_program(database_app
     assert (
         responses["foreign"].status_code == 400 and "не найден в этой программе" in responses["foreign"].json()["error"]
     )
-    assert responses["same"].status_code == 409 and responses["same"].json()["error"] == "Заявка уже в этом потоке"
+    assert responses["same"].status_code == 409 and responses["same"].json()["error"] == "Заявка уже в этом потоке."
     assert responses["closed"].status_code == 409 and "поток изменить нельзя" in responses["closed"].json()["error"]
     assert responses["missing"].status_code == 404 and responses["malformed"].status_code == 400
     assert (await order(app, row["number"]))["cohort_id"] == first["id"]

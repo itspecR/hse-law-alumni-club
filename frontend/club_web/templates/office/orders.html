@@ -9,7 +9,7 @@
 </select>
 </label>
 <label>Оплата<select aria-label="Оплата" name="payment">
-{% for value,title in [('', 'Все'),('succeeded','Оплачено'),('pending','Ожидает оплаты'),('waiting_for_capture','Ожидает подтверждения'),('review','Требует сверки'),('canceled','Платёж отменён'),('none','Без платежа')] %}
+{% for value,title in [('', 'Все'),('succeeded','Оплачено'),('pending','Ожидает оплаты'),('waiting_for_capture','Ожидает подтверждения'),('review','Требует сверки'),('canceled','Платеж отменен'),('none','Без платежа')] %}
 <option value="{{ value }}" {% if query.get('payment','')==value %}selected{% endif %}>{{ title }}</option>
 {% endfor %}
 </select></label>
@@ -41,7 +41,7 @@
 </form>
 {% set moves=(office_cohorts.get(order.program_id) or [])|rejectattr('id','equalto',order.cohort_id)|list %}
 {% if order.type=='portfolio' and order.status in ('new','in_progress','confirmed') and moves %}
-<form class="office-edit-grid" data-api="/admin/orders/{{ order.id }}/cohort" data-method="PATCH" data-confirm="Перенести заявку в другой поток? Сумма пересчитается по цене потока, заявителю уйдёт письмо.">
+<form class="office-edit-grid" data-api="/admin/orders/{{ order.id }}/cohort" data-method="PATCH" data-confirm="Перенести заявку в другой поток? Сумма пересчитается по цене потока, заявителю уйдет письмо.">
 <label>Перенести в поток<select name="cohort_id" aria-label="Перенести в поток" required>
 <option value="">Выберите поток</option>
 {% for cohort in moves %}<option value="{{ cohort.id }}">{{ cohort.label }}</option>{% endfor %}
@@ -52,11 +52,11 @@
 </form>
 {% endif %}
 {% if order.type=='portfolio' and order.status in ('new','in_progress','confirmed') %}
-<form class="office-edit-grid" data-api="/admin/orders/{{ order.id }}/discount" data-method="PATCH" data-confirm="Сохранить скидку учебного офиса? Если сумма изменится, заявителю уйдёт письмо.">
+<form class="office-edit-grid" data-api="/admin/orders/{{ order.id }}/discount" data-method="PATCH" data-confirm="Сохранить скидку учебного офиса? Если сумма изменится, заявителю уйдет письмо.">
 <label>Скидка офиса, %<input name="discount" type="number" min="0" max="100" data-nullable value="{{ order.office_discount if order.office_discount is not none else '' }}"></label>
 <label>Причина скидки<input name="reason" maxlength="300" value="{{ order.office_reason or '' }}"></label>
 <button>Применить скидку</button>
-{% if order.office_discount is not none %}<button type="button" class="site-danger" data-api="/admin/orders/{{ order.id }}/discount" data-method="PATCH" data-body='{"discount":null}' data-confirm="Вернуть исходную скидку? Заявителю уйдёт письмо, если сумма изменится.">Сбросить</button>{% endif %}
+{% if order.office_discount is not none %}<button type="button" class="site-danger" data-api="/admin/orders/{{ order.id }}/discount" data-method="PATCH" data-body='{"discount":null}' data-confirm="Вернуть исходную скидку? Заявителю уйдет письмо, если сумма изменится.">Сбросить</button>{% endif %}
 <p role="alert" data-error hidden>
 </p>
 </form>

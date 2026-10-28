@@ -2067,7 +2067,7 @@ def test_office_portfolio_form_sends_lists_trainers_and_limit(page, site, width)
     row = page.locator("article.office-record")
     expect(row.locator(".office-meta")).to_contain_text("Борис Вымышленный, Анна Вымышленная")
     expect(row.get_by_role("button", name="Удалить", exact=True)).to_have_attribute(
-        "data-confirm", "Удалить программу? Программу с заявками удалить нельзя — переведите её в архив."
+        "data-confirm", "Удалить программу? Программу с заявками удалить нельзя, вместо этого переведите ее в архив."
     )
     row.get_by_text("Редактировать", exact=True).click()
     choices = row.get_by_role("group", name="Тренеры")
@@ -2136,9 +2136,9 @@ def test_office_promo_codes_list_edit_and_create_defaults(page, site, width):
     page.goto("/admin/promo-codes")
     row = page.locator("article.office-record")
     expect(row.get_by_role("heading", name="SPRING-15", exact=True)).to_be_visible()
-    expect(row.locator(".office-status")).to_have_text("Отключён")
+    expect(row.locator(".office-status")).to_have_text("Отключен")
     expect(row.locator("p.office-meta").first).to_have_text(
-        "15% · 1 октября 2026 – 30 ноября 2026 · использовано: 3 из 10 · на человека: 1 · Переговоры для юристов"
+        "15% · с 1 октября 2026 по 30 ноября 2026 · использовано: 3 из 10 · на человека: 1 · Переговоры для юристов"
     )
     expect(row.locator("p.office-meta").nth(1)).to_have_text("Весенняя акция")
     expect(row.get_by_role("button", name="Удалить", exact=True)).to_have_attribute(
@@ -2148,7 +2148,7 @@ def test_office_promo_codes_list_edit_and_create_defaults(page, site, width):
     row.get_by_text("Редактировать", exact=True).click()
     programs = row.get_by_role("group", name="Программы, если не все")
     expect(programs.get_by_label("Переговоры для юристов")).to_be_checked()
-    row.get_by_label("Всего использований, пусто — без лимита").fill("")
+    row.get_by_label("Всего использований. Пусто - без лимита").fill("")
     row.get_by_label("Все программы портфеля").check()
     row.get_by_role("button", name="Сохранить", exact=True).click()
     expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
@@ -2163,7 +2163,7 @@ def test_office_promo_codes_list_edit_and_create_defaults(page, site, width):
     )
     page.locator("details.office-create summary").click()
     create = page.locator("details.office-create form")
-    expect(create.get_by_label("На одного человека, пусто — без лимита")).to_have_value("1")
+    expect(create.get_by_label("На одного человека. Пусто - без лимита")).to_have_value("1")
     expect(create.get_by_label("Все программы портфеля")).to_be_checked()
     expect(create.get_by_label("Статус")).to_have_value("active")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
@@ -2391,19 +2391,19 @@ def test_office_cohorts_list_edit_and_create(page, site, width):
     page.goto("/admin/cohorts")
     rows = page.locator("article.office-record")
     expect(rows.first.get_by_role("heading", level=2)).to_have_text("Переговоры для юристов · старт 1 декабря 2026")
-    expect(rows.first.locator(".office-status")).to_have_text("Набор идёт")
+    expect(rows.first.locator(".office-status")).to_have_text("Набор открыт")
     expect(rows.first.locator("p.office-meta")).to_have_text("цена программы · подтверждено мест: 5 из 12")
     expect(rows.nth(1).locator(".office-status")).to_have_text("Набор закрыт")
     expect(rows.nth(1).locator("p.office-meta")).to_have_text(
-        "39\u00a0000 ₽ · без лимита мест, подтверждено: 2 · старт прошёл"
+        "39\u00a0000 ₽ · без лимита мест, подтверждено: 2 · старт прошел"
     )
     expect(rows.first.get_by_role("button", name="Удалить", exact=True)).to_have_attribute(
-        "data-confirm", "Удалить поток? Поток с заявками удалить нельзя — закройте набор."
+        "data-confirm", "Удалить поток? Поток с заявками удалить нельзя, вместо этого закройте набор."
     )
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     rows.first.get_by_text("Редактировать", exact=True).click()
     expect(rows.first.get_by_label("Программа")).to_have_value("club-1")
-    rows.first.get_by_label("Цена потока, копейки; пусто — цена программы").fill("3500000")
+    rows.first.get_by_label("Цена потока в копейках. Пусто - цена программы").fill("3500000")
     rows.first.get_by_role("button", name="Сохранить", exact=True).click()
     expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
     write = site[2][-1]
@@ -2445,7 +2445,7 @@ def test_office_moves_club_application_to_another_cohort(page, site, width):
     expect(row.locator(".office-meta").first).to_contain_text("промокод SPRING-15: 15% · старт потока 1 декабря 2026")
     form = row.locator("form[data-api$='/cohort']")
     expect(form).to_have_attribute(
-        "data-confirm", "Перенести заявку в другой поток? Сумма пересчитается по цене потока, заявителю уйдёт письмо."
+        "data-confirm", "Перенести заявку в другой поток? Сумма пересчитается по цене потока, заявителю уйдет письмо."
     )
     choice = form.get_by_label("Перенести в поток")
     expect(choice.locator("option")).to_have_text(

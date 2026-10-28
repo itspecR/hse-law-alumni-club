@@ -5,6 +5,7 @@ from club_api.db.queries import Query, acquire_lock
 from club_api.modules.notifications.mail import EMAIL_CONFIRMATION_KIND, mail_user_lock
 
 logger = logging.getLogger("club.members")
+DELETED_NAME = "Удаленный участник"
 
 
 async def alumni_email(state, id):
@@ -55,12 +56,12 @@ async def anonymize(state, alumni_id):
         await connection.execute("DELETE FROM club_social_reactions WHERE alumni_id=%s", (alumni_id,))
         await connection.execute("DELETE FROM club_social_membership WHERE alumni_id=%s", (alumni_id,))
         await connection.execute(
-            "UPDATE alumni SET fio='Удалённый участник',contacts_json=NULL,telegram_id=NULL,avatar=NULL,interests_json=NULL,edu_program=NULL,edu_level=NULL,cohort=NULL,verification_status='rejected',points_cached=0,status='alumni_left',user_id=NULL,token_version=COALESCE(token_version,0)+1 WHERE id=%s",
-            (alumni_id,),
+            "UPDATE alumni SET fio=%s,contacts_json=NULL,telegram_id=NULL,avatar=NULL,interests_json=NULL,edu_program=NULL,edu_level=NULL,cohort=NULL,verification_status='rejected',points_cached=0,status='alumni_left',user_id=NULL,token_version=COALESCE(token_version,0)+1 WHERE id=%s",
+            (DELETED_NAME, alumni_id),
         )
         await connection.execute(
-            "UPDATE orders SET contact_fio='Удалённый участник',contact_phone='-',contact_email='-',address=NULL,comment=NULL WHERE alumni_id=%s",
-            (alumni_id,),
+            "UPDATE orders SET contact_fio=%s,contact_phone='-',contact_email='-',address=NULL,comment=NULL WHERE alumni_id=%s",
+            (DELETED_NAME, alumni_id),
         )
         await connection.execute(
             "DELETE FROM alumni_friends WHERE alumni_id=%s OR friend_id=%s", (alumni_id, alumni_id)
@@ -68,7 +69,7 @@ async def anonymize(state, alumni_id):
         await connection.execute("DELETE FROM push_subs WHERE alumni_id=%s", (alumni_id,))
         if alumni["user_id"]:
             await connection.execute(
-                "UPDATE directus_users SET email=%s,first_name='Удалён',last_name='-',status='suspended' WHERE id=%s AND role IN (SELECT id FROM directus_roles WHERE name='alumni')",
+                "UPDATE directus_users SET email=%s,first_name='Удален',last_name='-',status='suspended' WHERE id=%s AND role IN (SELECT id FROM directus_roles WHERE name='alumni')",
                 (f"deleted-{alumni['user_id']}@invalid.local", alumni["user_id"]),
             )
             await connection.execute(

@@ -282,7 +282,7 @@ async def bot_status(request: HttpRequest):
         "siteFaq": {
             "answers": len(FAQ["answers"]),
             "gaps": len(FAQ["gaps"]),
-            "note": "Ворона на сайте и @pravohse_alumni_bot отвечают одним FAQ; каталог ДПО – из API.",
+            "note": "Страница поддержки и бот @pravohse_alumni_bot используют один FAQ. Программы ДПО бот берет из каталога сайта.",
             "hits": await faq_stats(state),
         },
         "tickets": {"enabled": cfg["enabled"], "draft": cfg["draft"], "openApprox": open_count},

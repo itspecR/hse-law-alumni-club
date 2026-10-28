@@ -179,12 +179,12 @@ class Checkout:
             )
             product = await cursor.fetchone()
             if not product:
-                raise ApiError(409, "Товар резерва удалён. Восстановите его перед отменой.")
+                raise ApiError(409, "Товар из резерва удален. Восстановите его, затем отмените заявку.")
             if reserve["sku"]:
                 variants = product["variants_json"] or []
                 variant = next((value for value in variants if value["sku"] == reserve["sku"]), None)
                 if not variant:
-                    raise ApiError(409, "Вариант резерва удалён. Восстановите его перед отменой.")
+                    raise ApiError(409, "Вариант товара из резерва удален. Восстановите его, затем отмените заявку.")
                 variant["stock"] += reserve["qty"]
                 await connection.execute(
                     "UPDATE products SET variants_json=%s WHERE id=%s", (Jsonb(variants), reserve["id"])
@@ -203,7 +203,7 @@ class Checkout:
             )
             order = await cursor.fetchone()
             if not order:
-                raise ApiError(404, "Заявка не найдена")
+                raise ApiError(404, "Заявка не найдена.")
             if expected_status is not None and order["status"] != expected_status:
                 return False
             if order["status"] == status:
@@ -212,7 +212,7 @@ class Checkout:
                 raise ApiError(409, "Закрытую заявку нельзя открыть повторно. Создайте новую.")
             if status in ("canceled", "expired"):
                 if order["payment_status"] in ("succeeded", "pending", "waiting_for_capture", "review"):
-                    raise ApiError(409, "Сначала завершите сверку или возврат платежа. Резерв сохранён.")
+                    raise ApiError(409, "Сначала завершите сверку или возврат платежа. Резерв сохранен.")
                 await self.release(connection, id)
             await require_free_seats(connection, order, status)
             await connection.execute("UPDATE orders SET status=%s WHERE id=%s", (status, id))

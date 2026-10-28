@@ -170,7 +170,7 @@ class Payments:
                 return
             await connection.execute("UPDATE orders SET payment_status='review' WHERE id=%s", (order["id"],))
         await self.state.notifications.office_text(
-            f"Заявка {number}: идентификатор платежа не сохранён. Проверьте платёж в ЮKassa. Резерв сохранён до сверки."
+            f"Заявка {number}: идентификатор платежа не сохранен. Проверьте платеж в ЮKassa, резерв сохранен до сверки."
         )
 
     async def create(self, number, amount, description, email=None):

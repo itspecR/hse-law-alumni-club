@@ -5,6 +5,7 @@ import httpx
 import pytest
 
 import club_web
+from club_web import office
 from club_web.build import build_public
 from club_web.formatting import payment_url, program_price, program_start, rub, safe_url
 from club_web.main import create_app
@@ -697,6 +698,25 @@ async def test_support_texts_follow_glossary(browser_client):
     assert "Даю согласие на обработку данных обращения</label>" in support
     template = Path(club_web.__file__).parent / "templates" / "support.html"
     assert re.findall(".{0,40}[ёЁ–—].{0,20}", template.read_text()) == []
+
+
+def test_office_texts_follow_glossary():
+    assert (
+        office.SECTION_LABELS["cohorts"]["open"] == "Набор открыт" and office.LABELS["expired"] == "Истек срок резерва"
+    )
+    assert ("starts_at", "Дата и время с часовым поясом, например 2026-11-20T19:00+03:00", "text") in office.FIELDS[
+        "events"
+    ]
+    assert ("is_free", "Пробный выпуск", "checkbox") in office.FIELDS["podcasts"]
+    labels = [office.DESCRIPTIONS, office.SECTION_LABELS, office.FIELDS, office.LABELS, office.METRICS]
+    assert re.findall("[ёЁ–—]", repr(labels)) == []
+    templates = Path(club_web.__file__).parent / "templates"
+    for template in [
+        *sorted((templates / "office").glob("*.html")),
+        templates / "office.html",
+        templates / "themis.html",
+    ]:
+        assert re.findall(".{0,40}[ёЁ–—].{0,20}", template.read_text()) == [], template.name
 
 
 def test_portfolio_start_and_price_follow_open_cohorts():

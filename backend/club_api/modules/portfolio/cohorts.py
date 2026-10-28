@@ -128,7 +128,7 @@ class CohortRules:
             await COHORT_USE.lock(connection, id)
         current = await state.store.read("program_cohorts", filters={"id": {"_eq": id}}, limit=1, connection=connection)
         if id and not current:
-            raise ApiError(404, "Поток не найден")
+            raise ApiError(404, "Поток не найден.")
         if "program_id" not in data:
             return data
         await require_existing(
@@ -136,11 +136,11 @@ class CohortRules:
             "programs",
             [data["program_id"]],
             PORTFOLIO_PROGRAMS,
-            "Программа не найдена. Обновите страницу и выберите программу заново",
+            "Программа не найдена. Обновите страницу и выберите программу заново.",
             connection,
         )
         if current and current[0]["program_id"] != data["program_id"] and await COHORT_USE.used(connection, id):
-            raise ApiError(409, "В потоке есть заявки: программу потока изменить нельзя")
+            raise ApiError(409, "В потоке есть заявки: программу потока изменить нельзя.")
         return data
 
     async def attach(self, state, rows):

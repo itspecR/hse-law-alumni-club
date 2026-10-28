@@ -70,7 +70,7 @@ async def write_content(state, table, data, *, id=None, connection=None):
     if table == "products" and data.get("variants_json"):
         skus = [row["sku"] for row in data["variants_json"]]
         if len(skus) != len(set(skus)):
-            raise ApiError(400, "Артикулы вариантов должны различаться")
+            raise ApiError(400, "Артикулы вариантов должны различаться.")
     if id is not None:
         if table == "products" and any(key in data for key in ("stock", "variants_json")):
             async with state.database.transaction() as connection:
@@ -101,13 +101,13 @@ async def save_content(state, table, data, relation, *, id=None):
 
 async def require_scope(state, table, id, filters):
     if filters and not await state.store.read(table, filters={**filters, "id": {"_eq": id}}, fields=("id",), limit=1):
-        raise ApiError(404, "Запись не найдена")
+        raise ApiError(404, "Запись не найдена.")
 
 
 async def product_reservations(connection, id):
     row = await (await connection.execute("SELECT id FROM products WHERE id=%s FOR UPDATE", (id,))).fetchone()
     if not row:
-        raise ApiError(404, "Товар не найден")
+        raise ApiError(404, "Товар не найден.")
     active = await (
         await connection.execute(
             Query(
@@ -118,7 +118,7 @@ async def product_reservations(connection, id):
         )
     ).fetchone()
     if active:
-        raise ApiError(409, "У товара есть резерв в незавершённой заявке. Сначала завершите или отмените её")
+        raise ApiError(409, "Товар зарезервирован в незавершенной заявке. Сначала завершите или отмените ее.")
 
 
 def content_crud(route, table, model, *, sort, fields, subject, notify=None, scope=None, relation=None, guard=None):
@@ -282,7 +282,7 @@ async def page(store, slug, *, connection=None):
         connection=connection,
     )
     if not rows:
-        raise ApiError(404, "Страница не найдена")
+        raise ApiError(404, "Страница не найдена.")
     return rows[0]
 
 

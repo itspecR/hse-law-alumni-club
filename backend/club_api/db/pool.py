@@ -49,7 +49,7 @@ class Database:
     @asynccontextmanager
     async def connection(self):
         if not self.pool:
-            raise ApiError(503, "Транзакционное оформление не настроено")
+            raise ApiError(503, "Транзакционное оформление не настроено.")
         async with self.pool.connection() as connection:
             yield connection
 

@@ -32,7 +32,7 @@ class StateBody(Body):
 
 def candidate_id(value):
     if not re.fullmatch("[a-f0-9]{64}", value):
-        raise ApiError(400, "Некорректный идентификатор")
+        raise ApiError(400, "Некорректный идентификатор.")
     return value
 
 

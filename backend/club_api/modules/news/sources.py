@@ -111,7 +111,7 @@ def article_date(html):
 async def refresh_source(state, source):
     config = next((row for row in SOURCES if row["id"] == source), None)
     if not config:
-        raise ApiError(400, "Неизвестный источник")
+        raise ApiError(400, "Неизвестный источник.")
     async with state.database.connection() as connection:
         lock_key = "news-source:" + source
         if not await acquire_lock(connection, lock_key, wait=0):
@@ -132,7 +132,7 @@ async def refresh_source(state, source):
                 html = await get_html(state, config["url"], allowed_hosts={"pravo.hse.ru", "t.me"})
                 items = await asyncio.to_thread(parse_source, html, source)
                 if not items:
-                    raise ApiError(502, "Публикации не найдены")
+                    raise ApiError(502, "Публикации не найдены.")
                 for item in items:
                     if source != "telegram":
                         try:
@@ -177,7 +177,7 @@ async def refresh_source(state, source):
                     ),
                     (source, "Не удалось обновить источник. Повторите позже."),
                 )
-                raise ApiError(502, "Не удалось обновить источник. Сохранённые материалы доступны.") from None
+                raise ApiError(502, "Не удалось обновить источник. Сохраненные материалы доступны.") from None
         finally:
             await release_lock(connection, lock_key)
 
@@ -188,7 +188,7 @@ async def import_candidate(state, id, title, excerpt):
             await connection.execute("SELECT * FROM club_news_inbox WHERE id=%s FOR UPDATE", (id,))
         ).fetchone()
         if not item:
-            raise ApiError(404, "Материал не найден")
+            raise ApiError(404, "Материал не найден.")
         previous = await (
             await connection.execute("SELECT id FROM news WHERE source_url=%s LIMIT 1", (item["source_url"],))
         ).fetchone()

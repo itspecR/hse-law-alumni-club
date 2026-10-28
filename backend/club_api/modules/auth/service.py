@@ -302,14 +302,14 @@ def auth_service(request: HttpRequest) -> AuthService:
 async def require_admin(request: HttpRequest):
     admin = await auth_service(request).resolve_admin(request)
     if not admin:
-        raise ApiError(401, "Требуется вход администратора")
+        raise ApiError(401, "Требуется вход администратора.")
     return admin
 
 
 async def require_full_admin(request: HttpRequest):
     admin = await require_admin(request)
     if admin["role"] not in FULL_ROLES:
-        raise ApiError(403, "Операция доступна только администратору клуба")
+        raise ApiError(403, "Операция доступна только администратору клуба.")
     return admin
 
 
