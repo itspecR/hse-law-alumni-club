@@ -26,6 +26,7 @@ import club_api.modules.portfolio.cohorts as portfolio_cohorts
 import club_api.modules.portfolio.discounts as portfolio_discounts
 import club_api.modules.portfolio.promo as portfolio_promo
 import club_api.modules.portfolio.routes as portfolio_routes
+import club_api.modules.portfolio.transfers as portfolio_transfers
 import club_api.modules.support.routes as support_routes
 import club_api.modules.telegram.routes as telegram_routes
 from club_api.core.api import build_api
@@ -92,6 +93,7 @@ routes = (
         path("admin/orders", endpoint({"GET": checkout_admin.orders})),
         path("admin/orders/<str:id>", endpoint({"PATCH": checkout_admin.patch_order})),
         path("admin/orders/<str:id>/discount", endpoint({"PATCH": portfolio_discounts.set_discount})),
+        path("admin/orders/<str:id>/cohort", endpoint({"PATCH": portfolio_transfers.move_order})),
         path("admin/orders/export.csv", endpoint({"GET": checkout_admin.export_orders})),
         path("podcasts", endpoint({"GET": podcasts_routes.podcasts})),
         path("podcasts/<str:id>/audio", endpoint({"GET": podcasts_routes.audio})),

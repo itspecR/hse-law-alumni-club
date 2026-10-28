@@ -22,7 +22,7 @@
 <div class="office-record-head">
 <h2>{{ order.number }} · {{ order.contact_fio }}</h2>
 {{ status(order.status) }}</div>
-<div class="office-order-details"><div><p>{{ order.contact_email }}</p><p>{{ order.contact_phone }}</p><p class="office-meta">{% if order.type=='portfolio' %}{{ labels.portfolio }} · {{ order.organization or 'для себя' }} · участников: {{ order.participants }} · {{ order|discount_label }}{% else %}{{ order.address or 'Самовывоз' }}{% endif %}</p>{% if order.office_discount is not none %}<p class="office-meta">Причина: {{ order.office_reason }} · до этого {{ order|discount_label(true) }}</p>{% endif %}{% if order.comment %}<p class="office-meta">{{ order.comment }}</p>{% endif %}</div><div><p class="office-order-total">{{ order.total_estimate|rub }}</p>{{ status(order.payment_status,true) }}</div></div>
+<div class="office-order-details"><div><p>{{ order.contact_email }}</p><p>{{ order.contact_phone }}</p><p class="office-meta">{% if order.type=='portfolio' %}{{ labels.portfolio }} · {{ order.organization or 'для себя' }} · участников: {{ order.participants }} · {{ order|discount_label }}{% if order.starts_on %} · старт потока {{ order.starts_on|date }}{% endif %}{% else %}{{ order.address or 'Самовывоз' }}{% endif %}</p>{% if order.office_discount is not none %}<p class="office-meta">Причина: {{ order.office_reason }} · до этого {{ order|discount_label(true) }}</p>{% endif %}{% if order.comment %}<p class="office-meta">{{ order.comment }}</p>{% endif %}</div><div><p class="office-order-total">{{ order.total_estimate|rub }}</p>{{ status(order.payment_status,true) }}</div></div>
 <div class="office-order-items">
 {% for line in order.items_json or [] %}
 <p>{{ line.title }} × {{ line.qty }} · {{ line.variant_sku or '' }}</p>
@@ -39,6 +39,18 @@
 <p role="alert" data-error hidden>
 </p>
 </form>
+{% set moves=(office_cohorts.get(order.program_id) or [])|rejectattr('id','equalto',order.cohort_id)|list %}
+{% if order.type=='portfolio' and order.status in ('new','in_progress','confirmed') and moves %}
+<form class="office-edit-grid" data-api="/admin/orders/{{ order.id }}/cohort" data-method="PATCH" data-confirm="Перенести заявку в другой поток? Сумма пересчитается по цене потока, заявителю уйдёт письмо.">
+<label>Перенести в поток<select name="cohort_id" aria-label="Перенести в поток" required>
+<option value="">Выберите поток</option>
+{% for cohort in moves %}<option value="{{ cohort.id }}">{{ cohort.label }}</option>{% endfor %}
+</select></label>
+<button>Перенести</button>
+<p role="alert" data-error hidden>
+</p>
+</form>
+{% endif %}
 {% if order.type=='portfolio' and order.status in ('new','in_progress','confirmed') %}
 <form class="office-edit-grid" data-api="/admin/orders/{{ order.id }}/discount" data-method="PATCH" data-confirm="Сохранить скидку учебного офиса? Если сумма изменится, заявителю уйдёт письмо.">
 <label>Скидка офиса, %<input name="discount" type="number" min="0" max="100" data-nullable value="{{ order.office_discount if order.office_discount is not none else '' }}"></label>

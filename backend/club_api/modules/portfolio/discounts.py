@@ -4,26 +4,15 @@ from pydantic import Field
 from club_api.core.errors import ApiError
 from club_api.core.models import guid
 from club_api.core.views import api_view, defer, parse_body
-from club_api.domain import PORTFOLIO_CATALOG, applied_discount, order_totals, rubles
+from club_api.domain import applied_discount, order_totals, rubles
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin
+from club_api.modules.portfolio.orders import locked_order, reachable, require_open
 from club_api.observability.audit import audit
 
 MAX_OFFICE_DISCOUNT = 100
 MIN_REASON_LENGTH = 3
 MAX_REASON_LENGTH = 300
-OPEN_STATUSES = ("new", "in_progress", "confirmed")
-DISCOUNT_FIELDS = (
-    "id",
-    "number",
-    "type",
-    "status",
-    "items_json",
-    "member_discount",
-    "office_discount",
-    "contact_email",
-    "contact_fio",
-)
 
 
 class DiscountBody(Body):
@@ -40,23 +29,6 @@ def office_change(body):
     return {"office_discount": body.discount, "office_reason": reason}
 
 
-def require_open(order):
-    if order["type"] != PORTFOLIO_CATALOG:
-        raise ApiError(400, "Скидку офиса можно задать только в заявке на программу клуба")
-    if order["status"] not in OPEN_STATUSES:
-        raise ApiError(409, "Заявка завершена или отменена – скидку изменить нельзя")
-
-
-async def locked_order(state, id, connection):
-    await connection.execute("SELECT id FROM orders WHERE id=%s FOR UPDATE", (id,))
-    rows = await state.store.read(
-        "orders", filters={"id": {"_eq": id}}, fields=DISCOUNT_FIELDS, limit=1, connection=connection
-    )
-    if not rows:
-        raise ApiError(404, "Заявка не найдена")
-    return rows[0]
-
-
 def discount_line(order):
     if order["office_discount"] is not None:
         return f"скидка учебного офиса {order['office_discount']}%"
@@ -66,7 +38,7 @@ def discount_line(order):
 
 
 async def notify_discount(state, order, total):
-    if not order["contact_email"] or order["contact_email"] == "-":
+    if not reachable(order):
         return
     await state.notifications.mail_applicant(
         order["contact_email"],
@@ -84,7 +56,7 @@ async def set_discount(request: HttpRequest, id: str):
     state = request.services
     async with state.database.transaction() as connection:
         order = await locked_order(state, guid(id), connection)
-        require_open(order)
+        require_open(order, "скидку")
         previous = applied_discount(order)
         current = {**order, **change}
         total = order_totals(order["items_json"], applied_discount(current))["total"]

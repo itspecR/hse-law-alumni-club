@@ -20,6 +20,7 @@ SHARE_SQL = Query(
     "SELECT id FROM program_cohorts WHERE id=%s FOR SHARE",
     "SELECT id FROM program_cohorts WHERE id=%s LOCK IN SHARE MODE",
 )
+LOCK_SQL = "SELECT id FROM program_cohorts WHERE id=%s FOR UPDATE"
 CLOSED_MESSAGE = "Набор в выбранный поток закрыт. Обновите страницу и выберите поток"
 
 
@@ -106,8 +107,12 @@ async def has_orders(connection, id):
     return bool(await (await connection.execute("SELECT id FROM orders WHERE cohort_id=%s LIMIT 1", (id,))).fetchone())
 
 
+async def lock_cohort(connection, id):
+    return await (await connection.execute(LOCK_SQL, (id,))).fetchone()
+
+
 async def require_unused(connection, id):
-    if not await (await connection.execute("SELECT id FROM program_cohorts WHERE id=%s FOR UPDATE", (id,))).fetchone():
+    if not await lock_cohort(connection, id):
         raise ApiError(404, "Поток не найден")
     if await has_orders(connection, id):
         raise ApiError(409, "В потоке есть заявки: закройте набор вместо удаления")
@@ -134,6 +139,8 @@ class CohortRules:
         return dict(data), None
 
     async def prepare(self, state, data, links, id, connection):
+        if id:
+            await lock_cohort(connection, id)
         current = await state.store.read("program_cohorts", filters={"id": {"_eq": id}}, limit=1, connection=connection)
         if id and not current:
             raise ApiError(404, "Поток не найден")

@@ -19,9 +19,13 @@ from club_web.office import (
     LABELS,
     METRICS,
     SECTION_LABELS,
+    SINGLE_CHOICES,
     choice_options,
     choice_sources,
+    cohort_options,
     filter_content,
+    section_records,
+    status_values,
 )
 from club_web.pricing import member_prices
 from club_web.search import search_groups
@@ -81,6 +85,7 @@ OFFICE_NAV = [
     ("members", "Выпускники"),
     ("subs", "Подписки"),
     ("portfolio", "Портфель программ"),
+    ("cohorts", "Потоки"),
     ("trainers", "Тренеры"),
     ("programs", "ДПО"),
     ("products", "Мерч"),
@@ -102,6 +107,7 @@ OFFICE_ENDPOINTS = {
     "members": "/admin/members",
     "subs": "/admin/podcast-subs",
     "portfolio": "/admin/portfolio",
+    "cohorts": "/admin/cohorts",
     "trainers": "/admin/trainers",
     "programs": "/admin/programs",
     "products": "/admin/products",
@@ -188,6 +194,8 @@ async def context(api, path, params, authorized=False):
         "office_icons": ICONS,
         "office_fields": FIELDS,
         "office_choices": CHOICES,
+        "office_single": SINGLE_CHOICES,
+        "office_cohorts": {},
         "office_defaults": CREATE_DEFAULTS,
         "office_options": {},
         "office_names": {},
@@ -400,6 +408,7 @@ async def context(api, path, params, authorized=False):
         data["section"] = section
         data["labels"] = {**LABELS, **SECTION_LABELS.get(section, {})}
         data["office_template"] = "office/" + ("content" if section in FIELDS else section) + ".html"
+        data["office_statuses"] = status_values(section)
         if authorized and template != "not-found.html":
             await load("session", "/auth/admin-session", {})
             if data["session"]:
@@ -421,9 +430,11 @@ async def context(api, path, params, authorized=False):
                     rows = page_items(await load("choices:" + source, OFFICE_ENDPOINTS[source], []))
                     data["office_options"][source] = choice_options(source, rows)
                     data["office_names"][source] = {row["id"]: row["label"] for row in data["office_options"][source]}
+                if section == "orders":
+                    data["office_cohorts"] = cohort_options(page_items(await load("cohorts", "/admin/cohorts", [])))
                 if params.get("id") and section == "events":
                     await load("roster", "/admin/events/" + quote(params["id"], safe="") + "/rsvps", [])
-                data["rows"] = page_items(data.get("records"))
+                data["rows"] = section_records(section, page_items(data.get("records")), data["office_names"])
                 if section in FIELDS:
                     data["office_total"] = len(data["rows"])
                     data["rows"] = filter_content(data["rows"], params)

@@ -53,8 +53,12 @@ def test_all_legacy_routes_are_present():
         (method, "/admin/promo-codes" + suffix)
         for method, suffix in (("GET", ""), ("POST", ""), ("PATCH", "/{id}"), ("DELETE", "/{id}"))
     }
-    office = {("PATCH", "/admin/orders/{id}/discount"), ("GET", "/portfolio/challenge")}
-    assert actual == expected | added | portfolio | public | promo | office and len(actual) == 141
+    office = {
+        ("PATCH", "/admin/orders/{id}/discount"),
+        ("PATCH", "/admin/orders/{id}/cohort"),
+        ("GET", "/portfolio/challenge"),
+    }
+    assert actual == expected | added | portfolio | public | promo | office and len(actual) == 142
 
 
 def test_hse_state_dates_and_manual_fields():

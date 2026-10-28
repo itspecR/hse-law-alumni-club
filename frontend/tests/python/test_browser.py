@@ -2347,6 +2347,119 @@ def test_office_discount_shows_reason_and_resets(page, site):
     assert write["path"] == "/admin/orders/order-1/discount" and write["body"] == {"discount": None}
 
 
+OFFICE_COHORTS = [
+    {
+        "id": "cohort-1",
+        "program_id": "club-1",
+        "starts_on": "2026-12-01",
+        "price": None,
+        "capacity": 12,
+        "enrollment": "actual",
+        "taken": 5,
+        "open": True,
+    },
+    {
+        "id": "cohort-2",
+        "program_id": "club-1",
+        "starts_on": "2026-09-01",
+        "price": 3900000,
+        "capacity": None,
+        "enrollment": "actual",
+        "taken": 2,
+        "open": False,
+    },
+    {
+        "id": "cohort-3",
+        "program_id": "club-9",
+        "starts_on": "2027-01-15",
+        "price": None,
+        "capacity": None,
+        "enrollment": "actual",
+        "taken": 0,
+        "open": True,
+    },
+]
+
+
+@pytest.mark.parametrize("width", [1440, 390])
+def test_office_cohorts_list_edit_and_create(page, site, width):
+    site[1]["/admin/cohorts"] = OFFICE_COHORTS[:2]
+    site[1]["/admin/portfolio"] = [PORTFOLIO_PROGRAM]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/cohorts")
+    rows = page.locator("article.office-record")
+    expect(rows.first.get_by_role("heading", level=2)).to_have_text("Переговоры для юристов · старт 1 декабря 2026")
+    expect(rows.first.locator(".office-status")).to_have_text("Набор идёт")
+    expect(rows.first.locator("p.office-meta")).to_have_text("цена программы · подтверждено мест: 5 из 12")
+    expect(rows.nth(1).locator(".office-status")).to_have_text("Набор закрыт")
+    expect(rows.nth(1).locator("p.office-meta")).to_have_text(
+        "39\u00a0000 ₽ · без лимита мест, подтверждено: 2 · старт прошёл"
+    )
+    expect(rows.first.get_by_role("button", name="Удалить", exact=True)).to_have_attribute(
+        "data-confirm", "Удалить поток? Поток с заявками удалить нельзя — закройте набор."
+    )
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    rows.first.get_by_text("Редактировать", exact=True).click()
+    expect(rows.first.get_by_label("Программа")).to_have_value("club-1")
+    rows.first.get_by_label("Цена потока, копейки; пусто — цена программы").fill("3500000")
+    rows.first.get_by_role("button", name="Сохранить", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
+    write = site[2][-1]
+    assert write["path"] == "/admin/cohorts/cohort-1" and write["method"] == "PATCH"
+    assert write["body"] == {
+        "program_id": "club-1",
+        "starts_on": "2026-12-01",
+        "price": 3500000,
+        "capacity": 12,
+        "enrollment": "actual",
+    }
+    page.locator("details.office-create summary").click()
+    create = page.locator("details.office-create form")
+    create.get_by_label("Программа").select_option("club-1")
+    create.get_by_label("Старт").fill("2027-03-02")
+    create.get_by_role("button", name="Создать", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
+    write = site[2][-1]
+    assert write["path"] == "/admin/cohorts" and write["method"] == "POST"
+    assert write["body"] == {
+        "program_id": "club-1",
+        "starts_on": "2027-03-02",
+        "price": None,
+        "capacity": None,
+        "enrollment": "actual",
+    }
+    page.goto("/admin/cohorts?status=closed")
+    expect(page.locator("article.office-record")).to_have_count(1)
+    expect(page.get_by_label("Статус").first).to_have_value("closed")
+
+
+@pytest.mark.parametrize("width", [1440, 390])
+def test_office_moves_club_application_to_another_cohort(page, site, width):
+    site[1]["/admin/cohorts"] = OFFICE_COHORTS
+    placed = {**CLUB_ORDER, "program_id": "club-1", "cohort_id": "cohort-1", "starts_on": "2026-12-01"}
+    finished = {**placed, "id": "order-2", "number": "ALU-2026-000102", "status": "done"}
+    rows = office_orders(page, site, width, placed, finished)
+    row = rows.first
+    expect(row.locator(".office-meta").first).to_contain_text("промокод SPRING-15: 15% · старт потока 1 декабря 2026")
+    form = row.locator("form[data-api$='/cohort']")
+    expect(form).to_have_attribute(
+        "data-confirm", "Перенести заявку в другой поток? Сумма пересчитается по цене потока, заявителю уйдёт письмо."
+    )
+    choice = form.get_by_label("Перенести в поток")
+    expect(choice.locator("option")).to_have_text(
+        ["Выберите поток", "старт 1 сентября 2026 · 39\u00a0000 ₽ · набор закрыт"]
+    )
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    choice.select_option("cohort-2")
+    form.get_by_role("button", name="Перенести", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
+    write = site[2][-1]
+    assert write["path"] == "/admin/orders/order-1/cohort" and write["method"] == "PATCH"
+    assert write["body"] == {"cohort_id": "cohort-2"}
+    expect(rows.nth(1).locator("form[data-api$='/cohort']")).to_have_count(0)
+
+
 @pytest.mark.parametrize("width", [1440, 390])
 def test_cabinet_names_club_application_discount(page, site, width):
     site[1]["/me/orders"] = [
