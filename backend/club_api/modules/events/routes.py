@@ -56,6 +56,15 @@ class EventBody(Body):
 EventPatch = partial(EventBody)
 
 
+def with_rsvps(event, rsvps):
+    entries = [
+        {key: value for key, value in rsvp.items() if key != "event_id"}
+        for rsvp in rsvps
+        if rsvp["event_id"] == event["id"]
+    ]
+    return {**event, "rsvps": entries, "rsvp_count": len(entries)}
+
+
 async def roster(store, event_id=None):
     rows = await store.read(
         "event_rsvps",
@@ -287,17 +296,7 @@ async def admin_events(request: HttpRequest):
         }
     rows = await store.read("events", sort=("-starts_at",), fields=EVENT_FIELDS, limit=-1)
     rsvps = await roster(store)
-    return [
-        {
-            **row,
-            "rsvps": [
-                {key: value for key, value in rsvp.items() if key != "event_id"}
-                for rsvp in rsvps
-                if rsvp["event_id"] == row["id"]
-            ],
-        }
-        for row in rows
-    ]
+    return [with_rsvps(row, rsvps) for row in rows]
 
 
 @api_view(permission=require_admin)
