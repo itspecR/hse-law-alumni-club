@@ -138,10 +138,6 @@ async def main(args):
         await database_command(args.command, values)
     elif args.command == "setup-telegram-webhook":
         await setup_webhook(values)
-    elif args.command in ("import-dpo", "refresh-dpo-enrollment"):
-        from club_ops.catalog import import_catalog, refresh_enrollment
-
-        await (import_catalog if args.command == "import-dpo" else refresh_enrollment)(values)
     else:
         office = Office(values)
         try:
@@ -167,8 +163,6 @@ def run():
         "database-fingerprints",
         "sync-dpo",
         "setup-telegram-webhook",
-        "import-dpo",
-        "refresh-dpo-enrollment",
     ):
         sub.add_parser(name)
     sub.add_parser("import-podcasts").add_argument("manifest")

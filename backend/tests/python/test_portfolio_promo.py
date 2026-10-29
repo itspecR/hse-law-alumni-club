@@ -10,10 +10,23 @@ from test_portfolio_applications import FORM, GROUP, PRICE, apply, mails, order,
 
 from club_api.modules.portfolio.applications import promo_message
 
-TODAY = datetime.now(ZoneInfo("Europe/Moscow")).date()
 DAY = timedelta(days=1)
-PROMO = {"code": "spring-15", "percent": 15, "starts_on": str(TODAY - DAY), "ends_on": str(TODAY + DAY)}
+PROMO = {"code": "spring-15", "percent": 15}
+DATES = ("starts_on", "ends_on")
 __all__ = ("mails",)
+
+
+def today():
+    return datetime.now(ZoneInfo("Europe/Moscow")).date()
+
+
+def shifted(days):
+    return str(today() + days * DAY)
+
+
+def promo_body(extra):
+    dates = {key: shifted(extra[key]) for key in DATES if isinstance(extra.get(key), int)}
+    return {**PROMO, "starts_on": shifted(-1), "ends_on": shifted(1), **extra, **dates}
 
 
 def client_for(app):
@@ -21,7 +34,7 @@ def client_for(app):
 
 
 async def create_promo(client, headers, **extra):
-    response = await client.post("/admin/promo-codes", headers=headers, json={**PROMO, **extra})
+    response = await client.post("/admin/promo-codes", headers=headers, json=promo_body(extra))
     assert response.status_code == 200, response.text
     return response.json()["id"]
 
@@ -41,7 +54,7 @@ async def test_office_creates_normalized_promo_code(database_app):
     async with client_for(app) as client:
         id = await create_promo(client, editor, note="Весенняя акция")
         row = await promo_row(client, editor, id)
-        duplicate = await client.post("/admin/promo-codes", headers=editor, json={**PROMO, "code": "SPRING-15"})
+        duplicate = await client.post("/admin/promo-codes", headers=editor, json=promo_body({"code": "SPRING-15"}))
     assert (row["code"], row["percent"], row["used"], row["program_ids"]) == ("SPRING-15", 15, 0, [])
     assert (row["per_person_limit"], row["total_limit"], row["all_programs"], row["status"]) == (
         1,
@@ -59,7 +72,7 @@ async def test_office_creates_normalized_promo_code(database_app):
         ({"percent": 0}, 400),
         ({"code": "ab"}, 400),
         ({"code": "пром-10"}, 400),
-        ({"ends_on": str(TODAY - 2 * DAY)}, 400),
+        ({"ends_on": -2}, 400),
         ({"starts_on": "2026-02-30"}, 400),
         ({"all_programs": False}, 400),
     ],
@@ -68,7 +81,7 @@ async def test_office_rejects_invalid_promo(database_app, extra, status):
     app = database_app
     _, editor = await account(app, "editor")
     async with client_for(app) as client:
-        response = await client.post("/admin/promo-codes", headers=editor, json={**PROMO, **extra})
+        response = await client.post("/admin/promo-codes", headers=editor, json=promo_body(extra))
     assert response.status_code == status
     assert await app.state.store.read("promo_codes", fields=("id",)) == []
 
@@ -79,11 +92,11 @@ async def test_promo_programs_are_portfolio_only_and_dates_checked_on_patch(data
     club, dpo = await program(app), await program(app, catalog="dpo")
     async with client_for(app) as client:
         rejected = await client.post(
-            "/admin/promo-codes", headers=editor, json={**PROMO, "all_programs": False, "program_ids": [dpo["id"]]}
+            "/admin/promo-codes", headers=editor, json=promo_body({"all_programs": False, "program_ids": [dpo["id"]]})
         )
         id = await create_promo(client, editor, all_programs=False, program_ids=[club["id"]])
         assert (await promo_row(client, editor, id))["program_ids"] == [club["id"]]
-        late = await client.patch("/admin/promo-codes/" + id, headers=editor, json={"ends_on": str(TODAY - 2 * DAY)})
+        late = await client.patch("/admin/promo-codes/" + id, headers=editor, json={"ends_on": shifted(-2)})
     assert rejected.status_code == 400 and late.status_code == 400
 
 
@@ -132,8 +145,8 @@ async def test_organization_gets_promo(database_app, mails):
     [
         ({}, "OTHER-10", "Промокод не найден"),
         ({"status": "disabled"}, "SPRING-15", "Промокод не найден"),
-        ({"starts_on": str(TODAY + DAY), "ends_on": str(TODAY + 2 * DAY)}, "SPRING-15", "еще не действует"),
-        ({"starts_on": str(TODAY - 2 * DAY), "ends_on": str(TODAY - DAY)}, "SPRING-15", "истек"),
+        ({"starts_on": 1, "ends_on": 2}, "SPRING-15", "еще не действует"),
+        ({"starts_on": -2, "ends_on": -1}, "SPRING-15", "истек"),
     ],
 )
 async def test_unusable_promo_blocks_application(database_app, mails, extra, code, message):
@@ -263,14 +276,15 @@ async def test_patch_of_deleted_promo_is_not_found(database_app):
 async def test_promo_dates_are_stored_in_iso_form(database_app):
     app = database_app
     _, admin = await account(app, "admin")
-    week = TODAY.isocalendar()
+    day = today()
+    week = day.isocalendar()
     async with client_for(app) as client:
         id = await create_promo(
-            client, admin, starts_on=TODAY.strftime("%Y%m%d"), ends_on=f"{week.year}-W{week.week:02d}-7"
+            client, admin, starts_on=day.strftime("%Y%m%d"), ends_on=f"{week.year}-W{week.week:02d}-7"
         )
         row = await promo_row(client, admin, id)
-    sunday = TODAY + timedelta(days=7 - week.weekday)
-    assert (row["starts_on"], row["ends_on"]) == (TODAY.isoformat(), sunday.isoformat())
+    sunday = day + timedelta(days=7 - week.weekday)
+    assert (row["starts_on"], row["ends_on"]) == (day.isoformat(), sunday.isoformat())
 
 
 async def test_quote_does_not_reveal_who_used_the_code(database_app, mails):
@@ -294,7 +308,7 @@ async def test_quote_does_not_reveal_who_used_the_code(database_app, mails):
     [
         ({}, "OTHER-10", "Промокод не найден."),
         (
-            {"starts_on": str(TODAY - 2 * DAY), "ends_on": str(TODAY - DAY)},
+            {"starts_on": -2, "ends_on": -1},
             "SPRING-15",
             "Срок действия промокода истек.",
         ),
