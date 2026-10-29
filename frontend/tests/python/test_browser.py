@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import functools
 import hashlib
 import json
@@ -561,6 +562,28 @@ def test_a11y_keeps_previous_storage_format(page):
     expect(page.locator("html")).to_have_attribute("data-vis-scheme", "wb")
     page.get_by_role("button", name="Обычная версия", exact=True).click()
     assert page.evaluate("JSON.parse(localStorage.getItem('club_vision')).on") is False
+
+
+def test_tab_icon_is_club_themis(page):
+    page.goto("/")
+    href = page.locator('link[rel="icon"]').get_attribute("href")
+    icon = page.evaluate(
+        """async source => {
+            const image = new Image();
+            image.src = "data:image/x-icon;base64," + source;
+            await image.decode();
+            const canvas = document.createElement("canvas");
+            canvas.width = canvas.height = 64;
+            const context = canvas.getContext("2d");
+            context.drawImage(image, 0, 0, 64, 64);
+            const pixels = context.getImageData(0, 0, 64, 64).data;
+            let blue = 0;
+            for (let index = 0; index < pixels.length; index += 4) if (pixels[index + 2] > pixels[index] + 40) blue += 1;
+            return { blue, corner: pixels[3] };
+        }""",
+        base64.b64encode(page.request.get(href).body()).decode(),
+    )
+    assert icon["blue"] > 100 and icon["corner"] == 0
 
 
 def test_pwa_uses_phone_layout_and_preserves_navigation(page):
