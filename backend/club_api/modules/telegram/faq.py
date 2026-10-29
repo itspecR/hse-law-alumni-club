@@ -48,6 +48,20 @@ ENDINGS = (
     "ю",
     "ь",
 )
+BOT_FIELDS = (
+    "id",
+    "slug",
+    "title",
+    "direction",
+    "format",
+    "duration",
+    "price",
+    "document",
+    "dates",
+    "description",
+    "modules",
+    "source_url",
+)
 
 
 def stem(value):
@@ -180,7 +194,7 @@ def program_to_bot(program):
     return {
         "id": program["id"],
         "title": program["title"],
-        "url": "/dpo/" + program["slug"],
+        "url": program.get("source_url") or "/dpo",
         "sphere": program.get("direction") or "Программы ДПО",
         "type": type,
         "format": format,
@@ -285,19 +299,7 @@ async def site_reply(state, query):
         for row in await state.store.read(
             "programs",
             filters=PUBLISHED_DPO,
-            fields=(
-                "id",
-                "slug",
-                "title",
-                "direction",
-                "format",
-                "duration",
-                "price",
-                "document",
-                "dates",
-                "description",
-                "modules",
-            ),
+            fields=BOT_FIELDS,
             limit=-1,
         )
     ]
@@ -350,7 +352,7 @@ async def answer_faq(state, query):
     base = state.settings.PUBLIC_URL.rstrip("/")
 
     def link(path, label):
-        return f'<a href="{html.escape(base + path)}">{html.escape(label)}</a>'
+        return f'<a href="{html.escape(path if path.startswith("https://") else base + path)}">{html.escape(label)}</a>'
 
     if answer:
         return html.escape(answer["text"]) + "\n\n🌐 " + link(answer["anchor"], "Подробнее")
@@ -366,18 +368,7 @@ async def answer_faq(state, query):
         for row in await state.store.read(
             "programs",
             filters=PUBLISHED_DPO,
-            fields=(
-                "id",
-                "slug",
-                "title",
-                "direction",
-                "format",
-                "duration",
-                "price",
-                "document",
-                "dates",
-                "description",
-            ),
+            fields=BOT_FIELDS,
             limit=-1,
         )
     ]

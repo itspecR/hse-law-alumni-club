@@ -1,4 +1,5 @@
 from club_web.changes import select_changes
+from club_web.formatting import safe_url
 
 
 def search_sources(portfolio, programs, news, events, podcasts, changes):
@@ -22,6 +23,12 @@ def search_sources(portfolio, programs, news, events, podcasts, changes):
     return sources
 
 
+def record_link(prefix, record, identifier):
+    if prefix == "dpo":
+        return {"path": safe_url(record.get("source_url")) or "/dpo", "external": True}
+    return {"path": f"/{prefix}/{record[identifier]}", "external": False}
+
+
 def search_groups(portfolio, programs, news, events, podcasts, changes, query=None):
     words = (query or "").casefold().replace("ё", "е").split()
     groups = []
@@ -37,6 +44,6 @@ def search_groups(portfolio, programs, news, events, podcasts, changes, query=No
                 )
             normalized = text.casefold().replace("ё", "е")
             if query is None or len(query.strip()) >= 2 and all(word in normalized for word in words):
-                items.append({"title": record["title"], "path": f"/{prefix}/{record[identifier]}", "text": text})
+                items.append({"title": record["title"], "text": text, **record_link(prefix, record, identifier)})
         groups.append({"label": label, "items": items if query is None else items[:6]})
     return groups

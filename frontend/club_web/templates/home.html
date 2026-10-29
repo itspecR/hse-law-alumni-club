@@ -86,10 +86,10 @@
 <ul class="lux-progs">
 {% for program in home_programs %}
 <li class="lux-prog"{% if home_starts and program.start_day %} data-program-start="{{ program.start_day }}"{% endif %} data-member-prices='{{ program.member_price_map|tojson }}'>
-<a class="foc lux-prog__link" href="/dpo/{{ program.slug }}">
+<a class="foc lux-prog__link" href="{{ program.source_url|safe_url }}" target="_blank" rel="noopener noreferrer">
 <span class="lux-prog__date">{{ program.start_label if home_starts else program.direction }}</span>
 <span class="lux-prog__main"><span class="lux-prog__name">{{ program.title }}</span><span class="lux-prog__meta">{{ program.format_label|capitalize }}{% if program.duration %} · {{ program.duration }}{% endif %}</span></span>
-<span class="lux-prog__price"><s><span class="lux-sr">Цена каталога: </span>{{ program.price|rub }}</s><span class="lux-sr">Цена выпускника: </span><span class="lux-prog__member" data-member-price>{{ program.member_prices[0].price|rub }}</span></span>
+<span class="lux-prog__price"><s><span class="lux-sr">Цена каталога: </span>{{ program.price|rub }}</s><span class="lux-sr">Цена выпускника: </span><span class="lux-prog__member" data-member-price>{{ program.member_prices[0].price|rub }}</span><span class="lux-sr">, на сайте Центра ДПО, откроется в новой вкладке</span></span>
 </a>
 </li>
 {% endfor %}
@@ -99,7 +99,7 @@
 {% endif %}
 <p class="lux-sr" role="status" data-level-status></p>
 <div class="lux-calc__foot">
-<p>Уровни: {% for level in levels[1:] %}«{{ level.title }}» с&nbsp;{{ level.min_points }}{% if loop.first %}&nbsp;баллов{% endif %}{{ ', ' if not loop.last else '' }}{% endfor %}. Личная скидка добавляет еще до&nbsp;{{ domain.limits.personal_discount_max }}%, всего не&nbsp;больше {{ domain.limits.member_discount_cap }}%. Итоговая цена считается при&nbsp;оформлении заявки.</p>
+<p>Уровни: {% for level in levels[1:] %}«{{ level.title }}» с&nbsp;{{ level.min_points }}{% if loop.first %}&nbsp;баллов{% endif %}{{ ', ' if not loop.last else '' }}{% endfor %}. Личная скидка добавляет еще до&nbsp;{{ domain.limits.personal_discount_max }}%, всего не&nbsp;больше {{ domain.limits.member_discount_cap }}%. Подробности при&nbsp;оформлении на&nbsp;сайте Центра ДПО.</p>
 <a href="/dpo" class="foc lux-more">Весь каталог <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </div>
 </div>

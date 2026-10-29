@@ -71,12 +71,13 @@ def test_center_card_becomes_club_program():
     other = center.map_card(
         card("A-7", "Медиация", format="mixed", type_short="ПП", start="", price="Цена по запросу", thumb=None), SITE
     )
-    assert (other["format"], other["dates"], other["price"], other["cover_source"]) == ("blended", None, 0, None)
+    assert (other["format"], other["dates"], other["price"], other["cover_source"]) == ("blended", None, None, None)
     assert other["document"] == "Диплом о профессиональной переподготовке НИУ ВШЭ"
     assert center.map_card(card("102", "Право", start="Старт: ноябрь 2026 г."), SITE)["dates"] == {
         "start": "ноябрь 2026 г."
     }
-    assert center.map_card(card("103", "Право", format="other", price="Бесплатно"), SITE)["format"] is None
+    free = center.map_card(card("103", "Право", format="other", price="Бесплатно"), SITE)
+    assert (free["format"], free["price"]) == (None, 0)
     foreign = card("104", "Право", thumb={"src": "https://evil.test/x.jpg"})
     assert center.map_card(foreign, SITE)["cover_source"] is None
 

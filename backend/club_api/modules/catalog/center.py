@@ -35,7 +35,8 @@ TEXT_LIMIT = 255
 HSE_ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
 PAGE = re.compile(r"programs/[a-z0-9-]{1,60}(?:-[A-Za-z0-9_-]{1,32})?\.html")
 MEDIA = re.compile(r"/media/[A-Za-z0-9._/-]{1,300}")
-PRICE = re.compile(r"(\d[\d   ]{0,15})\s*₽")
+PRICE = re.compile(r"(\d[\d \u00a0\u202f]{0,15})\s*₽")
+FREE = "Бесплатно"
 NO_ADDRESS = "Адрес сайта ДПО не задан на сервере."
 WRONG_ADDRESS = "Адрес сайта ДПО задан неверно: нужен https://домен без пути и порта."
 NO_LIST = "Сайт ДПО вернул ответ без списка программ."
@@ -65,8 +66,11 @@ def clean(value, limit=TEXT_LIMIT):
 
 
 def parse_price(label):
-    found = PRICE.fullmatch(clean(label))
-    return int(re.sub(r"\D", "", found[1])) * 100 if found else 0
+    text = clean(label)
+    if text == FREE:
+        return 0
+    found = PRICE.fullmatch(text)
+    return int(re.sub(r"\D", "", found[1])) * 100 if found else None
 
 
 def start_dates(label):

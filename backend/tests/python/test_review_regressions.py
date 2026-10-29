@@ -185,22 +185,34 @@ async def test_bot_finds_canonical_blended_program(database_app):
                 "format": format,
                 "status": "published",
                 "price": 10000,
+                "source_url": f"https://dpo.example.test/programs/{format}.html",
             },
         )
     programs = [
         program_to_bot(row) for row in await state.store.read("programs", filters={"status": {"_eq": "published"}})
     ]
     found = search("смешанный право", programs)
-    assert [item["url"] for item in found["programs"]] == ["/dpo/blended"]
+    assert [item["url"] for item in found["programs"]] == ["https://dpo.example.test/programs/blended.html"]
 
 
 @pytest.mark.parametrize("query", ["смешанный", "гибридный"])
 def test_bot_format_aliases_filter_canonical_catalog(query):
     programs = [
-        program_to_bot({"id": kind, "slug": kind, "title": "Программа права", "format": kind, "price": 10000})
+        program_to_bot(
+            {
+                "id": kind,
+                "slug": kind,
+                "title": "Программа права",
+                "format": kind,
+                "price": 10000,
+                "source_url": f"https://dpo.example.test/programs/{kind}.html",
+            }
+        )
         for kind in ("blended", "online")
     ]
-    assert [item["url"] for item in search(query, programs)["programs"]] == ["/dpo/blended"]
+    assert [item["url"] for item in search(query, programs)["programs"]] == [
+        "https://dpo.example.test/programs/blended.html"
+    ]
 
 
 @pytest.mark.parametrize("role", ["admin", "editor"])

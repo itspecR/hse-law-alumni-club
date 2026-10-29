@@ -38,5 +38,5 @@ async def database_app(tmp_path, django_db_blocker):
                         await connection.execute("SET FOREIGN_KEY_CHECKS=1")
             else:
                 await app.state.database.execute(
-                    "TRUNCATE directus_roles,directus_users,directus_files,alumni,programs,program_cohorts,program_trainers,trainers,promo_codes,promo_code_programs,club_captcha_uses,products,news,orders,carts,events,podcasts,podcast_plays,timeline_items,pages,points_ledger,levels,point_rules,achievements,club_settings,club_support_tickets,club_faq_events,club_auth_revocations,club_mail_outbox,club_checkout_commits,audit_log CASCADE"
+                    "TRUNCATE directus_roles,directus_users,directus_files,alumni,programs,program_cohorts,program_trainers,trainers,promo_codes,promo_code_programs,club_captcha_uses,products,news,orders,carts,events,podcasts,podcast_plays,timeline_items,pages,points_ledger,levels,point_rules,achievements,club_settings,club_support_tickets,club_faq_events,club_auth_revocations,club_mail_outbox,club_checkout_commits,club_news_inbox,club_news_source_runs,club_news_settings,club_dpo_sync,audit_log CASCADE"
                 )

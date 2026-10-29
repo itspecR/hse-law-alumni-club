@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
-{% from 'macros.html' import save,add_cart %}
+{% from 'macros.html' import save %}
 {% block content %}
 {% set filter_labels={'direction':'Направление','format':'Формат','document':'Документ','enrollment':'Набор','category':'Категория'} %}
 <main id="main" class="site-container catalog-page">
 <header class="site-masthead">
 <h1>{{ title }}</h1>
-<p>{{ 'Программы факультета права. Цена выпускника доступна после подтверждения статуса.' if kind == 'dpo' else 'Одежда и аксессуары с символикой клуба и ВШЭ.' }}</p>
+<p>{{ 'Программы Центра ДПО факультета права НИУ ВШЭ. Скидка выпускника по уровню в клубе. Подробности при оформлении на сайте Центра ДПО.' if kind == 'dpo' else 'Одежда и аксессуары с символикой клуба и ВШЭ.' }}</p>
 </header>
 {% if kind=='dpo' %}
 <details class="dpo-picker site-panel lux-disclosure">
@@ -26,7 +26,7 @@
 <div class="dpo-starts-grid">
 {% for item in upcoming %}<article data-program-start="{{ item.start_day }}">
 <time datetime="{{ item.start_day }}">{{ item.start_label }}</time>
-<h3><a href="/dpo/{{ item.slug }}">{{ item.title }}</a></h3>
+<h3><a href="{{ item.source_url|safe_url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}<span class="lux-sr">, откроется в&nbsp;новой вкладке</span></a></h3>
 <p>{{ item.price_label }}</p>
 </article>{% endfor %}
 </div>
@@ -66,8 +66,10 @@
 {% for item in items %}
 <article class="site-catalog-card" data-reveal data-catalog-row='{{ {"title":item.title,"direction":item.direction or "","format":item.format or "","enrollment":item.enrollment or "","category":item.category or "","price":item.price,"document":item.document or ""}|tojson }}'>
 {% set image = item.cover if kind=='dpo' else (item.images or [])|first %}
+{% set href = item.source_url|safe_url if kind=='dpo' else '/'+kind+'/'+item.slug %}
+{% set outside = ' target="_blank" rel="noopener noreferrer"' if kind=='dpo' else '' %}
 {% if image|media %}
-<a href="/{{ kind }}/{{ item.slug }}" class="site-card-media site-card-media--{{ 'program' if kind=='dpo' else 'product' }}">
+<a href="{{ href }}"{{ outside|safe }} class="site-card-media site-card-media--{{ 'program' if kind=='dpo' else 'product' }}">
 <img src="{{ image|media }}" alt="{{ item.title }}" loading="lazy" decoding="async" width="560" height="380">
 </a>
 {% else %}
@@ -76,14 +78,15 @@
 <div>
 <span class="club-caps">{{ item.direction if kind=='dpo' else item.category }}</span>
 <h2>
-<a href="/{{ kind }}/{{ item.slug }}">{{ item.title }}</a>
+<a href="{{ href }}"{{ outside|safe }}>{{ item.title }}</a>
 </h2>
 {% if kind=='dpo' %}
 <p>{{ [(format_labels.get(item.format,item.format) or '')|capitalize, item.duration, 'набор закрыт' if item.enrollment=='nonactual' else 'набор открыт']|select|join(' · ') }}</p>
 {% endif %}
-<p class="site-price">{{ item.price|rub }}</p>
+<p class="site-price">{{ item.price_label if kind=='dpo' else item.price|rub }}</p>
+{% if item.member_from %}<p>Цена выпускника от&nbsp;{{ item.member_from }}</p>{% endif %}
 <div class="site-actions">
-<a href="/{{ kind }}/{{ item.slug }}" class="foc lux-more">Подробнее<span class="lux-sr"> о {{ 'программе' if kind=='dpo' else 'товаре' }} «{{ item.title }}»</span> <span class="lux-more__arrow" aria-hidden="true">›</span></a>{{ save('/'+kind+'/'+item.slug,item.title,kind) }}{% if kind=='dpo' and not item.source_url and item.enrollment!='nonactual' %}{{ add_cart(item,kind) }}{% endif %}
+<a href="{{ href }}"{{ outside|safe }} class="foc lux-more">Подробнее<span class="lux-sr"> о {{ 'программе' if kind=='dpo' else 'товаре' }} «{{ item.title }}»{{ ' на сайте Центра ДПО, откроется в новой вкладке' if kind=='dpo' }}</span> <span class="lux-more__arrow" aria-hidden="true">{{ '↗' if kind=='dpo' else '›' }}</span></a>{{ save('/'+kind+'/'+item.slug,item.title,kind) }}
 {% if kind=='dpo' %}
 <button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="compare" data-id="{{ item.id }}" aria-pressed="false">Сравнить</button>
 {% endif %}

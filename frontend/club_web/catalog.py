@@ -2,15 +2,22 @@ import re
 from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
-from club_web.formatting import FORMAT_LABELS, MONTHS, program_start, rub
+from club_web.formatting import FORMAT_LABELS, MONTHS, PRICE_PENDING, program_start, rub
 from club_web.formatting import date as date_label
 
 UPCOMING_LIMIT = 6
 HOME_CLUB_PROGRAMS = 3
+FREE = "Бесплатно"
 
 
 def moscow_today():
     return datetime.now(UTC).astimezone(ZoneInfo("Europe/Moscow")).date()
+
+
+def price_label(price):
+    if price is None:
+        return PRICE_PENDING
+    return rub(price) if price else FREE
 
 
 def start_day(value):
@@ -42,7 +49,7 @@ def prepare_catalog(items, params, today=None):
                 "document": item.get("document") or "",
                 "start_label": date_label(start),
                 "start_day": day.isoformat() if day else "",
-                "price_label": rub(item["price"]) if item.get("price") is not None else "Стоимость уточняется",
+                "price_label": price_label(item.get("price")),
                 "format_label": FORMAT_LABELS.get(item.get("format"), item.get("format") or "Не указан"),
             }
         )
@@ -76,6 +83,7 @@ def prepare_catalog(items, params, today=None):
         "start_label",
         "price_label",
         "enrollment",
+        "source_url",
     )
     return {
         "items": selected,

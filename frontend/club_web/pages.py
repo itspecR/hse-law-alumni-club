@@ -9,7 +9,7 @@ from club_web.calendar import google_calendar, instant, month_view
 from club_web.catalog import UPCOMING_LIMIT, club_programs_preview, prepare_catalog
 from club_web.changes import parse_changes, select_changes
 from club_web.client import ApiFailure
-from club_web.formatting import page_items, rub
+from club_web.formatting import page_items, rub, safe_url
 from club_web.office import (
     CHOICES,
     CREATE_DEFAULTS,
@@ -139,7 +139,7 @@ def select_page(path):
         section = path.removeprefix("/admin/") if path != "/admin" else "overview"
         return "office.html", dict(OFFICE_NAV)[section]
     for prefix, template in (
-        ("/dpo/", "program.html"),
+        ("/dpo/", "not-found.html"),
         ("/portfolio/", "portfolio-program.html"),
         ("/merch/", "product.html"),
         ("/news/", "article.html"),
@@ -157,8 +157,19 @@ def with_member_prices(program, levels):
     return {**program, "member_prices": rows, "member_price_map": {row["level"]: rub(row["price"]) for row in rows}}
 
 
+def with_member_from(program, levels):
+    if not program.get("price"):
+        return program
+    return {**program, "member_from": rub(min(row["price"] for row in member_prices(program["price"], levels)))}
+
+
+def program_redirect(item):
+    url = safe_url((item or {}).get("source_url"))
+    return url if url.startswith("https://") else ""
+
+
 def home_programs(programs, levels, today=None):
-    catalog = prepare_catalog([item for item in programs if item.get("price") is not None], {}, today)
+    catalog = prepare_catalog([item for item in programs if item.get("price")], {}, today)
     starts = catalog["upcoming"]
     shown = starts or [item for item in catalog["items"] if item.get("enrollment") == "actual"][:UPCOMING_LIMIT]
     return {
@@ -273,6 +284,7 @@ async def context(api, path, params, authorized=False):
         data["kind"] = kind
         if kind == "dpo":
             data.update(prepare_catalog(data["items"], params))
+            data["items"] = [with_member_from(item, data["domain"]["levels"]) for item in data["items"]]
         else:
             fields = ("category",)
             data["filters"] = {
@@ -298,9 +310,11 @@ async def context(api, path, params, authorized=False):
         await load("item", "/portfolio/" + quote(path.rsplit("/", 1)[1], safe=""), {})
         if data["item"]:
             data["title"] = data["item"]["title"]
-    elif path.startswith(("/dpo/", "/news/")):
-        endpoint = "/programs/" if path.startswith("/dpo/") else "/news/"
-        await load("item", endpoint + quote(path.rsplit("/", 1)[1], safe=""), {})
+    elif path.startswith("/dpo/"):
+        await load("item", "/programs/" + quote(path.rsplit("/", 1)[1], safe=""), {})
+        data["redirect"] = program_redirect(data["item"])
+    elif path.startswith("/news/"):
+        await load("item", "/news/" + quote(path.rsplit("/", 1)[1], safe=""), {})
         if data["item"]:
             data["title"] = data["item"]["title"]
     elif path.startswith("/merch/"):

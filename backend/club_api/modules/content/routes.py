@@ -45,9 +45,8 @@ async def sitemap(request: HttpRequest):
     now = time.monotonic()
     if cached and now - cached[0] < 3600:
         return HttpResponse(cached[1], content_type="application/xml")
-    news, programs, portfolio = await asyncio.gather(
+    news, portfolio = await asyncio.gather(
         state.store.read("news", filters=PUBLISHED, fields=("slug", "published_at"), limit=-1),
-        state.store.read("programs", filters=PUBLISHED_DPO, fields=("slug",), limit=-1),
         state.store.read("programs", filters=PUBLISHED_PORTFOLIO, fields=("slug",), limit=-1),
     )
     urls = [
@@ -68,7 +67,6 @@ async def sitemap(request: HttpRequest):
             )
             for item in news
         ],
-        *[("/dpo/" + quote(item["slug"], safe=""), "0.6", "monthly", None) for item in programs],
         *[("/portfolio/" + quote(item["slug"], safe=""), "0.6", "monthly", None) for item in portfolio],
         *[(path, "0.3", "yearly", None) for path in ("/privacy", "/confidential", "/requisites")],
     ]
