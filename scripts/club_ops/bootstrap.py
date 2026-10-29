@@ -156,10 +156,10 @@ async def ensure_site(connection, public_url):
     site = {
         "title": existing("project_name")
         if existing("project_name") not in (None, "Directus")
-        else "Клуб выпускников факультета права Вышки",
+        else "Клуб выпускников факультета права НИУ ВШЭ",
         "description": existing(
             "project_descriptor",
-            "Клуб выпускников факультета права Вышки: программы ДПО, мерч, подкасты и кабинет участника.",
+            "Клуб выпускников факультета права НИУ ВШЭ: программы ДПО, мерч, подкасты и кабинет участника.",
         ),
         "url": existing("project_url", public_url),
         "language": existing("default_language", "ru-RU"),

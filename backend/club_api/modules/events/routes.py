@@ -202,7 +202,7 @@ async def calendar(request: HttpRequest, id: str):
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//Клуб выпускников факультета права Вышки//RU",
+        "PRODID:-//Клуб выпускников факультета права НИУ ВШЭ//RU",
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
         "BEGIN:VEVENT",

@@ -42,6 +42,11 @@ class TextStyleTests(unittest.TestCase):
         self.assertTrue(text_style.data_failures({"text": "после подтверждения учебным офисом"}))
         self.assertEqual(text_style.template_failures("<p>Панель управления клуба</p>"), [])
 
+    def test_old_club_name_is_detected(self):
+        self.assertTrue(text_style.python_failures('name = "Клуб выпускников факультета права Вышки"'))
+        self.assertTrue(text_style.template_failures("<small>факультета права&nbsp;Вышки</small>"))
+        self.assertEqual(text_style.template_failures("<p>Клуб выпускников факультета права НИУ ВШЭ</p>"), [])
+
 
 if __name__ == "__main__":
     unittest.main()
