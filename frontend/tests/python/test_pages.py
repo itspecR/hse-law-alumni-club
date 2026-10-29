@@ -768,6 +768,15 @@ async def test_event_form_picks_moscow_date_and_time():
     )
 
 
+async def test_login_search_and_mini_texts_follow_glossary(browser_client):
+    login = (await browser_client.get("/lk")).text
+    note = "Скидка выпускника и все разделы кабинета откроются, когда учебный офис подтвердит статус выпускника."
+    assert note in login and "Войти можно после того" not in login
+    search = (await browser_client.get("/search")).text
+    assert search.count("<label>Программы, события, новости, подкасты, изменения в праве<input") == 2
+    assert "<p>Баллы, заявки и скидка выпускника.</p>" in (await browser_client.get("/tg")).text
+
+
 def test_portfolio_start_and_price_follow_open_cohorts():
     cohorts = [{"starts_on": "2026-12-01", "price": 3900000}, {"starts_on": "2027-02-01", "price": 4500000}]
     item = {**PORTFOLIO, "cohorts": cohorts}

@@ -45,7 +45,7 @@
 </aside>
 <form class="cabinet-gate__form" data-api="/auth/{{ 'admin-login' if office else 'login' }}" data-login="{{ 'office' if office else 'member' }}">
 <h1>{{ 'Панель учебного офиса' if office else 'Вход для выпускников' }}</h1>
-<p>{{ 'Вход для сотрудников учебного офиса.' if office else 'Войти можно после того, как учебный офис подтвердит статус выпускника.' }}</p>{{ field('email','Почта',type='email') }}{{ field('password','Пароль',type='password') }}<p role="alert" data-error hidden>
+<p>{{ 'Вход для сотрудников учебного офиса.' if office else 'Скидка выпускника и все разделы кабинета откроются, когда учебный офис подтвердит статус выпускника.' }}</p>{{ field('email','Почта',type='email') }}{{ field('password','Пароль',type='password') }}<p role="alert" data-error hidden>
 </p>
 <button class="site-primary">{{ 'Войти' if office else 'Войти в кабинет' }}</button>
 {% if not office %}
