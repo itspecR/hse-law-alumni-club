@@ -6,7 +6,7 @@ from urllib.parse import quote, urlencode
 
 from club_web import features
 from club_web.calendar import google_calendar, instant, month_view
-from club_web.catalog import UPCOMING_LIMIT, prepare_catalog
+from club_web.catalog import UPCOMING_LIMIT, club_programs_preview, prepare_catalog
 from club_web.changes import parse_changes, select_changes
 from club_web.client import ApiFailure
 from club_web.formatting import page_items, rub
@@ -252,6 +252,7 @@ async def context(api, path, params, authorized=False):
             load("page", "/pages/home", {}),
             load("news", "/news?limit=3", []),
             load("programs", "/programs", []),
+            load("portfolio", "/portfolio", []),
             load("events", "/events", []),
             load("podcasts", "/podcasts", {"items": []}),
         )
@@ -263,6 +264,7 @@ async def context(api, path, params, authorized=False):
             key=lambda item: instant(item["starts_at"]),
         )[:2]
         data.update(home_programs(data["programs"], data["domain"]["levels"]))
+        data["club_programs"] = club_programs_preview(page_items(data["portfolio"]))
         data["episodes"] = page_items(data["podcasts"])[:HOME_EPISODES]
         data["recent_changes"] = recent_changes() if features.CHANGES_ENABLED else []
     elif path in ("/dpo", "/merch"):

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% from 'macros.html' import program_card %}
 {% block content %}
 {% set title_pre = hero.title_pre or 'Свои люди' %}
 {% set title_accent = hero.title_accent or 'после выпуска.' %}
@@ -38,6 +39,27 @@
 <li class="lux-step lux-reveal" style="--d:2"><h3>Кабинет</h3><p>Откроются скидка выпускника, запись на&nbsp;события, подписка на&nbsp;подкасты и&nbsp;раздел однокурсников.</p></li>
 </ol>
 <div class="lux-wrap lux-join__cta lux-reveal"><a href="/join" class="foc lux-btn" data-member-link>{{ join_label }}</a></div>
+</section>
+
+<section class="lux-section lux-portfolio" id="club-programs" aria-labelledby="lux-portfolio-title">
+<div class="lux-wrap lux-split">
+<h2 class="lux-h2 lux-reveal" id="lux-portfolio-title">Программы клуба.</h2>
+<p class="lux-lede lux-reveal" style="--d:1">Курсы дополнительного образования, которые проводит клуб.</p>
+</div>
+<div class="lux-wrap">
+{% if 'portfolio' in load_errors %}
+<p class="lux-portfolio__note" role="status">Программы не&nbsp;загрузились. Обновите страницу или откройте портфель программ.</p>
+{% elif club_programs %}
+<div class="site-catalog">
+{% for item in club_programs %}
+{{ program_card(item,'h3') }}
+{% endfor %}
+</div>
+{% else %}
+<p class="lux-portfolio__note">Программы скоро появятся.</p>
+{% endif %}
+{% if club_programs or 'portfolio' in load_errors %}<a href="/portfolio" class="foc lux-more">Все программы клуба <span class="lux-more__arrow" aria-hidden="true">›</span></a>{% endif %}
+</div>
 </section>
 
 <section class="lux-section lux-dpo" id="dpo-prices" aria-labelledby="lux-dpo-title">

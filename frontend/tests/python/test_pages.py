@@ -1,4 +1,5 @@
 import re
+from datetime import date
 from pathlib import Path
 
 import httpx
@@ -7,6 +8,7 @@ import pytest
 import club_web
 from club_web import office
 from club_web.build import build_public
+from club_web.catalog import club_programs_preview
 from club_web.formatting import local_datetime, payment_url, program_price, program_start, rub, safe_url
 from club_web.main import create_app
 from club_web.office import filter_content
@@ -389,6 +391,58 @@ async def test_home_texts_follow_glossary(browser_client):
     assert "«Друг клуба» с&nbsp;200&nbsp;баллов, «Знаток» с&nbsp;500, «Амбассадор» с&nbsp;1000." in page
     home = (Path(club_web.__file__).parent / "templates/home.html").read_text()
     assert re.findall(".{0,40}[ёЁ–—].{0,20}", home) == []
+
+
+def test_home_club_programs_put_nearest_open_starts_first():
+    today = date(2026, 11, 1)
+    rows = [
+        {"slug": "closed", "enrollment": "nonactual", "cohorts": [{"starts_on": "2026-11-02"}]},
+        {"slug": "undated", "enrollment": "actual", "dates": {}},
+        {"slug": "late", "enrollment": "actual", "dates": {"start": "1 декабря 2026"}},
+        {"slug": "past", "enrollment": "actual", "dates": {"start": "2026-10-01"}},
+        {"slug": "soon", "enrollment": "actual", "cohorts": [{"starts_on": "2026-11-05"}]},
+    ]
+    assert [row["slug"] for row in club_programs_preview(rows, today)] == ["soon", "late", "undated"]
+    assert [row["slug"] for row in club_programs_preview([rows[0], rows[3]], today)] == ["past", "closed"]
+
+
+async def test_home_shows_club_programs_after_join_steps(browser_client):
+    page = (await browser_client.get("/")).text
+    assert page.index('id="join-steps"') < page.index('id="club-programs"') < page.index('id="dpo-prices"')
+    block = page[page.index('id="club-programs"') : page.index('id="dpo-prices"')]
+    assert '<h2 class="lux-h2 lux-reveal" id="lux-portfolio-title">Программы клуба.</h2>' in block
+    assert "Курсы дополнительного образования, которые проводит клуб.</p>" in block
+    assert '<h3><a href="/portfolio/club-one">Переговоры для юристов</a></h3>' in block
+    assert "Смешанный · 6 недель · 1 декабря 2026" in block and "45\u00a0000 ₽" in block
+    assert '<a href="/portfolio" class="foc lux-more">Все программы клуба <span' in block
+    assert '<h2><a href="/portfolio/club-one">' in (await browser_client.get("/portfolio")).text
+
+
+@pytest.mark.parametrize(
+    "status,payload,text,link",
+    [
+        (200, [], '<p class="lux-portfolio__note">Программы скоро появятся.</p>', False),
+        (
+            503,
+            {"error": "Сервис временно недоступен"},
+            "Программы не&nbsp;загрузились. Обновите страницу или откройте портфель программ.",
+            True,
+        ),
+    ],
+)
+async def test_home_club_programs_empty_and_failed_states(status, payload, text, link):
+    async def upstream(request):
+        if request.url.path == "/portfolio":
+            return httpx.Response(status, json=payload)
+        return httpx.Response(200, json={"blocks": {}} if request.url.path == "/pages/home" else [])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            page = (await client.get("/")).text
+    assert text in page and "site-catalog-card" not in page
+    assert ('class="foc lux-more">Все программы клуба' in page) is link
 
 
 async def test_full_club_name_and_merch_text(browser_client):

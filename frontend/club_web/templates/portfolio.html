@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros.html' import save,empty %}
+{% from 'macros.html' import empty,program_card %}
 {% block content %}
 <main id="main" class="site-container catalog-page portfolio-page">
 <header class="site-masthead">
@@ -9,24 +9,7 @@
 {% if items %}<p role="status">Программ: {{ items|length }}</p>{% endif %}
 <div class="site-catalog">
 {% for item in items %}
-<article class="site-catalog-card" data-reveal>
-{% if item.cover|media %}
-<a href="/portfolio/{{ item.slug }}" class="site-card-media site-card-media--program">
-<img src="{{ item.cover|media }}" alt="{{ item.title }}" loading="lazy" decoding="async" width="560" height="380">
-</a>
-{% else %}
-<div class="site-card-media site-card-media--program site-card-media--empty" aria-hidden="true"></div>
-{% endif %}
-<div>
-{% if item.direction %}<span class="club-caps">{{ item.direction }}</span>{% endif %}
-<h2><a href="/portfolio/{{ item.slug }}">{{ item.title }}</a></h2>
-<p>{{ [(format_labels.get(item.format,item.format) or '')|capitalize, item.duration, (item|program_start or '')|date, 'набор закрыт' if item.enrollment=='nonactual' else '']|select|join(' · ') }}</p>
-<p class="site-price">{{ item|program_price }}</p>
-<div class="site-actions">
-<a href="/portfolio/{{ item.slug }}" class="foc lux-more">Подробнее<span class="lux-sr"> о программе «{{ item.title }}»</span> <span class="lux-more__arrow" aria-hidden="true">›</span></a>{{ save('/portfolio/'+item.slug,item.title,'portfolio') }}
-</div>
-</div>
-</article>
+{{ program_card(item) }}
 {% endfor %}
 </div>
 {% if not items and not load_errors %}{{ empty('Программы клуба пока не опубликованы.') }}{% endif %}

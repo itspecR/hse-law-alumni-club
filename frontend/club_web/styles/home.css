@@ -73,6 +73,9 @@
 .lux-step p { margin: 12px 0 0; max-width: 28ch; color: var(--c-text-3); text-wrap: pretty; }
 .lux-join__cta { margin-top: 56px; text-align: center; }
 
+html.lux .lux-portfolio .site-catalog { gap: 56px 24px; margin: 64px 0 48px; }
+.lux-portfolio__note { margin: 48px 0 32px; max-width: 64ch; font-size: 15px; color: var(--c-text-3); text-wrap: pretty; }
+
 .lux-tile { overflow: clip; border-radius: var(--r-tile); background: var(--c-bg-raised); padding: var(--lux-tile-pad); }
 .lux-calc { margin-top: 56px; }
 .lux-calc__levels { display: grid; gap: 12px; margin: 0; padding: 0; border: 0; min-width: 0; }
@@ -177,6 +180,7 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
   .lux-join__head .lux-lede { margin-inline: 0; }
   .lux-join__photo { margin-top: 40px; }
   .lux-steps { grid-template-columns: 1fr; gap: 28px; margin-top: 40px; }
+  html.lux .lux-portfolio .site-catalog { gap: 48px; margin: 40px 0 32px; }
   .lux-calc__levels { position: sticky; top: var(--lux-nav); z-index: 2; margin: calc(-1 * var(--lux-tile-pad)) calc(-1 * var(--lux-tile-pad)) 0; padding: var(--lux-tile-pad) var(--lux-tile-pad) 12px; background: var(--c-bg-raised); }
   .lux-seg__opt span { flex-direction: column; gap: 2px; min-width: 0; padding: 8px 2px; font-size: 13px; overflow-wrap: anywhere; hyphens: auto; }
   .lux-acts a { grid-template-columns: 1fr; gap: 4px; }

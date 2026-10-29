@@ -25,19 +25,19 @@ html.lux :is(.catalog-page, .saved-page) .site-filters label { font-size: 13px; 
 html.lux :is(.catalog-page, .saved-page) .site-filters :is(input, select) { margin-top: 8px; font-size: 16px; }
 
 html.lux :is(.catalog-page, .podcasts-page) .site-catalog { gap: 56px 24px; margin: 28px 0 64px; }
-html.lux :is(.catalog-page, .podcasts-page) .site-catalog-card { display: flex; flex-direction: column; border-top: 0; overflow: visible; }
-html.lux :is(.catalog-page, .podcasts-page) .site-catalog-card > div:not(.site-card-media) { display: flex; flex: 1 0 auto; flex-direction: column; padding: 20px 0 0; }
+html.lux :is(.catalog-page, .podcasts-page, .lux-portfolio) .site-catalog-card { display: flex; flex-direction: column; border-top: 0; overflow: visible; }
+html.lux :is(.catalog-page, .podcasts-page, .lux-portfolio) .site-catalog-card > div:not(.site-card-media) { display: flex; flex: 1 0 auto; flex-direction: column; padding: 20px 0 0; }
 html.lux .site-card-media { flex: none; border-radius: var(--r-lg); background: var(--c-bg-raised); }
 html.lux .site-card-media--empty::before { content: ""; position: absolute; inset: 18% 0; background: url("themis-figure.svg") center / contain no-repeat; }
-html.lux :is(.catalog-page, .podcasts-page) .site-catalog-card .club-caps { font-size: 13px; color: var(--c-text-3); }
-html.lux :is(.catalog-page, .podcasts-page) .site-catalog-card h2 { margin: 8px 0; font: 400 21px/1.28 var(--f-body); letter-spacing: -0.015em; text-wrap: pretty; }
-html.lux :is(.catalog-page, .podcasts-page) .site-catalog-card p { margin: 0; font-size: 15px; color: var(--c-text-3); }
-html.lux .catalog-page .site-catalog-card .site-price { margin-top: 16px; font-size: 21px; color: var(--c-text); }
+html.lux :is(.catalog-page, .podcasts-page, .lux-portfolio) .site-catalog-card .club-caps { font-size: 13px; color: var(--c-text-3); }
+html.lux :is(.catalog-page, .podcasts-page, .lux-portfolio) .site-catalog-card :is(h2, h3) { margin: 8px 0; font: 400 21px/1.28 var(--f-body); letter-spacing: -0.015em; text-wrap: pretty; }
+html.lux :is(.catalog-page, .podcasts-page, .lux-portfolio) .site-catalog-card p { margin: 0; font-size: 15px; color: var(--c-text-3); }
+html.lux :is(.catalog-page, .lux-portfolio) .site-catalog-card .site-price { margin-top: 16px; font-size: 21px; color: var(--c-text); }
 html.lux .podcasts-page .site-catalog-card .save-material { margin-top: 16px; }
-html.lux .catalog-page .site-catalog-card .site-actions { margin: auto 0 0; padding-top: 16px; gap: 8px; }
-html.lux .catalog-page .site-catalog-card .site-actions > .lux-more { margin-right: auto; }
-html.lux .catalog-page .site-catalog-card .site-actions form { display: flex; flex-basis: 100%; flex-wrap: wrap; align-items: end; gap: 8px; }
-html.lux .catalog-page .site-catalog-card .site-actions form .site-field { flex: 0 0 96px; font-size: 13px; color: var(--c-text-3); }
+html.lux :is(.catalog-page, .lux-portfolio) .site-catalog-card .site-actions { margin: auto 0 0; padding-top: 16px; gap: 8px; }
+html.lux :is(.catalog-page, .lux-portfolio) .site-catalog-card .site-actions > .lux-more { margin-right: auto; }
+html.lux :is(.catalog-page, .lux-portfolio) .site-catalog-card .site-actions form { display: flex; flex-basis: 100%; flex-wrap: wrap; align-items: end; gap: 8px; }
+html.lux :is(.catalog-page, .lux-portfolio) .site-catalog-card .site-actions form .site-field { flex: 0 0 96px; font-size: 13px; color: var(--c-text-3); }
 html.lux .catalog-page .site-filters ~ p[role="status"] { color: var(--c-text-3); font-size: 15px; }
 
 @media (hover: hover) and (pointer: fine) {
