@@ -33,8 +33,7 @@
 <aside class="site-panel">
 <h2>Оформить заявку</h2>
 <p class="site-price">{{ (cart.estimated_total if cart.estimated_total is defined else cart.subtotal)|rub }}</p>
-{% if cart.member_discount %}<p>Скидка выпускника на программы ДПО: {{ cart.member_discount }}%.</p>{% endif %}
-<p>Итоговая сумма считается при оформлении заявки. Скидка выпускника действует только на программы ДПО.</p>
+<p>Итоговая сумма считается при оформлении заявки. Скидка выпускника на мерч не распространяется.</p>
 <form data-api="/orders" data-checkout>{{ field('contact_fio','ФИО') }}{{ field('contact_phone','Телефон',type='tel') }}{{ field('contact_email','Почта',type='email') }}{% if cart['items']|selectattr('type','equalto','merch')|list %}
 <label class="site-field">Получение<select name="fulfillment">
 <option value="pickup">Самовывоз</option>

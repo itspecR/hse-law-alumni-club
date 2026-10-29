@@ -332,6 +332,21 @@ async def scheduled_sync(state):
 
 
 @api_view(permission=require_admin)
+async def status(request: HttpRequest):
+    await require_admin(request)
+    state = request.services
+    rows = await state.database.rows(
+        "SELECT checked_at,found,created,updated,archived,failures,error FROM club_dpo_sync WHERE id=1"
+    )
+    return {
+        "address": bool(state.settings.DPO_SITE_URL.strip()),
+        "enabled": state.settings.DPO_SYNC_ENABLED == "true",
+        "minute": SYNC_MINUTE,
+        "run": rows[0] if rows else None,
+    }
+
+
+@api_view(permission=require_admin)
 async def sync(request: HttpRequest):
     admin = await require_admin(request)
     site_base(request.services)

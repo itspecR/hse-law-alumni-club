@@ -29,7 +29,7 @@ DESCRIPTIONS = {
     "portfolio": "Программы клуба: карточки, тренеры, цена и набор.",
     "cohorts": "Потоки программ клуба: старт, цена, места и набор.",
     "trainers": "Тренеры программ клуба: ФИО, фото и справка.",
-    "programs": "Каталог программ дополнительного образования.",
+    "programs": "Программы Центра ДПО, загружаются с его сайта автоматически.",
     "products": "Товары клуба, варианты и остатки.",
     "news": "Публикации на сайте и черновики.",
     "news-sources": "Автоматическая загрузка новостей с сайта факультета права.",
@@ -74,6 +74,7 @@ CHOICES = {
     "portfolio": ("title", "Программ портфеля пока нет."),
 }
 SINGLE_CHOICES = {"program": "portfolio"}
+READ_ONLY_SECTIONS = {"programs"}
 CREATE_DEFAULTS = {"promo-codes": {"per_person_limit": 1, "all_programs": True}}
 SECTION_LABELS = {
     "news-sources": {
@@ -208,18 +209,7 @@ FIELDS = {
         ("bio", "Справка", "textarea"),
         ("status", "Статус", "published|draft|archived"),
     ],
-    "programs": [
-        ("title", "Название", "text"),
-        ("direction", "Направление", "text"),
-        ("format", "Формат", "online|offline|blended"),
-        ("duration", "Продолжительность", "text"),
-        ("price", "Цена, копейки", "number"),
-        ("description", "Описание", "textarea"),
-        ("cover", "Обложка", "text"),
-        ("start", "Начало", "text"),
-        ("document", "Документ", "text"),
-        ("status", "Статус", "published|draft|archived"),
-    ],
+    "programs": [("status", "Статус", "published|draft|archived")],
     "products": [
         ("title", "Название", "text"),
         ("category", "Категория", "text"),

@@ -270,41 +270,41 @@ def test_office_navigation_keyboard_and_screen_sizes(page, width):
 
 @pytest.mark.parametrize("width", [1440, 390])
 def test_office_content_filters_preserve_editing(page, site, width):
-    site[1]["/admin/programs"] = [
-        {**PROGRAM, "status": "published"},
-        {**PROGRAM, "id": "draft-program", "title": "Ёлка: учебный курс", "status": "draft"},
+    site[1]["/admin/products"] = [
+        {**PRODUCT, "status": "published"},
+        {**PRODUCT, "id": "draft-product", "title": "Ёлка: сувенир клуба", "status": "draft"},
     ]
     page.set_viewport_size({"width": width, "height": 900})
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
-    page.goto("/admin/programs")
+    page.goto("/admin/products")
     page.get_by_label("Поиск", exact=True).fill("ЕЛКА")
     page.locator("form.site-filters").get_by_label("Статус", exact=True).select_option("draft")
     page.get_by_role("button", name="Показать", exact=True).click()
     expect(page.locator("[data-office-count]")).to_have_text("Показано: 1 из 2")
-    expect(page.get_by_role("heading", name=PROGRAM["title"], exact=True)).to_have_count(0)
+    expect(page.get_by_role("heading", name=PRODUCT["title"], exact=True)).to_have_count(0)
     row = page.locator("article.office-record")
     row.get_by_text("Редактировать", exact=True).click()
-    row.get_by_label("Продолжительность", exact=True).fill("60 часов")
+    row.get_by_label("Категория", exact=True).fill("Сувениры")
 
     def slow_refresh(route):
         time.sleep(0.15)
         route.continue_()
 
-    page.route("**/views/admin/programs?**", slow_refresh)
+    page.route("**/views/admin/products?**", slow_refresh)
     row.get_by_role("button", name="Сохранить", exact=True).click()
     expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
     expect(page.locator("[data-office-count]")).to_have_text("Показано: 1 из 2")
-    assert site[2][-1]["body"]["duration"] == "60 часов"
-    assert site[2][-1]["path"] == "/admin/programs/draft-program"
+    assert site[2][-1]["body"]["category"] == "Сувениры"
+    assert site[2][-1]["path"] == "/admin/products/draft-product"
     assert "status=draft" in page.url
-    page.get_by_label("Поиск", exact=True).fill("Нет такого курса")
+    page.get_by_label("Поиск", exact=True).fill("Нет такого товара")
     page.get_by_role("button", name="Показать", exact=True).click()
     expect(page.get_by_text("По выбранным фильтрам записей нет.", exact=True)).to_be_visible()
     page.get_by_role("link", name="Сбросить", exact=True).click()
     expect(page.locator("article.office-record")).to_have_count(2)
     row = page.locator("article.office-record").last
     row.get_by_text("Редактировать", exact=True).click()
-    page.route("**/views/admin/programs", lambda route: route.fulfill(status=503))
+    page.route("**/views/admin/products", lambda route: route.fulfill(status=503))
     row.get_by_role("button", name="Сохранить", exact=True).click()
     expect(page.locator("#toast")).to_contain_text("Не удалось обновить страницу")
     expect(row.get_by_role("button", name="Сохранить", exact=True)).to_be_enabled()

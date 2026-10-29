@@ -106,21 +106,16 @@ async def test_office_all_filters_are_optional_but_invalid_values_rejected(datab
 async def test_cart_separates_same_slug_across_catalogs_and_keeps_legacy_unique_changes(database_app):
     state = database_app.state
     slug = "shared-catalog-slug"
-    for table in ("products", "programs"):
-        await state.store.create(
-            table,
-            {
-                "title": table,
-                "slug": slug,
-                "price": 10000,
-                "status": "published",
-                **({"stock": 5} if table == "products" else {}),
-            },
-        )
-    headers = {"x-cart-session": str(uuid4())}
+    await state.store.create(
+        "products", {"title": "products", "slug": slug, "price": 10000, "status": "published", "stock": 5}
+    )
+    token = str(uuid4())
+    legacy = {"type": "dpo", "ref_id": slug, "variant_sku": None, "qty": 1, "price": 10000, "title": "programs"}
+    await state.store.create("carts", {"session_token": token, "items_json": [legacy], "updated_at": datetime.now(UTC)})
+    headers = {"x-cart-session": token}
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=database_app), base_url="http://test") as client:
-        for kind in ("dpo", "merch"):
-            assert (await client.post("/cart", headers=headers, json={"type": kind, "ref_id": slug})).status_code == 200
+        assert (await client.post("/cart", headers=headers, json={"type": "dpo", "ref_id": slug})).status_code == 400
+        assert (await client.post("/cart", headers=headers, json={"type": "merch", "ref_id": slug})).status_code == 200
         assert (await client.patch("/cart", headers=headers, json={"ref_id": slug, "qty": 0})).status_code == 409
         changed = await client.patch("/cart", headers=headers, json={"type": "merch", "ref_id": slug, "qty": 3})
         assert changed.status_code == 200

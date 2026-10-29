@@ -1,8 +1,11 @@
-<details class="office-create">
-<summary>Создать запись</summary>{{ content_form() }}</details>
+{% if section not in office_read_only %}<details class="office-create">
+<summary>Создать запись</summary>{{ content_form() }}</details>{% endif %}
 <form class="site-filters" method="get"><label>Поиск<input name="q" type="search" value="{{ query.get('q','') }}" placeholder="{{ 'Заголовок' if section=='news' else 'ФИО' if section=='trainers' else 'Код или заметка' if section=='promo-codes' else 'Программа' if section=='cohorts' else 'Название или направление' }}"></label><label>Статус<select name="status" aria-label="Статус"><option value="">Все</option>{% for value in office_statuses %}<option value="{{ value }}" {% if query.get('status')==value %}selected{% endif %}>{{ labels.get(value,value) }}</option>{% endfor %}</select></label>{% for key,title,values in office_filters %}<label>{{ title }}<select name="{{ key }}" aria-label="{{ title }}"><option value="">Все</option>{% for value in values %}<option value="{{ value }}" {% if query.get(key)==value %}selected{% endif %}>{{ labels.get(value,value) }}</option>{% endfor %}</select></label>{% endfor %}<button>Показать</button><a href="/admin/{{ section }}">Сбросить</a></form>
 <div class="office-toolbar"><p data-office-count>Показано: {{ rows|length }}{% if office_total is defined %} из {{ office_total }}{% endif %}</p>
 {% if section=='programs' %}
+{% set run = dpo_sync.run or {} %}
+<p>{% if not dpo_sync.address %}Адрес сайта Центра ДПО не задан на сервере, каталог не обновляется.{% elif not dpo_sync.enabled %}Загрузка каталога выключена на сервере.{% else %}Каталог обновляется с сайта Центра ДПО каждый час, вручную программы не меняются.{% endif %}{% if run.checked_at %} Последняя проверка {{ run.checked_at|date(true) }} · программ: {{ run.found or 0 }}.{% endif %}</p>
+{% if run.error %}<p class="office-source-error">{{ run.error }}</p>{% endif %}
 <button data-api="/admin/dpo-sync">Обновить каталог ДПО</button>
 {% endif %}
 </div>
@@ -15,13 +18,13 @@
 </div>
 <p class="office-meta">{% if section=='portfolio' %}{{ format_labels.get(record.format,record.format) }} · {{ record.duration }} · {{ record.price|rub }} · {{ labels.get(record.enrollment,record.enrollment) }}{% for id in record.trainer_ids or [] %}{{ ' · ' if loop.first else ', ' }}{{ office_names.trainers.get(id,'') }}{% endfor %}{% elif section=='promo-codes' %}{{ record.percent }}% · с {{ record.starts_on|date }} по {{ record.ends_on|date }} · использовано: {{ record.used }}{% if record.total_limit %} из {{ record.total_limit }}{% endif %} · {{ 'на человека: '~record.per_person_limit if record.per_person_limit else 'без лимита на человека' }} · {% if record.all_programs %}все программы портфеля{% else %}{% for id in record.program_ids or [] %}{{ '' if loop.first else ', ' }}{{ office_names.portfolio.get(id,'') }}{% endfor %}{% endif %}{% elif section=='cohorts' %}{{ record.price_label }} · {% if record.capacity %}подтверждено мест: {{ record.taken }} из {{ record.capacity }}{% else %}без лимита мест, подтверждено: {{ record.taken }}{% endif %}{% if record.closure %} · {{ record.closure }}{% endif %}{% elif section=='trainers' %}{{ (record.bio or 'Справка не заполнена')|truncate(160) }}{% elif section=='programs' %}{{ record.direction }} · {{ format_labels.get(record.format,record.format) }} · {{ record.price|rub }}{% elif section=='products' %}{{ record.category }} · {{ record.price|rub }} · в наличии: {{ record.stock }}{% elif section=='news' %}{{ record.published_at|date(true) }} · {{ labels.get(record.origin or 'club') }}{% if record.status=='published' and record.slug %} · <a href="/news/{{ record.slug }}" target="_blank" rel="noopener noreferrer">Открыть на сайте</a>{% endif %}{% elif section=='events' %}{{ record.starts_at|date(true) }} · {{ record.location or '' }}{% elif section=='podcasts' %}{{ record.duration or 'Продолжительность не указана' }} · {{ 'Пробный выпуск' if record.is_free else 'По подписке' }}{% elif section=='timeline' %}{{ record.year }} · {{ record.metric or '' }}{% endif %}</p>
 {% if section=='promo-codes' and record.note %}<p class="office-meta">{{ record.note }}</p>{% endif %}
-<details>
-<summary>Редактировать</summary>{{ content_form(record) }}</details>
+{% if section not in office_read_only %}<details>
+<summary>Редактировать</summary>{{ content_form(record) }}</details>{% endif %}
 <div class="site-actions">
 {% if section=='events' %}
 <a href="/admin/events?id={{ record.id }}">Список участников · {{ record.rsvp_count or 0 }}</a>
 {% endif %}
-<button class="site-danger" data-api="/admin/{{ section }}/{{ record.id }}" data-method="DELETE" data-confirm="{{ 'Удалить тренера? Он исчезнет из всех программ.' if section=='trainers' else 'Удалить промокод? В отправленных заявках код сохранится.' if section=='promo-codes' else 'Удалить поток? Поток с заявками удалить нельзя, вместо этого закройте набор.' if section=='cohorts' else 'Удалить программу? Программу с заявками удалить нельзя, вместо этого переведите ее в архив.' if section=='portfolio' else 'Удалить эту запись?' }}">Удалить</button>
+{% if section in office_read_only %}{% if record.source_url|safe_url %}<a href="{{ record.source_url|safe_url }}" target="_blank" rel="noopener noreferrer">Открыть на сайте Центра ДПО ↗</a>{% endif %}{% else %}<button class="site-danger" data-api="/admin/{{ section }}/{{ record.id }}" data-method="DELETE" data-confirm="{{ 'Удалить тренера? Он исчезнет из всех программ.' if section=='trainers' else 'Удалить промокод? В отправленных заявках код сохранится.' if section=='promo-codes' else 'Удалить поток? Поток с заявками удалить нельзя, вместо этого закройте набор.' if section=='cohorts' else 'Удалить программу? Программу с заявками удалить нельзя, вместо этого переведите ее в архив.' if section=='portfolio' else 'Удалить эту запись?' }}">Удалить</button>{% endif %}
 </div>
 </article>
 {% else %}{{ empty('По выбранным фильтрам записей нет.' if query.get('q') or query.get('status') else 'Записей пока нет.') }}{% endfor %}

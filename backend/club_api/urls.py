@@ -58,7 +58,7 @@ routes = (
         path("points", endpoint({"POST": gamification_routes.points})),
         path("decay/run", endpoint({"POST": gamification_routes.decay})),
         path("me/ledger", endpoint({"GET": gamification_routes.ledger})),
-        path("admin/dpo-sync", endpoint({"POST": catalog_sync.sync})),
+        path("admin/dpo-sync", endpoint({"GET": catalog_sync.status, "POST": catalog_sync.sync})),
         path("admin/pages/<str:slug>", endpoint({"GET": content_admin.admin_page, "PATCH": content_admin.patch_page})),
         path("robots.txt", endpoint({"GET": content_routes.robots})),
         path("sitemap.xml", endpoint({"GET": content_routes.sitemap})),
