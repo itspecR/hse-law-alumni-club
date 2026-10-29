@@ -2543,6 +2543,7 @@ def test_portfolio_pages_fit_and_save_to_reading_list(page, width):
     expect(page.get_by_role("heading", name="Тренер", exact=True)).to_be_visible()
     expect(page.locator("aside.site-panel")).to_contain_text("Мест в группе")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    page.wait_for_load_state("load")
     page.locator("aside.site-panel").get_by_role("button", name="Сохранить", exact=True).click()
     expect(page.locator("aside.site-panel").get_by_role("button", name="Сохранено", exact=True)).to_be_visible()
     page.goto("/saved")

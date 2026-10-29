@@ -2,10 +2,15 @@ import re
 from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
-from club_web.formatting import FORMAT_LABELS, MONTHS, rub
+from club_web.formatting import FORMAT_LABELS, MONTHS, program_start, rub
 from club_web.formatting import date as date_label
 
 UPCOMING_LIMIT = 6
+HOME_CLUB_PROGRAMS = 3
+
+
+def moscow_today():
+    return datetime.now(UTC).astimezone(ZoneInfo("Europe/Moscow")).date()
 
 
 def start_day(value):
@@ -25,7 +30,7 @@ def start_day(value):
 
 
 def prepare_catalog(items, params, today=None):
-    today = today or datetime.now(UTC).astimezone(ZoneInfo("Europe/Moscow")).date()
+    today = today or moscow_today()
     programs = []
     for item in items:
         start = (item.get("dates") or {}).get("start") or ""
@@ -78,3 +83,14 @@ def prepare_catalog(items, params, today=None):
         "upcoming": upcoming,
         "program_data": [{key: item.get(key) or "" for key in public_fields} for item in programs],
     }
+
+
+def preview_order(item, today):
+    day = start_day(program_start(item))
+    upcoming = day is not None and day >= today
+    return item.get("enrollment") == "nonactual", not upcoming, day if upcoming else date.max
+
+
+def club_programs_preview(items, today=None):
+    today = today or moscow_today()
+    return sorted(items, key=lambda item: preview_order(item, today))[:HOME_CLUB_PROGRAMS]
