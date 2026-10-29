@@ -57,9 +57,10 @@ def test_all_legacy_routes_are_present():
         ("PATCH", "/admin/orders/{id}/discount"),
         ("PATCH", "/admin/orders/{id}/cohort"),
         ("POST", "/admin/news-sources/refresh"),
+        ("PATCH", "/admin/news-sources/settings"),
     }
     retired = {("POST", "/admin/news-sources/{source}/refresh"), ("POST", "/admin/news-sources/{id}/import")}
-    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 141
+    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 142
 
 
 def test_hse_state_dates_and_manual_fields():

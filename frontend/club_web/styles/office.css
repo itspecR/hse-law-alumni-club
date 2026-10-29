@@ -58,6 +58,8 @@
 .office-meta { color:var(--c-text-3); font-size:14px; }
 .office-record-head+.office-meta { margin:0 0 16px; }
 .office-rich { min-height:320px; }
+.office-news-schedule { display:flex; flex-wrap:wrap; align-items:end; gap:16px 24px; margin-bottom:16px; }
+.office-news-schedule .site-field { margin:0; }
 .office-hint { display:block; margin-top:6px; color:var(--c-text-3); font-size:13px; line-height:1.5; }
 .office-status { display:inline-flex; align-items:center; gap:6px; max-width:100%; padding:4px 8px; border-radius:var(--r-sm); background:var(--c-bg-sunken); color:var(--c-text-2); font-size:12px; font-weight:600; overflow-wrap:anywhere; }
 .office-status::before { content:''; flex:none; width:6px; height:6px; border-radius:50%; background:currentColor; }

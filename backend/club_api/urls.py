@@ -101,6 +101,7 @@ routes = (
         path("admin/podcast-subs", endpoint({"GET": podcasts_routes.subscribers})),
         path("admin/news-sources", endpoint({"GET": news_routes.sources})),
         path("admin/news-sources/refresh", endpoint({"POST": news_routes.refresh})),
+        path("admin/news-sources/settings", endpoint({"PATCH": news_routes.settings})),
         path("admin/news-sources/<str:id>", endpoint({"PATCH": news_routes.patch})),
         path("support/config", endpoint({"GET": support_routes.config})),
         path("support/faq-event", endpoint({"POST": support_routes.faq_event})),

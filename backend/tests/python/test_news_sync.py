@@ -1,12 +1,16 @@
 import io
+from datetime import datetime
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
 from PIL import Image
 from test_community_integration import account
 
+from club_api.core.models import CLUB_TIMEZONE
+from club_api.modules.news import schedule
 from club_api.modules.news.article import parse_article
-from club_api.modules.news.importer import sync_news
+from club_api.modules.news.importer import FAILURE_ALERT, sync_news
 from club_api.modules.news.sources import SOURCES, canonical_news_url, parse_source
 
 ALUMNI, TAG = (source["url"] for source in SOURCES)
@@ -160,3 +164,70 @@ async def test_deleted_or_dismissed_news_never_return(faculty):
     assert [row["added"] for row in result["sources"]] == [0, 0]
     assert set(await faculty_news(app)) == {SECOND}
     assert (await inbox(app))[FIRST]["state"] == "imported"
+
+
+def moscow(day, hour, minute):
+    return datetime(2026, 10, day, hour, minute, tzinfo=CLUB_TIMEZONE)
+
+
+@pytest.mark.parametrize(
+    "moment,interval,expected",
+    [
+        (moscow(29, 14, 10), 3, moscow(29, 15, 17)),
+        (moscow(29, 15, 20), 3, moscow(29, 18, 17)),
+        (moscow(29, 14, 17), 1, moscow(29, 15, 17)),
+        (moscow(29, 1, 0), 24, moscow(30, 0, 17)),
+        (moscow(29, 23, 30), 6, moscow(30, 0, 17)),
+    ],
+)
+def test_next_check_is_at_minute_17_of_hours_divisible_by_interval(moment, interval, expected):
+    assert schedule.next_check(moment, interval) == expected
+
+
+async def test_scheduled_check_follows_panel_settings(database_app, monkeypatch):
+    calls = []
+    monkeypatch.setattr(schedule, "sync_news", AsyncMock(side_effect=lambda state: calls.append(1)))
+    assert await schedule.news_settings(database_app.state) == {"enabled": False, "interval_hours": 3}
+    await schedule.scheduled_news(database_app.state, moscow(29, 15, 17))
+    await schedule.save_settings(database_app.state, True, 3)
+    await schedule.scheduled_news(database_app.state, moscow(29, 16, 17))
+    await schedule.scheduled_news(database_app.state, moscow(29, 15, 17))
+    await schedule.save_settings(database_app.state, True, 24)
+    await schedule.scheduled_news(database_app.state, moscow(29, 15, 17))
+    await schedule.scheduled_news(database_app.state, moscow(30, 0, 17))
+    assert len(calls) == 2
+
+
+async def test_panel_saves_schedule_and_rejects_unknown_interval(database_app):
+    app = database_app
+    _, headers = await account(app, "admin")
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://localhost") as client:
+        saved = await client.patch(
+            "/admin/news-sources/settings", headers=headers, json={"enabled": True, "interval_hours": "6"}
+        )
+        assert saved.status_code == 200
+        plan = (await client.get("/admin/news-sources", headers=headers)).json()["schedule"]
+        wrong = await client.patch(
+            "/admin/news-sources/settings", headers=headers, json={"enabled": True, "interval_hours": "5"}
+        )
+        anonymous = await client.patch("/admin/news-sources/settings", json={"enabled": False, "interval_hours": "3"})
+    assert (plan["enabled"], plan["interval_hours"], plan["intervals"]) == (True, 6, [1, 3, 6, 12, 24])
+    assert plan["allowed"] is False and plan["next_check"] is None
+    assert wrong.status_code == 400 and anonymous.status_code in (401, 403)
+    assert await schedule.news_settings(app.state) == {"enabled": True, "interval_hours": 6}
+
+
+async def test_staff_are_alerted_once_after_three_failures_in_a_row(faculty):
+    app, _, broken = faculty
+    app.state.notifications.office_text = AsyncMock()
+    broken.add(TAG)
+    for _ in range(FAILURE_ALERT + 1):
+        await sync_news(app.state, delay=0)
+    app.state.notifications.office_text.assert_awaited_once()
+    text = app.state.notifications.office_text.await_args.args[0]
+    assert text.startswith("Источник новостей «Новости факультета с темой «выпускники»» не отвечает 3 проверки подряд")
+    assert text.endswith("раздел «Источники новостей».")
+    broken.discard(TAG)
+    await sync_news(app.state, delay=0)
+    runs = {row["source"]: row for row in await app.state.database.rows("SELECT * FROM club_news_source_runs")}
+    assert (runs["alumni-tag"]["failures"], runs["alumni-tag"]["error"]) == (0, None)
