@@ -279,27 +279,25 @@ def test_live_system(name, width, height):
         expect(page.get_by_label("ФИО", exact=True)).to_have_value(updated_name)
         profile_tools(page, request, auth(previous_token), IMAGE)
         support_conversation(page, office, request, headers, name)
-        program = result(
+        product = result(
             request.post(
-                "/api/admin/programs",
+                "/api/admin/products",
                 headers=headers,
                 data={
-                    "title": "Локальный курс " + name,
-                    "direction": "Право",
-                    "format": "online",
-                    "duration": "16 часов",
+                    "title": "Локальный товар " + name,
+                    "category": "Одежда",
                     "price": 100000,
+                    "stock": 5,
                     "description": "Синтетическая запись для проверки заявки.",
                     "status": "published",
                 },
             )
         )
-        page.goto("/dpo")
-        course = page.locator("article.site-catalog-card").filter(has_text="Локальный курс " + name)
+        page.goto("/merch/" + product["slug"])
         with page.expect_response(
             lambda response: response.url.endswith("/api/cart") and response.request.method == "POST"
         ) as added:
-            course.get_by_role("button", name="В корзину", exact=True).click()
+            page.get_by_role("button", name="В корзину", exact=True).click()
         result(added.value)
         page.goto("/cart")
         page.get_by_label("ФИО", exact=True).fill(updated_name)
@@ -311,7 +309,7 @@ def test_live_system(name, width, height):
         ) as submitted:
             page.get_by_role("button", name="Отправить заявку", exact=True).click()
         order = result(submitted.value)
-        assert order["total_estimate"] == 95000
+        assert order["total_estimate"] == 100000
         assert order["notified"]["ok"]
         expect(page.get_by_role("heading", name="Заявка отправлена")).to_be_visible()
         page.goto("/lk?section=orders")
@@ -402,7 +400,7 @@ def test_live_system(name, width, height):
             "revokedAdmin": admin_token,
             "order": order["number"],
             "name": updated_name,
-            "product": program["slug"],
+            "product": product["slug"],
             "event": event["id"],
         }
         descriptor = os.open(state_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
@@ -423,8 +421,8 @@ def test_live_offline_reading(width):
         items = result(context.request.get("/api/news?limit=1"))
         prefix = "/news/"
         if not items:
-            items = result(context.request.get("/api/programs"))
-            prefix = "/dpo/"
+            items = result(context.request.get("/api/products"))
+            prefix = "/merch/"
         assert items, "Для офлайн-проверки нужен опубликованный материал"
         item = items[0]
         path = prefix + item["slug"]
