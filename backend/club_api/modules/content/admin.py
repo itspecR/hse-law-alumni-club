@@ -9,10 +9,26 @@ from club_api.core.errors import ApiError
 from club_api.core.models import club_moment, guid, partial, unique_slug, web_url
 from club_api.core.views import api_view, endpoint, parse_body
 from club_api.db.queries import Query
-from club_api.domain import DPO_CATALOG
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin
+from club_api.modules.catalog.scope import DPO_PROGRAMS
 from club_api.observability.audit import audit
+
+DPO_ADMIN_FIELDS = (
+    "id",
+    "slug",
+    "title",
+    "direction",
+    "format",
+    "duration",
+    "price",
+    "status",
+    "enrollment",
+    "source_url",
+    "dates",
+    "document",
+    "cover",
+)
 
 
 class NewsBody(Body):
@@ -43,19 +59,6 @@ class TimelineBody(Body):
     metric: str | None = None
     sort: int = None
     status: Literal["draft", "published"] = "published"
-
-
-class ProgramBody(Body):
-    title: str = Field(min_length=3)
-    direction: str = Field(min_length=2)
-    format: Literal["online", "offline", "blended"]
-    duration: str = Field(min_length=1)
-    price: int = Field(ge=0, le=9007199254740991)
-    description: str | None = None
-    cover: str | None = None
-    start: str | None = None
-    document: str | None = None
-    status: Literal["draft", "published", "archived"] = "published"
 
 
 class Variant(Body):
@@ -212,6 +215,14 @@ def content_crud(route, table, model, *, sort, fields, subject, notify=None, sco
     ]
 
 
+@api_view(permission=require_admin)
+async def dpo_programs(request: HttpRequest):
+    await require_admin(request)
+    return await request.services.store.read(
+        "programs", filters=DPO_PROGRAMS, sort=("title",), fields=DPO_ADMIN_FIELDS, limit=-1
+    )
+
+
 urlpatterns = []
 
 urlpatterns += content_crud(
@@ -230,30 +241,7 @@ urlpatterns += content_crud(
     fields=("id", "year", "title", "text", "metric", "sort", "status"),
     subject="timeline",
 )
-urlpatterns += content_crud(
-    "/admin/programs",
-    "programs",
-    ProgramBody,
-    scope={"catalog": DPO_CATALOG},
-    sort=("title",),
-    fields=(
-        "id",
-        "slug",
-        "title",
-        "direction",
-        "format",
-        "duration",
-        "price",
-        "status",
-        "enrollment",
-        "source_url",
-        "dates",
-        "document",
-        "description",
-        "cover",
-    ),
-    subject="program",
-)
+urlpatterns.append(path("admin/programs", endpoint({"GET": dpo_programs}), name="admin_programs_collection"))
 urlpatterns += content_crud(
     "/admin/products",
     "products",

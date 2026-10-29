@@ -19,6 +19,7 @@ from club_web.office import (
     ICONS,
     LABELS,
     METRICS,
+    READ_ONLY_SECTIONS,
     SECTION_FILTERS,
     SECTION_LABELS,
     SINGLE_CHOICES,
@@ -227,6 +228,7 @@ async def context(api, path, params, authorized=False):
         "office_single": SINGLE_CHOICES,
         "office_cohorts": {},
         "office_defaults": CREATE_DEFAULTS,
+        "office_read_only": READ_ONLY_SECTIONS,
         "office_options": {},
         "office_names": {},
         "labels": LABELS,
@@ -461,6 +463,8 @@ async def context(api, path, params, authorized=False):
                     await load("records", OFFICE_ENDPOINTS[section] + ("?" + query if query else ""), [])
                 if section == "overview":
                     await load("health", "/admin/system-health", {})
+                if section == "programs":
+                    await load("dpo_sync", "/admin/dpo-sync", {})
                 for source in choice_sources(section):
                     rows = page_items(await load("choices:" + source, OFFICE_ENDPOINTS[source], []))
                     data["office_options"][source] = choice_options(source, rows)

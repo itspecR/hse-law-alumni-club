@@ -101,39 +101,35 @@ class Checkout:
             for item in sorted(
                 base["items_json"], key=lambda item: (item["type"], item["ref_id"], item.get("variant_sku") or "")
             ):
-                query = (
-                    "SELECT * FROM products WHERE slug=%s FOR UPDATE"
-                    if item["type"] == "merch"
-                    else "SELECT * FROM programs WHERE slug=%s FOR UPDATE"
-                )
-                product = await (await connection.execute(query, (item["ref_id"],))).fetchone()
+                product = await (
+                    await connection.execute("SELECT * FROM products WHERE slug=%s FOR UPDATE", (item["ref_id"],))
+                ).fetchone()
                 if (
-                    not product
+                    item["type"] != "merch"
+                    or not product
                     or product["status"] != "published"
                     or product["price"] != item["price"]
-                    or (item["type"] == "dpo" and (product["source_url"] or product["enrollment"] == "nonactual"))
                 ):
                     raise ApiError(409, "Цена или доступность позиции изменились. Обновите корзину.")
                 if type(item["qty"]) is not int or not 1 <= item["qty"] <= 99:
                     raise ApiError(409, "Некорректное количество.")
-                if item["type"] == "merch":
-                    variants = product["variants_json"] or []
-                    variant = next((value for value in variants if value["sku"] == item.get("variant_sku")), None)
-                    if (variants and not variant) or (not variants and item.get("variant_sku")):
-                        raise ApiError(409, "Вариант товара больше недоступен.")
-                    stock = variant["stock"] if variant else product["stock"]
-                    if type(stock) is not int or stock < item["qty"]:
-                        raise ApiError(409, f"Товара «{item['title']}» не хватает на складе.")
-                    if variant:
-                        variant["stock"] -= item["qty"]
-                        await connection.execute(
-                            "UPDATE products SET variants_json=%s WHERE id=%s", (Jsonb(variants), product["id"])
-                        )
-                    else:
-                        await connection.execute(
-                            "UPDATE products SET stock=stock-%s WHERE id=%s", (item["qty"], product["id"])
-                        )
-                    reservations.append({"id": str(product["id"]), "sku": item.get("variant_sku"), "qty": item["qty"]})
+                variants = product["variants_json"] or []
+                variant = next((value for value in variants if value["sku"] == item.get("variant_sku")), None)
+                if (variants and not variant) or (not variants and item.get("variant_sku")):
+                    raise ApiError(409, "Вариант товара больше недоступен.")
+                stock = variant["stock"] if variant else product["stock"]
+                if type(stock) is not int or stock < item["qty"]:
+                    raise ApiError(409, f"Товара «{item['title']}» не хватает на складе.")
+                if variant:
+                    variant["stock"] -= item["qty"]
+                    await connection.execute(
+                        "UPDATE products SET variants_json=%s WHERE id=%s", (Jsonb(variants), product["id"])
+                    )
+                else:
+                    await connection.execute(
+                        "UPDATE products SET stock=stock-%s WHERE id=%s", (item["qty"], product["id"])
+                    )
+                reservations.append({"id": str(product["id"]), "sku": item.get("variant_sku"), "qty": item["qty"]})
             number = await self.record_order(connection, key, request_hash, base, reservations)
             await connection.execute(
                 Query(

@@ -79,7 +79,7 @@ async def create_order(request: HttpRequest):
     priced = []
     for item in items:
         info = catalog.get(item["type"] + ":" + item["ref_id"])
-        if not info or (item["type"] == "dpo" and (info["source_url"] or info["enrollment"] == "nonactual")):
+        if not info:
             unavailable.append(item["title"] or item["ref_id"])
         else:
             priced.append({**item, "price": info["price"], "title": info["title"]})

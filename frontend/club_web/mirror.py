@@ -65,6 +65,7 @@ def snapshot(data):
         "/support/config": {"enabled": False},
         "/admin/overview": {"alumni_count": len(data["alumni"]), "programs_total": len(data["programs"])},
         "/admin/system-health": {"checks": []},
+        "/admin/dpo-sync": {"address": False, "enabled": False, "minute": 41, "run": None},
         "/admin/analytics": {"pulse": {}, "series": {}},
         "/admin/orders": [],
         "/admin/members": data["alumni"],

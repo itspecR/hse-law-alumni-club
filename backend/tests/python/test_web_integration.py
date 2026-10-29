@@ -20,27 +20,20 @@ async def test_cart_uses_current_catalog_prices_and_server_discount(database_app
         },
         id=alumni,
     )
-    course = await app.state.store.create(
-        "programs", {"slug": str(uuid4()), "title": "Проверка цены курса", "price": 100000, "status": "published"}
-    )
     product = await app.state.store.create(
         "products",
         {"slug": str(uuid4()), "title": "Проверка цены мерча", "price": 50000, "stock": 2, "status": "published"},
     )
     headers = {"x-cart-session": str(uuid4()), "authorization": "Bearer " + app.state.auth.session(alumni, user)}
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
-        for kind, row in [("dpo", course), ("merch", product)]:
-            assert (
-                await client.post("/cart", headers=headers, json={"type": kind, "ref_id": row["slug"]})
-            ).status_code == 200
-        await app.state.store.update("programs", {"price": 200000}, id=course["id"])
+        added = await client.post("/cart", headers=headers, json={"type": "merch", "ref_id": product["slug"]})
+        assert added.status_code == 200
+        await app.state.store.update("products", {"price": 60000}, id=product["id"])
         estimate = (await client.get("/cart", headers=headers)).json()
         assert estimate["member_discount"] == discount
-        assert estimate["subtotal"] == 250000
-        assert next(item for item in estimate["items"] if item["type"] == "dpo")["price"] == 200000
-        assert estimate["estimated_total"] == 200000 * (100 - discount) // 100 + 50000
+        assert (estimate["subtotal"], estimate["items"][0]["price"], estimate["estimated_total"]) == (60000,) * 3
         guest = (await client.get("/cart", headers={"x-cart-session": headers["x-cart-session"]})).json()
-        assert guest["member_discount"] == 0 and guest["estimated_total"] == 250000
+        assert guest["member_discount"] == 0 and guest["estimated_total"] == 60000
 
 
 async def test_site_bot_keeps_private_programs_out_of_answers(database_app):

@@ -58,9 +58,16 @@ def test_all_legacy_routes_are_present():
         ("PATCH", "/admin/orders/{id}/cohort"),
         ("POST", "/admin/news-sources/refresh"),
         ("PATCH", "/admin/news-sources/settings"),
+        ("GET", "/admin/dpo-sync"),
     }
-    retired = {("POST", "/admin/news-sources/{source}/refresh"), ("POST", "/admin/news-sources/{id}/import")}
-    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 142
+    retired = {
+        ("POST", "/admin/news-sources/{source}/refresh"),
+        ("POST", "/admin/news-sources/{id}/import"),
+        ("POST", "/admin/programs"),
+        ("PATCH", "/admin/programs/{id}"),
+        ("DELETE", "/admin/programs/{id}"),
+    }
+    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 140
 
 
 def test_hse_state_dates_and_manual_fields():

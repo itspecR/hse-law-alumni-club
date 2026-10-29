@@ -108,15 +108,8 @@ async def test_dpo_and_portfolio_admin_sections_are_isolated(database_app):
     async with client_for(app) as client:
         program = await create(client, editor, "/admin/portfolio", PORTFOLIO)
         assert await listed(client, editor, "/admin/programs", program["id"]) is None
-        dpo_route = "/admin/programs/" + program["id"]
-        assert (await client.patch(dpo_route, headers=editor, json={"title": "Чужая правка"})).status_code == 404
-        assert (await client.delete(dpo_route, headers=editor)).status_code == 404
-        dpo = await create(
-            client,
-            editor,
-            "/admin/programs",
-            {"title": "Программа ДПО", "direction": "Право", "format": "online", "duration": "72 ч", "price": 0},
-        )
+        dpo = await app.state.store.create("programs", {"slug": "dpo-one", "title": "Программа ДПО", "price": 0})
+        assert (await listed(client, editor, "/admin/programs", dpo["id"]))["title"] == "Программа ДПО"
         assert await listed(client, editor, "/admin/portfolio", dpo["id"]) is None
         assert (await client.delete("/admin/portfolio/" + dpo["id"], headers=editor)).status_code == 404
         assert (await client.delete("/admin/portfolio/" + program["id"], headers=editor)).status_code == 200
@@ -135,7 +128,7 @@ async def test_portfolio_program_stays_out_of_public_dpo_and_cart(database_app):
         response = await client.post(
             "/cart", headers={"x-cart-session": str(uuid4())}, json={"type": "dpo", "ref_id": program["slug"]}
         )
-        assert response.status_code == 404
+        assert response.status_code == 400
 
 
 @pytest.mark.parametrize("route", ["/admin/trainers", "/admin/portfolio"])

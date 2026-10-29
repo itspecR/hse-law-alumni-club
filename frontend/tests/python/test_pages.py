@@ -755,7 +755,7 @@ async def test_dpo_merch_and_cart_texts_follow_glossary(browser_client):
     )
     assert '<span class="lux-sr"> о товаре «Сумка клуба»</span>' in merch
     assert "Скидка выпускника на программы ДПО" not in cart
-    assert "Скидка выпускника действует только на программы ДПО." in cart
+    assert "Скидка выпускника на мерч не распространяется." in cart
     templates = Path(club_web.__file__).parent / "templates"
     for name in ("catalog.html", "cart.html", "product.html"):
         assert re.findall(".{0,40}[ёЁ–—].{0,20}", (templates / name).read_text()) == [], name
@@ -792,6 +792,36 @@ def test_dpo_price_labels_follow_center_catalog():
         "Бесплатно",
         "3\u00a0000 ₽",
     )
+
+
+async def test_office_dpo_section_is_read_only_with_sync_status():
+    error = "Сайт ДПО вернул неполный каталог. Список программ не изменен."
+    sync = {"address": True, "enabled": True, "minute": 41, "run": {"checked_at": "2026-10-29T10:00:00Z", "found": 34}}
+    sync["run"]["error"] = error
+    endpoints = {
+        "/auth/admin-session": {"role": "admin"},
+        "/admin/programs": [{**PROGRAM, "status": "published"}],
+        "/admin/dpo-sync": sync,
+    }
+
+    async def upstream(request):
+        return httpx.Response(200, json=endpoints.get(request.url.path, []))
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            page = (await client.get("/views/admin/programs", headers={"authorization": "Bearer admin-test"})).text
+            sync["address"] = False
+            off = (await client.get("/views/admin/programs", headers={"authorization": "Bearer admin-test"})).text
+    assert "Создать запись" not in page and "Редактировать" not in page and 'data-method="DELETE"' not in page
+    assert "Каталог обновляется с сайта Центра ДПО каждый час, вручную программы не меняются." in page
+    assert "программ: 34." in page and f'<p class="office-source-error">{error}</p>' in page
+    assert (
+        f'<a href="{PROGRAM["source_url"]}" target="_blank" rel="noopener noreferrer">Открыть на сайте Центра ДПО ↗</a>'
+        in page
+    )
+    assert "Адрес сайта Центра ДПО не задан на сервере, каталог не обновляется." in off
 
 
 async def test_events_podcasts_news_search_saved_texts_follow_glossary(browser_client):

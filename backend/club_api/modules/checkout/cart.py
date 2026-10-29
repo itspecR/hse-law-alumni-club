@@ -17,7 +17,7 @@ ROUTE_LIMITS = {("POST", "/cart"): 40}
 
 
 class CartItem(Body):
-    type: Literal["dpo", "merch"]
+    type: Literal["merch"]
     ref_id: str = Field(min_length=1)
     variant_sku: str | None = None
     qty: int = Field(default=1, ge=1, le=MAX_LINE_QTY)
@@ -102,12 +102,7 @@ async def add_cart(request: HttpRequest):
     info = (await lookup_catalog(state.store, [body.model_dump()])).get(body.type + ":" + body.ref_id)
     if not info:
         raise ApiError(404, "Позиция не найдена.")
-    if body.type == "dpo":
-        if info["enrollment"] == "nonactual":
-            raise ApiError(400, "Набор на эту программу закрыт.")
-        if info["source_url"]:
-            raise ApiError(400, "Запись на эту программу идет на сайте hse.ru.")
-    elif info["variants"]:
+    if info["variants"]:
         if not body.variant_sku:
             raise ApiError(400, "Выберите вариант товара.")
         if not any(value["sku"] == body.variant_sku for value in info["variants"]):
@@ -122,17 +117,12 @@ async def add_cart(request: HttpRequest):
             raise ApiError(
                 409, f"В корзине может быть не больше {MAX_CART_LINES} позиций. Оформите заявку или удалите лишнее."
             )
-        if match and body.type == "merch":
+        if match:
             match["qty"] = min(MAX_LINE_QTY, match["qty"] + body.qty)
-        elif not match:
-            match = {
-                **body.model_dump(),
-                "qty": 1 if body.type == "dpo" else body.qty,
-                "price": info["price"],
-                "title": info["title"],
-            }
+        else:
+            match = {**body.model_dump(), "price": info["price"], "title": info["title"]}
             items.append(match)
-        if body.type == "merch" and exceeds_stock(info, body.variant_sku, match["qty"]):
+        if exceeds_stock(info, body.variant_sku, match["qty"]):
             raise ApiError(409, "Недостаточно товара в наличии.")
         await save_cart(state.store, token, items, connection)
         return summarize_cart(items)

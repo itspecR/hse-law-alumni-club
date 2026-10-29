@@ -19,7 +19,6 @@ def submit(page, form, path, method="POST", status=200):
 
 def content_forms(office, request, headers, name):
     definitions = {
-        "programs": {"direction": "Право", "duration": "16 часов", "price": "0", "start": "2027-01-10"},
         "products": {"category": "Одежда", "price": "0", "stock": "5", "images": "[]", "variants_json": "[]"},
         "news": {"excerpt": "Краткое описание", "body": "Текст новости для проверки"},
         "events": {"starts_at": (datetime.now(UTC) + timedelta(days=2)).strftime("%Y-%m-%dT%H:%M"), "points": "0"},
@@ -46,8 +45,6 @@ def content_forms(office, request, headers, name):
         for field in ("price", "sort", "points"):
             if field in fields:
                 expect(form.locator(f'[name="{field}"]')).to_have_value(fields[field])
-        if section == "programs":
-            expect(form.locator('[name="start"]')).to_have_value(fields["start"])
         if section == "events":
             expect(form.locator('[name="starts_at"]')).to_have_value(fields["starts_at"])
         edited = title + " Изменено"

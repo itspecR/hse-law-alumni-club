@@ -39,19 +39,21 @@ def test_data_columns_exist_in_models():
         assert set(names) <= set(DATA_COLUMNS[table]), table
 
 
-async def test_existing_programs_stay_in_dpo_catalog(database_app):
+async def test_dpo_programs_are_read_only_in_office(database_app):
     app = database_app
     _, editor = await account(app, "editor")
+    source = "https://dpo.example.test/programs/dpo-one-1.html"
+    await app.state.store.create("programs", {"slug": "dpo-one", "title": "Программа ДПО", "source_url": source})
+    await app.state.store.create("programs", {"slug": "club-one", "title": "Программа клуба", "catalog": "portfolio"})
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://localhost") as client:
-        response = await client.post(
-            "/admin/programs",
-            headers=editor,
-            json={"title": "Программа ДПО", "direction": "Право", "format": "online", "duration": "72 ч", "price": 0},
-        )
-        assert response.status_code == 200, response.text
-        row = await app.state.store.one("programs", response.json()["id"])
-        assert (row["catalog"], row["competencies"], row["communication"]) == ("dpo", None, None)
-        assert (await client.get("/programs")).status_code == 200
+        listed = (await client.get("/admin/programs", headers=editor)).json()
+        assert [(row["slug"], row["source_url"]) for row in listed] == [("dpo-one", source)]
+        created = await client.post("/admin/programs", headers=editor, json={"title": "Новая программа ДПО"})
+        assert created.status_code == 405
+        assert (await client.patch("/admin/programs/" + listed[0]["id"], headers=editor, json={})).status_code == 404
+        status = (await client.get("/admin/dpo-sync", headers=editor)).json()
+        assert status == {"address": False, "enabled": True, "minute": 41, "run": None}
+        assert (await client.get("/admin/dpo-sync")).status_code in (401, 403)
 
 
 async def test_portfolio_program_keeps_lists(database_app):
