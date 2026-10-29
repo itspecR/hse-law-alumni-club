@@ -378,6 +378,7 @@ async def test_home_texts_follow_glossary(browser_client):
     assert '<a href="/portfolio" class="foc lux-more">Программы клуба' in page
     assert '<a href="/events" class="foc lux-more">Все события' in page
     assert "Проверка обычно занимает 1-2\u00a0рабочих дня." in page
+    assert "Программы клуба и&nbsp;ДПО по&nbsp;цене выпускника, события и&nbsp;подкасты.</p>" in page
     assert "«Друг клуба» с&nbsp;200&nbsp;баллов, «Знаток» с&nbsp;500, «Амбассадор» с&nbsp;1000." in page
     home = (Path(club_web.__file__).parent / "templates/home.html").read_text()
     assert re.findall(".{0,40}[ёЁ–—].{0,20}", home) == []
