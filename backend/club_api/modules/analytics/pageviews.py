@@ -65,7 +65,7 @@ async def pageview_stats(state, since):
         rows = await state.database.rows(
             Query(
                 "SELECT COALESCE(sum(hits),0)::int AS hits FROM club_page_views WHERE day>=%s",
-                "SELECT COALESCE(sum(hits),0) AS hits FROM club_page_views WHERE day>=%s",
+                "SELECT CAST(COALESCE(sum(hits),0) AS SIGNED) AS hits FROM club_page_views WHERE day>=%s",
             ),
             (day,),
         )
@@ -73,14 +73,14 @@ async def pageview_stats(state, since):
         result["by_day"] = await state.database.rows(
             Query(
                 "SELECT day::text AS day,sum(hits)::int AS count FROM club_page_views WHERE day>=%s GROUP BY day ORDER BY day",
-                "SELECT CAST(day AS CHAR(36)) AS day,sum(hits) AS count FROM club_page_views WHERE day>=%s GROUP BY day ORDER BY day",
+                "SELECT CAST(day AS CHAR(36)) AS day,CAST(sum(hits) AS SIGNED) AS count FROM club_page_views WHERE day>=%s GROUP BY day ORDER BY day",
             ),
             (day,),
         )
         result["paths_top"] = await state.database.rows(
             Query(
                 "SELECT path,sum(hits)::int AS count FROM club_page_views WHERE day>=%s GROUP BY path ORDER BY count DESC LIMIT 12",
-                "SELECT path,sum(hits) AS count FROM club_page_views WHERE day>=%s GROUP BY path ORDER BY count DESC LIMIT 12",
+                "SELECT path,CAST(sum(hits) AS SIGNED) AS count FROM club_page_views WHERE day>=%s GROUP BY path ORDER BY count DESC LIMIT 12",
             ),
             (day,),
         )
