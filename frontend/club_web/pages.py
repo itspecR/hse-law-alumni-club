@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import quote, urlencode
 
+from club_web import features
 from club_web.calendar import google_calendar, instant, month_view
 from club_web.catalog import UPCOMING_LIMIT, prepare_catalog
 from club_web.changes import parse_changes, select_changes
@@ -32,6 +33,7 @@ from club_web.pricing import member_prices
 from club_web.search import search_groups
 
 HOME_EPISODES = 4
+HOME_CHANGES = 3
 PUBLIC_PAGES = {
     "/": ("home.html", "Клуб выпускников факультета права"),
     "/tg": ("mini.html", "Клуб выпускников"),
@@ -180,6 +182,21 @@ def live_view(path):
     return {"kind": kind, "veiled": path.startswith(VEILED_VIEWS)}
 
 
+def recent_changes():
+    snapshot = parse_changes(resource("changes.json"))
+    return select_changes(snapshot["items"], {"view": "digest" if snapshot["mode"] == "channel" else "all"})[
+        :HOME_CHANGES
+    ]
+
+
+def navigation():
+    return [(href, label) for href, label in NAV if features.section_enabled(href)]
+
+
+def changes_items():
+    return parse_changes(resource("changes.json"))["items"] if features.CHANGES_ENABLED else None
+
+
 async def context(api, path, params, authorized=False):
     template, title = select_page(path)
     data = {
@@ -187,7 +204,8 @@ async def context(api, path, params, authorized=False):
         "title": title,
         "path": path,
         "query": params,
-        "nav": NAV,
+        "nav": navigation(),
+        "changes_enabled": features.CHANGES_ENABLED,
         "live": live_view(path),
         "office_nav": OFFICE_NAV,
         "office_groups": GROUPS,
@@ -246,10 +264,7 @@ async def context(api, path, params, authorized=False):
         )[:2]
         data.update(home_programs(data["programs"], data["domain"]["levels"]))
         data["episodes"] = page_items(data["podcasts"])[:HOME_EPISODES]
-        snapshot = parse_changes(resource("changes.json"))
-        data["recent_changes"] = select_changes(
-            snapshot["items"], {"view": "digest" if snapshot["mode"] == "channel" else "all"}
-        )[:3]
+        data["recent_changes"] = recent_changes() if features.CHANGES_ENABLED else []
     elif path in ("/dpo", "/merch"):
         kind = "dpo" if path == "/dpo" else "merch"
         await load("items", "/programs" if kind == "dpo" else "/products", [])
@@ -310,13 +325,13 @@ async def context(api, path, params, authorized=False):
             data["news"],
             data["events"],
             page_items(data["podcasts"]),
-            parse_changes(resource("changes.json"))["items"],
+            changes_items(),
             params.get("q", ""),
         )
         data["groups"] = groups
         data["sections"] = [
             (href, label)
-            for href, label in NAV + [("/lk", "Личный кабинет"), ("/support", "Поддержка")]
+            for href, label in navigation() + [("/lk", "Личный кабинет"), ("/support", "Поддержка")]
             if not needle or needle in label.casefold().replace("ё", "е")
         ]
         data["found"] = sum(len(group["items"]) for group in groups) + len(data["sections"])
@@ -352,6 +367,8 @@ async def context(api, path, params, authorized=False):
                 data.update(template="unavailable.html", title="Не удалось загрузить страницу", status=503)
             else:
                 data.update(template="not-found.html", status=404)
+    elif not features.section_enabled(path):
+        data["template"] = "changes-soon.html"
     elif path == "/changes" or path.startswith("/changes/"):
         snapshot = parse_changes(resource("changes.json"))
         data["snapshot"] = snapshot

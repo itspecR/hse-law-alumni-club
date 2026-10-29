@@ -131,6 +131,7 @@
 <article class="lux-tile lux-law lux-reveal" aria-labelledby="lux-law-title">
 <div class="lux-tile__media lux-cover lux-cover--law" aria-hidden="true"><span>§</span></div>
 <h3 class="lux-tile__title" id="lux-law-title">Изменения в&nbsp;праве</h3>
+{% if changes_enabled %}
 <p class="lux-tile__lede">Справки, обзоры и&nbsp;опубликованные правовые акты.</p>
 <ul class="lux-acts">
 {% for item in recent_changes %}
@@ -138,6 +139,9 @@
 {% endfor %}
 </ul>
 <a href="/changes" class="foc lux-more lux-tile__end">Все изменения <span class="lux-more__arrow" aria-hidden="true">›</span></a>
+{% else %}
+<p class="lux-tile__lede">Раздел в&nbsp;разработке.</p>
+{% endif %}
 </article>
 <article class="lux-tile lux-pod lux-reveal" style="--d:1" id="podcasts-preview" aria-labelledby="lux-pod-title">
 <div class="lux-tile__media lux-cover"><img src="{{ base }}assets/themis-figure.svg" width="313" height="549" alt="" loading="lazy" decoding="async"></div>

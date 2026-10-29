@@ -6,6 +6,7 @@ from pathlib import Path
 
 import httpx
 
+from club_web import features
 from club_web.asgi import initialize_django
 from club_web.build import build_public
 from club_web.calendar import calendar_file
@@ -142,7 +143,8 @@ async def export(destination, base, data):
         ("podcasts", "podcasts", "id"),
     ):
         paths.extend(f"/{prefix}/{row[identifier]}" for row in data[key])
-    paths.extend("/changes/" + row["id"] for row in changes["items"])
+    if features.CHANGES_ENABLED:
+        paths.extend("/changes/" + row["id"] for row in changes["items"])
     paths.append("/404")
     initialize_django()
     renderer = templates()
@@ -158,7 +160,12 @@ async def export(destination, base, data):
                 page["next_page"] = ""
             if path == "/search":
                 page["groups"] = search_groups(
-                    [], data["programs"], data["news"], data["events"], data["podcasts"], changes["items"]
+                    [],
+                    data["programs"],
+                    data["news"],
+                    data["events"],
+                    data["podcasts"],
+                    changes["items"] if features.CHANGES_ENABLED else None,
                 )
             page.update(base=base, mirror=True, request=None, asset_version=published_version(destination))
             target = destination / path.lstrip("/") / "index.html" if path != "/404" else destination / "404.html"

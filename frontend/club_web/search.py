@@ -1,17 +1,32 @@
 from club_web.changes import select_changes
 
 
-def search_groups(portfolio, programs, news, events, podcasts, changes, query=None):
-    words = (query or "").casefold().replace("ё", "е").split()
-    groups = []
-    changes = select_changes(changes, {"view": "all"})
-    for prefix, label, records, fields, identifier in (
+def search_sources(portfolio, programs, news, events, podcasts, changes):
+    sources = [
         ("portfolio", "Портфель программ", portfolio, ("title", "direction"), "slug"),
         ("dpo", "Программы ДПО", programs, ("title", "direction"), "slug"),
         ("news", "Новости", news, ("title", "excerpt"), "slug"),
         ("events", "События", events, ("title", "description", "location"), "id"),
         ("podcasts", "Подкасты", podcasts, ("title",), "id"),
-        ("changes", "Изменения в праве", changes, ("title", "number", "summary"), "id"),
+    ]
+    if changes is not None:
+        sources.append(
+            (
+                "changes",
+                "Изменения в праве",
+                select_changes(changes, {"view": "all"}),
+                ("title", "number", "summary"),
+                "id",
+            )
+        )
+    return sources
+
+
+def search_groups(portfolio, programs, news, events, podcasts, changes, query=None):
+    words = (query or "").casefold().replace("ё", "е").split()
+    groups = []
+    for prefix, label, records, fields, identifier in search_sources(
+        portfolio, programs, news, events, podcasts, changes
     ):
         items = []
         for record in records:
