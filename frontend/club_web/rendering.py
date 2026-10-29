@@ -19,6 +19,7 @@ from club_web.formatting import (
     rub,
     safe_url,
 )
+from club_web.rich_text import rich_text
 
 ROOT = Path(__file__).parent
 VERSION_FILE = "assets/version.txt"
@@ -53,6 +54,7 @@ def environment(**options):
         program_cohorts=open_cohorts,
         program_start=program_start,
         program_price=program_price,
+        rich_text=rich_text,
     )
     renderer.globals.update(format_labels=FORMAT_LABELS, order_status_labels=ORDER_STATUS_LABELS)
     return renderer

@@ -487,6 +487,8 @@ class News(models.Model):
     source_url = models.CharField(max_length=255, null=True)
     published_at = models.DateTimeField(null=True)
     status = models.CharField(max_length=255, null=True, db_default="draft")
+    cover = models.CharField(max_length=500, null=True)
+    origin = models.CharField(max_length=32, db_default="club")
 
     class Meta:
         db_table = "news"

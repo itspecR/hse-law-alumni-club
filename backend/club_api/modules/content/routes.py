@@ -9,7 +9,7 @@ from club_api.core.errors import ApiError
 from club_api.core.views import api_view, query_integer
 from club_api.modules.catalog.scope import PUBLISHED_DPO, PUBLISHED_PORTFOLIO
 
-NEWS_FIELDS = ("id", "slug", "title", "excerpt", "body", "published_at", "source_url")
+NEWS_FIELDS = ("id", "slug", "title", "excerpt", "body", "published_at", "source_url", "cover", "origin")
 PROGRAM_FIELDS = (
     "id",
     "slug",

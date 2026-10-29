@@ -12,7 +12,7 @@ BLOCK_FIELDS = frozenset(("blocks.collection", "blocks.sort", "blocks.item:block
 MEDIA_FIELDS = {
     "alumni": ("avatar",),
     "events": ("cover", "description"),
-    "news": ("body",),
+    "news": ("cover", "body"),
     "podcasts": ("cover", "audio_url", "description"),
     "products": ("images", "description"),
     "programs": ("cover", "teachers", "modules", "description", "results", "advantages", "audience"),

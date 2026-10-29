@@ -63,7 +63,7 @@ DATA_COLUMNS = {
         "created_at",
     ),
     "levels": ("id", "key", "title", "min_points", "discount_percent", "sort", "color"),
-    "news": ("id", "slug", "title", "excerpt", "body", "source_url", "published_at", "status"),
+    "news": ("id", "slug", "title", "excerpt", "body", "source_url", "published_at", "status", "cover", "origin"),
     "offers": ("id", "kind", "alumni_id", "level_key", "percent", "title", "active", "valid_until"),
     "orders": (
         "id",
