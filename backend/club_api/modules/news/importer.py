@@ -1,13 +1,10 @@
 import asyncio
 import io
 import logging
-import time
-from pathlib import PurePosixPath
-from urllib.parse import unquote, urlsplit
 
 from club_api.core.errors import ApiError
 from club_api.core.models import parse_date
-from club_api.core.outgoing import IMAGE, get_bytes, get_html
+from club_api.core.outgoing import IMAGE, Pacer, get_bytes, get_html, image_name
 from club_api.db.queries import Query, acquire_lock, release_lock
 from club_api.modules.checkout.store import digest
 from club_api.modules.content.admin import write_content
@@ -24,18 +21,6 @@ SYNC_LOCK = "news-sync"
 MEDIA_KIND = "news"
 FAILED = "Не удалось обновить источник. Повторите позже."
 FAILURE_ALERT = 3
-
-
-class Pacer:
-    def __init__(self, delay):
-        self.delay, self.last = delay, None
-
-    async def wait(self):
-        if self.last is not None:
-            pause = self.delay - (time.monotonic() - self.last)
-            if pause > 0:
-                await asyncio.sleep(pause)
-        self.last = time.monotonic()
 
 
 async def sync_news(state, *, delay=CRAWL_DELAY_SECONDS):
@@ -120,10 +105,6 @@ async def save_image(state, pacer, url, saved):
         return None
     saved.append(file["id"])
     return file["id"]
-
-
-def image_name(url):
-    return PurePosixPath(unquote(urlsplit(url).path)).name or "image"
 
 
 async def render_body(state, pacer, blocks, saved):

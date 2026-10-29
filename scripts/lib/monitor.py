@@ -45,7 +45,7 @@ for container in containers:
         metrics['last_jobs'] = last_jobs
         if os.environ.get('MONITOR_JOBS') == 'true':
             expected = {'mail-outbox':900, 'reserve-expiry':2700, 'retention':26*3600, 'event-reminders':26*3600, 'podcast-reminders':26*3600, 'points-decay':35*86400}
-            if os.environ.get('MONITOR_DPO') == 'true': expected['dpo-sync'] = 26*3600
+            if os.environ.get('MONITOR_DPO') == 'true': expected['dpo-sync'] = 2*3600
             if os.environ.get('MONITOR_NEWS') == 'true': expected['news-sync'] = 2*3600
             uptime = now-datetime.datetime.fromisoformat(status['StartedAt'].replace('Z','+00:00')).timestamp()
             for job, age in expected.items():

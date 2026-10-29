@@ -1,4 +1,8 @@
-from urllib.parse import urljoin, urlsplit
+import asyncio
+import json
+import time
+from pathlib import PurePosixPath
+from urllib.parse import unquote, urljoin, urlsplit
 
 import httpx
 
@@ -6,12 +10,37 @@ from club_api.core.errors import ApiError
 
 UNAVAILABLE = "Источник временно недоступен."
 HTML = "text/html"
+JSON = "application/json"
 IMAGE = "image/*"
+
+
+class Pacer:
+    def __init__(self, delay):
+        self.delay, self.last = delay, None
+
+    async def wait(self):
+        if self.last is not None:
+            pause = self.delay - (time.monotonic() - self.last)
+            if pause > 0:
+                await asyncio.sleep(pause)
+        self.last = time.monotonic()
+
+
+def image_name(url):
+    return PurePosixPath(unquote(urlsplit(url).path)).name or "image"
 
 
 async def get_html(state, url, *, allowed_hosts, max_bytes=2000000):
     body = await get_bytes(state, url, allowed_hosts=allowed_hosts, max_bytes=max_bytes, accept=HTML)
     return body.decode("utf-8", errors="replace")
+
+
+async def get_json(state, url, *, allowed_hosts, max_bytes):
+    body = await get_bytes(state, url, allowed_hosts=allowed_hosts, max_bytes=max_bytes, accept=JSON)
+    try:
+        return json.loads(body)
+    except ValueError:
+        raise ApiError(502, "Источник вернул некорректный ответ.") from None
 
 
 async def get_bytes(state, url, *, allowed_hosts, max_bytes, accept):

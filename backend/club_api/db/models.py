@@ -251,6 +251,21 @@ class NewsSourceRuns(models.Model):
         db_table = "club_news_source_runs"
 
 
+class DpoSync(models.Model):
+    id = models.SmallIntegerField(primary_key=True)
+    checked_at = models.DateTimeField(db_default=Now())
+    found = models.IntegerField(db_default=0)
+    created = models.IntegerField(db_default=0)
+    updated = models.IntegerField(db_default=0)
+    archived = models.IntegerField(db_default=0)
+    failures = models.IntegerField(db_default=0)
+    error = models.TextField(null=True)
+
+    class Meta:
+        db_table = "club_dpo_sync"
+        constraints = [models.CheckConstraint(condition=models.Q(id=1), name="club_dpo_sync_single_row")]
+
+
 class NewsSettings(models.Model):
     id = models.SmallIntegerField(primary_key=True)
     enabled = models.BooleanField(db_default=False)
@@ -717,6 +732,7 @@ class Programs(models.Model):
     catalog = models.CharField(max_length=32, db_default=PROGRAM_CATALOGS[0])
     competencies = models.JSONField(null=True)
     communication = models.JSONField(null=True)
+    cover_source = models.CharField(max_length=500, null=True)
 
     class Meta:
         db_table = "programs"

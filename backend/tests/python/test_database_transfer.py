@@ -24,7 +24,7 @@ async def test_postgres_export_is_complete_private_and_does_not_overwrite(databa
     before = path.read_bytes()
     snapshot = json.loads(before)
     assert set(snapshot["tables"]) == set(model_tables())
-    assert len(fingerprints) == 48
+    assert len(fingerprints) == 49
     assert fingerprints["directus_users"]["rows"] == 1
     assert snapshot["tables"]["directus_users"][0]["password"].startswith("bcrypt_sha256$")
     assert stat.S_IMODE(path.stat().st_mode) == 0o600

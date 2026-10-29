@@ -19,7 +19,7 @@ from test_community_integration import account
 from club_api.core.config import Settings
 from club_api.main import create_app
 from club_api.modules.auth import passwords
-from club_api.modules.catalog.sync import map_item, parse_initial_state, plan_sync
+from club_api.modules.catalog.sync import map_item, parse_initial_state
 from club_api.observability.errors import scrub_event
 
 
@@ -68,22 +68,6 @@ def test_hse_state_dates_and_manual_fields():
     parsed = parse_initial_state(source)
     card = map_item(parsed["items"][0])
     assert card["priceKop"] == 10100 and card["start"] == "1 декабря 2026 г."
-    changes = plan_sync(
-        [{**card, "enrollment": "actual"}],
-        [
-            {
-                "id": "same",
-                "hse_id": "42",
-                "slug": "same",
-                "title": card["title"],
-                "status": "published",
-                "price": 9000,
-                "source_url": None,
-            }
-        ],
-    )
-    assert len(changes) == 1 and changes[0]["kind"] == "update"
-    assert "description" not in changes[0]["data"] and "title" not in changes[0]["data"]
     incoming = {"hse_id": "42", "description": "Импорт", "audience": ["Из источника"]}
     assert retain_copy(incoming, {"hse_id": "42", "description": "Текст офиса", "audience": []})["audience"] == []
 
