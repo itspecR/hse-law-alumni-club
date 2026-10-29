@@ -37,15 +37,15 @@
 <aside class="cabinet-gate__intro club-dark">
 <a href="/">Клуб выпускников<small>факультета права Вышки</small>
 </a>
-<h2>{% if office %}Учебный <br>офис клуба{% else %}Кабинет <br><em>выпускника</em>{% endif %}
+<h2>{% if office %}Панель <br>управления{% else %}Кабинет <br><em>выпускника</em>{% endif %}
 </h2>
 <div class="cabinet-gate__benefits">
 {% if office %}<span>Заявки и проверка выпускников</span><span>Программы, события и публикации</span><span>Поддержка и показатели клуба</span>{% else %}<span>Скидка выпускника на программы</span><span>Запись на события</span><span>Заявки и баллы</span>{% endif %}
 </div>
 </aside>
 <form class="cabinet-gate__form" data-api="/auth/{{ 'admin-login' if office else 'login' }}" data-login="{{ 'office' if office else 'member' }}">
-<h1>{{ 'Панель учебного офиса' if office else 'Вход для выпускников' }}</h1>
-<p>{{ 'Вход для сотрудников учебного офиса.' if office else 'Скидка выпускника и все разделы кабинета откроются, когда учебный офис подтвердит статус выпускника.' }}</p>{{ field('email','Почта',type='email') }}{{ field('password','Пароль',type='password') }}<p role="alert" data-error hidden>
+<h1>{{ 'Вход в панель' if office else 'Вход для выпускников' }}</h1>
+<p>{{ 'Только для сотрудников клуба.' if office else 'Скидка выпускника и все разделы кабинета откроются, когда мы подтвердим ваш статус.' }}</p>{{ field('email','Почта',type='email') }}{{ field('password','Пароль',type='password') }}<p role="alert" data-error hidden>
 </p>
 <button class="site-primary">{{ 'Войти' if office else 'Войти в кабинет' }}</button>
 {% if not office %}

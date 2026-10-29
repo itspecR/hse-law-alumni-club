@@ -210,7 +210,7 @@ async def context(api, path, params, authorized=False):
     }
     data["reason_labels"] = {
         **{rule["reason"]: rule["description"] for rule in data["domain"]["point_rules"]},
-        "manual": "Начисление учебного офиса",
+        "manual": "Начисление клуба",
     }
 
     async def load(key, endpoint, default=None):

@@ -9,7 +9,7 @@ const mirror = document.body.dataset.mirror === "true";
 const memberKey = "club_token";
 const officeKey = "club_admin_token";
 const readingKey = "club-reading-v1";
-const notNotifiedText = "Заявка сохранена, но учебный офис не получил уведомление. Сообщите номер заявки в поддержку.";
+const notNotifiedText = "Заявка сохранена, но мы не получили уведомление. Сообщите номер заявки в поддержку.";
 let pendingCart = 0;
 let pendingCheckout = false;
 let installPrompt = null;
@@ -220,8 +220,8 @@ async function updateCartCount() {
 
 function checkoutReceipt(result) {
   const section = element("main", undefined, { id: "main", class: "site-article" });
-  const heading = element("h1", "Заявка отправлена в учебный офис", { tabindex: "-1" });
-  section.append(heading, element("p", "Номер заявки: " + result.number), element("p", "Учебный офис проверит состав и сумму заявки и свяжется с вами по указанным контактам."), element("p", "Предварительная сумма " + rubles(result.total_estimate)));
+  const heading = element("h1", "Заявка отправлена", { tabindex: "-1" });
+  section.append(heading, element("p", "Номер заявки: " + result.number), element("p", "Мы проверим состав и сумму заявки и свяжемся с вами по указанным контактам."), element("p", "Предварительная сумма " + rubles(result.total_estimate)));
   if (!result.notified?.ok) section.append(element("p", notNotifiedText, { role: "alert" }));
   const payment = safeLink(result.payment_url, true);
   if (payment) section.append(element("a", "Оплатить через ЮKassa", { href: payment, class: "site-primary" }));
@@ -246,7 +246,7 @@ function applicationReceipt(form, result) {
   if (result.starts_on) receipt.append(element("p", "Старт потока: " + (form.querySelector("[name='cohort_id']:checked")?.dataset.start || result.starts_on)));
   const discount = discountText(result.member_discount, result.discount_source, result.message);
   if (discount) receipt.append(element("p", discount));
-  receipt.append(element("p", "Учебный офис свяжется с вами по указанным контактам, чтобы согласовать договор и оплату."));
+  receipt.append(element("p", "Мы свяжемся с вами по указанным контактам, чтобы согласовать договор и оплату."));
   if (!result.notified?.ok) receipt.append(element("p", notNotifiedText, { role: "alert" }));
   form.replaceWith(receipt);
   receipt.focus();
@@ -362,7 +362,7 @@ async function perform(target, body) {
       checkoutReceipt(result);
       void updateCartCount();
     } else if (target.hasAttribute("data-registration")) {
-      target.replaceWith(element("div", result.confirm_required ? "Мы отправили письмо со ссылкой. Подтвердите почту, затем заявку проверит учебный офис." : "Заявка сохранена. Учебный офис проверит выпуск, обычно это занимает 1-2 рабочих дня.", { role: "status", class: "site-panel" }));
+      target.replaceWith(element("div", result.confirm_required ? "Мы отправили письмо со ссылкой. Подтвердите почту, и мы проверим заявку." : "Заявка сохранена. Мы проверим статус выпускника, обычно это занимает 1-2 рабочих дня.", { role: "status", class: "site-panel" }));
     } else if (target.hasAttribute("data-delete-profile")) {
       store(memberKey, null);
       location.href = url("/");
@@ -386,7 +386,7 @@ async function perform(target, body) {
       notice(target.dataset.success);
       target.reset();
     } else if (path === "/podcasts/subscribe") {
-      notice("Заявка на подписку " + result.number + " сохранена. Учебный офис свяжется с вами.");
+      notice("Заявка на подписку " + result.number + " сохранена. Мы свяжемся с вами.");
     } else {
       if (cart) store("club_checkout:" + cartSession(), null);
       if (cart && currentPath() !== "/cart") {

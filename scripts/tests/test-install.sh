@@ -94,5 +94,5 @@ credentials=dict(line.split(': ',1) for line in pathlib.Path(sys.argv[2]).read_t
 request=urllib.request.Request('https://localhost:9543/api/auth/admin-login',data=json.dumps({'email':credentials['Email'],'password':credentials['Password']}).encode(),headers={'Content-Type':'application/json'})
 with urllib.request.urlopen(request,context=ssl.create_default_context(cafile=str(directory/'local-ca.crt'))) as response:
     assert response.status==200
-print('Восстановление MariaDB: все таблицы и uploads сверены, прежний пароль открывает офис')
+print('Восстановление MariaDB: все таблицы и uploads сверены, прежний пароль открывает панель управления')
 PY

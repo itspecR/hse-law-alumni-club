@@ -69,7 +69,7 @@ cfg = request("/support/config"); assert cfg["enabled"]
 ticket, key = str(uuid.uuid4()), secrets.token_hex(32)
 request("/support", {"id": ticket, "key": key, "topic": "other", "message": "Локальная проверка поддержки", "consent": True, "consentVersion": cfg["version"]})
 request("/support/" + ticket, headers={"X-Support-Key": secrets.token_hex(32)}, expected=404)
-request("/admin/support/" + ticket, {"status": "answered", "message": "Ответ локального офиса"}, admin, "PATCH")
+request("/admin/support/" + ticket, {"status": "answered", "message": "Ответ поддержки"}, admin, "PATCH")
 assert request("/support/" + ticket, headers={"X-Support-Key": key})["status"] == "answered"
 check("support ticket privacy and office reply")
 request("/auth/forgot", {"email": email})

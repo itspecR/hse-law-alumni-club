@@ -32,10 +32,10 @@ def office_change(body):
 
 def discount_line(order):
     if order["office_discount"] is not None:
-        return f"скидка учебного офиса {order['office_discount']}%"
+        return f"индивидуальная скидка {order['office_discount']}%"
     if order["member_discount"]:
-        return f"скидка учебного офиса отменена, действует скидка {order['member_discount']}%"
-    return "скидка учебного офиса отменена"
+        return f"индивидуальная скидка отменена, действует скидка {order['member_discount']}%"
+    return "индивидуальная скидка отменена"
 
 
 async def notify_discount(state, order, total):

@@ -36,6 +36,12 @@ class TextStyleTests(unittest.TestCase):
     def test_templates_are_checked_by_line(self):
         self.assertEqual(text_style.template_failures("<p>Клуб</p>\n<p>Её</p>"), [(2, "<p>Её</p>")])
 
+    def test_training_office_term_is_detected(self):
+        self.assertTrue(text_style.python_failures('text = "Учебный офис свяжется с Вами."'))
+        self.assertTrue(text_style.template_failures("<p>Проверку ведет учебный&nbsp;офис.</p>"))
+        self.assertTrue(text_style.data_failures({"text": "после подтверждения учебным офисом"}))
+        self.assertEqual(text_style.template_failures("<p>Панель управления клуба</p>"), [])
+
 
 if __name__ == "__main__":
     unittest.main()

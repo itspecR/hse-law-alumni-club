@@ -135,7 +135,7 @@ async def notify_verification(state, id, status):
     if status == "verified":
         subject = club_subject("Статус выпускника подтвержден")
         text = (
-            "Здравствуйте!\n\nУчебный офис подтвердил Ваш статус выпускника, кабинет открыт.\n\nВойти: "
+            "Здравствуйте!\n\nМы подтвердили Ваш статус выпускника, кабинет открыт.\n\nВойти: "
             + state.settings.PUBLIC_URL
             + "/lk\n\n"
             + CLUB_NAME
@@ -143,8 +143,8 @@ async def notify_verification(state, id, status):
     else:
         subject = club_subject("Заявка на вступление в клуб")
         text = (
-            "Здравствуйте!\n\nУчебный офис не смог подтвердить данные Вашей заявки. "
-            "Если это ошибка, ответьте на это письмо или напишите в учебный офис.\n\n" + CLUB_NAME
+            "Здравствуйте!\n\nМы не смогли подтвердить данные Вашей заявки. "
+            "Если это ошибка, ответьте на это письмо или напишите в поддержку.\n\n" + CLUB_NAME
         )
     await state.notifications.send_email(email, subject, text)
 
@@ -178,7 +178,7 @@ async def points(request: HttpRequest, id: str):
     admin = await require_full_admin(request)
     body = parse_body(request, PointsBody)
     result = await request.services.gamification.add(
-        guid(id), reason=body.reason, delta=body.delta, comment=body.comment or "Начисление учебного офиса"
+        guid(id), reason=body.reason, delta=body.delta, comment=body.comment or "Начисление клуба"
     )
     await audit(
         request, "member.points", actor="admin:" + admin["userId"], subject="alumni:" + id, detail=body.model_dump()

@@ -107,7 +107,7 @@ class Settings(BaseSettings):
         if self.OFFICE_NOTIFY_CHANNEL in ("telegram", "both") and not (
             self.secret("OFFICE_TG_BOT_TOKEN") and self.OFFICE_TG_CHAT_ID
         ):
-            errors.append("Для уведомлений офиса нужны OFFICE_TG_BOT_TOKEN и OFFICE_TG_CHAT_ID")
+            errors.append("Для уведомлений сотрудникам нужны OFFICE_TG_BOT_TOKEN и OFFICE_TG_CHAT_ID")
         if bool(self.YOOKASSA_SHOP_ID) != bool(self.secret("YOOKASSA_SECRET_KEY")):
             errors.append("Оба ключа YOOKASSA должны быть заданы вместе")
         if bool(self.VAPID_PUBLIC_KEY) != bool(self.secret("VAPID_PRIVATE_KEY")):

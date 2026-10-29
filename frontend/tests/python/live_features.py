@@ -74,7 +74,7 @@ def home_form(office, name):
     office.goto("/admin/pages")
     form = office.locator('form[data-api="/admin/pages/home"]')
     original = {field.get_attribute("name"): field.input_value() for field in form.locator("input").all()}
-    form.locator('[name="hero.subtitle"]').fill("Проверка главной " + name)
+    form.locator('[name="cta.title"]').fill("Проверка главной " + name)
     submit(office, form, "/admin/pages/home", "PATCH")
     office.goto("/")
     expect(office.locator("#main")).to_contain_text("Проверка главной " + name)
@@ -279,7 +279,7 @@ def section_walk(page, office):
             assert response.status == 200, path
             expect(target.locator("#main")).to_be_visible()
             if path.startswith("/admin/"):
-                expect(target.locator("#main")).not_to_contain_text("Вход для сотрудников учебного офиса")
+                expect(target.locator("#main")).not_to_contain_text("Только для сотрудников клуба")
             elif path in ("/lk", "/lk/profile"):
                 expect(target.locator("#main")).not_to_contain_text("Вход для выпускников")
             assert target.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"), path

@@ -44,7 +44,7 @@ async def import_podcasts(office, manifest):
                 await office.request("media/" + media["id"], "DELETE")
             except Exception:
                 logging.getLogger(__name__).warning(
-                    "Загруженный файл остался в панели офиса; удалите его после проверки"
+                    "Загруженный файл остался в панели управления; удалите его после проверки"
                 )
             raise
         if not found:

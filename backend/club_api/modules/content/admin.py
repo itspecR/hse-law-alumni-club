@@ -253,7 +253,6 @@ class HeroBody(Body):
     badge: str = None
     title_pre: str = None
     title_accent: str = None
-    subtitle: str = None
     cta_primary: str = None
     cta_secondary: str = None
     history_eyebrow: str = Field(default=None, max_length=80)
@@ -264,7 +263,6 @@ class HeroBody(Body):
 
 class CtaBody(Body):
     title: str = None
-    text: str = None
     button: str = None
 
 

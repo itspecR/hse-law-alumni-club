@@ -14,7 +14,7 @@
 {% if me.alumni.verification_status != 'verified' %}
 <section class="site-panel">
 <h2>{{ 'Заявка отклонена' if me.alumni.verification_status=='rejected' else 'Заявка на проверке' }}</h2>
-<p>{{ 'Учебный офис не смог подтвердить данные заявки. Если это ошибка, напишите в поддержку.' if me.alumni.verification_status=='rejected' else 'Учебный офис сверяет выпуск с реестром факультета. Кабинет и скидка откроются после подтверждения.' }}</p>
+<p>{{ 'Мы не смогли подтвердить данные заявки. Если это ошибка, напишите в поддержку.' if me.alumni.verification_status=='rejected' else 'Мы проверяем статус выпускника. Кабинет и скидка откроются после подтверждения.' }}</p>
 {% if me.alumni.verification_status!='rejected' %}<a href="/lk/profile">Загрузить фото профиля</a>{% endif %}
 <a href="/support">Поддержка</a>
 </section>
@@ -53,7 +53,7 @@
 <section id="club-overview">
 <h2>Обзор</h2>
 {% if not me.alumni.contacts %}
-<p>Добавьте контакт, чтобы учебный офис мог связаться с вами по заявкам.</p>
+<p>Добавьте контакт, чтобы мы могли связаться с вами по заявкам.</p>
 <a href="/lk/profile">Заполнить профиль</a>
 {% endif %}
 <h3>Ближайшее событие</h3>

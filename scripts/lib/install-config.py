@@ -69,7 +69,7 @@ def configuration(local):
     else:
         print('Для публичного HTTPS оба домена должны указывать на сервер; нужны входящие 80/443.')
         values['WEB_DOMAIN'] = prompt('Домен сайта', check=hostname)
-        values['ADMIN_DOMAIN'] = prompt('Домен прежних файлов/офиса', 'office.' + values['WEB_DOMAIN'], hostname)
+        values['ADMIN_DOMAIN'] = prompt('Домен прежних файлов/панели управления', 'office.' + values['WEB_DOMAIN'], hostname)
         if values['ADMIN_DOMAIN'] == values['WEB_DOMAIN']:
             raise ValueError('Домены сайта и прежних файлов должны отличаться')
         values['PUBLIC_URL'] = 'https://' + values['WEB_DOMAIN']
@@ -80,7 +80,7 @@ def configuration(local):
         values['SMTP_USER'] = prompt('Логин SMTP (пусто для сервера без авторизации)')
         values['SMTP_PASS'] = prompt('Пароль SMTP', hidden=True)
         values['SMTP_FROM'] = prompt('Разрешённый SMTP-отправитель', check=email)
-        values['OFFICE_EMAIL'] = prompt('Email получателя заявок офиса', check=email)
+        values['OFFICE_EMAIL'] = prompt('Email получателя заявок', check=email)
     return values
 
 
@@ -181,7 +181,7 @@ def install(directory, local):
     url = subprocess.check_output(['bash', '-c', 'source "$1/scripts/lib/ops-common.sh"; ops_value PUBLIC_URL',
                                    'install', str(REPO)], env=environment, text=True).strip()
     print('\nСайт и /api/ready проверены: ' + url)
-    print('Офис: ' + url + '/admin')
+    print('Панель управления: ' + url + '/admin')
     print('Первичные данные администратора: sudo cat ' + shlex.quote(str(directory / 'initial-admin.txt')))
     print('Пароль не выводился в журнал. После смены пароля этот файл содержит прежние данные.')
     if local:
