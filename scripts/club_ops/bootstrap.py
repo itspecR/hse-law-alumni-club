@@ -17,7 +17,6 @@ HOME_HERO = {
     "title_pre": "Свои люди",
     "title_accent": "после выпуска.",
     "cta_primary": "Вступить в клуб",
-    "cta_secondary": "Как вступить",
 }
 HOME_CTA = {
     "title": "Три шага, и вы в клубе.",

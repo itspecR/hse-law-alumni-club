@@ -254,7 +254,6 @@ class HeroBody(Body):
     title_pre: str = None
     title_accent: str = None
     cta_primary: str = None
-    cta_secondary: str = None
     history_eyebrow: str = Field(default=None, max_length=80)
     history_title: str = Field(default=None, max_length=200)
     history_hint: str = Field(default=None, max_length=200)

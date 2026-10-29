@@ -1,7 +1,7 @@
 <h2>Главная страница</h2>
 {% if record and record.blocks is defined %}
 <form data-api="/admin/pages/home" data-method="PATCH">
-{% for block,names in [('hero',[('title_pre','Начало заголовка'),('title_accent','Выделенная часть'),('cta_primary','Кнопка вступления'),('cta_secondary','Вторая кнопка')]),('cta',[('title','Заголовок вступления'),('button','Кнопка')])] %}
+{% for block,names in [('hero',[('title_pre','Начало заголовка'),('title_accent','Выделенная часть'),('cta_primary','Кнопка вступления')]),('cta',[('title','Заголовок вступления'),('button','Кнопка')])] %}
 <fieldset>
 <legend>{{ 'Первый экран' if block=='hero' else 'Вступление' }}</legend>
 {% for name,label in names %}{{ field(block+'.'+name,label,(record.blocks.get(block) or {}).get(name,''),required=false) }}{% endfor %}
