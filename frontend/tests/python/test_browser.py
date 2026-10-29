@@ -125,18 +125,18 @@ def site():
             body = json.loads(request.content) if request.content else {}
             writes.append({"path": path, "method": request.method, "body": body, "headers": dict(request.headers)})
             if path == "/cart":
-                assert body["ref_id"] == PROGRAM["slug"]
+                line = PRODUCT if body.get("type") == "merch" else PROGRAM
                 records[path] = {
                     "items": [
                         {
-                            "type": "dpo",
-                            "ref_id": PROGRAM["slug"],
-                            "title": PROGRAM["title"],
-                            "price": PROGRAM["price"],
+                            "type": body.get("type"),
+                            "ref_id": body.get("ref_id"),
+                            "title": line["title"],
+                            "price": line["price"],
                             "qty": 1,
                         }
                     ],
-                    "subtotal": PROGRAM["price"],
+                    "subtotal": line["price"],
                     "count": 1,
                 }
                 return httpx.Response(200, json=records[path])
@@ -310,19 +310,31 @@ def test_office_content_filters_preserve_editing(page, site, width):
     expect(row.get_by_role("button", name="Сохранить", exact=True)).to_be_enabled()
 
 
-def test_catalog_filters_search_compare_and_cart(page, site):
+def center_site(page):
+    page.context.route(
+        "https://dpo.example.test/**",
+        lambda route: route.fulfill(content_type="text/html", body="<title>Центр ДПО</title><h1>Программа</h1>"),
+    )
+
+
+def test_catalog_filters_search_and_compare_lead_to_center(page, site):
+    center_site(page)
     page.goto("/dpo?q=нет-такого")
     expect(page.get_by_text("По выбранным фильтрам ничего не найдено.")).to_be_visible()
     page.goto("/dpo")
+    expect(page.get_by_role("button", name="В корзину", exact=True)).to_have_count(0)
     page.get_by_role("button", name="Сравнить", exact=True).click()
     page.get_by_role("button", name="Сравнить выбранные программы", exact=True).click()
-    expect(page.get_by_role("dialog", name="Сравнение программ")).to_contain_text(PROGRAM["title"])
+    dialog = page.get_by_role("dialog", name="Сравнение программ")
+    expect(dialog.get_by_role("link", name=PROGRAM["title"], exact=True)).to_have_attribute(
+        "href", PROGRAM["source_url"]
+    )
     page.get_by_role("button", name="Закрыть сравнение", exact=True).click()
-    page.get_by_role("button", name="В корзину", exact=True).click()
-    expect(page.locator("[data-cart-count]").first).to_have_text("1")
-    page.goto("/cart")
-    expect(page.locator("#main")).to_contain_text(PROGRAM["title"])
-    assert next(write for write in site[2] if write["path"] == "/cart")["body"]["ref_id"] == PROGRAM["slug"]
+    card = page.locator(".site-catalog-card").filter(has_text=PROGRAM["title"])
+    with page.expect_popup() as popup:
+        card.get_by_role("link", name=PROGRAM["title"], exact=True).click()
+    assert popup.value.url == PROGRAM["source_url"]
+    assert not [write for write in site[2] if write["path"] == "/cart"]
     page.goto("/search?q=правовая")
     expect(page.locator("#main")).to_contain_text(PROGRAM["title"])
 
@@ -333,9 +345,13 @@ def test_catalog_card_states_and_targets(page, site, width):
     page.goto("/dpo")
     card = page.locator(".site-catalog-card").filter(has_text=PROGRAM["title"])
     expect(card.locator(".site-card-media--empty")).to_have_attribute("aria-hidden", "true")
-    expect(
-        card.get_by_role("link", name="Подробнее о программе «" + PROGRAM["title"] + "»", exact=True)
-    ).to_have_attribute("href", "/dpo/" + PROGRAM["slug"])
+    more = card.get_by_role(
+        "link",
+        name="Подробнее о программе «" + PROGRAM["title"] + "» на сайте Центра ДПО, откроется в новой вкладке",
+        exact=True,
+    )
+    expect(more).to_have_attribute("href", PROGRAM["source_url"])
+    expect(more).to_have_attribute("target", "_blank")
     compare = card.get_by_role("button", name="Сравнить", exact=True)
     idle = compare.evaluate("node => getComputedStyle(node).backgroundColor")
     compare.click()
@@ -345,20 +361,6 @@ def test_catalog_card_states_and_targets(page, site, width):
     )
     for target in card.locator(".site-actions :is(a, button)").all():
         assert target.bounding_box()["height"] >= 44
-    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
-
-
-@pytest.mark.parametrize("width,position", [(390, "static"), (1440, "sticky")])
-def test_program_page_panel_and_teachers(page, site, width, position):
-    program = {**PROGRAM, "teachers": [{"name": "Первый преподаватель"}, {"name": "Второй преподаватель"}]}
-    site[1]["/programs/course-one"] = program
-    page.set_viewport_size({"width": width, "height": 900})
-    page.goto("/dpo/course-one")
-    expect(page.get_by_role("link", name="Программы ДПО", exact=True)).to_have_attribute("href", "/dpo")
-    panel = page.locator(".program-page aside.site-panel")
-    assert panel.evaluate("node => getComputedStyle(node).position") == position
-    expect(panel.locator(".lux-price")).to_have_text(rub(PROGRAM["price"]))
-    expect(page.locator(".lux-teachers article")).to_have_count(2)
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
@@ -451,7 +453,7 @@ def test_dpo_mirror_picker_compare_and_stale_dates(chromium, mirror_site):
 
 
 def test_checkout_error_keeps_contacts_and_replay_key(page, site):
-    page.goto("/dpo")
+    page.goto("/merch/" + PRODUCT["slug"])
     page.get_by_role("button", name="В корзину", exact=True).click()
     page.goto("/cart")
     page.get_by_label("ФИО", exact=True).fill("Тестовый выпускник")
@@ -472,7 +474,7 @@ def test_checkout_error_keeps_contacts_and_replay_key(page, site):
 @pytest.mark.parametrize("width", [1440, 390])
 def test_cart_update_preserves_checkout_draft(page, site, width):
     page.set_viewport_size({"width": width, "height": 900})
-    page.goto("/dpo/course-one")
+    page.goto("/merch/" + PRODUCT["slug"])
     page.get_by_role("button", name="В корзину", exact=True).click()
     page.goto("/cart")
     form = page.locator("form[data-checkout]")
@@ -505,7 +507,7 @@ def test_office_logout_failure_clears_private_view(page, width):
 
 
 def test_checkout_blocks_cart_mutation_and_restores_fields_on_error(page, site):
-    page.goto("/dpo/course-one")
+    page.goto("/merch/" + PRODUCT["slug"])
     page.get_by_role("button", name="В корзину", exact=True).click()
     page.goto("/cart")
     form = page.locator("form[data-checkout]")
@@ -537,7 +539,7 @@ def test_reading_storage_survives_navigation_and_rejects_external_path(page):
     page.add_init_script(
         "if(!localStorage.getItem('club-reading-v1')) localStorage.setItem('club-reading-v1',JSON.stringify({saved:[{kind:'news',id:'evil',title:'Внешняя ссылка',path:'https://evil.test',at:100}],recent:[],read:[]}));"
     )
-    page.goto("/dpo/course-one")
+    page.goto("/dpo")
     page.get_by_role("button", name="Сохранить", exact=True).click()
     expect(page.get_by_role("button", name="Сохранено", exact=True)).to_be_visible()
     page.goto("/saved")
@@ -615,13 +617,13 @@ def test_telegram_back_returns_to_previous_catalog(page):
     page.add_init_script(
         "window.Telegram={WebApp:{initData:'test',BackButton:{onClick:callback=>window.telegramBack=callback}}};"
     )
-    page.goto("/dpo?q=Правовая")
-    page.get_by_role("link", name=PROGRAM["title"], exact=True).click()
-    expect(page).to_have_url(re.compile("/dpo/course-one$"))
+    page.goto("/merch?q=Сумка")
+    page.get_by_role("link", name=PRODUCT["title"], exact=True).click()
+    expect(page).to_have_url(re.compile("/merch/bag-one$"))
     page.wait_for_function("() => typeof window.telegramBack==='function'")
     page.evaluate("window.telegramBack()")
-    expect(page).to_have_url(re.compile("/dpo\\?q="))
-    expect(page.get_by_role("searchbox", name="Поиск", exact=True)).to_have_value("Правовая")
+    expect(page).to_have_url(re.compile("/merch\\?q="))
+    expect(page.get_by_role("searchbox", name="Поиск", exact=True)).to_have_value("Сумка")
 
 
 def test_telegram_colors_follow_dark_theme(page):
@@ -763,7 +765,7 @@ def test_legal_pages_and_separate_form_consent(page, width):
     expect(page.locator(".site-consent")).not_to_contain_text("соглашение")
     page.locator(".site-consent a").first.click()
     expect(page.locator("#registration")).to_be_in_viewport()
-    page.goto("/dpo")
+    page.goto("/merch/" + PRODUCT["slug"])
     page.get_by_role("button", name="В корзину", exact=True).click()
     page.goto("/cart")
     expect(page.locator("input[name=consent_pdn]")).not_to_be_checked()
@@ -1010,9 +1012,9 @@ def test_offline_catalog_cannot_send_cart_changes(chromium, site):
     context = chromium.new_context(base_url=site[0])
     context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
     page = context.new_page()
-    page.goto("/dpo/course-one")
+    page.goto("/merch/" + PRODUCT["slug"])
     page.evaluate("navigator.serviceWorker.ready")
-    wait_for_offline_page(page, "/dpo/course-one")
+    wait_for_offline_page(page, "/merch/" + PRODUCT["slug"])
     context.set_offline(True)
     page.reload()
     page.get_by_role("button", name="В корзину", exact=True).click()
@@ -1157,7 +1159,7 @@ def test_search_keyboard_waits_for_submitted_results(page, width, direction, mov
 def test_saved_search_undo_and_recent_limit(page):
     page.goto("/news/news-one")
     page.get_by_role("button", name="Сохранить", exact=True).click()
-    page.goto("/dpo/course-one")
+    page.goto("/dpo")
     page.get_by_role("button", name="Сохранить", exact=True).click()
     page.goto("/saved")
     search = page.get_by_role("searchbox", name="Поиск в сохраненном")
@@ -1690,9 +1692,8 @@ def test_catalog_styles_stay_on_catalog_pages(page, site, width):
 
 @pytest.mark.parametrize("width", [390, 1440])
 def test_program_panel_actions_have_gap(page, site, width):
-    site[1]["/programs/course-one"] = {**PROGRAM, "source_url": "https://pravo.hse.ru/"}
     page.set_viewport_size({"width": width, "height": 900})
-    page.goto("/dpo/course-one")
+    page.goto("/portfolio/" + PORTFOLIO["slug"])
     panel = page.locator("aside.site-panel")
     link = panel.locator(".site-primary").bounding_box()
     save = panel.locator(".save-material").bounding_box()
@@ -1706,7 +1707,7 @@ def test_pwa_column_uses_phone_gutter(page):
     main = page.locator("#main").bounding_box()
     expect(page.locator(".mini-home")).to_have_css("padding-left", "16px")
     assert main["width"] <= 430
-    page.goto("/dpo/course-one?pwa=1")
+    page.goto("/portfolio/" + PORTFOLIO["slug"] + "?pwa=1")
     expect(page.locator(".site-two-col > aside.site-panel")).to_have_css("position", "static")
     page.goto("/join?pwa=1")
     assert page.evaluate(
@@ -1770,7 +1771,7 @@ def test_disclosures_and_pressed_buttons_in_vision_mode(page, site):
     summary = page.locator(".lux-disclosure > summary").first
     assert summary.evaluate("node => getComputedStyle(node, '::after').color") == "rgb(0, 0, 0)"
     assert summary.evaluate("node => getComputedStyle(node, '::after').transitionDuration") == "0s"
-    page.goto("/dpo/course-one")
+    page.goto("/portfolio/" + PORTFOLIO["slug"])
     for heading in page.locator("#main h2").all():
         expect(heading).to_have_css("font-weight", "400")
     page.goto("/dpo")
@@ -1803,11 +1804,20 @@ def test_mini_app_sign_pauses_off_screen(chromium, site):
 
 def test_touch_opens_peeking_ribbon_items(chromium, site):
     site[1]["/programs"] = [
-        {**PROGRAM, "id": f"program-{i}", "slug": f"course-{i}", "dates": {"start": f"2{i} октября 2099"}}
+        {
+            **PROGRAM,
+            "id": f"program-{i}",
+            "slug": f"course-{i}",
+            "dates": {"start": f"2{i} октября 2099"},
+            "source_url": f"https://dpo.example.test/programs/course-{i}.html",
+        }
         for i in range(4)
     ]
     context = chromium.new_context(
         base_url=site[0], viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True
+    )
+    context.route(
+        "https://dpo.example.test/**", lambda route: route.fulfill(content_type="text/html", body="<h1>Программа</h1>")
     )
     context.add_init_script(
         "localStorage.setItem('club_cookie_consent','essential');localStorage.setItem('club_token','member-qa');"
@@ -1816,8 +1826,9 @@ def test_touch_opens_peeking_ribbon_items(chromium, site):
     page.goto("/dpo")
     page.locator(".dpo-starts-grid").scroll_into_view_if_needed()
     peeking = page.locator(".dpo-starts-grid article").nth(1).bounding_box()
-    page.touchscreen.tap(min(peeking["x"] + 40, 380), peeking["y"] + peeking["height"] / 2)
-    expect(page).to_have_url(re.compile("/dpo/course-1$"))
+    with page.expect_popup() as popup:
+        page.touchscreen.tap(min(peeking["x"] + 40, 380), peeking["y"] + peeking["height"] / 2)
+    assert popup.value.url == "https://dpo.example.test/programs/course-1.html"
     page.goto("/lk")
     nav = page.get_by_role("navigation", name="Разделы кабинета")
     nav.scroll_into_view_if_needed()
@@ -1934,7 +1945,7 @@ SPACING_STEP = 4
         ("/join", "[data-registration]"),
         ("/forgot", ".club-auth__card form"),
         ("/lk", ".cabinet-gate__form"),
-        ("/dpo/course-one", "aside.site-panel form[data-cart]"),
+        ("/merch/bag-one", "aside.site-panel form[data-cart]"),
         ("/dpo", ".dpo-starts-grid article"),
         ("/events?month=2026-11", ".site-calendar-grid a"),
     ],
@@ -2028,16 +2039,15 @@ def test_catalog_and_detail_photos_keep_shape_without_enlargement(page, site, wi
         "**" + cover,
         lambda route: route.fulfill(path=Path(__file__).resolve().parents[2] / "public" / teacher_photo.lstrip("/")),
     )
-    teacher = {"name": "Преподаватель", "photo": teacher_photo}
-    program = {**PROGRAM, "cover": cover, "teachers": [teacher]}
-    records["/programs"] = [program]
-    records["/programs/course-one"] = program
+    trainer = {"id": "trainer-1", "fio": "Преподаватель", "photo": teacher_photo, "bio": ""}
+    records["/programs"] = [{**PROGRAM, "cover": cover}]
+    records["/portfolio/club-one"] = {**PORTFOLIO, "cover": cover, "trainers": [trainer]}
     records["/products"] = [{**PRODUCT, "images": ["/assets/merch-hoodie.webp"]}]
     page.set_viewport_size({"width": width, "height": 1000})
     for path, selector in (
         ("/dpo", ".site-card-media img"),
         ("/merch", ".site-card-media img"),
-        ("/dpo/course-one", ".site-program-cover, .site-teacher-photo"),
+        ("/portfolio/club-one", ".site-program-cover, .site-teacher-photo"),
         ("/merch/bag-one", ".site-product-photo img"),
     ):
         page.goto(path)

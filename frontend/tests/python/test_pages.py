@@ -8,7 +8,7 @@ import pytest
 import club_web
 from club_web import office
 from club_web.build import build_public
-from club_web.catalog import club_programs_preview
+from club_web.catalog import club_programs_preview, price_label
 from club_web.formatting import (
     local_datetime,
     payment_url,
@@ -39,6 +39,7 @@ PROGRAM = {
     "format": "online",
     "price": 300000,
     "enrollment": "actual",
+    "source_url": "https://dpo.example.test/programs/pravovaya-programma-101.html",
     "modules": [],
     "teachers": [],
 }
@@ -191,7 +192,6 @@ async def browser_client():
     "path",
     list(PUBLIC_PAGES)
     + [
-        "/dpo/course-one",
         "/portfolio/club-one",
         "/merch/bag-one",
         "/news/news-one",
@@ -702,17 +702,17 @@ async def test_portfolio_pages_show_club_program_without_cart(browser_client):
     assert 'href="/portfolio-consent"' in card.text and 'href="/portfolio-terms"' in card.text
 
 
-async def program_page(program):
+async def program_response(program):
     async def upstream(request):
         if request.url.path == "/programs/" + program["slug"]:
             return httpx.Response(200, json=program)
-        return httpx.Response(200, json=[])
+        return httpx.Response(404, json={"error": "Программа не найдена."})
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
         ) as client:
-            return (await client.get("/dpo/" + program["slug"])).text
+            return await client.get("/dpo/" + program["slug"])
 
 
 async def portfolio_page(program):
@@ -742,8 +742,6 @@ async def test_portfolio_card_shows_course_modules():
     assert "<h2>Программа курса</h2>" in page and "<summary>День 1. Архитектура конфликта</summary>" in page
     assert "<li>Юридический спор</li>" in page and "<p>6 ак. ч. · Лекция</p>" in page and "<p>2 ак. ч.</p>" in page
     assert "Программа курса" not in await portfolio_page(PORTFOLIO)
-    dpo = await program_page({**PROGRAM, "modules": [{"title": "Вводный модуль", "hours": 0}]})
-    assert "<summary>Вводный модуль</summary>" in dpo and "Часов" not in dpo
 
 
 async def test_dpo_merch_and_cart_texts_follow_glossary(browser_client):
@@ -751,21 +749,49 @@ async def test_dpo_merch_and_cart_texts_follow_glossary(browser_client):
     merch = (await browser_client.get("/merch")).text
     cart = (await browser_client.get("/cart", headers={"x-cart-session": "cart-test"})).text
     assert '<option value="">Не важно</option>' in dpo and "<p>Стоимость указана без скидки выпускника.</p>" in dpo
-    assert '<span class="lux-sr"> о программе «Правовая программа»</span>' in dpo
+    assert (
+        '<span class="lux-sr"> о программе «Правовая программа» на сайте Центра ДПО, откроется в новой вкладке</span>'
+        in dpo
+    )
     assert '<span class="lux-sr"> о товаре «Сумка клуба»</span>' in merch
     assert "Скидка выпускника на программы ДПО" not in cart
     assert "Скидка выпускника действует только на программы ДПО." in cart
     templates = Path(club_web.__file__).parent / "templates"
-    for name in ("catalog.html", "program.html", "cart.html", "product.html"):
+    for name in ("catalog.html", "cart.html", "product.html"):
         assert re.findall(".{0,40}[ёЁ–—].{0,20}", (templates / name).read_text()) == [], name
 
 
-async def test_dpo_discount_note_only_for_club_applications():
-    note = "Скидка выпускника учитывается при оформлении заявки после входа в кабинет."
-    open_page = await program_page({**PROGRAM, "modules": [{"title": "Модуль", "hours": 21}]})
-    assert note in open_page and "‹</span> Программы ДПО</a>" in open_page and "<p>Часов: 21</p>" in open_page
-    assert note not in await program_page({**PROGRAM, "source_url": "https://www.hse.ru/edu/dpo/1"})
-    assert note not in await program_page({**PROGRAM, "enrollment": "nonactual"})
+async def test_dpo_program_address_leads_to_center_site():
+    response = await program_response(PROGRAM)
+    assert response.status_code == 302 and response.headers["location"] == PROGRAM["source_url"]
+    for source in (None, "javascript:alert(1)", "/dpo/other"):
+        assert (await program_response({**PROGRAM, "source_url": source})).status_code == 404
+
+
+async def test_dpo_catalog_links_to_center_site_with_alumni_price(browser_client):
+    page = (await browser_client.get("/dpo")).text
+    link = f'href="{PROGRAM["source_url"]}" target="_blank" rel="noopener noreferrer"'
+    assert page.count(link) == 2 and '<a href="/dpo/course-one"' not in page
+    assert "Скидка выпускника по уровню в клубе. Подробности при оформлении на сайте Центра ДПО." in page
+    assert '<p class="site-price">3\u00a0000 ₽</p>' in page and "<p>Цена выпускника от&nbsp;2\u00a0400 ₽</p>" in page
+    assert '<span class="lux-more__arrow" aria-hidden="true">↗</span>' in page
+
+
+async def test_dpo_search_and_home_lead_to_center_site(browser_client):
+    search = (await browser_client.get("/search", params={"q": "правовая"})).text
+    row = f'href="{PROGRAM["source_url"]}" target="_blank" rel="noopener noreferrer">Правовая программа<span class="lux-sr">'
+    assert row in search
+    home = (await browser_client.get("/")).text
+    assert f'<a class="foc lux-prog__link" href="{PROGRAM["source_url"]}" target="_blank"' in home
+    assert "Подробности при&nbsp;оформлении на&nbsp;сайте Центра ДПО.</p>" in home
+
+
+def test_dpo_price_labels_follow_center_catalog():
+    assert (price_label(None), price_label(0), price_label(300000)) == (
+        "Стоимость уточняется",
+        "Бесплатно",
+        "3\u00a0000 ₽",
+    )
 
 
 async def test_events_podcasts_news_search_saved_texts_follow_glossary(browser_client):

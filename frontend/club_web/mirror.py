@@ -136,7 +136,6 @@ async def export(destination, base, data):
 
     paths = list(PUBLIC_PAGES) + ["/admin" + ("/" + key if key != "overview" else "") for key, _ in OFFICE_NAV]
     for prefix, key, identifier in (
-        ("dpo", "programs", "slug"),
         ("merch", "products", "slug"),
         ("news", "news", "slug"),
         ("events", "events", "id"),

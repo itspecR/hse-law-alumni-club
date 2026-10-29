@@ -54,6 +54,7 @@ async def test_site_bot_keeps_private_programs_out_of_answers(database_app):
                 "price": price,
                 "format": "online",
                 "status": status,
+                "source_url": f"https://dpo.example.test/programs/{status}.html",
             },
         )
     await app.state.store.create(
@@ -75,7 +76,9 @@ async def test_site_bot_keeps_private_programs_out_of_answers(database_app):
         selection = await client.post("/support/ask", json={"question": "программы права"})
         assert selection.status_code == 200
         programs = selection.json()["programs"]
-        assert programs and all(program["url"] == "/dpo/published" for program in programs)
+        assert programs and all(
+            program["url"] == "https://dpo.example.test/programs/published.html" for program in programs
+        )
         unknown = await client.post("/support/ask", json={"question": "Совершенно несуществующий запрос"})
         assert unknown.status_code == 200
         assert unknown.json()["anchor"] == "/support"

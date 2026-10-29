@@ -70,7 +70,7 @@ export function prepareCatalog(url, notice) {
     head.append(node("th", "Параметр", { scope: "col" }));
     for (const program of rows) {
       const cell = node("th", undefined, { scope: "col" });
-      cell.append(node("a", program.title, { href: url("dpo/" + program.slug) }));
+      cell.append(node("a", program.title, { href: program.source_url, target: "_blank", rel: "noopener noreferrer" }));
       head.append(cell);
     }
     dialog.querySelector("thead").replaceChildren(head);

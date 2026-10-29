@@ -22,7 +22,7 @@
 <section>
 <h2>{{ group.label }}</h2>
 {% for item in group['items'] %}
-<a class="site-reading-item" data-search-row data-search-text="{{ item.text }}" href="{{ item.path }}">{{ item.title }}</a>
+<a class="site-reading-item" data-search-row data-search-text="{{ item.text }}" href="{{ item.path }}"{% if item.external %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ item.title }}{% if item.external %}<span class="lux-sr">, на сайте Центра ДПО, откроется в&nbsp;новой вкладке</span>{% endif %}</a>
 {% endfor %}
 </section>
 {% endfor %}
