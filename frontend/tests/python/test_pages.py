@@ -399,6 +399,31 @@ async def test_full_club_name_and_merch_text(browser_client):
     assert "<p>Одежда и аксессуары с символикой клуба и ВШЭ.</p>" in page
 
 
+async def test_hidden_changes_section_shows_stub_and_leaves_menus_and_search(browser_client):
+    home = (await browser_client.get("/")).text
+    assert 'href="/changes"' not in home and "Изменения в&nbsp;праве</h3>" in home
+    assert '<p class="lux-tile__lede">Раздел в&nbsp;разработке.</p>' in home
+    assert "<p>Программы клуба и ДПО, события, подкасты и новости.</p>" in home
+    assert (
+        'content="Клуб выпускников факультета права НИУ ВШЭ. Программы клуба и ДПО, события, подкасты и новости."'
+        in home
+    )
+    for path in ("/changes", "/changes/tg-18"):
+        page = await browser_client.get(path)
+        assert page.status_code == 200 and "<h1>Изменения в праве</h1>\n<p>Раздел в разработке.</p>" in page.text
+    search = (await browser_client.get("/search", params={"q": "237-ФЗ"})).text
+    assert "Изменения в праве" not in search.split('<main id="main"', 1)[1]
+    saved = (await browser_client.get("/saved")).text
+    assert '"change"' not in saved and "Изменения в праве" not in saved.split('<main id="main"', 1)[1]
+
+
+async def test_changes_section_returns_with_one_switch(changes_section, browser_client):
+    home = (await browser_client.get("/")).text
+    assert 'href="/changes"' in home and "Все изменения" in home
+    assert "<p>Программы клуба и ДПО, события, подкасты и изменения в праве.</p>" in home
+    assert "Раздел в разработке" not in (await browser_client.get("/changes")).text
+
+
 async def test_cart_line_has_no_empty_variant(browser_client):
     response = await browser_client.get("/cart", headers={"x-cart-session": "cart-test"})
     assert f"<p>{rub(PRODUCT['price'])}</p>" in response.text
@@ -454,7 +479,9 @@ async def test_subscription_return_survives_password_recovery(browser_client):
     assert 'href="/forgot"' in response.text
 
 
-async def test_unavailable_changes_source_keeps_saved_materials_and_status(browser_client, monkeypatch):
+async def test_unavailable_changes_source_keeps_saved_materials_and_status(
+    changes_section, browser_client, monkeypatch
+):
     from club_web import pages
 
     original = pages.resource
@@ -487,7 +514,7 @@ async def test_search_survives_unexpected_portfolio_payload(monkeypatch):
     assert response.status_code == 200 and "<main" in response.text
 
 
-async def test_global_search_includes_events_and_archived_acts(browser_client):
+async def test_global_search_includes_events_and_archived_acts(changes_section, browser_client):
     response = await browser_client.get("/search", params={"q": "Встреча клуба"})
     assert 'href="/events/event-1"' in response.text
     response = await browser_client.get("/search", params={"q": "237-ФЗ"})
@@ -795,7 +822,7 @@ async def test_login_search_and_mini_texts_follow_glossary(browser_client):
     note = "Скидка выпускника и все разделы кабинета откроются, когда мы подтвердим ваш статус."
     assert note in login and "Войти можно после того" not in login
     search = (await browser_client.get("/search")).text
-    assert search.count("<label>Программы, события, новости, подкасты, изменения в праве<input") == 2
+    assert search.count("<label>Программы, события, новости, подкасты<input") == 2
     assert "<p>Баллы, заявки и скидка выпускника.</p>" in (await browser_client.get("/tg")).text
 
 

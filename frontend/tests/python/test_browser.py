@@ -1155,7 +1155,7 @@ def test_saved_search_undo_and_recent_limit(page):
 
 
 @pytest.mark.parametrize("width", [360, 390, 768, 1280, 1440])
-def test_changes_filters_reader_back_and_copy_fallback(page, width):
+def test_changes_filters_reader_back_and_copy_fallback(changes_section, page, width):
     page.set_viewport_size({"width": width, "height": 1000})
     page.goto("/changes?view=all&sort=oldest")
     if width < 768:
@@ -1179,7 +1179,7 @@ def test_changes_filters_reader_back_and_copy_fallback(page, width):
     expect(page.locator('[data-change-open="' + target + '"]')).to_be_focused()
 
 
-def test_mirror_changes_search_reading_and_dialog_are_independent(chromium, mirror_site):
+def test_mirror_changes_search_reading_and_dialog_are_independent(changes_section, chromium, mirror_site):
     context = chromium.new_context(viewport={"width": 1440, "height": 1000})
     context.add_init_script("localStorage.setItem('club_cookie_consent','essential')")
     page = context.new_page()
@@ -1212,7 +1212,7 @@ def test_mirror_changes_search_reading_and_dialog_are_independent(chromium, mirr
     context.close()
 
 
-def test_changes_reader_navigation_preserves_list_return(page):
+def test_changes_reader_navigation_preserves_list_return(changes_section, page):
     page.goto("/changes?view=all")
     page.locator("[data-change-open]").first.click()
     second = page.locator("[data-change-open]").nth(1)
@@ -1222,7 +1222,7 @@ def test_changes_reader_navigation_preserves_list_return(page):
     expect(page.locator('[data-change-open="' + identifier + '"]')).to_be_focused()
 
 
-def test_changes_return_focuses_item_opened_before_scripts(page):
+def test_changes_return_focuses_item_opened_before_scripts(changes_section, page):
     page.goto("/changes?view=all")
     page.locator("[data-change-open]").first.click()
     expect(page.locator(".changes-page--reading[data-prepared]")).to_be_attached()
@@ -1234,7 +1234,7 @@ def test_changes_return_focuses_item_opened_before_scripts(page):
     expect(page.locator('[data-change-open="' + identifier + '"]')).to_be_focused()
 
 
-def test_mirror_reader_back_restores_focus(chromium, mirror_site):
+def test_mirror_reader_back_restores_focus(changes_section, chromium, mirror_site):
     context = chromium.new_context(viewport={"width": 1440, "height": 1000})
     context.add_init_script("localStorage.setItem('club_cookie_consent','essential')")
     page = context.new_page()
@@ -1802,7 +1802,7 @@ def test_touch_opens_peeking_ribbon_items(chromium, site):
     context.close()
 
 
-def test_changes_list_keeps_its_own_rows(page):
+def test_changes_list_keeps_its_own_rows(changes_section, page):
     page.goto("/changes?view=all")
     page.locator("[data-change-open]").first.click()
     selected = page.locator(".changes-row.is-selected")

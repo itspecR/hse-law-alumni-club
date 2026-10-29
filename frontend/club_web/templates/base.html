@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>{{ title }} - Клуб выпускников факультета права НИУ ВШЭ</title>
-<meta name="description" content="Клуб выпускников факультета права НИУ ВШЭ. Программы клуба и ДПО, события, подкасты, новости и изменения в праве.">
+<meta name="description" content="Клуб выпускников факультета права НИУ ВШЭ. Программы клуба и ДПО, события, подкасты{{ ', новости и изменения в праве' if changes_enabled else ' и новости' }}.">
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="robots" content="{{ 'noindex,nofollow' if mirror or path.startswith(('/lk','/admin','/cart','/join','/reset','/confirm','/saved')) else 'index,follow' }}">
@@ -141,7 +141,7 @@
 <img src="{{ base }}assets/themis-club.svg" width="40" height="40" alt="">
 <div>
 <strong>Клуб выпускников факультета права НИУ&nbsp;ВШЭ</strong>
-<p>Программы клуба и ДПО, события, подкасты и изменения в праве.</p>
+<p>Программы клуба и ДПО, события, подкасты{{ ' и изменения в праве' if changes_enabled else ' и новости' }}.</p>
 </div>
 </div>
 <div>
@@ -203,7 +203,7 @@
 </div>
 <dialog id="search-dialog" class="discovery-dialog" aria-labelledby="search-title">
 <div class="discovery-dialog-head"><h2 id="search-title">Поиск по сайту</h2><button type="button" data-search-close aria-label="Закрыть поиск">×</button></div>
-<form data-search-dialog-form><label>Программы, события, новости, подкасты, изменения в праве<input type="search" name="q" minlength="2" maxlength="200" autocomplete="off"></label><button>Найти</button></form>
+<form data-search-dialog-form><label>Программы, события, новости, подкасты{{ ', изменения в праве' if changes_enabled }}<input type="search" name="q" minlength="2" maxlength="200" autocomplete="off"></label><button>Найти</button></form>
 <p data-search-status role="status">Введите хотя бы две буквы.</p><div data-search-results></div>
 </dialog>
 <dialog id="site-dialog">
