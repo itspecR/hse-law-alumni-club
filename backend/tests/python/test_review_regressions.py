@@ -1,7 +1,5 @@
 import asyncio
-import json
 from datetime import UTC, datetime
-from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -9,53 +7,7 @@ import httpx
 import pytest
 from test_community_integration import account, png
 
-from club_api.core.errors import ApiError
-from club_api.modules.catalog import sync
 from club_api.modules.telegram.faq import program_to_bot, search
-
-
-def catalog_page(items, *, total=6, page_size=3):
-    data = {"items": items, "total": total, "pageSize": page_size}
-    return "window.__INITIAL_STATE__=" + json.dumps(data) + ";window.__URQL_DATA__={};"
-
-
-@pytest.mark.parametrize(
-    "invalid", ["empty", "duplicate", "invalid_item", "changed_total", "changed_size", "missing_metadata"]
-)
-async def test_incomplete_hse_catalog_is_rejected(monkeypatch, invalid):
-    cards = [{"id": index, "title": f"Программа {index}", "educationPricing": 100} for index in range(1, 7)]
-
-    async def source(_state, url, **_kwargs):
-        if "page=2" not in url:
-            return catalog_page(cards[:3])
-        items = cards[3:]
-        if invalid == "empty":
-            items = []
-        elif invalid == "duplicate":
-            items = cards[:3]
-        elif invalid == "invalid_item":
-            items = [None, *cards[4:]]
-        if invalid == "missing_metadata":
-            return 'window.__INITIAL_STATE__={"items":[]};window.__URQL_DATA__={};'
-        return catalog_page(
-            items, total=5 if invalid == "changed_total" else 6, page_size=2 if invalid == "changed_size" else 3
-        )
-
-    monkeypatch.setattr(sync, "get_html", source)
-    with pytest.raises(ApiError) as failure:
-        await sync.collect(SimpleNamespace(), sync.ACTUAL_URL)
-    assert failure.value.status == 502
-
-
-async def test_complete_catalog_accepts_partial_last_page(monkeypatch):
-    cards = [{"id": index, "title": f"Программа {index}"} for index in range(1, 6)]
-
-    async def source(_state, url, **_kwargs):
-        return catalog_page(cards[3:] if "page=2" in url else cards[:3], total=5)
-
-    monkeypatch.setattr(sync, "get_html", source)
-    result = await sync.collect(SimpleNamespace(), sync.ACTUAL_URL)
-    assert [card["hseId"] for card in result] == [str(index) for index in range(1, 6)]
 
 
 async def test_first_mail_delivery_cannot_race_outbox_drain(database_app, monkeypatch):

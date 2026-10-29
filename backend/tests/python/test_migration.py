@@ -9,7 +9,6 @@ import httpx
 import psycopg
 import pytest
 from club_ops.bootstrap import BootstrapConfig, OperatorError, bootstrap
-from club_ops.catalog import retain_copy
 from club_ops.staff import manage_staff
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row
@@ -19,7 +18,6 @@ from test_community_integration import account
 from club_api.core.config import Settings
 from club_api.main import create_app
 from club_api.modules.auth import passwords
-from club_api.modules.catalog.sync import map_item, parse_initial_state
 from club_api.observability.errors import scrub_event
 
 
@@ -68,15 +66,6 @@ def test_all_legacy_routes_are_present():
         ("DELETE", "/admin/programs/{id}"),
     }
     assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 140
-
-
-def test_hse_state_dates_and_manual_fields():
-    source = 'window.__INITIAL_STATE__={items:[{id:42,title:"Тестовая программа",startDate:new Date(1796112000000),studyFormat:{title:"Онлайн"},educationPricing:100.5,__proto__:null}],total:1,pageSize:20};window.__URQL_DATA__={};'
-    parsed = parse_initial_state(source)
-    card = map_item(parsed["items"][0])
-    assert card["priceKop"] == 10100 and card["start"] == "1 декабря 2026 г."
-    incoming = {"hse_id": "42", "description": "Импорт", "audience": ["Из источника"]}
-    assert retain_copy(incoming, {"hse_id": "42", "description": "Текст офиса", "audience": []})["audience"] == []
 
 
 def test_sentry_privacy():

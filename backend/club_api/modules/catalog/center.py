@@ -13,7 +13,6 @@ from club_api.db.queries import Query, acquire_lock, release_lock
 from club_api.domain import DPO_CATALOG
 from club_api.modules.auth.service import require_admin
 from club_api.modules.catalog.scope import DPO_PROGRAMS
-from club_api.modules.catalog.sync import DOCUMENTS
 from club_api.modules.media.service import MAX_IMAGE_BYTES
 from club_api.observability.audit import audit
 
@@ -31,6 +30,10 @@ MEDIA_KIND = "dpo"
 START_PREFIX = "Старт: "
 PUBLISHED, ARCHIVED, OPEN = "published", "archived", "actual"
 FORMATS = {"online": "online", "offline": "offline", "mixed": "blended", "hybrid": "blended"}
+DOCUMENTS = {
+    "ПК": "Удостоверение о повышении квалификации НИУ ВШЭ",
+    "ПП": "Диплом о профессиональной переподготовке НИУ ВШЭ",
+}
 TEXT_LIMIT = 255
 HSE_ID = re.compile(r"[A-Za-z0-9_-]{1,32}")
 PAGE = re.compile(r"programs/[a-z0-9-]{1,60}(?:-[A-Za-z0-9_-]{1,32})?\.html")

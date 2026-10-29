@@ -5,8 +5,21 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup, NavigableString, Tag
 
 from club_api.db.store import normalize
-from club_api.modules.catalog.sync import MONTHS
 
+MONTHS = (
+    "января",
+    "февраля",
+    "марта",
+    "апреля",
+    "мая",
+    "июня",
+    "июля",
+    "августа",
+    "сентября",
+    "октября",
+    "ноября",
+    "декабря",
+)
 SKIPPED = {"script", "style", "noscript", "iframe", "form", "button", "svg", "video", "audio"}
 HEADINGS = {"h1": "## ", "h2": "## ", "h3": "### ", "h4": "#### ", "h5": "#### ", "h6": "#### "}
 LISTS = {"ul", "ol"}
