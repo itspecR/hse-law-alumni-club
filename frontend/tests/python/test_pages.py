@@ -9,7 +9,15 @@ import club_web
 from club_web import office
 from club_web.build import build_public
 from club_web.catalog import club_programs_preview
-from club_web.formatting import local_datetime, payment_url, program_price, program_start, rub, safe_url
+from club_web.formatting import (
+    local_datetime,
+    payment_url,
+    price_or_pending,
+    program_price,
+    program_start,
+    rub,
+    safe_url,
+)
 from club_web.main import create_app
 from club_web.office import filter_content
 from club_web.pages import NAV, OFFICE_NAV, PUBLIC_PAGES
@@ -887,6 +895,13 @@ def test_portfolio_start_and_price_follow_open_cohorts():
     assert program_price({**PORTFOLIO, "cohorts": cohorts[:1]}) == "39\u00a0000 ₽"
     assert (program_start(PORTFOLIO), program_price(PORTFOLIO)) == ("1 декабря 2026", "45\u00a0000 ₽")
     assert program_start({**PORTFOLIO, "cohorts": {"unexpected": True}}) == "1 декабря 2026"
+
+
+def test_portfolio_price_without_amount_is_pending():
+    for item in ({**PORTFOLIO, "price": 0}, {**PORTFOLIO, "price": None}, {**PORTFOLIO, "cohorts": [{"price": 0}]}):
+        assert program_price(item) == "Стоимость уточняется"
+    assert program_price({**PORTFOLIO, "cohorts": [{"price": 0}, {"price": 3900000}]}) == "от 39\u00a0000 ₽"
+    assert (price_or_pending(0), price_or_pending(3900000)) == ("Стоимость уточняется", "39\u00a0000 ₽")
 
 
 async def test_portfolio_leads_the_navigation():

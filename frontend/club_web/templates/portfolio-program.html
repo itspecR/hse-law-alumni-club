@@ -88,7 +88,7 @@
 <fieldset class="portfolio-cohorts">
 <legend>Поток</legend>
 {% for cohort in cohorts %}
-<label class="portfolio-cohort"><input type="radio" name="cohort_id" value="{{ cohort.id }}" required data-quote-input data-start="{{ cohort.starts_on|date }}"{% if loop.length==1 %} checked{% endif %}><span>Старт {{ cohort.starts_on|date }}<small>{{ cohort.price|rub }}{% if cohort.seats_left==0 %} · мест нет, мы свяжемся, если место освободится{% elif cohort.seats_left is not none %} · свободных мест: {{ cohort.seats_left }}{% endif %}</small></span></label>
+<label class="portfolio-cohort"><input type="radio" name="cohort_id" value="{{ cohort.id }}" required data-quote-input data-start="{{ cohort.starts_on|date }}"{% if loop.length==1 %} checked{% endif %}><span>Старт {{ cohort.starts_on|date }}<small>{{ cohort.price|price_or_pending }}{% if cohort.seats_left==0 %} · мест нет, мы свяжемся, если место освободится{% elif cohort.seats_left is not none %} · свободных мест: {{ cohort.seats_left }}{% endif %}</small></span></label>
 {% endfor %}
 </fieldset>
 {% endif %}
@@ -107,7 +107,7 @@
 <label class="site-field">Промокод<input name="promo_code" maxlength="32" autocomplete="off" autocapitalize="characters" spellcheck="false" data-quote-input></label>
 <button type="button" class="lux-btn lux-btn--ghost" data-action="quote" data-quote-api="/portfolio/{{ item.slug }}/quote">Применить</button>
 </div>
-<p class="portfolio-quote" aria-live="polite" data-quote></p>
+<p class="portfolio-quote" aria-live="polite" data-quote data-price-pending="{{ price_pending }}"></p>
 <label class="site-field">Комментарий<textarea name="comment" maxlength="2000"></textarea></label>
 <label class="site-consent"><input type="checkbox" name="consent_pdn" required>Даю <a href="/portfolio-consent">согласие на обработку персональных данных</a></label>
 <label class="site-consent"><input type="checkbox" name="consent_terms" required>Соглашаюсь с <a href="/portfolio-terms">условиями обучения</a></label>

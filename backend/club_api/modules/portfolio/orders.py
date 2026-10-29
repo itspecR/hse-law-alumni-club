@@ -1,8 +1,9 @@
 from club_api.core.errors import ApiError
-from club_api.domain import PORTFOLIO_CATALOG
+from club_api.domain import PORTFOLIO_CATALOG, rubles
 
 OPEN_STATUSES = ("new", "in_progress", "confirmed")
 CONTACT_LINE = "Мы свяжемся с Вами, чтобы согласовать договор и оплату."
+PRICE_PENDING_LINE = "Стоимость уточним при согласовании договора."
 LOCK_SQL = "SELECT id FROM {table} WHERE id=%s FOR UPDATE"
 USED_SQL = "SELECT id FROM orders WHERE {column}=%s LIMIT 1"
 LOCKED_FIELDS = (
@@ -19,6 +20,10 @@ LOCKED_FIELDS = (
     "cohort_id",
     "participants",
 )
+
+
+def estimate_line(total):
+    return f"Предварительная сумма {rubles(total)}." if total else PRICE_PENDING_LINE
 
 
 def require_open(order, subject):

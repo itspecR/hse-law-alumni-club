@@ -235,6 +235,10 @@ function rubles(value) {
   return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", minimumFractionDigits: value % 100 ? 2 : 0 }).format(value / 100);
 }
 
+function estimateText(form, total) {
+  return total ? "Предварительная сумма " + rubles(total) : form.querySelector("[data-quote]").dataset.pricePending;
+}
+
 function discountText(discount, source, message) {
   if (message) return message;
   return source === "member" ? "Скидка выпускника " + discount + "%." : "";
@@ -242,7 +246,7 @@ function discountText(discount, source, message) {
 
 function applicationReceipt(form, result) {
   const receipt = element("div", undefined, { role: "status", class: "portfolio-receipt", tabindex: "-1" });
-  receipt.append(element("h3", "Заявка " + result.number + " принята"), element("p", "Участников: " + result.participants + " · предварительная сумма " + rubles(result.total_estimate)));
+  receipt.append(element("h3", "Заявка " + result.number + " принята"), element("p", "Участников: " + result.participants + " · " + estimateText(form, result.total_estimate).toLowerCase()));
   if (result.starts_on) receipt.append(element("p", "Старт потока: " + (form.querySelector("[name='cohort_id']:checked")?.dataset.start || result.starts_on)));
   const discount = discountText(result.member_discount, result.discount_source, result.message);
   if (discount) receipt.append(element("p", discount));
@@ -289,7 +293,7 @@ async function quotePromo(button) {
   button.disabled = true;
   try {
     const quote = await request(button.dataset.quoteApi, "POST", body);
-    showQuote(form, [discountText(quote.discount, quote.source, quote.message), "Предварительная сумма " + rubles(quote.total) + "."].filter(Boolean).join(" "));
+    showQuote(form, [discountText(quote.discount, quote.source, quote.message), estimateText(form, quote.total) + "."].filter(Boolean).join(" "));
   } catch (error) { showQuote(form, error.message, true); }
   finally { button.disabled = false; }
 }

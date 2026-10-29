@@ -4,11 +4,11 @@ from pydantic import Field
 from club_api.core.errors import ApiError
 from club_api.core.models import guid
 from club_api.core.views import api_view, defer, parse_body
-from club_api.domain import applied_discount, order_totals, rubles
+from club_api.domain import applied_discount, order_totals
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin
 from club_api.modules.notifications.mail import club_subject
-from club_api.modules.portfolio.orders import CONTACT_LINE, locked_order, reachable, require_open
+from club_api.modules.portfolio.orders import CONTACT_LINE, estimate_line, locked_order, reachable, require_open
 from club_api.observability.audit import audit
 
 MAX_OFFICE_DISCOUNT = 100
@@ -45,7 +45,7 @@ async def notify_discount(state, order, total):
         order["contact_email"],
         club_subject(f"Сумма по заявке {order['number']} изменена"),
         f"Здравствуйте, {order['contact_fio']}!\n\nПо Вашей заявке {order['number']} изменена сумма, "
-        f"{discount_line(order)}.\nПредварительная сумма {rubles(total)}.\n\n" + CONTACT_LINE,
+        f"{discount_line(order)}.\n{estimate_line(total)}\n\n" + CONTACT_LINE,
     )
 
 
