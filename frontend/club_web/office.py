@@ -171,6 +171,7 @@ FIELDS = {
         ("audience", "Для кого, каждый пункт с новой строки", "lines"),
         ("competencies", "Компетенции, каждая с новой строки", "lines"),
         ("communication", "Коммуникация, каждый канал с новой строки", "lines"),
+        ("modules", "Программа курса", "modules"),
         ("cover", "Обложка", "text"),
         ("status", "Статус", "published|draft|archived"),
     ],

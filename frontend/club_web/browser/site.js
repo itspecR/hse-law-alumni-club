@@ -146,10 +146,24 @@ function formBody(form) {
       body[group][name] = value;
     } else body[input.name] = value;
   }
+  for (const editor of form.querySelectorAll("[data-modules]")) body[editor.dataset.modules] = [...editor.querySelectorAll(":scope > [data-module]")].map(moduleBody).filter(module => module.title);
   if (body.repeat_password !== undefined) { if (body.password !== body.repeat_password) throw new Error("Пароли не совпадают."); delete body.repeat_password; }
   if (body.variant_sku === "") body.variant_sku = null;
   if (form.hasAttribute("data-registration")) body.ref = new URLSearchParams(location.search).get("ref") || null;
   return body;
+}
+
+function moduleBody(row) {
+  const value = field => row.querySelector(`[data-module-field="${field}"]`).value.trim();
+  const module = { title: value("title"), points: value("points").split("\n").map(line => line.trim()).filter(Boolean), hours: value("hours") || null, format: value("format") || null };
+  if (!module.title && (module.points.length || module.hours || module.format)) throw new Error("Укажите тему каждого модуля.");
+  return module;
+}
+
+function addModule(button) {
+  const row = button.closest("[data-modules]").querySelector("template").content.firstElementChild.cloneNode(true);
+  button.before(row);
+  row.querySelector("input").focus();
 }
 
 function formError(form, message) {
@@ -580,6 +594,8 @@ document.addEventListener("click", async event => {
     if (target.dataset.api) { await perform(target, target.dataset.method === "GET" || target.dataset.method === "DELETE" ? undefined : target.dataset.body ? JSON.parse(target.dataset.body) : {}); return; }
     const action = target.dataset.action;
     if (action === "refresh") await refresh();
+    else if (action === "module-add") addModule(target);
+    else if (action === "module-remove") target.closest("[data-module]").remove();
     else if (action === "quote") await quotePromo(target);
     else if (action === "office-menu") {
       const open = target.getAttribute("aria-expanded") !== "true";

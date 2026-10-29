@@ -158,3 +158,16 @@ async def test_blank_document_falls_back_to_certificate(database_app):
         assert (await client.patch(route, headers=editor, json={"document": "Удостоверение"})).status_code == 200
         assert (await client.patch(route, headers=editor, json={"document": "  "})).status_code == 200
         assert (await listed(client, editor, "/admin/portfolio", program["id"]))["document"] == "Сертификат об обучении"
+
+
+async def test_course_modules_reach_office_and_card(database_app):
+    app = database_app
+    _, editor = await account(app, "editor")
+    modules = [
+        {"title": "День 1", "points": ["Лекция", "Практикум"], "hours": "6 ак. ч.", "format": "Аудиторная работа"}
+    ]
+    async with client_for(app) as client:
+        program = await create(client, editor, "/admin/portfolio", {**PORTFOLIO, "modules": modules})
+        row = await listed(client, editor, "/admin/portfolio", program["id"])
+        card = (await client.get("/portfolio/" + row["slug"])).json()
+    assert row["modules"] == modules and card["modules"] == modules

@@ -2085,6 +2085,51 @@ def test_office_portfolio_form_sends_lists_trainers_and_limit(page, site, width)
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
+@pytest.mark.parametrize("width", [1440, 390])
+def test_office_portfolio_form_edits_course_modules(page, site, width):
+    module = {
+        "title": "День 1. Архитектура конфликта",
+        "points": ["Лекция", "Практикум"],
+        "hours": "6 ак. ч.",
+        "format": "Лекция",
+    }
+    site[1]["/admin/trainers"] = TRAINERS
+    site[1]["/admin/portfolio"] = [{**PORTFOLIO_PROGRAM, "modules": [module]}]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/portfolio")
+    row = page.locator("article.office-record")
+    row.get_by_text("Редактировать", exact=True).click()
+    editor = row.get_by_role("group", name="Программа курса")
+    first = editor.locator("[data-module]").first
+    expect(first.get_by_label("Тема")).to_have_value(module["title"])
+    expect(first.get_by_label("Содержание, каждый пункт с новой строки")).to_have_value("Лекция\nПрактикум")
+    editor.get_by_role("button", name="Добавить модуль", exact=True).click()
+    added = editor.locator("[data-module]").nth(1)
+    expect(added.get_by_label("Тема")).to_be_focused()
+    added.get_by_label("Часы").fill("2 ак. ч.")
+    row.get_by_role("button", name="Сохранить", exact=True).click()
+    expect(row.locator("[data-error]")).to_have_text("Укажите тему каждого модуля.")
+    added.get_by_label("Тема").fill("Самостоятельная работа")
+    added.get_by_label("Содержание, каждый пункт с новой строки").fill("Домашнее задание\n\n")
+    added.get_by_label("Формат").fill("Самостоятельно")
+    first.get_by_role("button", name="Удалить модуль", exact=True).click()
+    editor.get_by_role("button", name="Добавить модуль", exact=True).click()
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    row.get_by_role("button", name="Сохранить", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
+    write = site[2][-1]
+    assert write["path"] == "/admin/portfolio/club-1" and write["method"] == "PATCH"
+    assert write["body"]["modules"] == [
+        {
+            "title": "Самостоятельная работа",
+            "points": ["Домашнее задание"],
+            "hours": "2 ак. ч.",
+            "format": "Самостоятельно",
+        }
+    ]
+
+
 def test_office_portfolio_without_trainers_points_to_directory(page, site):
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
     page.goto("/admin/portfolio")

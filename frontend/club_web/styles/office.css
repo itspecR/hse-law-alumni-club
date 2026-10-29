@@ -126,6 +126,11 @@
 .site-office .office-choices label { display:flex; align-items:center; gap:12px; min-height:44px; }
 .site-office .office-choices input { flex:none; margin:0; width:20px; height:20px; }
 .site-office .office-choices p { margin:8px 0; }
+.site-office .office-modules { grid-column:1/-1; margin:16px 0; padding:8px 16px 16px; border-radius:var(--r-sm); }
+.site-office .office-modules legend { padding:0 4px; font-size:14px; font-family:inherit; }
+.site-office .office-module { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 16px; padding:12px 0; border-bottom:1px solid var(--c-line); }
+.site-office .office-module__wide { grid-column:1/-1; }
+.site-office .office-module>button,.site-office .office-modules>button { justify-self:start; margin:8px 0; }
 .site-office .site-audit { background:var(--c-bg); padding:20px 24px; }
 .site-office .site-audit time { display:block; font-size:12px; color:var(--c-text-3); margin-bottom:4px; }
 .site-office .site-audit pre { font-size:12px; background:var(--c-bg-sunken); padding:12px; border-radius:var(--r-sm); }
@@ -165,7 +170,7 @@
   .site-office .site-filters label { max-width:none; flex-basis:100%; }
   .site-office .site-filters button { flex:1; }
   .site-office .site-panel,.site-office .office-list>.site-panel { padding:20px 16px; }
-  .site-office .site-admin-form,.office-edit-grid,.office-order-details { grid-template-columns:minmax(0,1fr); }
+  .site-office .site-admin-form,.office-edit-grid,.office-order-details,.site-office .office-module { grid-template-columns:minmax(0,1fr); }
   .office-create .site-admin-form { padding:8px 16px 20px; }
   .site-office .site-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .site-office .site-metrics article { padding:16px; }

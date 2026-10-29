@@ -22,7 +22,7 @@ CARD_FIELDS = (
     "cover",
     "capacity",
 )
-DETAIL_FIELDS = (*CARD_FIELDS, "description", "audience", "competencies", "communication")
+DETAIL_FIELDS = (*CARD_FIELDS, "description", "audience", "competencies", "communication", "modules")
 OPEN_FIRST = ("enrollment", "title")
 
 

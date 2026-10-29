@@ -6,6 +6,26 @@
 {% endif %}
 </label>
 {% endmacro %}
+{% macro course_modules(items,title) %}
+<section>
+<h2>{{ title }}</h2>
+{% for module in items %}
+<details class="lux-disclosure">
+<summary>{{ module if module is string else module.title }}</summary>
+{% if module.description or module.content %}<p class="site-prose">{{ module.description or module.content }}</p>{% endif %}
+{% if module.points %}
+<ul>
+{% for point in module.points %}
+<li>{{ point }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+{% set meta = [(('Часов: ' ~ module.hours) if module.hours is number else module.hours) if module.hours else none, module.format]|select|list %}
+{% if meta %}<p>{{ meta|join(' · ') }}</p>{% endif %}
+</details>
+{% endfor %}
+</section>
+{% endmacro %}
 {% macro save(path,title,kind) %}
 <button type="button" class="save-material lux-btn lux-btn--ghost lux-btn--sm" data-action="save" data-href="{{ path }}" data-title="{{ title }}" data-kind="{{ kind }}" aria-pressed="false">Сохранить</button>
 {% endmacro %}

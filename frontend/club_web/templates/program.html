@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros.html' import save,add_cart %}
+{% from 'macros.html' import save,add_cart,course_modules %}
 {% block content %}
 <main id="main" class="site-container program-page" data-reading-title="{{ item.title }}" data-reading-kind="dpo">
 <a href="/dpo" class="foc lux-back"><span aria-hidden="true">‹</span> Программы ДПО</a>
@@ -29,25 +29,7 @@
 </section>
 {% endif %}
 {% endfor %}
-{% if item.modules %}
-<section>
-<h2>Программа обучения</h2>
-{% for module in item.modules %}
-<details class="lux-disclosure">
-<summary>{{ module if module is string else module.title }}</summary>
-<p class="site-prose">{{ module.description or module.content or '' }}</p>
-<ul>
-{% for point in module.points or [] %}
-<li>{{ point }}</li>
-{% endfor %}
-</ul>
-{% if module.hours %}
-<p>Часов: {{ module.hours }}</p>
-{% endif %}
-</details>
-{% endfor %}
-</section>
-{% endif %}
+{% if item.modules %}{{ course_modules(item.modules,'Программа обучения') }}{% endif %}
 {% if item.teachers %}
 <section>
 <h2>Преподаватели</h2>
