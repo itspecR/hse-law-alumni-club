@@ -34,6 +34,33 @@ ENDPOINTS = {
     "/news/faculty-one": FACULTY,
     "/auth/admin-session": {"role": "admin"},
     "/admin/news": [FACULTY, CLUB],
+    "/admin/news-sources": {
+        "automatic": True,
+        "sources": [
+            {
+                "id": "alumni",
+                "title": "Страница клуба на сайте факультета",
+                "url": "https://pravo.hse.ru/businessandlaw/alumni",
+                "checked_at": "2026-10-29T10:00:00Z",
+                "found": 2,
+                "added": 1,
+            },
+            {"id": "alumni-tag", "title": "Новости факультета с темой «выпускники»", "error": "Источник недоступен."},
+        ],
+        "items": [
+            {
+                "id": "a" * 64,
+                "title": "Опубликованная",
+                "state": "imported",
+                "news_status": "published",
+                "news_slug": "faculty-one",
+                "source_url": FACULTY["source_url"],
+            },
+            {"id": "b" * 64, "title": "Удаленная", "state": "imported", "news_status": None},
+            {"id": "c" * 64, "title": "Ожидающая", "state": "new"},
+            {"id": "d" * 64, "title": "Отключенная", "state": "dismissed"},
+        ],
+    },
 }
 ADMIN = {"authorization": "Bearer admin-test"}
 
@@ -108,3 +135,20 @@ def test_office_news_filter_by_origin_and_status():
     assert filter_content(rows, {"origin": "faculty"}) == [FACULTY]
     assert filter_content(rows, {"origin": "club", "status": "draft"}) == [CLUB]
     assert filter_content(rows, {"origin": "club", "status": "published"}) == []
+
+
+async def test_news_sources_panel_shows_checks_states_and_actions(client):
+    page = (await client.get("/views/admin/news-sources", headers=ADMIN)).text
+    assert "Автоматическая проверка: каждый час" in page
+    assert 'data-api="/admin/news-sources/refresh"' in page and "Проверить сейчас" in page
+    assert "найдено: 2 · добавлено: 1" in page and "Еще не проверялся" in page and "Источник недоступен." in page
+    rows = dict(re.findall(r'<h2>(\w+)</h2>\s*<span class="office-status" data-status="(\w+)">', page))
+    assert rows == {
+        "Опубликованная": "published",
+        "Удаленная": "deleted",
+        "Ожидающая": "new",
+        "Отключенная": "dismissed",
+    }
+    assert "Новость удалена и больше не загружается." in page and "Не загрузилась, повторим" in page
+    assert page.count("Не загружать</button>") == 1 and page.count("Вернуть в загрузку</button>") == 1
+    assert 'href="/news/faculty-one"' in page

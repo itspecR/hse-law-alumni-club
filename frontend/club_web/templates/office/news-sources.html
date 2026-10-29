@@ -1,10 +1,14 @@
-<div class="office-toolbar"><p>Автоматическое обновление: {{ 'включено' if records.automatic else 'выключено' }}</p></div>
+<div class="office-toolbar"><p>Автоматическая проверка: {{ 'каждый час' if records.automatic else 'выключена' }}</p>
+<form data-api="/admin/news-sources/refresh" data-success="Проверка запущена. Новости появятся через несколько минут, обновите страницу."><button>Проверить сейчас</button></form></div>
 <div class="office-list">
 {% for source in records.sources or [] %}
 <article class="site-panel office-record">
-<h2>{{ source.title or source.name or source.id }}</h2>
+<div class="office-record-head">
+<h2>{{ source.title }}</h2>
+</div>
+<p class="office-meta">{% if source.checked_at %}Проверено {{ source.checked_at|date(true) }} · найдено: {{ source.found or 0 }} · добавлено: {{ source.added or 0 }}{% else %}Еще не проверялся{% endif %}</p>
 {% if source.error %}<p class="office-source-error">{{ source.error }}</p>{% endif %}
-<button data-api="/admin/news-sources/{{ source.id }}/refresh">Обновить источник</button>
+{% if source.url|safe_url %}<a href="{{ source.url|safe_url }}" target="_blank" rel="noopener noreferrer">Открыть страницу источника ↗</a>{% endif %}
 </article>
 {% endfor %}
 </div>
@@ -14,17 +18,16 @@
 <article class="site-panel office-record">
 <div class="office-record-head">
 <h2>{{ item.title }}</h2>
-{{ status(item.state) }}</div><p class="office-meta">{{ item.published_at|date }}</p>
-{% if item.source_url|safe_url %}
-<a href="{{ item.source_url|safe_url }}" target="_blank" rel="noopener noreferrer">Открыть источник</a>
-{% endif %}
-{% if item.state=='new' %}
-<form class="site-admin-form" data-api="/admin/news-sources/{{ item.id }}/import">{{ field('title','Заголовок',item.title) }}{{ field('excerpt','Краткое описание',item.excerpt,required=false) }}<button class="site-primary">Добавить в новости</button>
-<p role="alert" data-error hidden>
-</p>
-</form>
-<button data-api="/admin/news-sources/{{ item.id }}" data-method="PATCH" data-body='{"state":"dismissed"}'>Скрыть</button>
-{% endif %}
+{{ status(item.news_status or ('deleted' if item.state=='imported' else item.state)) }}</div>
+<p class="office-meta">{{ (item.published_at or item.discovered_at)|date }}</p>
+{% if item.state=='new' %}<p class="office-meta">Не загрузилась, повторим при следующей проверке.</p>{% endif %}
+{% if item.state=='imported' and not item.news_status %}<p class="office-meta">Новость удалена и больше не загружается.</p>{% endif %}
+<div class="site-actions">
+{% if item.source_url|safe_url %}<a href="{{ item.source_url|safe_url }}" target="_blank" rel="noopener noreferrer">Открыть источник ↗</a>{% endif %}
+{% if item.news_status=='published' and item.news_slug %}<a href="/news/{{ item.news_slug }}" target="_blank" rel="noopener noreferrer">Открыть на сайте</a>{% endif %}
+{% if item.state=='new' %}<button data-api="/admin/news-sources/{{ item.id }}" data-method="PATCH" data-body='{"state":"dismissed"}'>Не загружать</button>{% endif %}
+{% if item.state=='dismissed' %}<button data-api="/admin/news-sources/{{ item.id }}" data-method="PATCH" data-body='{"state":"new"}'>Вернуть в загрузку</button>{% endif %}
+</div>
 </article>
-{% else %}{{ empty('Материалов источников пока нет.') }}{% endfor %}
+{% else %}{{ empty('Материалов пока нет.') }}{% endfor %}
 </div>

@@ -20,7 +20,6 @@ from club_api.core.config import Settings
 from club_api.main import create_app
 from club_api.modules.auth import passwords
 from club_api.modules.catalog.sync import map_item, parse_initial_state, plan_sync
-from club_api.modules.news.sources import article_date, parse_source
 from club_api.observability.errors import scrub_event
 
 
@@ -57,8 +56,10 @@ def test_all_legacy_routes_are_present():
     office = {
         ("PATCH", "/admin/orders/{id}/discount"),
         ("PATCH", "/admin/orders/{id}/cohort"),
+        ("POST", "/admin/news-sources/refresh"),
     }
-    assert actual == expected | added | portfolio | public | promo | office and len(actual) == 142
+    retired = {("POST", "/admin/news-sources/{source}/refresh"), ("POST", "/admin/news-sources/{id}/import")}
+    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 141
 
 
 def test_hse_state_dates_and_manual_fields():
@@ -86,13 +87,7 @@ def test_hse_state_dates_and_manual_fields():
     assert retain_copy(incoming, {"hse_id": "42", "description": "Текст офиса", "audience": []})["audience"] == []
 
 
-def test_news_dates_dedup_and_sentry_privacy():
-    html = '<div class="tgme_widget_message" data-post="AlumniLawHSE/42"><div class="tgme_widget_message_text">Название новости<br><a href="https://pravo.hse.ru/news/42.html?utm_source=tg">Источник</a></div><time datetime="2026-09-30T12:00:00Z"></time></div>'
-    assert parse_source(html, "telegram")[0]["source_url"] == "https://pravo.hse.ru/news/42.html"
-    assert article_date('<meta property="article:published_time" content="2026-09-30T12:00:00Z">').startswith(
-        "2026-09-30"
-    )
-    assert article_date("30 сентября") is None
+def test_sentry_privacy():
     event = scrub_event(
         {
             "message": "request_failed",

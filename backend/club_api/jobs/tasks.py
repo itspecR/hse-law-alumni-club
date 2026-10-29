@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 from club_api.core.models import parse_date
 from club_api.db.queries import Query
 from club_api.modules.catalog.sync import sync_catalog
-from club_api.modules.news.sources import SOURCES, refresh_source
+from club_api.modules.news.importer import sync_news
 from club_api.modules.notifications.mail import MAIL_RETENTION_DAYS
 from club_api.modules.portfolio.captcha import forget_expired
 
@@ -95,11 +95,6 @@ async def podcast_reminders(state):
         await state.store.update("alumni", {"podcast_reminder_sent": True}, id=row["id"])
 
 
-async def news_sync(state):
-    for source in SOURCES:
-        await refresh_source(state, source["id"])
-
-
 def scheduled(state):
     return [
         ("points-decay", lambda now: now.day == 1 and now.hour == 3 and now.minute == 0, state.gamification.decay),
@@ -116,6 +111,6 @@ def scheduled(state):
         (
             "news-sync",
             lambda now: state.settings.NEWS_SYNC_ENABLED == "true" and now.minute == 17,
-            lambda: news_sync(state),
+            lambda: sync_news(state),
         ),
     ]

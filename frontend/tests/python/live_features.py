@@ -10,7 +10,7 @@ def submit(page, form, path, method="POST", status=200):
     ) as response:
         form.locator("button").click()
     assert response.value.status == status, f"{path}: {response.value.status}"
-    if path == "/support" or path.startswith("/admin/news-sources/") and path.endswith("/import"):
+    if path == "/support":
         expect(form).to_have_count(0)
     else:
         expect(form.locator("button")).to_be_enabled()
@@ -92,33 +92,14 @@ def news_sources(office, request, headers, name, directory):
     expect(row.get_by_role("link", name="Открыть источник", exact=False)).to_have_attribute(
         "href", "https://pravo.hse.ru/news/" + ("1000000001" if name == "desktop" else "1000000003") + ".html"
     )
-    with office.expect_response(
-        lambda response: "/api/admin/news-sources/" in response.url and response.request.method == "PATCH"
-    ) as hidden:
-        row.get_by_role("button", name="Скрыть", exact=True).click()
-    assert hidden.value.status == 200
-    expect(office.locator("article.site-panel").filter(has_text="Скрыть новость " + name)).to_contain_text("Скрыто")
-    row = office.locator("article.site-panel").filter(has_text="Опубликовать новость " + name)
-    form = row.locator("form")
-    title = "Опубликованная новость " + name
-    form.get_by_label("Заголовок", exact=True).fill(title)
-    path = form.get_attribute("data-api")
-    imported = submit(office, form, path)
-    expect(office.locator("article.site-panel").filter(has_text="Опубликовать новость " + name)).to_contain_text(
-        "Импортировано"
-    )
+    for action, label in (("Не загружать", "Не загружается"), ("Вернуть в загрузку", "Ожидает загрузки")):
+        with office.expect_response(
+            lambda response: "/api/admin/news-sources/" in response.url and response.request.method == "PATCH"
+        ) as changed:
+            row.get_by_role("button", name=action, exact=True).click()
+        assert changed.value.status == 200
+        expect(office.locator("article.site-panel").filter(has_text="Скрыть новость " + name)).to_contain_text(label)
     office.screenshot(path=str(directory / (name + ".news-sources.png")), full_page=True)
-    assert all(item["title"] != title for item in request.get("/api/news").json())
-    office.goto("/admin/news")
-    row = office.locator("article.site-panel").filter(has_text=title)
-    row.get_by_text("Редактировать", exact=True).click()
-    form = row.locator("form")
-    form.locator('[name="status"]').select_option("published")
-    submit(office, form, "/admin/news/" + imported["id"], "PATCH")
-    published = next(item for item in request.get("/api/news").json() if item["title"] == title)
-    office.goto("/news/" + published["slug"])
-    expect(office.get_by_role("heading", name=title, exact=True)).to_be_visible()
-    assert request.delete("/api/admin/news/" + imported["id"], headers=headers).status == 200
 
 
 def member_verification(office, member_id):

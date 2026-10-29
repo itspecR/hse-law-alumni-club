@@ -243,6 +243,7 @@ class NewsSourceRuns(models.Model):
     source = models.CharField(max_length=255, primary_key=True)
     checked_at = models.DateTimeField(db_default=Now())
     found = models.IntegerField(db_default=0)
+    added = models.IntegerField(db_default=0)
     error = models.TextField(null=True)
 
     class Meta:

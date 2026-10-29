@@ -32,7 +32,7 @@ DESCRIPTIONS = {
     "programs": "Каталог программ дополнительного образования.",
     "products": "Товары клуба, варианты и остатки.",
     "news": "Публикации на сайте и черновики.",
-    "news-sources": "Материалы источников для подготовки новостей клуба.",
+    "news-sources": "Автоматическая загрузка новостей с сайта факультета права.",
     "events": "Встречи клуба, запись и отметки об участии.",
     "podcasts": "Выпуски, аудио и доступ по подписке.",
     "timeline": "События и достижения в истории клуба.",
@@ -76,6 +76,12 @@ CHOICES = {
 SINGLE_CHOICES = {"program": "portfolio"}
 CREATE_DEFAULTS = {"promo-codes": {"per_person_limit": 1, "all_programs": True}}
 SECTION_LABELS = {
+    "news-sources": {
+        "new": "Ожидает загрузки",
+        "dismissed": "Не загружается",
+        "deleted": "Удалена",
+        "archived": "Снята с публикации",
+    },
     "news": {"archived": "Снята с публикации", "club": "Клуб", "faculty": "Факультет права"},
     "promo-codes": {"active": "Действует", "disabled": "Отключен"},
     "cohorts": {"open": "Набор открыт", "closed": "Набор закрыт"},
