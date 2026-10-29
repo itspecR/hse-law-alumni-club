@@ -6,6 +6,7 @@ from pathlib import PurePosixPath
 from urllib.parse import unquote, urlsplit
 
 from club_api.core.errors import ApiError
+from club_api.core.models import parse_date
 from club_api.core.outgoing import IMAGE, get_bytes, get_html
 from club_api.db.queries import Query, acquire_lock, release_lock
 from club_api.modules.checkout.store import digest
@@ -103,7 +104,7 @@ async def import_item(state, pacer, source, item):
         logger.warning("Новость источника не загружена: %s", failure(error), extra={"source": source})
         for id in saved:
             await state.media.delete(id)
-        await remember(state.database, source, item, "new", None)
+        await remember(state.database, source, item, "new", None, None)
         return False
 
 
@@ -152,18 +153,21 @@ async def publish(state, source, item, article):
             },
             connection=connection,
         )
-        await remember(connection, source, item, "imported", row["id"])
+        moment = parse_date(article["published_at"]) if article["published_at"] else None
+        await remember(connection, source, item, "imported", row["id"], moment)
 
 
-async def remember(target, source, item, state, news_id):
+async def remember(target, source, item, state, news_id, published_at):
     await target.execute(
         Query(
-            "INSERT INTO club_news_inbox(id,source_url,sources,title,state,news_id) VALUES(%s,%s,%s,%s,%s,%s) "
-            "ON CONFLICT(source_url) DO UPDATE SET state=EXCLUDED.state,news_id=EXCLUDED.news_id,title=EXCLUDED.title",
-            "INSERT INTO club_news_inbox(id,source_url,sources,title,state,news_id) VALUES(%s,%s,%s,%s,%s,%s) "
-            "ON DUPLICATE KEY UPDATE state=VALUES(state),news_id=VALUES(news_id),title=VALUES(title)",
+            "INSERT INTO club_news_inbox(id,source_url,sources,title,state,news_id,published_at) "
+            "VALUES(%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(source_url) DO UPDATE SET state=EXCLUDED.state,"
+            "news_id=EXCLUDED.news_id,title=EXCLUDED.title,published_at=EXCLUDED.published_at",
+            "INSERT INTO club_news_inbox(id,source_url,sources,title,state,news_id,published_at) "
+            "VALUES(%s,%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE state=VALUES(state),"
+            "news_id=VALUES(news_id),title=VALUES(title),published_at=VALUES(published_at)",
         ),
-        (digest(item["source_url"]), item["source_url"], [source], item["title"], state, news_id),
+        (digest(item["source_url"]), item["source_url"], [source], item["title"], state, news_id, published_at),
     )
 
 

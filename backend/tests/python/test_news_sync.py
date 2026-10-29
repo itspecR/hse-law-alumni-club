@@ -164,6 +164,7 @@ async def test_deleted_or_dismissed_news_never_return(faculty):
     assert [row["added"] for row in result["sources"]] == [0, 0]
     assert set(await faculty_news(app)) == {SECOND}
     assert (await inbox(app))[FIRST]["state"] == "imported"
+    assert str((await inbox(app))[FIRST]["published_at"]).startswith("2024-02-01")
 
 
 def moscow(day, hour, minute):
