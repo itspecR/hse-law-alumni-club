@@ -59,10 +59,15 @@ async def sync_source(state, pacer, source):
         added = sum([await import_item(state, pacer, source["id"], item) for item in fresh])
         await record_run(state, source["id"], found=len(items), added=added)
         return {"id": source["id"], "found": len(items), "added": added}
-    except Exception:
-        logger.warning("Источник новостей не обновлен", extra={"source": source["id"]})
-        await record_run(state, source["id"], error=FAILED)
-        return {"id": source["id"], "error": FAILED}
+    except Exception as error:
+        reason = failure(error)
+        logger.warning("Источник новостей не обновлен: %s", reason, extra={"source": source["id"]})
+        await record_run(state, source["id"], error=reason)
+        return {"id": source["id"], "error": reason}
+
+
+def failure(error):
+    return error.message if isinstance(error, ApiError) else FAILED
 
 
 async def known_urls(state):
@@ -85,8 +90,8 @@ async def import_item(state, pacer, source, item):
         body = await render_body(state, pacer, article["blocks"], saved)
         await publish(state, source, item, {**article, "cover": cover, "body": body})
         return True
-    except Exception:
-        logger.warning("Новость источника не загружена", extra={"source": source})
+    except Exception as error:
+        logger.warning("Новость источника не загружена: %s", failure(error), extra={"source": source})
         for id in saved:
             await state.media.delete(id)
         await remember(state.database, source, item, "new", None)

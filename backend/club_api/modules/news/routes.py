@@ -35,7 +35,7 @@ async def sources(request: HttpRequest):
     items = await state.database.rows(
         "SELECT i.id,i.source_url,i.title,i.state,i.discovered_at,n.slug AS news_slug,n.status AS news_status,"
         "n.published_at FROM club_news_inbox i LEFT JOIN news n ON n.id=i.news_id "
-        "ORDER BY i.discovered_at DESC,i.id LIMIT %s",
+        "ORDER BY COALESCE(n.published_at,i.discovered_at) DESC,i.id LIMIT %s",
         (INBOX_LIMIT,),
     )
     return normalize(

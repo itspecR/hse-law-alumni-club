@@ -3,6 +3,7 @@ import io
 import httpx
 import pytest
 from PIL import Image
+from test_community_integration import account
 
 from club_api.modules.news.article import parse_article
 from club_api.modules.news.importer import sync_news
@@ -35,10 +36,12 @@ def tag_page(*urls):
     return f'<div class="posts posts_general">{posts}</div>'
 
 
-def article(title):
+def article(title, day=13):
     return (
         '<div class="articleMeta"><div class="articleMetaItem"><div class="articleMetaItem__label '
-        'articleMetaItem__label--date">Дата</div><div class="articleMetaItem__content">13 февраля, 2024 г.</div>'
+        'articleMetaItem__label--date">Дата</div><div class="articleMetaItem__content">'
+        + str(day)
+        + " февраля, 2024 г.</div>"
         '</div></div><div class="post__text"><div class="news_item annotation"><div class="lead-in">Лид '
         + title
         + '</div></div><div class="picture head-picture"><p><img src="/data/cover.jpg"></p>'
@@ -92,7 +95,8 @@ def faculty(database_app):
             return httpx.Response(200, content=jpeg(), headers={"content-type": "image/jpeg"})
         if url in broken:
             return httpx.Response(500, text="", headers={"content-type": "text/html"})
-        body = pages.get(url) or article(url.rsplit("/", 1)[-1])
+        name = url.rsplit("/", 1)[-1]
+        body = pages.get(url) or article(name, int(name.removesuffix(".html")) - 100)
         return httpx.Response(200, text=body, headers={"content-type": "text/html; charset=utf-8"})
 
     database_app.state.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
@@ -128,6 +132,20 @@ async def test_sync_publishes_new_faculty_news_once_with_images(faculty):
     second = await sync_news(app.state, delay=0)
     assert [row["added"] for row in second["sources"]] == [1, 0]
     assert FIRST not in calls and SECOND in calls and set(await faculty_news(app)) == {FIRST, SECOND, SUBSITE}
+    _, headers = await account(app, "admin")
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://localhost") as client:
+        panel = (await client.get("/admin/news-sources", headers=headers)).json()
+    assert [item["source_url"] for item in panel["items"]] == [SUBSITE, SECOND, FIRST]
+    assert [item["news_status"] for item in panel["items"]] == ["published"] * 3
+
+
+async def test_source_failure_reason_is_saved_for_the_panel(faculty):
+    app, _, broken = faculty
+    broken.add(TAG)
+    result = await sync_news(app.state, delay=0)
+    assert result["sources"][1] == {"id": "alumni-tag", "error": "Источник временно недоступен."}
+    runs = {row["source"]: row for row in await app.state.database.rows("SELECT * FROM club_news_source_runs")}
+    assert runs["alumni-tag"]["error"] == "Источник временно недоступен." and runs["alumni"]["error"] is None
 
 
 async def test_deleted_or_dismissed_news_never_return(faculty):
