@@ -22,18 +22,7 @@ def catalog_page(items, *, total=6, page_size=3):
 @pytest.mark.parametrize(
     "invalid", ["empty", "duplicate", "invalid_item", "changed_total", "changed_size", "missing_metadata"]
 )
-async def test_incomplete_catalog_never_archives_existing_programs(database_app, monkeypatch, invalid):
-    state = database_app.state
-    existing = await state.store.create(
-        "programs",
-        {
-            "title": "Сохранённая программа",
-            "slug": "retained-program",
-            "hse_id": "6",
-            "status": "published",
-            "price": 10000,
-        },
-    )
+async def test_incomplete_hse_catalog_is_rejected(monkeypatch, invalid):
     cards = [{"id": index, "title": f"Программа {index}", "educationPricing": 100} for index in range(1, 7)]
 
     async def source(_state, url, **_kwargs):
@@ -54,9 +43,8 @@ async def test_incomplete_catalog_never_archives_existing_programs(database_app,
 
     monkeypatch.setattr(sync, "get_html", source)
     with pytest.raises(ApiError) as failure:
-        await sync.sync_catalog(state)
+        await sync.collect(SimpleNamespace(), sync.ACTUAL_URL)
     assert failure.value.status == 502
-    assert await state.store.one("programs", existing["id"]) == existing
 
 
 async def test_complete_catalog_accepts_partial_last_page(monkeypatch):

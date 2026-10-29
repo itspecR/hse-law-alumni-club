@@ -2,7 +2,7 @@ from django.urls import path
 
 import club_api.modules.analytics.pageviews as analytics_pageviews
 import club_api.modules.auth.routes as auth_routes
-import club_api.modules.catalog.sync as catalog_sync
+import club_api.modules.catalog.center as catalog_sync
 import club_api.modules.checkout.admin as checkout_admin
 import club_api.modules.checkout.cart as checkout_cart
 import club_api.modules.checkout.orders as checkout_orders

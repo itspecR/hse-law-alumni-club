@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 
 from club_api.core.models import parse_date
 from club_api.db.queries import Query
-from club_api.modules.catalog.sync import sync_catalog
+from club_api.modules.catalog import center
 from club_api.modules.news.schedule import CHECK_MINUTE, scheduled_news
 from club_api.modules.notifications.mail import MAIL_RETENTION_DAYS
 from club_api.modules.portfolio.captcha import forget_expired
@@ -98,11 +98,7 @@ async def podcast_reminders(state):
 def scheduled(state):
     return [
         ("points-decay", lambda now: now.day == 1 and now.hour == 3 and now.minute == 0, state.gamification.decay),
-        (
-            "dpo-sync",
-            lambda now: state.settings.DPO_SYNC_ENABLED == "true" and now.hour == 5 and now.minute == 0,
-            lambda: sync_catalog(state),
-        ),
+        ("dpo-sync", lambda now: center.due(state, now), lambda: center.scheduled_sync(state)),
         ("event-reminders", lambda now: now.hour == 10 and now.minute == 0, lambda: event_reminders(state)),
         ("podcast-reminders", lambda now: now.hour == 11 and now.minute == 0, lambda: podcast_reminders(state)),
         ("retention", lambda now: now.hour == 4 and now.minute == 0, lambda: retention(state)),

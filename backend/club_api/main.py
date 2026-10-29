@@ -15,7 +15,7 @@ from club_api.jobs.runner import Jobs
 from club_api.modules.analytics.pageviews import ROUTE_LIMITS as ANALYTICS_LIMITS
 from club_api.modules.auth.routes import ROUTE_LIMITS
 from club_api.modules.auth.service import AuthService
-from club_api.modules.catalog.sync import ROUTE_LIMITS as SYNC_LIMITS
+from club_api.modules.catalog.center import ROUTE_LIMITS as SYNC_LIMITS
 from club_api.modules.checkout.cart import ROUTE_LIMITS as CART_LIMITS
 from club_api.modules.checkout.orders import ROUTE_LIMITS as ORDER_LIMITS
 from club_api.modules.checkout.payments import ROUTE_LIMITS as PAYMENT_LIMITS

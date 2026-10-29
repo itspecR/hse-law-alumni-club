@@ -154,6 +154,7 @@ DATA_COLUMNS = {
         "catalog",
         "competencies",
         "communication",
+        "cover_source",
     ),
     "program_cohorts": ("id", "program_id", "starts_on", "price", "capacity", "enrollment", "created_at"),
     "program_trainers": ("id", "program_id", "trainer_id", "sort"),

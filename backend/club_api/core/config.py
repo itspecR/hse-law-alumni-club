@@ -27,8 +27,7 @@ class Settings(BaseSettings):
     NEWS_SYNC_ENABLED: Literal["true", "false"] = "false"
     JOBS_ENABLED: Literal["true", "false"] = "true"
     DPO_SYNC_ENABLED: Literal["true", "false"] = "true"
-    HSE_DPO_URL: str = ""
-    HSE_DPO_ALL_URL: str = ""
+    DPO_SITE_URL: str = ""
     TELEGRAM_REACTIONS_CHAT_ID: str = Field(default="", pattern=r"^(-[0-9]+)?$")
     TELEGRAM_BOT_TOKEN: SecretStr = SecretStr("")
     TELEGRAM_WEBHOOK_SECRET: SecretStr = SecretStr("")
