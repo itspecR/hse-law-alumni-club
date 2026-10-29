@@ -82,7 +82,7 @@ def login(page, email, password, office=False):
     result(response.value)
     key = "club_admin_token" if office else "club_token"
     expect(page.locator("#page")).not_to_contain_text(
-        "Вход для сотрудников учебного офиса" if office else "Вход для выпускников"
+        "Только для сотрудников клуба" if office else "Вход для выпускников"
     )
     token = page.evaluate("key => localStorage.getItem(key)", key)
     assert token
@@ -313,7 +313,7 @@ def test_live_system(name, width, height):
         order = result(submitted.value)
         assert order["total_estimate"] == 95000
         assert order["notified"]["ok"]
-        expect(page.get_by_role("heading", name="Заявка отправлена в учебный офис")).to_be_visible()
+        expect(page.get_by_role("heading", name="Заявка отправлена")).to_be_visible()
         page.goto("/lk?section=orders")
         expect(page.locator("#orders")).to_contain_text(order["number"])
         orders = result(request.get("/api/admin/orders", headers=headers))["items"]
@@ -391,9 +391,9 @@ def test_live_system(name, width, height):
         office.goto("/admin")
         expect(office.locator(".office-page-header")).to_be_visible()
         if width <= 900:
-            office.get_by_role("button", name="Разделы офиса", exact=True).click()
+            office.get_by_role("button", name="Разделы панели", exact=True).click()
         office.get_by_role("button", name="Выйти", exact=True).click()
-        expect(office.get_by_role("heading", name="Панель учебного офиса", exact=True)).to_be_visible()
+        expect(office.get_by_role("heading", name="Вход в панель", exact=True)).to_be_visible()
         assert request.get("/api/admin/overview", headers=headers).status == 401
         state = {
             "member": member["id"],

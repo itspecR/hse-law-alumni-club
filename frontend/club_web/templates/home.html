@@ -14,27 +14,27 @@
 </h1>
 <div class="lux-hero__figure">{% include 'themis.html' %}</div>
 <div class="lux-hero__foot">
-<p class="lux-hero__lede">{{ hero.subtitle or 'Клуб выпускников факультета права Вышки' }}</p>
+<p class="lux-hero__lede">Анонсы встреч, программы дополнительного образования, новости клуба и&nbsp;личный кабинет выпускника.</p>
 <div class="lux-hero__acts">
 <a href="/join" class="foc lux-btn" data-member-link>{{ hero.cta_primary or 'Вступить в клуб' }}</a>
 <a href="/portfolio" class="foc lux-more">Программы клуба <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </div>
 </div>
-<p class="lux-hero__next">Программы клуба и&nbsp;ДПО по&nbsp;цене выпускника, события, подкасты и&nbsp;изменения в&nbsp;праве.</p>
+<p class="lux-hero__next">Программы клуба и&nbsp;ДПО по&nbsp;цене выпускника, события и&nbsp;подкасты.</p>
 </div>
 </section>
 
 <section class="lux-section lux-join" id="join-steps" aria-labelledby="lux-join-title">
 <div class="lux-wrap lux-join__head">
 <h2 class="lux-h2 lux-reveal" id="lux-join-title">{{ cta.title or 'Три шага, и вы в клубе.' }}</h2>
-<p class="lux-lede lux-reveal" style="--d:1">{{ cta.text or 'Проверка обычно занимает 1-2 рабочих дня.' }}</p>
+<p class="lux-lede lux-reveal" style="--d:1">Подайте заявку, а&nbsp;мы подтвердим ваш статус выпускника и&nbsp;предоставим доступ к&nbsp;новым возможностям.</p>
 </div>
 <figure class="lux-wrap lux-frame lux-join__photo lux-reveal" style="--d:2">
 <img src="{{ base }}assets/photos/club/graduates-1440.webp" srcset="{{ base }}assets/photos/club/graduates-900.webp 900w, {{ base }}assets/photos/club/graduates-1440.webp 1440w" sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 1180px) calc(100vw - 56px), 1124px" width="1440" height="960" alt="Выпускники факультета права на выпускном 2026 года" loading="lazy" decoding="async">
 </figure>
 <ol class="lux-wrap lux-steps">
 <li class="lux-step lux-reveal"><h3>Заявка</h3><p>Анкета с&nbsp;годом выпуска и&nbsp;образовательной программой.</p></li>
-<li class="lux-step lux-reveal" style="--d:1"><h3>Проверка</h3><p>Учебный офис сверяет выпуск с&nbsp;реестром факультета и&nbsp;подтверждает статус.</p></li>
+<li class="lux-step lux-reveal" style="--d:1"><h3>Проверка</h3><p>Мы подтверждаем статус выпускника факультета.</p></li>
 <li class="lux-step lux-reveal" style="--d:2"><h3>Кабинет</h3><p>Откроются скидка выпускника, запись на&nbsp;события, подписка на&nbsp;подкасты и&nbsp;раздел однокурсников.</p></li>
 </ol>
 <div class="lux-wrap lux-join__cta lux-reveal"><a href="/join" class="foc lux-btn" data-member-link>{{ join_label }}</a></div>

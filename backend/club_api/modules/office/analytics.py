@@ -4,8 +4,15 @@ from datetime import UTC, datetime, timedelta
 from club_api.core.models import count, group_count
 from club_api.db.queries import Query
 from club_api.db.store import normalize
+from club_api.domain import DOMAIN
 from club_api.modules.analytics.pageviews import pageview_stats
 from club_api.modules.catalog.scope import PUBLISHED_DPO
+
+ACHIEVEMENT_TITLES = {item["key"]: item["title"] for item in DOMAIN["achievements"]}
+
+
+def achievement_title(row, fallback):
+    return ACHIEVEMENT_TITLES.get(row.get("key"), row.get("title", fallback))
 
 
 async def sum_field(store, table, field, filters=None):
@@ -178,7 +185,7 @@ async def analytics(state, range="30d", now=None):
         {
             "achievement_id": id,
             "key": defs.get(id, {}).get("key", id),
-            "title": defs.get(id, {}).get("title", id),
+            "title": achievement_title(defs.get(id, {}), id),
             "count": amount,
         }
         for id, amount in ach_counts.most_common(12)

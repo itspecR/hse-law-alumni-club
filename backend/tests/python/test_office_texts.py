@@ -9,6 +9,7 @@ from club_api.jobs.tasks import event_reminders
 from club_api.modules.auth import routes
 from club_api.modules.events.routes import UNNAMED, roster
 from club_api.modules.notifications.mail import Notifications
+from club_api.modules.office.analytics import achievement_title
 
 STYLE = "[ёЁ–—]"
 EMOJI = "[\U0001f300-\U0001faff]"
@@ -56,14 +57,20 @@ async def test_office_notices_name_office_sections_without_emoji():
     await service.office_text("Проверка")
     await service.order_notice("A-1", "Программа × 1", 1000000, 10)
     (office_subject, _), (order_subject, order_text) = sent
-    assert office_subject == "Уведомление для учебного офиса" and order_subject == "Новая заявка A-1"
-    assert order_text.endswith("Контакты и подробности в учебном офисе, раздел «Заявки».")
+    assert office_subject == "Уведомление для сотрудников клуба" and order_subject == "Новая заявка A-1"
+    assert order_text.endswith("Контакты и подробности в панели управления, раздел «Заявки».")
     assert re.findall(EMOJI, order_text) == [] and re.findall(STYLE, order_text) == []
 
 
 def test_join_notices_point_to_members_section_without_emoji():
-    assert routes.OFFICE_REVIEW == "Проверьте ее в учебном офисе, раздел «Выпускники»."
+    assert routes.OFFICE_REVIEW == "Проверьте ее в панели управления, раздел «Выпускники»."
     assert re.findall(EMOJI, Path(routes.__file__).read_text()) == []
+
+
+def test_analytics_achievement_titles_follow_domain_data():
+    assert achievement_title({"key": "office_seal", "title": "Печать офиса"}, "a-1") == "Печать клуба"
+    assert achievement_title({"key": "gone", "title": "Старое"}, "a-2") == "Старое"
+    assert achievement_title({}, "a-3") == "a-3"
 
 
 async def test_event_reminder_push_has_no_emoji_or_dash():

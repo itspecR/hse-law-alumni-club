@@ -57,7 +57,7 @@ def program_price(item):
 
 def discount_label(order, automatic=False):
     if order.get("office_discount") is not None and not automatic:
-        return f"скидка учебного офиса: {order['office_discount']}%"
+        return f"индивидуальная скидка: {order['office_discount']}%"
     percent = order.get("member_discount") or 0
     if order.get("discount_source") == "promo":
         return f"промокод {order.get('promo_code') or ''}: {percent}%"

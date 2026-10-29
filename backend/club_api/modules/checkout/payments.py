@@ -229,13 +229,13 @@ class Payments:
             if order["alumni_id"] != alumni_id:
                 raise ApiError(403, "Оплатить заявку может только тот, кто ее оформил.")
             if order["type"] == PORTFOLIO_CATALOG:
-                raise ApiError(400, "Программу клуба оплачивают по договору с учебным офисом.")
+                raise ApiError(400, "Программу клуба оплачивают по договору.")
             if order["status"] in ("canceled", "expired"):
                 raise ApiError(400, "Заявка закрыта.")
             if order["payment_status"] == "succeeded":
                 raise ApiError(400, "Заявка уже оплачена.")
             if order["payment_status"] == "review":
-                raise ApiError(409, "Платеж требует сверки с учебным офисом.")
+                raise ApiError(409, "Платеж ожидает сверки, напишите в поддержку.")
             if type(order["total_estimate"]) is not int or not 0 < order["total_estimate"] <= SAFE_INTEGER_MAX:
                 raise ApiError(400, "Некорректная сумма оплаты.")
             if not order["payment_id"]:
@@ -306,7 +306,7 @@ async def pay(request: HttpRequest, number: str):
             return {"payment_url": url}
         raise ApiError(
             409,
-            "Предыдущий платеж отменен. Чтобы оплатить заново, обратитесь в учебный офис."
+            "Предыдущий платеж отменен. Чтобы оплатить заново, обратитесь в поддержку."
             if existing["status"] == "canceled"
             else "Платеж уже обрабатывается. Проверьте статус заявки позже.",
         )
@@ -362,7 +362,7 @@ async def webhook(request: HttpRequest):
         text += (
             "\nПодписка на подкаст клуба действует 12 месяцев."
             if order["type"] == "podcast"
-            else "\nЗаявка передана учебному офису в работу."
+            else "\nЗаявка передана в работу."
         )
         await state.notifications.mail_applicant(
             order["contact_email"], club_subject(f"Оплата по заявке {order['number']} получена"), text

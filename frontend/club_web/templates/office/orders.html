@@ -52,8 +52,8 @@
 </form>
 {% endif %}
 {% if order.type=='portfolio' and order.status in ('new','in_progress','confirmed') %}
-<form class="office-edit-grid" data-api="/admin/orders/{{ order.id }}/discount" data-method="PATCH" data-confirm="Сохранить скидку учебного офиса? Если сумма изменится, заявителю уйдет письмо.">
-<label>Скидка офиса, %<input name="discount" type="number" min="0" max="100" data-nullable value="{{ order.office_discount if order.office_discount is not none else '' }}"></label>
+<form class="office-edit-grid" data-api="/admin/orders/{{ order.id }}/discount" data-method="PATCH" data-confirm="Сохранить индивидуальную скидку? Если сумма изменится, заявителю уйдет письмо.">
+<label>Индивидуальная скидка, %<input name="discount" type="number" min="0" max="100" data-nullable value="{{ order.office_discount if order.office_discount is not none else '' }}"></label>
 <label>Причина скидки<input name="reason" maxlength="300" value="{{ order.office_reason or '' }}"></label>
 <button>Применить скидку</button>
 {% if order.office_discount is not none %}<button type="button" class="site-danger" data-api="/admin/orders/{{ order.id }}/discount" data-method="PATCH" data-body='{"discount":null}' data-confirm="Вернуть исходную скидку? Заявителю уйдет письмо, если сумма изменится.">Сбросить</button>{% endif %}

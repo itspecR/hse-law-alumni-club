@@ -37,10 +37,10 @@ class Office:
 
     async def request(self, path, method="GET", **kwargs):
         if not path or path.startswith("/") or ".." in path or ":" in path:
-            raise OperatorError("Некорректный путь команды офиса")
+            raise OperatorError("Некорректный путь команды панели управления")
         response = await self.client.request(method, "/api/admin/" + path, **kwargs)
         if not response.is_success:
-            raise OperatorError(f"Операция офиса завершилась с HTTP {response.status_code}")
+            raise OperatorError(f"Операция панели управления завершилась с HTTP {response.status_code}")
         return response.json()
 
     async def close(self):

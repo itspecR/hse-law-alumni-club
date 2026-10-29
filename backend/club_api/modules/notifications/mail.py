@@ -207,16 +207,16 @@ class Notifications:
         delivered = False
         if self.settings.OFFICE_NOTIFY_CHANNEL in ("email", "both") and self.settings.OFFICE_EMAIL:
             result = await self.enqueue_mail(
-                self.settings.OFFICE_EMAIL, "Уведомление для учебного офиса", text, kind="office_event"
+                self.settings.OFFICE_EMAIL, "Уведомление для сотрудников клуба", text, kind="office_event"
             )
             delivered = result["sent"]
         if self.settings.OFFICE_NOTIFY_CHANNEL in ("telegram", "both"):
             delivered = await self.telegram_office(text) or delivered
         if not delivered:
-            logger.warning("Уведомление офиса не доставлено; проверьте канал и очередь")
+            logger.warning("Уведомление сотрудникам не доставлено; проверьте канал и очередь")
 
     async def order_notice(self, number, summary, total, discount):
-        text = f"Новая заявка {number}\n{summary}\nСумма (справочно): {rubles(total)} (скидка −{discount}%)\nКонтакты и подробности в учебном офисе, раздел «Заявки»."
+        text = f"Новая заявка {number}\n{summary}\nСумма (справочно): {rubles(total)} (скидка −{discount}%)\nКонтакты и подробности в панели управления, раздел «Заявки»."
         results = []
         if self.settings.OFFICE_NOTIFY_CHANNEL in ("email", "both"):
             if self.settings.OFFICE_EMAIL:

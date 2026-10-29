@@ -10,7 +10,7 @@
 </h2>
 <ol>
 <li>Заполните заявку</li>
-<li>Учебный офис проверит выпуск</li>
+<li>Мы проверим статус выпускника</li>
 <li>Откроется кабинет</li>
 </ol>
 </div>
@@ -20,7 +20,7 @@
 <div class="site-panel">
 <h1>{{ title }}</h1>
 {% if path=='/join' %}
-<p>Заполните анкету. Когда учебный офис подтвердит выпуск, откроется кабинет со скидкой выпускника.</p>
+<p>Заполните анкету. Когда мы подтвердим ваш статус, откроется кабинет со скидкой выпускника.</p>
 <form data-api="/auth/register" data-registration>{{ field('fio','ФИО') }}{{ field('email','Почта',type='email') }}{{ field('cohort','Год выпуска') }}<label class="site-field">Уровень образования<select name="edu_level">
 {% for level in ['бакалавриат','магистратура','специалитет','аспирантура'] %}
 <option>{{ level }}</option>
@@ -37,7 +37,7 @@
 </p>
 </form>
 {% elif path=='/forgot' %}
-<p>Пришлем ссылку на почту выпускника. Сотрудники офиса восстанавливают доступ через оператора.</p>
+<p>Пришлем ссылку на почту выпускника. Сотрудники клуба восстанавливают доступ через оператора.</p>
 <form data-api="/auth/forgot" data-success="Если аккаунт с такой почтой есть, письмо со ссылкой придет на этот адрес.">{{ field('email','Почта',type='email') }}<input type="hidden" name="next" value="{{ query.get('next','') }}">
 <button class="site-primary">Отправить ссылку</button>
 <p role="alert" data-error hidden>
@@ -50,7 +50,7 @@
 </p>
 </form>
 {% else %}
-<form data-api="/auth/confirm" data-success="Почта подтверждена. Заявку проверит учебный офис.">
+<form data-api="/auth/confirm" data-success="Почта подтверждена. Мы проверим заявку.">
 <input type="hidden" name="token" value="{{ query.get('token','') }}">
 <button class="site-primary">Подтвердить почту</button>
 <p role="alert" data-error hidden>

@@ -30,7 +30,7 @@ def test_plain_title_drops_only_leading_symbols(raw, expected):
         ({"member_discount": 0, "discount_source": None}, "без скидки", None),
         (
             {"member_discount": 15, "discount_source": "promo", "promo_code": "SPRING-15", "office_discount": 0},
-            "скидка учебного офиса: 0%",
+            "индивидуальная скидка: 0%",
             "промокод SPRING-15: 15%",
         ),
     ],

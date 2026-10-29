@@ -15,7 +15,7 @@
 [![Security & CI – main](https://github.com/Bogolubov-creator/hse-law-alumni-club/actions/workflows/ci.yml/badge.svg?branch=main&event=push)](https://github.com/Bogolubov-creator/hse-law-alumni-club/actions/workflows/ci.yml?query=branch%3Amain+event%3Apush)
 
 Сайт объединяет новости и мероприятия Клуба, каталог ДПО и мерча, личный кабинет
-выпускника и панель учебного офиса. Заявки сохраняются на сервере; онлайн-оплата
+выпускника и панель управления. Заявки сохраняются на сервере; онлайн-оплата
 включается отдельно при настройке ЮKassa.
 
 **Стек:** Python/Django, Django Ninja, Gunicorn и Jinja2. Страницы сайта, кабинет и панель

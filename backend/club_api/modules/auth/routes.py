@@ -24,7 +24,7 @@ RESEND_COOLDOWN_SECONDS = 600
 RESEND_CACHE_LIMIT = 10000
 NOT_ALUMNI = "Этот аккаунт не связан с профилем выпускника."
 TELEGRAM_LOGIN_FAILED = "Не удалось проверить вход через Telegram."
-OFFICE_REVIEW = "Проверьте ее в учебном офисе, раздел «Выпускники»."
+OFFICE_REVIEW = "Проверьте ее в панели управления, раздел «Выпускники»."
 ROUTE_LIMITS = {
     "/auth/login": 5,
     "/auth/admin-login": 5,
@@ -97,7 +97,7 @@ class TelegramBody(Body):
 async def queue_confirmation(request, user_id, email):
     service = auth_service(request)
     token = service.token({"sub": user_id, "purpose": "email-confirm"}, 86400)
-    body = f"Здравствуйте!\n\nВы подали заявку на вступление в {CLUB_NAME}. Чтобы подтвердить почту, откройте ссылку, она действует 24 часа:\n{service.settings.PUBLIC_URL}/confirm?token={quote(token)}\n\nПосле подтверждения заявку проверит учебный офис.\n\nЕсли заявку подавали не Вы, проигнорируйте письмо, аккаунт останется неактивным."
+    body = f"Здравствуйте!\n\nВы подали заявку на вступление в {CLUB_NAME}. Чтобы подтвердить почту, откройте ссылку, она действует 24 часа:\n{service.settings.PUBLIC_URL}/confirm?token={quote(token)}\n\nПосле подтверждения мы проверим заявку.\n\nЕсли заявку подавали не Вы, проигнорируйте письмо, аккаунт останется неактивным."
     return await request.services.notifications.enqueue_mail(
         email,
         club_subject("Подтвердите почту"),
@@ -125,7 +125,7 @@ async def login(request, body, scope):
         if status == "unverified":
             raise ApiError(403, "Почта не подтверждена. Откройте ссылку из письма, проверьте и папку «Спам».")
         if status == "forbidden":
-            raise ApiError(403, "Доступ в учебный офис закрыт." if scope == "admin" else NOT_ALUMNI)
+            raise ApiError(403, "Доступ в панель управления закрыт." if scope == "admin" else NOT_ALUMNI)
         raise ApiError(401, "Неверная почта или пароль.")
     if scope == "admin":
         service.attempts.success(email, ip)
@@ -282,7 +282,7 @@ async def forgot(request: HttpRequest):
     body = parse_body(request, ForgotBody)
     service = auth_service(request)
     if not request.services.notifications.mail_enabled:
-        raise ApiError(503, "Восстановление пароля временно недоступно. Напишите в учебный офис.")
+        raise ApiError(503, "Восстановление пароля временно недоступно. Напишите в поддержку.")
     user = await service.user(email=body.email.lower().strip(), alumni=True)
     if user:
         profile = await service.profile(user["id"])
@@ -345,7 +345,7 @@ async def telegram_login(request: HttpRequest):
         raise ApiError(404, "Telegram не подключен к профилю выпускника.")
     alumni = rows[0]
     if alumni["user_id"] and (not await service.user(id=alumni["user_id"], alumni=True, active=True)):
-        raise ApiError(403, "Вход в профиль закрыт. Обратитесь в учебный офис.")
+        raise ApiError(403, "Вход в профиль закрыт. Обратитесь в поддержку.")
     return {
         "token": service.session(alumni["id"], alumni["user_id"] or telegram_id, alumni["token_version"] or 0),
         "alumni": alumni_view(alumni),

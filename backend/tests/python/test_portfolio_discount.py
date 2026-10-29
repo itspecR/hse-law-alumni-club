@@ -66,7 +66,7 @@ async def test_office_discount_replaces_member_discount_and_can_be_reset(databas
     assert own["office_discount"] == 30 and "office_reason" not in own and own["discount_source"] == "member"
     assert reset.json()["total_estimate"] == receipt["total_estimate"] and reset.json()["office_reason"] is None
     assert [mail["to"] for mail in mails[1:]] == ["applicant@example.test", "applicant@example.test"]
-    assert "скидка учебного офиса 30%" in mails[1]["text"] and rubles(PRICE * 70 // 100) in mails[1]["text"]
+    assert "индивидуальная скидка 30%" in mails[1]["text"] and rubles(PRICE * 70 // 100) in mails[1]["text"]
     assert f"отменена, действует скидка {receipt['member_discount']}%" in mails[2]["text"]
     assert "ООО «Пример»" not in mails[1]["text"]
     events = await app.state.store.read("audit_log", filters={"event": {"_eq": "order.discount"}})
@@ -97,7 +97,7 @@ async def test_same_discount_changes_reason_without_mail(database_app, mails):
         second = await set_discount(client, admin, row["id"], {"discount": 10, "reason": "Договор"})
         again = await set_discount(client, admin, row["id"], {"discount": 10, "reason": "Договор № 7"})
     assert first.status_code == second.status_code == again.status_code == 200
-    assert len(mails) == 2 and "скидка учебного офиса 10%" in mails[1]["text"]
+    assert len(mails) == 2 and "индивидуальная скидка 10%" in mails[1]["text"]
     assert again.json()["office_reason"] == "Договор № 7"
 
 

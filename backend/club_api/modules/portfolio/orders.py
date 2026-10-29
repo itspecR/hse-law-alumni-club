@@ -2,7 +2,7 @@ from club_api.core.errors import ApiError
 from club_api.domain import PORTFOLIO_CATALOG
 
 OPEN_STATUSES = ("new", "in_progress", "confirmed")
-CONTACT_LINE = "Учебный офис свяжется с Вами, чтобы согласовать договор и оплату."
+CONTACT_LINE = "Мы свяжемся с Вами, чтобы согласовать договор и оплату."
 LOCK_SQL = "SELECT id FROM {table} WHERE id=%s FOR UPDATE"
 USED_SQL = "SELECT id FROM orders WHERE {column}=%s LIMIT 1"
 LOCKED_FIELDS = (

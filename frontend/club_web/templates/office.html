@@ -10,9 +10,9 @@
 <aside class="office-sidebar">
 <div class="office-brand-row">
 <a href="/" class="office-brand"><img src="{{ base }}assets/themis-club.svg" width="32" height="32" alt=""><span>Клуб выпускников<small>факультета права Вышки</small></span></a>
-<button class="office-menu-toggle" data-action="office-menu" aria-expanded="false" aria-controls="office-navigation" aria-label="Разделы офиса">{{ icon('menu') }}</button>
+<button class="office-menu-toggle" data-action="office-menu" aria-expanded="false" aria-controls="office-navigation" aria-label="Разделы панели">{{ icon('menu') }}</button>
 </div>
-<nav id="office-navigation" class="office-navigation" aria-label="Панель офиса" data-open="false">
+<nav id="office-navigation" class="office-navigation" aria-label="Панель управления" data-open="false">
 {% set names=dict(office_nav) %}
 {% for group,keys in office_groups %}
 <div class="office-nav-group"><p>{{ group }}</p>
@@ -22,16 +22,16 @@
 <hr></div>
 {% endfor %}
 </nav>
-<div class="office-account"><span class="office-account-mark" aria-hidden="true">УО</span><div><strong>Учебный офис</strong><small>{{ 'Администратор' if role in ('admin','Administrator') else 'Редактор' }}</small></div><button data-action="logout-office" aria-label="Выйти">{{ icon('logout') }}</button></div>
+<div class="office-account"><span class="office-account-mark" aria-hidden="true">ПУ</span><div><strong>Панель управления</strong><small>{{ 'Администратор' if role in ('admin','Administrator') else 'Редактор' }}</small></div><button data-action="logout-office" aria-label="Выйти">{{ icon('logout') }}</button></div>
 </aside>
 <main id="main" class="site-office-content">
-<div class="office-topbar"><nav aria-label="Путь к разделу"><a href="/admin">Учебный офис</a><span aria-hidden="true">/</span><span>{{ title }}</span></nav><a href="/" class="office-site-link">На сайт {{ icon('arrow') }}</a></div>
+<div class="office-topbar"><nav aria-label="Путь к разделу"><a href="/admin">Панель управления</a><span aria-hidden="true">/</span><span>{{ title }}</span></nav><a href="/" class="office-site-link">На сайт {{ icon('arrow') }}</a></div>
 <header class="office-page-header">
 <div><h1>{{ title }}</h1><p>{{ office_descriptions.get(section,'') }}</p></div>
 <button data-action="refresh" class="office-refresh">{{ icon('refresh') }}Обновить</button>
 </header>
 {% if access_error==403 %}
-<div class="office-access" role="alert"><h2>Нужен доступ администратора</h2><p>Этот раздел доступен администратору клуба.</p><a href="/admin">К обзору офиса</a></div>
+<div class="office-access" role="alert"><h2>Нужен доступ администратора</h2><p>Этот раздел доступен администратору клуба.</p><a href="/admin">К обзору панели</a></div>
 {% else %}
 {% include office_template %}
 {% endif %}

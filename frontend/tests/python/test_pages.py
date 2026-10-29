@@ -377,7 +377,15 @@ async def test_home_texts_follow_glossary(browser_client):
     page = (await browser_client.get("/")).text
     assert '<a href="/portfolio" class="foc lux-more">Программы клуба' in page
     assert '<a href="/events" class="foc lux-more">Все события' in page
-    assert "Проверка обычно занимает 1-2\u00a0рабочих дня." in page
+    assert (
+        "Анонсы встреч, программы дополнительного образования, новости клуба и&nbsp;личный кабинет выпускника." in page
+    )
+    assert (
+        "Подайте заявку, а&nbsp;мы подтвердим ваш статус выпускника и&nbsp;предоставим доступ к&nbsp;новым возможностям."
+        in page
+    )
+    assert "<h3>Проверка</h3><p>Мы подтверждаем статус выпускника факультета.</p>" in page
+    assert "Программы клуба и&nbsp;ДПО по&nbsp;цене выпускника, события и&nbsp;подкасты.</p>" in page
     assert "«Друг клуба» с&nbsp;200&nbsp;баллов, «Знаток» с&nbsp;500, «Амбассадор» с&nbsp;1000." in page
     home = (Path(club_web.__file__).parent / "templates/home.html").read_text()
     assert re.findall(".{0,40}[ёЁ–—].{0,20}", home) == []
@@ -386,6 +394,12 @@ async def test_home_texts_follow_glossary(browser_client):
 async def test_cart_line_has_no_empty_variant(browser_client):
     response = await browser_client.get("/cart", headers={"x-cart-session": "cart-test"})
     assert f"<p>{rub(PRODUCT['price'])}</p>" in response.text
+
+
+async def test_office_home_form_has_only_fields_shown_on_site(browser_client):
+    response = await browser_client.get("/views/admin/pages", headers={"authorization": "Bearer admin-test"})
+    names = re.findall(r'name="((?:hero|cta)\.\w+)"', response.text)
+    assert names == ["hero.title_pre", "hero.title_accent", "hero.cta_primary", "cta.title", "cta.button"]
 
 
 async def test_office_uses_dark_theme(browser_client):
@@ -702,7 +716,7 @@ async def test_join_cabinet_and_profile_texts_follow_glossary(browser_client):
     assert "<h3>Ближайшее событие</h3>" in cabinet and "Ближайших событий пока нет." in cabinet
     assert "> 60</p>" in cabinet and "60 баллов" not in cabinet
     rejected = await cabinet_page({**PROFILE, "alumni": {**PROFILE["alumni"], "verification_status": "rejected"}})
-    assert "Учебный офис не смог подтвердить данные заявки. Если это ошибка, напишите в поддержку." in rejected
+    assert "Мы не смогли подтвердить данные заявки. Если это ошибка, напишите в поддержку." in rejected
     assert "Загрузить фото профиля" not in rejected
     templates = Path(club_web.__file__).parent / "templates"
     for name in ("auth.html", "cabinet.html", "profile.html"):
@@ -715,7 +729,7 @@ async def test_portfolio_texts_follow_glossary(browser_client):
     assert "<p>Программы дополнительного образования, которые проводит клуб.</p>" in listing
     assert '<span class="lux-sr"> о программе «' in listing
     assert "Промокод вводится в заявке, из двух скидок применяется большая." in card
-    assert "Платить на сайте не нужно. Учебный офис свяжется с вами" in card
+    assert "Платить на сайте не нужно. Мы свяжемся с вами" in card
     templates = Path(club_web.__file__).parent / "templates"
     for name in ("portfolio.html", "portfolio-program.html"):
         assert re.findall(".{0,40}[ёЁ–—].{0,20}", (templates / name).read_text()) == [], name
@@ -770,7 +784,7 @@ async def test_event_form_picks_moscow_date_and_time():
 
 async def test_login_search_and_mini_texts_follow_glossary(browser_client):
     login = (await browser_client.get("/lk")).text
-    note = "Скидка выпускника и все разделы кабинета откроются, когда учебный офис подтвердит статус выпускника."
+    note = "Скидка выпускника и все разделы кабинета откроются, когда мы подтвердим ваш статус."
     assert note in login and "Войти можно после того" not in login
     search = (await browser_client.get("/search")).text
     assert search.count("<label>Программы, события, новости, подкасты, изменения в праве<input") == 2

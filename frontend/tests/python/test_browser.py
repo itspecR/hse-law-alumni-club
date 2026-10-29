@@ -234,8 +234,8 @@ def test_office_navigation_keyboard_and_screen_sizes(page, width):
     page.set_viewport_size({"width": width, "height": 900})
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
     page.goto("/admin/news")
-    navigation = page.get_by_role("navigation", name="Панель офиса", exact=True)
-    button = page.get_by_role("button", name="Разделы офиса", exact=True)
+    navigation = page.get_by_role("navigation", name="Панель управления", exact=True)
+    button = page.get_by_role("button", name="Разделы панели", exact=True)
     if width <= 900:
         expect(navigation).to_be_hidden()
         expect(page.get_by_role("heading", name="Новости", exact=True)).to_be_in_viewport()
@@ -260,7 +260,7 @@ def test_office_navigation_keyboard_and_screen_sizes(page, width):
             expect(page.locator("#office-navigation a[aria-current]")).to_be_in_viewport()
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), key
     if width <= 900:
-        page.get_by_role("button", name="Разделы офиса", exact=True).click()
+        page.get_by_role("button", name="Разделы панели", exact=True).click()
     page.get_by_role("button", name="Выйти", exact=True).click()
     expect(page.get_by_role("button", name="Войти", exact=True)).to_be_visible()
 
@@ -461,7 +461,7 @@ def test_checkout_error_keeps_contacts_and_replay_key(page, site):
     expect(page.get_by_label("ФИО", exact=True)).to_have_value("Тестовый выпускник")
     site[1]["order_failure"] = False
     page.get_by_role("button", name="Отправить заявку", exact=True).click()
-    expect(page.get_by_role("heading", name="Заявка отправлена в учебный офис")).to_be_visible()
+    expect(page.get_by_role("heading", name="Заявка отправлена")).to_be_visible()
     orders = [write for write in site[2] if write["path"] == "/orders"]
     assert len(orders) == 2 and orders[0]["headers"]["idempotency-key"] == orders[1]["headers"]["idempotency-key"]
 
@@ -491,7 +491,7 @@ def test_office_logout_failure_clears_private_view(page, width):
     page.goto("/admin")
     expect(page.locator(".site-office")).to_be_visible()
     if width == 390:
-        page.get_by_role("button", name="Разделы офиса", exact=True).click()
+        page.get_by_role("button", name="Разделы панели", exact=True).click()
     page.route(
         "**/api/auth/admin-logout",
         lambda route: route.fulfill(status=503, json={"error": "Сервис временно недоступен"}),
@@ -789,7 +789,7 @@ def test_mirror_mobile_preview_navigation_and_exit(chromium, mirror_site, width)
         expect(page.locator("#main")).to_be_visible()
         expect(page.locator("html")).to_have_class(re.compile("pwa-shell"))
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), path
-    page.get_by_role("navigation", name="Демоверсия").get_by_role("link", name="Учебный офис").click()
+    page.get_by_role("navigation", name="Демоверсия").get_by_role("link", name="Панель управления").click()
     expect(page.locator(".office-page-header")).to_be_visible()
     expect(page.locator("html")).not_to_have_class(re.compile("pwa-shell|telegram-mini"))
     assert page.locator(".site-office").bounding_box()["width"] == width
@@ -802,13 +802,13 @@ def test_mirror_mobile_preview_navigation_and_exit(chromium, mirror_site, width)
     expect(page).to_have_url(mirror_site + "?site=1")
     expect(page.locator("html")).not_to_have_class(re.compile("pwa-shell|telegram-mini"))
     expect(page.locator(".lux-hero")).to_be_visible()
-    page.get_by_role("navigation", name="Демоверсия").get_by_role("link", name="Учебный офис").click()
+    page.get_by_role("navigation", name="Демоверсия").get_by_role("link", name="Панель управления").click()
     expect(page.locator(".office-page-header")).to_be_visible()
     assert (
         page.locator(".office-brand-row").bounding_box()["y"] >= page.locator(".site-notice").bounding_box()["height"]
     )
     if width <= 900:
-        page.get_by_role("button", name="Разделы офиса", exact=True).click()
+        page.get_by_role("button", name="Разделы панели", exact=True).click()
     expect(page.get_by_role("button", name="Выйти", exact=True)).to_be_in_viewport()
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     assert not errors and not telegram and not writes
@@ -826,7 +826,7 @@ def test_mirror_office_sections_have_no_loading_errors(chromium, mirror_site, wi
         expect(page.locator(".office-page-header")).to_be_visible()
         expect(page.locator(".site-errors")).to_have_count(0)
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), path
-    expect(page.locator("#main")).to_contain_text("Статистика обращений доступна в рабочей панели офиса")
+    expect(page.locator("#main")).to_contain_text("Статистика обращений доступна в рабочей панели управления")
     context.close()
 
 
@@ -2366,7 +2366,7 @@ def test_office_sets_discount_on_club_application(page, site, width):
     expect(row.locator(".office-meta").first).to_contain_text("участников: 3 · промокод SPRING-15: 15%")
     form = row.locator("form[data-api$='/discount']")
     expect(form.get_by_role("button", name="Сбросить", exact=True)).to_have_count(0)
-    form.get_by_label("Скидка офиса, %").fill("20")
+    form.get_by_label("Индивидуальная скидка, %").fill("20")
     form.get_by_label("Причина скидки").fill("Корпоративный договор")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     form.get_by_role("button", name="Применить скидку", exact=True).click()
@@ -2381,12 +2381,12 @@ def test_office_sets_discount_on_club_application(page, site, width):
 def test_office_discount_shows_reason_and_resets(page, site):
     discounted = {**CLUB_ORDER, "office_discount": 20, "office_reason": "Корпоративный договор"}
     row = office_orders(page, site, 1440, discounted).first
-    expect(row.locator(".office-meta").first).to_contain_text("скидка учебного офиса: 20%")
+    expect(row.locator(".office-meta").first).to_contain_text("индивидуальная скидка: 20%")
     expect(row.locator(".office-meta").nth(1)).to_have_text(
         "Причина: Корпоративный договор · до этого промокод SPRING-15: 15%"
     )
     form = row.locator("form[data-api$='/discount']")
-    expect(form.get_by_label("Скидка офиса, %")).to_have_value("20")
+    expect(form.get_by_label("Индивидуальная скидка, %")).to_have_value("20")
     form.get_by_role("button", name="Сбросить", exact=True).click()
     expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
     write = site[2][-1]
@@ -2524,7 +2524,7 @@ def test_cabinet_names_club_application_discount(page, site, width):
     orders = page.locator("#orders article")
     expect(orders.first).to_contain_text("промокод SPRING-15: 15% · участников: 3")
     expect(orders.nth(1)).to_contain_text(
-        "скидка учебного офиса: 20% · участников: 3 · ООО «Пример» · старт потока 1 февраля 2027."
+        "индивидуальная скидка: 20% · участников: 3 · ООО «Пример» · старт потока 1 февраля 2027."
     )
     expect(orders.first).not_to_contain_text("скидка выпускника")
     expect(orders.first).not_to_contain_text("старт потока")
@@ -2612,7 +2612,7 @@ def test_portfolio_application_goes_to_chosen_cohort(page, site, width):
     form = page.locator("form[data-application]")
     cohorts = form.get_by_role("group", name="Поток")
     expect(cohorts.get_by_role("radio")).to_have_count(2)
-    expect(cohorts).to_contain_text("мест нет, учебный офис свяжется, если место освободится")
+    expect(cohorts).to_contain_text("мест нет, мы свяжемся, если место освободится")
     expect(page.get_by_text("Мест нет. Заявку можно оставить")).to_have_count(0)
     form.get_by_label("ФИО", exact=True).fill("Вымышленный Заявитель")
     form.get_by_label("Телефон", exact=True).fill("+70000000000")

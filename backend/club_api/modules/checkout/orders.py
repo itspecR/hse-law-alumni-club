@@ -137,7 +137,7 @@ async def create_order(request: HttpRequest):
         body.contact_email,
         club_subject(f"Заявка {number} принята"),
         f"Здравствуйте, {body.contact_fio}!\n\nВаша заявка {number} принята.\n{summary}\n"
-        f"Предварительная сумма {rubles(totals['total'])}.\n\nУчебный офис свяжется с Вами, чтобы подтвердить детали.",
+        f"Предварительная сумма {rubles(totals['total'])}.\n\nМы свяжемся с Вами, чтобы подтвердить детали.",
     )
     receipt = {
         "number": number,

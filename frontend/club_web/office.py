@@ -191,7 +191,7 @@ FIELDS = {
         ("per_person_limit", "На одного человека. Пусто - без лимита", "limit"),
         ("all_programs", "Все программы портфеля", "checkbox"),
         ("program_ids", "Программы, если не все", "portfolio"),
-        ("note", "Заметка офиса", "textarea"),
+        ("note", "Служебная заметка", "textarea"),
         ("status", "Статус", "active|disabled"),
     ],
     "trainers": [
