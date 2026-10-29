@@ -152,7 +152,7 @@ async def create_order(request: HttpRequest):
             payment = await state.payments.create(
                 number,
                 totals["total"],
-                f"Заявка {number} · Клуб выпускников факультета права Вышки",
+                f"Заявка {number} · Клуб выпускников факультета права НИУ ВШЭ",
                 body.contact_email,
             )
             await state.payments.record(number, payment)

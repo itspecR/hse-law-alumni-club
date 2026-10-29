@@ -314,7 +314,7 @@ async def pay(request: HttpRequest, number: str):
         payment = await payments.create(
             number,
             order["total_estimate"],
-            f"Заявка {number} · Клуб выпускников факультета права Вышки",
+            f"Заявка {number} · Клуб выпускников факультета права НИУ ВШЭ",
             order["contact_email"],
         )
         await payments.record(number, payment)

@@ -60,7 +60,7 @@ async def test_office_moves_application_and_recalculates_total(database_app, mai
     assert f"Предварительная сумма {rubles(total)}." in mails[-1]["text"] and mails[-1]["text"].endswith(CONTACT_LINE)
     assert (
         mails[-1]["subject"]
-        == f"Заявка {row['number']} перенесена в другой поток - Клуб выпускников факультета права Вышки"
+        == f"Заявка {row['number']} перенесена в другой поток - Клуб выпускников факультета права НИУ ВШЭ"
     )
     events = await app.state.store.read("audit_log", filters={"event": {"_eq": "order.cohort"}})
     assert [event["subject"] for event in events] == ["order:" + row["number"]]

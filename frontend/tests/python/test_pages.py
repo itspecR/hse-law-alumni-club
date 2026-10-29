@@ -391,6 +391,14 @@ async def test_home_texts_follow_glossary(browser_client):
     assert re.findall(".{0,40}[ёЁ–—].{0,20}", home) == []
 
 
+async def test_full_club_name_and_merch_text(browser_client):
+    page = (await browser_client.get("/merch")).text
+    assert "<title>Мерч клуба - Клуб выпускников факультета права НИУ ВШЭ</title>" in page
+    assert "<small>факультета права НИУ&nbsp;ВШЭ</small>" in page
+    assert "© 2026 Клуб выпускников факультета права НИУ&nbsp;ВШЭ" in page
+    assert "<p>Одежда и аксессуары с символикой клуба и ВШЭ.</p>" in page
+
+
 async def test_cart_line_has_no_empty_variant(browser_client):
     response = await browser_client.get("/cart", headers={"x-cart-session": "cart-test"})
     assert f"<p>{rub(PRODUCT['price'])}</p>" in response.text

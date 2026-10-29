@@ -9,7 +9,9 @@ from tree_sitter import Language, Parser
 
 ROOT = Path(__file__).resolve().parents[2]
 PARSER = Parser(Language(tree_sitter_javascript.language()))
-STYLE = re.compile(r"[ёЁ–—]|учебн\w*(?:\s|&nbsp;)+офис", re.IGNORECASE)
+STYLE = re.compile(
+    r"[ёЁ–—]|учебн\w*(?:\s|&nbsp;)+офис|факультета(?:\s|&nbsp;)+права(?:\s|&nbsp;)+Вышки", re.IGNORECASE
+)
 PYTHON_ROOTS = ("backend/club_api", "frontend/club_web")
 OPERATOR_FILES = {"backend/club_api/core/config.py"}
 SKIP_FUNCTIONS = {"support_config", "slugify"}
@@ -99,7 +101,7 @@ def main():
     if failures:
         print("\n".join(failures), file=sys.stderr)
         return 1
-    print(f"Проверено {checked} файлов: в текстах сайта нет «ё», длинных тире и «учебного офиса»")
+    print(f"Проверено {checked} файлов: в текстах сайта нет «ё», длинных тире, «учебного офиса» и старого названия клуба")
     return 0
 
 
