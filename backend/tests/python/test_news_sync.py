@@ -16,6 +16,7 @@ from club_api.modules.news.sources import SOURCES, canonical_news_url, parse_sou
 ALUMNI, TAG = (source["url"] for source in SOURCES)
 FIRST, SECOND, THIRD = (f"https://pravo.hse.ru/news/{number}.html" for number in (101, 102, 103))
 SUBSITE = "https://pravo.hse.ru/intlaw/news/104.html"
+OLD_SOURCE = "https://t.me/AlumniLawHSE/42"
 
 
 def jpeg():
@@ -131,6 +132,10 @@ async def test_sync_publishes_new_faculty_news_once_with_images(faculty):
     assert (first["status"], first["origin"], first["excerpt"]) == ("published", "faculty", "Лид 101.html")
     assert first["cover"] and "![Зал](" in first["body"] and first["cover"] not in first["body"]
     assert (await inbox(app))[SECOND]["state"] == "new"
+    await app.state.database.execute(
+        "INSERT INTO club_news_inbox(id,source_url,sources,title) VALUES(%s,%s,%s,%s)",
+        ("f" * 64, OLD_SOURCE, ["telegram"], "Пост старого источника"),
+    )
     broken.clear()
     calls.clear()
     second = await sync_news(app.state, delay=0)
@@ -140,6 +145,7 @@ async def test_sync_publishes_new_faculty_news_once_with_images(faculty):
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://localhost") as client:
         panel = (await client.get("/admin/news-sources", headers=headers)).json()
     assert [item["source_url"] for item in panel["items"]] == [SUBSITE, SECOND, FIRST]
+    assert all(item["source_url"] != OLD_SOURCE for item in panel["items"])
     assert [item["news_status"] for item in panel["items"]] == ["published"] * 3
 
 

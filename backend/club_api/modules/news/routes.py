@@ -11,7 +11,7 @@ from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin
 from club_api.modules.news.importer import SYNC_LOCK, sync_news
 from club_api.modules.news.schedule import INTERVALS, news_settings, next_check, save_settings
-from club_api.modules.news.sources import SOURCES
+from club_api.modules.news.sources import SOURCE_IDS, SOURCES
 from club_api.observability.audit import audit
 
 ROUTE_LIMITS = {("POST", "/admin/news-sources/refresh"): 6}
@@ -34,6 +34,10 @@ async def schedule(state):
     return {**settings, "allowed": allowed, "next_check": upcoming, "intervals": INTERVALS}
 
 
+def current(item):
+    return item["state"] == "imported" or bool(SOURCE_IDS & set(item["sources"] or ()))
+
+
 def candidate_id(value):
     if not re.fullmatch("[a-f0-9]{64}", value):
         raise ApiError(400, "Некорректный идентификатор.")
@@ -47,7 +51,7 @@ async def sources(request: HttpRequest):
     runs = await state.database.rows("SELECT * FROM club_news_source_runs")
     by_source = {row["source"]: row for row in runs}
     items = await state.database.rows(
-        "SELECT i.id,i.source_url,i.title,i.state,i.discovered_at,n.slug AS news_slug,n.status AS news_status,"
+        "SELECT i.id,i.source_url,i.title,i.state,i.sources,i.discovered_at,n.slug AS news_slug,n.status AS news_status,"
         "COALESCE(n.published_at,i.published_at) AS published_at FROM club_news_inbox i LEFT JOIN news n ON n.id=i.news_id "
         "ORDER BY COALESCE(n.published_at,i.published_at,i.discovered_at) DESC,i.id LIMIT %s",
         (INBOX_LIMIT,),
@@ -56,7 +60,7 @@ async def sources(request: HttpRequest):
         {
             "schedule": await schedule(state),
             "sources": [{**source, **by_source.get(source["id"], {})} for source in SOURCES],
-            "items": items,
+            "items": [item for item in items if current(item)],
         }
     )
 
