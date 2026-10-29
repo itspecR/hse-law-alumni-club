@@ -1,13 +1,16 @@
 import copy
 import re
 from datetime import UTC, datetime
+from urllib.parse import urlsplit
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from pydantic import create_model
 
 from club_api.core.errors import ApiError
 
 RESERVED_SLUGS = {"programs": ("challenge",)}
+CLUB_TIMEZONE = ZoneInfo("Europe/Moscow")
 
 
 def partial(model):
@@ -17,6 +20,20 @@ def partial(model):
         optional.default, optional.default_factory = (None, None)
         fields[name] = (info.annotation, optional)
     return create_model(model.__name__ + "Patch", __base__=model, **fields)
+
+
+def web_url(value):
+    if not value:
+        return None
+    url = urlsplit(value)
+    if url.scheme not in ("https", "http") or not url.hostname or url.username or url.password:
+        raise ValueError("Некорректная ссылка")
+    return value
+
+
+def club_moment(value):
+    moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return value if moment.tzinfo else moment.replace(tzinfo=CLUB_TIMEZONE).isoformat()
 
 
 def guid(value):

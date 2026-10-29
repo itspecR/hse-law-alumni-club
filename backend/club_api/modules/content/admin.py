@@ -3,10 +3,10 @@ from typing import Annotated, Literal, get_args
 
 from django.http import HttpRequest
 from django.urls import path
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
-from club_api.core.models import guid, partial, unique_slug
+from club_api.core.models import club_moment, guid, partial, unique_slug, web_url
 from club_api.core.views import api_view, endpoint, parse_body
 from club_api.db.queries import Query
 from club_api.domain import DPO_CATALOG
@@ -16,10 +16,24 @@ from club_api.observability.audit import audit
 
 
 class NewsBody(Body):
-    title: str = Field(min_length=3)
+    title: str = Field(min_length=3, max_length=255)
+    published_at: str | None = None
     excerpt: str | None = None
     body: str | None = None
-    status: Literal["draft", "published"] = "published"
+    cover: str | None = Field(default=None, max_length=500)
+    source_url: str | None = Field(default=None, max_length=255)
+    origin: Literal["club", "faculty"] = "club"
+    status: Literal["draft", "published", "archived"] = "published"
+
+    @field_validator("published_at")
+    @classmethod
+    def valid_moment(cls, value):
+        return club_moment(value) if value else None
+
+    @field_validator("source_url")
+    @classmethod
+    def valid_source(cls, value):
+        return web_url(value)
 
 
 class TimelineBody(Body):
@@ -64,6 +78,8 @@ class ProductBody(Body):
 
 async def write_content(state, table, data, *, id=None, connection=None):
     data = dict(data)
+    if table == "news" and data.get("published_at") is None:
+        data.pop("published_at", None)
     if table == "programs" and "start" in data:
         start = data.pop("start")
         data["dates"] = {"start": start} if start else None
@@ -80,7 +96,7 @@ async def write_content(state, table, data, *, id=None, connection=None):
     if table in ("programs", "products", "news"):
         data["slug"] = await unique_slug(state.store, table, data["title"], connection)
     if table == "news":
-        data["published_at"] = datetime.now(UTC)
+        data.setdefault("published_at", datetime.now(UTC))
     if table in ("timeline_items", "podcasts") and data.get("sort") is None:
         rows = await state.store.read(table, fields=("sort",), limit=-1, connection=connection)
         data["sort"] = max((row["sort"] or 0 for row in rows), default=0) + 1
@@ -203,7 +219,7 @@ urlpatterns += content_crud(
     "news",
     NewsBody,
     sort=("-published_at",),
-    fields=("id", "slug", "title", "excerpt", "body", "published_at", "status", "source_url"),
+    fields=("id", "slug", "title", "excerpt", "body", "published_at", "status", "source_url", "cover", "origin"),
     subject="news",
 )
 urlpatterns += content_crud(

@@ -76,6 +76,7 @@ CHOICES = {
 SINGLE_CHOICES = {"program": "portfolio"}
 CREATE_DEFAULTS = {"promo-codes": {"per_person_limit": 1, "all_programs": True}}
 SECTION_LABELS = {
+    "news": {"archived": "Снята с публикации", "club": "Клуб", "faculty": "Факультет права"},
     "promo-codes": {"active": "Действует", "disabled": "Отключен"},
     "cohorts": {"open": "Набор открыт", "closed": "Набор закрыт"},
 }
@@ -113,6 +114,8 @@ def cohort_record(row, names):
 
 RECORDS = {"cohorts": cohort_record}
 STATUS_FILTERS = {"cohorts": ("open", "closed")}
+SECTION_FILTERS = {"news": (("origin", "Откуда", ("club", "faculty")),)}
+FILTER_KEYS = ("status", "origin")
 
 
 def status_values(section):
@@ -143,11 +146,10 @@ def choice_options(source, rows):
 
 def filter_content(rows, params):
     needle = params.get("q", "").strip().casefold().replace("ё", "е")
-    status = params.get("status", "")
     return [
         row
         for row in rows
-        if (not status or row.get("status") == status)
+        if all(not params.get(key) or row.get(key) == params[key] for key in FILTER_KEYS)
         and (
             not needle
             or needle in " ".join(str(row.get(key) or "") for key in SEARCH_KEYS).casefold().replace("ё", "е")
@@ -224,9 +226,13 @@ FIELDS = {
     ],
     "news": [
         ("title", "Заголовок", "text"),
+        ("published_at", "Дата и время публикации по Москве. Пусто - сейчас", "datetime-optional"),
         ("excerpt", "Краткое описание", "textarea"),
-        ("body", "Текст", "textarea"),
-        ("status", "Статус", "published|draft"),
+        ("body", "Текст", "rich"),
+        ("cover", "Обложка: ID файла из «Медиа» или ссылка", "text"),
+        ("origin", "Откуда новость", "club|faculty"),
+        ("source_url", "Ссылка на источник", "text"),
+        ("status", "Статус", "published|draft|archived"),
     ],
     "events": [
         ("title", "Название", "text"),

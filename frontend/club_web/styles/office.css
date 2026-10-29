@@ -57,6 +57,8 @@
 .office-record-head h2 { flex:1; min-width:160px; margin:0; }
 .office-meta { color:var(--c-text-3); font-size:14px; }
 .office-record-head+.office-meta { margin:0 0 16px; }
+.office-rich { min-height:320px; }
+.office-hint { display:block; margin-top:6px; color:var(--c-text-3); font-size:13px; line-height:1.5; }
 .office-status { display:inline-flex; align-items:center; gap:6px; max-width:100%; padding:4px 8px; border-radius:var(--r-sm); background:var(--c-bg-sunken); color:var(--c-text-2); font-size:12px; font-weight:600; overflow-wrap:anywhere; }
 .office-status::before { content:''; flex:none; width:6px; height:6px; border-radius:50%; background:currentColor; }
 .office-status:is([data-status=published],[data-status=verified],[data-status=confirmed],[data-status=active],[data-status=ok],[data-status=succeeded]) { color:var(--c-ok-text); background:color-mix(in srgb,var(--c-ok) 10%,var(--c-bg)); }

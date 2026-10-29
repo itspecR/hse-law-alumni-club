@@ -18,6 +18,7 @@ from club_web.office import (
     ICONS,
     LABELS,
     METRICS,
+    SECTION_FILTERS,
     SECTION_LABELS,
     SINGLE_CHOICES,
     choice_options,
@@ -409,6 +410,7 @@ async def context(api, path, params, authorized=False):
         data["labels"] = {**LABELS, **SECTION_LABELS.get(section, {})}
         data["office_template"] = "office/" + ("content" if section in FIELDS else section) + ".html"
         data["office_statuses"] = status_values(section)
+        data["office_filters"] = SECTION_FILTERS.get(section, ())
         if authorized and template != "not-found.html":
             await load("session", "/auth/admin-session", {})
             if data["session"]:

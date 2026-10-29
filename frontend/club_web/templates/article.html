@@ -8,12 +8,13 @@
 {% if item.excerpt %}
 <p class="site-lead">{{ item.excerpt }}</p>
 {% endif %}
-<div class="site-prose">
-{% for paragraph in (item.body or '').split('\n\n') if paragraph.strip() %}
-<p>{{ paragraph }}</p>
-{% endfor %}
-</div>
-{% if item.source_url|safe_url %}
+{% if item.cover|media %}
+<img class="news-cover" src="{{ item.cover|media }}" alt="" width="1200" height="800">
+{% endif %}
+<div class="site-prose site-rich">{{ item.body|rich_text }}</div>
+{% if item.origin=='faculty' %}
+<p class="news-credit">Источник: факультет права НИУ ВШЭ.{% if item.source_url|safe_url %} <a href="{{ item.source_url|safe_url }}" target="_blank" rel="noopener noreferrer">Оригинал на сайте факультета ↗</a>{% endif %}</p>
+{% elif item.source_url|safe_url %}
 <p>
 <a href="{{ item.source_url|safe_url }}" target="_blank" rel="noopener noreferrer">Источник ↗</a>
 </p>

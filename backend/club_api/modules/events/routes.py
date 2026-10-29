@@ -2,14 +2,22 @@ import re
 import time
 from datetime import UTC, datetime, timedelta
 from typing import Literal
-from urllib.parse import urlsplit
-from zoneinfo import ZoneInfo
 
 from django.http import HttpRequest, HttpResponse
 from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
-from club_api.core.models import count, group_count, guid, parse_date, partial, query_page
+from club_api.core.models import (
+    CLUB_TIMEZONE,
+    club_moment,
+    count,
+    group_count,
+    guid,
+    parse_date,
+    partial,
+    query_page,
+    web_url,
+)
 from club_api.core.views import api_view, defer, parse_body
 from club_api.db.queries import acquire_lock
 from club_api.modules.auth.routes import Body
@@ -20,7 +28,6 @@ from club_api.modules.gamification.routes import verified_alumni
 from club_api.observability.audit import audit
 
 ROUTE_LIMITS = {("POST", "/events/{id}/rsvp"): 20}
-CLUB_TIMEZONE = ZoneInfo("Europe/Moscow")
 UNNAMED = "ФИО не указано"
 EVENT_FIELDS = ("id", "title", "description", "starts_at", "location", "cover", "reg_url", "format", "points", "status")
 
@@ -39,18 +46,12 @@ class EventBody(Body):
     @field_validator("reg_url")
     @classmethod
     def valid_url(cls, value):
-        if not value:
-            return None
-        url = urlsplit(value)
-        if url.scheme not in ("https", "http") or not url.hostname or url.username or url.password:
-            raise ValueError("Некорректная ссылка")
-        return value
+        return web_url(value)
 
     @field_validator("starts_at")
     @classmethod
     def valid_date(cls, value):
-        moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return value if moment.tzinfo else moment.replace(tzinfo=CLUB_TIMEZONE).isoformat()
+        return club_moment(value)
 
 
 EventPatch = partial(EventBody)

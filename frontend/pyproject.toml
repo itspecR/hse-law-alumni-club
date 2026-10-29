@@ -8,6 +8,8 @@ dependencies = [
     "jinja2==3.1.6",
     "django==6.1.2",
     "gunicorn==26.2.0",
+    "markdown-it-py==4.2.0",
+    "nh3==0.3.7",
 ]
 
 [dependency-groups]
@@ -51,6 +53,7 @@ ignore = ["E501", "S101"]
 [tool.ruff.lint.per-file-ignores]
 "../scripts/diagnostics/security-inventory.py" = ["S603"]
 "../scripts/checks/check-image-audit.py" = ["S603"]
+"club_web/rich_text.py" = ["S704"]
 
 [tool.ruff.per-file-target-version]
 "../scripts/diagnostics/security-inventory.py" = "py312"
