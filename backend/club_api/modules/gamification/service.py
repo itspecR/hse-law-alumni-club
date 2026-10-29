@@ -45,7 +45,7 @@ class Gamification:
         cursor = await connection.execute(
             Query(
                 "SELECT COALESCE(sum(delta),0)::int AS points FROM points_ledger WHERE alumni_id=%s",
-                "SELECT COALESCE(sum(delta),0) AS points FROM points_ledger WHERE alumni_id=%s",
+                "SELECT CAST(COALESCE(sum(delta),0) AS SIGNED) AS points FROM points_ledger WHERE alumni_id=%s",
             ),
             (alumni_id,),
         )
