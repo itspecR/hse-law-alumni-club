@@ -604,6 +604,37 @@ async def program_page(program):
             return (await client.get("/dpo/" + program["slug"])).text
 
 
+async def portfolio_page(program):
+    async def upstream(request):
+        if request.url.path == "/portfolio/" + program["slug"]:
+            return httpx.Response(200, json=program)
+        return httpx.Response(200, json=[])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            return (await client.get("/portfolio/" + program["slug"])).text
+
+
+async def test_portfolio_card_shows_course_modules():
+    modules = [
+        {
+            "title": "День 1. Архитектура конфликта",
+            "points": ["Юридический спор"],
+            "hours": "6 ак. ч.",
+            "format": "Лекция",
+        },
+        {"title": "Самостоятельная работа", "points": [], "hours": "2 ак. ч.", "format": None},
+    ]
+    page = await portfolio_page({**PORTFOLIO, "modules": modules})
+    assert "<h2>Программа курса</h2>" in page and "<summary>День 1. Архитектура конфликта</summary>" in page
+    assert "<li>Юридический спор</li>" in page and "<p>6 ак. ч. · Лекция</p>" in page and "<p>2 ак. ч.</p>" in page
+    assert "Программа курса" not in await portfolio_page(PORTFOLIO)
+    dpo = await program_page({**PROGRAM, "modules": [{"title": "Вводный модуль", "hours": 0}]})
+    assert "<summary>Вводный модуль</summary>" in dpo and "Часов" not in dpo
+
+
 async def test_dpo_merch_and_cart_texts_follow_glossary(browser_client):
     dpo = (await browser_client.get("/dpo")).text
     merch = (await browser_client.get("/merch")).text

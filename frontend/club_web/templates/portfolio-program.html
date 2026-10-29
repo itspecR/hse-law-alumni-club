@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros.html' import save,field %}
+{% from 'macros.html' import save,field,course_modules %}
 {% block content %}
 {% set cohorts = item|program_cohorts %}
 <main id="main" class="site-container program-page portfolio-program" data-reading-title="{{ item.title }}" data-reading-kind="portfolio">
@@ -19,6 +19,7 @@
 <p class="site-prose">{{ item.description }}</p>
 </section>
 {% endif %}
+{% if item.modules %}{{ course_modules(item.modules,'Программа курса') }}{% endif %}
 {% if item.trainers %}
 <section>
 <h2>{{ 'Тренер' if item.trainers|length==1 else 'Тренеры' }}</h2>

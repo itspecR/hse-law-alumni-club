@@ -16,6 +16,22 @@
 </select></label>
 {% if not office_options.get(source) %}<p class="office-meta">{{ office_choices[source][1] }} Добавьте их в разделе <a href="/admin/{{ source }}">«{{ dict(office_nav)[source] }}»</a>.</p>{% endif %}
 {% endmacro %}
+{% macro module_row(module={}) %}
+<div class="office-module" data-module>
+<label class="site-field office-module__wide">Тема<input data-module-field="title" value="{{ module.title or '' }}"></label>
+<label class="site-field">Часы<input data-module-field="hours" value="{{ module.hours or '' }}"></label>
+<label class="site-field">Формат<input data-module-field="format" value="{{ module.format or '' }}"></label>
+<label class="site-field office-module__wide">Содержание, каждый пункт с новой строки<textarea data-module-field="points">{{ (module.points or [])|join('\n') }}</textarea></label>
+<button type="button" class="site-danger" data-action="module-remove">Удалить модуль</button>
+</div>
+{% endmacro %}
+{% macro modules(name,label,items) %}
+<fieldset class="office-modules" data-modules="{{ name }}"><legend>{{ label }}</legend>
+{% for module in items %}{{ module_row(module) }}{% endfor %}
+<template>{{ module_row() }}</template>
+<button type="button" data-action="module-add">Добавить модуль</button>
+</fieldset>
+{% endmacro %}
 {% macro content_form(record={}) %}
 <form data-api="/admin/{{ section }}{{ '/'+record.id if record.id else '' }}" data-method="{{ 'PATCH' if record.id else 'POST' }}" class="site-admin-form">
 {% for name,label,kind in office_fields.get(section,[]) %}
@@ -25,6 +41,8 @@
 {{ choices(name,label,value or [],kind) }}
 {% elif kind in office_single %}
 {{ single(name,label,value,office_single[kind]) }}
+{% elif kind=='modules' %}
+{{ modules(name,label,value or []) }}
 {% else %}
 <label class="site-field">{{ label }}{% if '|' in kind %}
 <select name="{{ name }}" aria-label="{{ label }}">

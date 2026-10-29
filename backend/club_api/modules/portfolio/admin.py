@@ -16,6 +16,8 @@ MAX_ITEM_LENGTH = 300
 MAX_PROGRAM_TRAINERS = 10
 MAX_CAPACITY = 1000
 MAX_BIO_LENGTH = 5000
+MAX_MODULES = 30
+MAX_MODULE_META_LENGTH = 100
 PORTFOLIO_FIELDS = (
     "id",
     "slug",
@@ -33,6 +35,7 @@ PORTFOLIO_FIELDS = (
     "audience",
     "competencies",
     "communication",
+    "modules",
     "capacity",
 )
 TRAINER_FIELDS = ("id", "fio", "photo", "bio", "status", "created_at")
@@ -45,6 +48,13 @@ def canonical_ids(values):
         return list(dict.fromkeys(str(UUID(value)) for value in values))
     except ValueError as error:
         raise ValueError("Некорректный идентификатор") from error
+
+
+class ModuleBody(Body):
+    title: str = Field(min_length=1, max_length=MAX_ITEM_LENGTH)
+    points: list[Item] = Field(default_factory=list, max_length=MAX_LIST_ITEMS)
+    hours: str | None = Field(default=None, max_length=MAX_MODULE_META_LENGTH)
+    format: str | None = Field(default=None, max_length=MAX_MODULE_META_LENGTH)
 
 
 class TrainerBody(Body):
@@ -67,6 +77,7 @@ class PortfolioBody(Body):
     audience: list[Item] = Field(default_factory=list, max_length=MAX_LIST_ITEMS)
     competencies: list[Item] = Field(default_factory=list, max_length=MAX_LIST_ITEMS)
     communication: list[Item] = Field(default_factory=list, max_length=MAX_LIST_ITEMS)
+    modules: list[ModuleBody] = Field(default_factory=list, max_length=MAX_MODULES)
     capacity: int | None = Field(default=None, ge=1, le=MAX_CAPACITY)
     enrollment: Literal["actual", "nonactual"] = "actual"
     trainer_ids: list[str] = Field(default_factory=list, max_length=MAX_PROGRAM_TRAINERS)
