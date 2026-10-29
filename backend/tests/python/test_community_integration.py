@@ -40,6 +40,10 @@ async def test_event_attendance_replay_and_server_points(database_app):
         assert response.status_code == 200, response.text
         event_id = response.json()["id"]
         assert (await client.post(f"/events/{event_id}/rsvp", headers=member_headers)).json() == {"going": True}
+        for listing in ("/admin/events", "/admin/events?page=1"):
+            rows = (await client.get(listing, headers=editor_headers)).json()
+            rows = rows["items"] if isinstance(rows, dict) else rows
+            assert next(row for row in rows if row["id"] == event_id)["rsvp_count"] == 1, listing
         roster = (await client.get(f"/admin/events/{event_id}/rsvps", headers=editor_headers)).json()
         results = await asyncio.gather(
             *(client.post(f"/admin/events/rsvp/{roster[0]['id']}/attend", headers=editor_headers) for _ in range(2))
