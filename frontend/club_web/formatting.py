@@ -4,6 +4,7 @@ from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 MOSCOW = ZoneInfo("Europe/Moscow")
+PRICE_PENDING = "Стоимость уточняется"
 MONTHS = (
     "января",
     "февраля",
@@ -50,9 +51,16 @@ def program_start(item):
     return cohorts[0].get("starts_on") if cohorts else (item.get("dates") or {}).get("start")
 
 
+def price_or_pending(value):
+    return rub(value) if value else PRICE_PENDING
+
+
 def program_price(item):
-    prices = sorted({cohort.get("price") or 0 for cohort in open_cohorts(item)}) or [item.get("price")]
-    return ("от " if len(prices) > 1 else "") + rub(prices[0])
+    prices = sorted({cohort.get("price") or 0 for cohort in open_cohorts(item)}) or [item.get("price") or 0]
+    paid = [price for price in prices if price]
+    if not paid:
+        return PRICE_PENDING
+    return ("от " if len(prices) > 1 else "") + rub(paid[0])
 
 
 def discount_label(order, automatic=False):

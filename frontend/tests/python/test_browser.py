@@ -166,7 +166,9 @@ def site():
                         "member_discount": promo["discount"],
                         "discount_source": promo["source"],
                         "message": promo["message"],
-                        "total_estimate": PORTFOLIO["price"] * participants * (100 - promo["discount"]) // 100,
+                        "total_estimate": records.get(
+                            "application_total", PORTFOLIO["price"] * participants * (100 - promo["discount"]) // 100
+                        ),
                         "starts_on": COHORT_STARTS.get(body.get("cohort_id")),
                         "notified": {"ok": True},
                     },
@@ -2552,6 +2554,42 @@ def test_cabinet_names_club_application_discount(page, site, width):
     expect(orders.first).not_to_contain_text("скидка выпускника")
     expect(orders.first).not_to_contain_text("старт потока")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [1440, 390])
+def test_club_program_without_price_waits_for_agreement(page, site, width):
+    unpriced = {**PORTFOLIO, "price": 0}
+    site[1].update(
+        {
+            "/portfolio": [unpriced],
+            "/portfolio/club-one": unpriced,
+            "quote_total": 0,
+            "application_total": 0,
+            "/me/orders": [{**CLUB_ORDER, "subtotal": 0, "total_estimate": 0}],
+        }
+    )
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/portfolio")
+    expect(page.locator(".site-catalog-card .site-price")).to_have_text("Стоимость уточняется")
+    page.goto("/portfolio/club-one")
+    expect(page.locator("aside.site-panel .lux-price")).to_have_text("Стоимость уточняется")
+    form = page.locator("form[data-application]")
+    form.get_by_label("Промокод", exact=True).fill("spring-15")
+    form.get_by_role("button", name="Применить", exact=True).click()
+    expect(form.locator("[data-quote]")).to_have_text("Промокод применен, скидка 15%. Стоимость уточняется.")
+    form.get_by_label("ФИО", exact=True).fill("Вымышленный Заявитель")
+    form.get_by_label("Телефон", exact=True).fill("+70000000000")
+    form.get_by_label("Почта", exact=True).fill("applicant@example.test")
+    form.get_by_label("Даю согласие на обработку персональных данных").check()
+    form.get_by_label("Соглашаюсь с условиями обучения").check()
+    form.get_by_role("button", name="Отправить заявку", exact=True).click()
+    expect(page.locator(".portfolio-receipt")).to_contain_text("Участников: 1 · стоимость уточняется")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk#orders")
+    order = page.locator("#orders article").first
+    expect(order).to_contain_text("Стоимость уточняется · Не оплачено")
+    expect(order).to_contain_text("До скидки: стоимость уточняется · промокод SPRING-15: 15%")
 
 
 @pytest.mark.parametrize("width", [1440, 390])

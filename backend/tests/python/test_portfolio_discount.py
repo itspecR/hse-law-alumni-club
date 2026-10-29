@@ -7,6 +7,7 @@ from test_portfolio_applications import FORM, GROUP, PRICE, apply, mails, order,
 from test_portfolio_promo import create_promo, promo_row, with_code
 
 from club_api.domain import rubles
+from club_api.modules.portfolio.orders import PRICE_PENDING_LINE, estimate_line
 
 __all__ = ("mails",)
 
@@ -31,11 +32,24 @@ def test_rubles_keep_large_sums_readable():
     assert rubles(None) == "0 ₽"
 
 
+def test_estimate_line_waits_for_price():
+    assert estimate_line(4500000) == "Предварительная сумма 45\u00a0000\u00a0₽."
+    assert estimate_line(0) == PRICE_PENDING_LINE == "Стоимость уточним при согласовании договора."
+
+
 async def test_application_mail_shows_large_sum_in_rubles(database_app, mails):
     app = database_app
     async with client_for(app) as client:
         await submitted(app, client, GROUP, price=45000000)
     assert "Предварительная сумма 1 350 000 ₽." in mails[0]["text"]
+
+
+async def test_application_mail_without_price_promises_to_agree_it(database_app, mails):
+    app = database_app
+    async with client_for(app) as client:
+        await submitted(app, client, GROUP, price=0)
+    assert "\nСтоимость уточним при согласовании договора.\n" in mails[0]["text"]
+    assert "Предварительная сумма" not in mails[0]["text"]
 
 
 async def test_office_discount_replaces_member_discount_and_can_be_reset(database_app, mails):

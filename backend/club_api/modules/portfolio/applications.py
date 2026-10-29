@@ -9,7 +9,7 @@ from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
 from club_api.core.views import api_view, parse_body
-from club_api.domain import PORTFOLIO_CATALOG, effective_discount, order_totals, rubles
+from club_api.domain import PORTFOLIO_CATALOG, effective_discount, order_totals
 from club_api.modules.auth.routes import Body, EmailBody, RegisterBody
 from club_api.modules.catalog.scope import PUBLISHED_PORTFOLIO
 from club_api.modules.checkout.store import PENDING_NOTICE, digest
@@ -17,7 +17,7 @@ from club_api.modules.notifications.mail import club_subject
 from club_api.modules.portfolio.captcha import RETRY_MESSAGE, CaptchaBody, require_captcha
 from club_api.modules.portfolio.cohorts import canonical_id, chosen_cohort, cohort_price
 from club_api.modules.portfolio.dates import display_date
-from club_api.modules.portfolio.orders import CONTACT_LINE
+from club_api.modules.portfolio.orders import CONTACT_LINE, estimate_line
 from club_api.modules.portfolio.promo import valid_promo
 from club_api.observability.audit import audit
 from club_api.resources import shared_data
@@ -226,7 +226,7 @@ async def notify(state, number, base, starts_on):
         base["contact_email"],
         club_subject(f"Заявка {number} принята"),
         f"Здравствуйте, {base['contact_fio']}!\n\nВаша заявка {number} принята.\n{text}\n"
-        f"Предварительная сумма {rubles(base['total_estimate'])}.\n\n"
+        f"{estimate_line(base['total_estimate'])}\n\n"
         "Платить на сайте не нужно. " + CONTACT_LINE,
     )
     return notified

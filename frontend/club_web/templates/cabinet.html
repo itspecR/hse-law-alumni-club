@@ -82,9 +82,9 @@
 <article class="site-panel">
 <h3>Заявка {{ order.number }}</h3>
 <p>{{ order.created_at|date }} · {{ order_status_labels.get(order.status,order.status) }}</p>
-<p>{{ order.total_estimate|rub }} · {{ 'Оплачено' if order.payment_status=='succeeded' else 'Не оплачено' }}</p>
+<p>{{ order.total_estimate|price_or_pending if order.type=='portfolio' else order.total_estimate|rub }} · {{ 'Оплачено' if order.payment_status=='succeeded' else 'Не оплачено' }}</p>
 {% if order.type=='portfolio' %}
-<p>До скидки: {{ order.subtotal|rub }} · {{ order|discount_label }} · участников: {{ order.participants }}{% if order.organization %} · {{ order.organization }}{% endif %}{% if order.starts_on %} · старт потока {{ order.starts_on|date }}{% endif %}.</p>
+<p>До скидки: {{ order.subtotal|price_or_pending|lower }} · {{ order|discount_label }} · участников: {{ order.participants }}{% if order.organization %} · {{ order.organization }}{% endif %}{% if order.starts_on %} · старт потока {{ order.starts_on|date }}{% endif %}.</p>
 {% else %}
 <p>До скидки: {{ order.subtotal|rub }} · скидка выпускника: {{ order.member_discount or 0 }}% · {{ 'доставка' if order.fulfillment=='delivery' else 'самовывоз' }}.</p>
 {% endif %}

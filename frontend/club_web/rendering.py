@@ -6,6 +6,7 @@ from jinja2 import Environment
 from club_web.formatting import (
     FORMAT_LABELS,
     ORDER_STATUS_LABELS,
+    PRICE_PENDING,
     date,
     discount_label,
     local_datetime,
@@ -14,6 +15,7 @@ from club_web.formatting import (
     page_items,
     payment_url,
     plain_title,
+    price_or_pending,
     program_price,
     program_start,
     rub,
@@ -54,9 +56,12 @@ def environment(**options):
         program_cohorts=open_cohorts,
         program_start=program_start,
         program_price=program_price,
+        price_or_pending=price_or_pending,
         rich_text=rich_text,
     )
-    renderer.globals.update(format_labels=FORMAT_LABELS, order_status_labels=ORDER_STATUS_LABELS)
+    renderer.globals.update(
+        format_labels=FORMAT_LABELS, order_status_labels=ORDER_STATUS_LABELS, price_pending=PRICE_PENDING
+    )
     return renderer
 
 
