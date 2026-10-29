@@ -35,7 +35,13 @@ ENDPOINTS = {
     "/auth/admin-session": {"role": "admin"},
     "/admin/news": [FACULTY, CLUB],
     "/admin/news-sources": {
-        "automatic": True,
+        "schedule": {
+            "enabled": True,
+            "interval_hours": 6,
+            "allowed": True,
+            "next_check": "2026-10-29T15:17:00Z",
+            "intervals": [1, 3, 6, 12, 24],
+        },
         "sources": [
             {
                 "id": "alumni",
@@ -139,7 +145,10 @@ def test_office_news_filter_by_origin_and_status():
 
 async def test_news_sources_panel_shows_checks_states_and_actions(client):
     page = (await client.get("/views/admin/news-sources", headers=ADMIN)).text
-    assert "Автоматическая проверка: каждый час" in page
+    assert 'data-api="/admin/news-sources/settings" data-method="PATCH"' in page
+    assert '<input type="checkbox" name="enabled" checked>Автоматическая проверка' in page
+    assert '<option value="6" selected>Раз в 6 часов</option>' in page and "Раз в сутки" in page
+    assert "Следующая проверка 29 октября 2026 · 18:17" in page
     assert 'data-api="/admin/news-sources/refresh"' in page and "Проверить сейчас" in page
     assert "найдено: 2 · добавлено: 1" in page and "Еще не проверялся" in page and "Источник недоступен." in page
     rows = dict(re.findall(r'<h2>(\w+)</h2>\s*<span class="office-status" data-status="(\w+)">', page))
@@ -152,3 +161,20 @@ async def test_news_sources_panel_shows_checks_states_and_actions(client):
     assert "Новость удалена и больше не загружается." in page and "Не загрузилась, повторим" in page
     assert page.count("Не загружать</button>") == 1 and page.count("Вернуть в загрузку</button>") == 1
     assert 'href="/news/faculty-one"' in page
+
+
+@pytest.mark.parametrize(
+    "plan,text",
+    [
+        ({"allowed": False, "enabled": True}, "запрещена на сервере переменной NEWS_SYNC_ENABLED."),
+        ({"allowed": True, "enabled": False}, "Автоматическая проверка выключена."),
+    ],
+)
+async def test_news_sources_panel_explains_why_checks_are_off(client, plan, text):
+    sources = ENDPOINTS["/admin/news-sources"]
+    ENDPOINTS["/admin/news-sources"] = {**sources, "schedule": {**sources["schedule"], **plan, "next_check": None}}
+    try:
+        page = (await client.get("/views/admin/news-sources", headers=ADMIN)).text
+    finally:
+        ENDPOINTS["/admin/news-sources"] = sources
+    assert text in page and "Следующая проверка" not in page

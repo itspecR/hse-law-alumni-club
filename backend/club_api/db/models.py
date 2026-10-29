@@ -244,10 +244,27 @@ class NewsSourceRuns(models.Model):
     checked_at = models.DateTimeField(db_default=Now())
     found = models.IntegerField(db_default=0)
     added = models.IntegerField(db_default=0)
+    failures = models.IntegerField(db_default=0)
     error = models.TextField(null=True)
 
     class Meta:
         db_table = "club_news_source_runs"
+
+
+class NewsSettings(models.Model):
+    id = models.SmallIntegerField(primary_key=True)
+    enabled = models.BooleanField(db_default=False)
+    interval_hours = models.IntegerField(db_default=3)
+    updated_at = models.DateTimeField(db_default=Now())
+
+    class Meta:
+        db_table = "club_news_settings"
+        constraints = [
+            models.CheckConstraint(condition=models.Q(id=1), name="club_news_settings_single_row"),
+            models.CheckConstraint(
+                condition=models.Q(interval_hours__in=[1, 3, 6, 12, 24]), name="club_news_settings_interval_check"
+            ),
+        ]
 
 
 class PageViews(models.Model):

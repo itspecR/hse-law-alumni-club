@@ -6,6 +6,7 @@ from pathlib import PurePosixPath
 from urllib.parse import unquote, urlsplit
 
 from club_api.core.errors import ApiError
+from club_api.core.models import parse_date
 from club_api.core.outgoing import IMAGE, get_bytes, get_html
 from club_api.db.queries import Query, acquire_lock, release_lock
 from club_api.modules.checkout.store import digest
@@ -22,6 +23,7 @@ IMAGE_HOSTS = {"pravo.hse.ru", "www.hse.ru"}
 SYNC_LOCK = "news-sync"
 MEDIA_KIND = "news"
 FAILED = "Не удалось обновить источник. Повторите позже."
+FAILURE_ALERT = 3
 
 
 class Pacer:
@@ -57,13 +59,21 @@ async def sync_source(state, pacer, source):
         known = await known_urls(state)
         fresh = [item for item in items if item["source_url"] not in known][:MAX_IMPORTS_PER_RUN]
         added = sum([await import_item(state, pacer, source["id"], item) for item in fresh])
-        await record_run(state, source["id"], found=len(items), added=added)
+        await record_success(state, source["id"], len(items), added)
         return {"id": source["id"], "found": len(items), "added": added}
     except Exception as error:
         reason = failure(error)
         logger.warning("Источник новостей не обновлен: %s", reason, extra={"source": source["id"]})
-        await record_run(state, source["id"], error=reason)
+        if await record_failure(state, source["id"], reason) == FAILURE_ALERT:
+            await state.notifications.office_text(alert(source, reason))
         return {"id": source["id"], "error": reason}
+
+
+def alert(source, reason):
+    return (
+        f"Источник новостей «{source['title']}» не отвечает {FAILURE_ALERT} проверки подряд: {reason} "
+        "Новости с него не загружаются. Подробности в панели управления, раздел «Источники новостей»."
+    )
 
 
 def failure(error):
@@ -94,7 +104,7 @@ async def import_item(state, pacer, source, item):
         logger.warning("Новость источника не загружена: %s", failure(error), extra={"source": source})
         for id in saved:
             await state.media.delete(id)
-        await remember(state.database, source, item, "new", None)
+        await remember(state.database, source, item, "new", None, None)
         return False
 
 
@@ -143,28 +153,45 @@ async def publish(state, source, item, article):
             },
             connection=connection,
         )
-        await remember(connection, source, item, "imported", row["id"])
+        moment = parse_date(article["published_at"]) if article["published_at"] else None
+        await remember(connection, source, item, "imported", row["id"], moment)
 
 
-async def remember(target, source, item, state, news_id):
+async def remember(target, source, item, state, news_id, published_at):
     await target.execute(
         Query(
-            "INSERT INTO club_news_inbox(id,source_url,sources,title,state,news_id) VALUES(%s,%s,%s,%s,%s,%s) "
-            "ON CONFLICT(source_url) DO UPDATE SET state=EXCLUDED.state,news_id=EXCLUDED.news_id,title=EXCLUDED.title",
-            "INSERT INTO club_news_inbox(id,source_url,sources,title,state,news_id) VALUES(%s,%s,%s,%s,%s,%s) "
-            "ON DUPLICATE KEY UPDATE state=VALUES(state),news_id=VALUES(news_id),title=VALUES(title)",
+            "INSERT INTO club_news_inbox(id,source_url,sources,title,state,news_id,published_at) "
+            "VALUES(%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(source_url) DO UPDATE SET state=EXCLUDED.state,"
+            "news_id=EXCLUDED.news_id,title=EXCLUDED.title,published_at=EXCLUDED.published_at",
+            "INSERT INTO club_news_inbox(id,source_url,sources,title,state,news_id,published_at) "
+            "VALUES(%s,%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE state=VALUES(state),"
+            "news_id=VALUES(news_id),title=VALUES(title),published_at=VALUES(published_at)",
         ),
-        (digest(item["source_url"]), item["source_url"], [source], item["title"], state, news_id),
+        (digest(item["source_url"]), item["source_url"], [source], item["title"], state, news_id, published_at),
     )
 
 
-async def record_run(state, source, *, found=0, added=0, error=None):
+async def record_success(state, source, found, added):
     await state.database.execute(
         Query(
-            "INSERT INTO club_news_source_runs(source,found,added,error) VALUES(%s,%s,%s,%s) "
-            "ON CONFLICT(source) DO UPDATE SET checked_at=now(),found=EXCLUDED.found,added=EXCLUDED.added,error=EXCLUDED.error",
-            "INSERT INTO club_news_source_runs(source,found,added,error) VALUES(%s,%s,%s,%s) "
-            "ON DUPLICATE KEY UPDATE checked_at=now(),found=VALUES(found),added=VALUES(added),error=VALUES(error)",
+            "INSERT INTO club_news_source_runs(source,found,added) VALUES(%s,%s,%s) ON CONFLICT(source) DO UPDATE "
+            "SET checked_at=now(),found=EXCLUDED.found,added=EXCLUDED.added,error=NULL,failures=0",
+            "INSERT INTO club_news_source_runs(source,found,added) VALUES(%s,%s,%s) ON DUPLICATE KEY UPDATE "
+            "checked_at=now(),found=VALUES(found),added=VALUES(added),error=NULL,failures=0",
         ),
-        (source, found, added, error),
+        (source, found, added),
     )
+
+
+async def record_failure(state, source, reason):
+    await state.database.execute(
+        Query(
+            "INSERT INTO club_news_source_runs(source,error,failures) VALUES(%s,%s,1) ON CONFLICT(source) DO UPDATE "
+            "SET checked_at=now(),error=EXCLUDED.error,failures=club_news_source_runs.failures+1",
+            "INSERT INTO club_news_source_runs(source,error,failures) VALUES(%s,%s,1) ON DUPLICATE KEY UPDATE "
+            "checked_at=now(),error=VALUES(error),failures=failures+1",
+        ),
+        (source, reason),
+    )
+    rows = await state.database.rows("SELECT failures FROM club_news_source_runs WHERE source=%s", (source,))
+    return rows[0]["failures"]

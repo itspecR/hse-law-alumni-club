@@ -1,4 +1,13 @@
-<div class="office-toolbar"><p>Автоматическая проверка: {{ 'каждый час' if records.automatic else 'выключена' }}</p>
+{% set plan = records.schedule or {} %}
+{% set interval_labels = {1: 'Каждый час', 3: 'Раз в 3 часа', 6: 'Раз в 6 часов', 12: 'Раз в 12 часов', 24: 'Раз в сутки'} %}
+<form class="site-panel office-news-schedule" data-api="/admin/news-sources/settings" data-method="PATCH">
+<label class="site-consent"><input type="checkbox" name="enabled" {% if plan.enabled %}checked{% endif %}>Автоматическая проверка</label>
+<label class="site-field">Как часто<select name="interval_hours" aria-label="Как часто">{% for hours in plan.intervals or [] %}<option value="{{ hours }}" {% if hours==plan.interval_hours %}selected{% endif %}>{{ interval_labels.get(hours,hours) }}</option>{% endfor %}</select></label>
+<button class="site-primary">Сохранить</button>
+<p role="alert" data-error hidden>
+</p>
+</form>
+<div class="office-toolbar"><p>{% if not plan.allowed %}Автоматическая проверка запрещена на сервере переменной NEWS_SYNC_ENABLED.{% elif plan.next_check %}Следующая проверка {{ plan.next_check|date(true) }}{% else %}Автоматическая проверка выключена.{% endif %}</p>
 <form data-api="/admin/news-sources/refresh" data-success="Проверка запущена. Новости появятся через несколько минут, обновите страницу."><button>Проверить сейчас</button></form></div>
 <div class="office-list">
 {% for source in records.sources or [] %}

@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 from club_api.core.models import parse_date
 from club_api.db.queries import Query
 from club_api.modules.catalog.sync import sync_catalog
-from club_api.modules.news.importer import sync_news
+from club_api.modules.news.schedule import CHECK_MINUTE, scheduled_news
 from club_api.modules.notifications.mail import MAIL_RETENTION_DAYS
 from club_api.modules.portfolio.captcha import forget_expired
 
@@ -110,7 +110,7 @@ def scheduled(state):
         ("mail-outbox", lambda now: now.minute % 5 == 0, state.notifications.drain_mail),
         (
             "news-sync",
-            lambda now: state.settings.NEWS_SYNC_ENABLED == "true" and now.minute == 17,
-            lambda: sync_news(state),
+            lambda now: state.settings.NEWS_SYNC_ENABLED == "true" and now.minute == CHECK_MINUTE,
+            lambda: scheduled_news(state),
         ),
     ]
