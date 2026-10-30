@@ -20,7 +20,7 @@ from club_web.formatting import (
 )
 from club_web.main import create_app
 from club_web.office import filter_content
-from club_web.pages import NAV, OFFICE_NAV, PUBLIC_PAGES
+from club_web.pages import ACHIEVEMENT_STRIP, NAV, OFFICE_NAV, PUBLIC_PAGES, ordered_achievements
 from club_web.views import PUBLIC
 
 NEWS = {
@@ -856,6 +856,38 @@ async def cabinet_page(profile):
             transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
         ) as client:
             return (await client.get("/views/lk", headers={"authorization": "Bearer member-test"})).text
+
+
+def achievement(title, current, target):
+    return {
+        "title": title,
+        "description": "Описание " + title,
+        "current": current,
+        "target": target,
+        "earned": current >= target,
+    }
+
+
+def test_achievements_show_earned_then_closest_first():
+    items = [
+        achievement("Ноль", 0, 3),
+        achievement("Треть", 1, 3),
+        achievement("Печать", 1, 1),
+        achievement("Половина", 1, 2),
+    ]
+    assert [item["title"] for item in ordered_achievements(items)] == ["Печать", "Половина", "Треть", "Ноль"]
+
+
+async def test_cabinet_groups_achievements_into_strip_and_grid():
+    items = [achievement(f"Цель {number}", 0, 3) for number in range(5)] + [achievement("Печать клуба", 1, 1)]
+    cabinet = await cabinet_page({**PROFILE, "achievements": items})
+    assert "<h3>Достижения 1 из 6</h3>" in cabinet and "Получено 1 из 6." in cabinet
+    strip = cabinet.split('aria-label="Ближайшие достижения">')[1].split("</ul>")[0]
+    assert strip.count("<li") == ACHIEVEMENT_STRIP and strip.index("Печать клуба") < strip.index("Цель 0")
+    grid = cabinet.split('<ul class="cabinet-achievements">')[1].split("</ul>")[0]
+    assert grid.count("<details") == len(items) and "Описание Цель 4" in grid
+    empty = await cabinet_page(PROFILE)
+    assert "Достижения появятся по мере участия в клубе." in empty and "Ближайшие достижения" not in empty
 
 
 async def test_join_cabinet_and_profile_texts_follow_glossary(browser_client):

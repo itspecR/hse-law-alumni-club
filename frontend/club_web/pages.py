@@ -35,6 +35,7 @@ from club_web.search import search_groups
 
 HOME_EPISODES = 4
 HOME_CHANGES = 3
+ACHIEVEMENT_STRIP = 4
 PUBLIC_PAGES = {
     "/": ("home.html", "Клуб выпускников факультета права"),
     "/tg": ("mini.html", "Клуб выпускников"),
@@ -180,6 +181,21 @@ def home_programs(programs, levels, today=None):
         "programs_total": len(programs),
         "programs_open": sum(item.get("enrollment") == "actual" for item in programs),
     }
+
+
+def achievement_share(item):
+    return (item.get("current") or 0) / (item.get("target") or 1)
+
+
+def ordered_achievements(items):
+    return sorted(items, key=lambda item: (not item.get("earned"), -achievement_share(item)))
+
+
+def with_achievements(data):
+    achievements = ordered_achievements(data["me"].get("achievements") or [])
+    data["achievements"] = achievements
+    data["achievement_strip"] = achievements[:ACHIEVEMENT_STRIP]
+    data["achievements_earned"] = sum(bool(item.get("earned")) for item in achievements)
 
 
 def pagination_page(value):
@@ -434,6 +450,7 @@ async def context(api, path, params, authorized=False):
                 key=lambda item: instant(item["starts_at"]),
             )
             data["next_event"] = upcoming[0] if upcoming else None
+            with_achievements(data)
     elif path == "/cart" and "x-cart-session" in api.headers:
         await load("cart", "/cart", {"items": [], "subtotal": 0})
     elif path == "/support":

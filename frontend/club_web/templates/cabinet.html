@@ -38,11 +38,16 @@
 {% endfor %}
 </div>
 {% endif %}
-{% if me.achievements %}
-<h3>Достижения</h3>
-{% for achievement in me.achievements %}
-<p>{{ '★' if achievement.earned else '○' }} {{ achievement.title }} · {{ achievement.current }}/{{ achievement.target }}</p>
+{% if achievements %}
+<div class="cabinet-badges__head">
+<h3>Достижения {{ achievements_earned }} из {{ achievements|length }}</h3>
+<a href="#achievements">Все достижения</a>
+</div>
+<ul class="cabinet-badges" aria-label="Ближайшие достижения">
+{% for achievement in achievement_strip %}
+<li class="cabinet-badge{{ ' is-earned' if achievement.earned else '' }}"><span class="cabinet-badge__title"><span aria-hidden="true">{{ '★' if achievement.earned else '○' }}</span>{{ achievement.title }}</span><small>{{ achievement.current }}/{{ achievement.target }}</small></li>
 {% endfor %}
+</ul>
 {% endif %}
 <button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="push-subscribe">Включить уведомления</button>
 </aside>
@@ -72,9 +77,16 @@
 </section>
 <section id="achievements">
 <h2>Достижения</h2>
-{% for achievement in me.achievements or [] %}
-<article class="site-panel"><h3>{{ '★' if achievement.earned else '○' }} {{ achievement.title }}</h3><p>{{ achievement.description or '' }}</p><progress aria-label="Прогресс достижения {{ achievement.title }}" value="{{ achievement.current }}" max="{{ achievement.target or 1 }}">{{ achievement.current }}/{{ achievement.target }}</progress><p>{{ achievement.current }}/{{ achievement.target }}</p></article>
-{% else %}{{ empty('Достижения появятся по мере участия в клубе.') }}{% endfor %}
+{% if achievements %}
+<p class="cabinet-achievements__summary">Получено {{ achievements_earned }} из {{ achievements|length }}.</p>
+<ul class="cabinet-achievements">
+{% for achievement in achievements %}
+<li><details class="cabinet-achievement{{ ' is-earned' if achievement.earned else '' }}">
+<summary><span class="cabinet-achievement__title"><span aria-hidden="true">{{ '★' if achievement.earned else '○' }}</span>{{ achievement.title }}</span><span class="cabinet-achievement__text">{{ achievement.description or '' }}</span><progress aria-label="Прогресс достижения {{ achievement.title }}" value="{{ achievement.current }}" max="{{ achievement.target or 1 }}">{{ achievement.current }}/{{ achievement.target }}</progress><span class="cabinet-achievement__count">{{ achievement.current }}/{{ achievement.target }}</span></summary>
+</details></li>
+{% endfor %}
+</ul>
+{% else %}{{ empty('Достижения появятся по мере участия в клубе.') }}{% endif %}
 </section>
 <section id="orders">
 <h2>Мои заявки</h2>
