@@ -51,6 +51,7 @@ WRONG_ADDRESS = (
     "Порт можно указать, только если в настройках задан сертификат сайта ДПО."
 )
 NO_CERTIFICATE = "Сертификат сайта ДПО в настройках сервера поврежден."
+WRONG_LINK = "Адрес ссылок на сайт ДПО задан неверно: нужен https://адрес без пути."
 NO_LIST = "Сайт ДПО вернул ответ без списка программ."
 INCOMPLETE = "Сайт ДПО вернул неполный каталог. Список программ не изменен."
 BUSY = "Каталог ДПО уже обновляется. Повторите через минуту."
@@ -61,6 +62,7 @@ PROGRAM_FIELDS = ("id", "slug", "status", "hse_id", "cover", "cover_source")
 @dataclass(frozen=True)
 class Site:
     base: str
+    links: str
     client: httpx.AsyncClient
 
     def limits(self):
@@ -89,19 +91,35 @@ def site_client(state):
     return trusted_client(encoded) if encoded else nullcontext(state.client)
 
 
-def site_base(state):
-    address = state.settings.DPO_SITE_URL.strip()
-    if not address:
-        raise ApiError(409, NO_ADDRESS)
+def parse_origin(address, error):
     try:
         parsed = urlsplit(address)
         port = parsed.port
     except ValueError:
-        raise ApiError(502, WRONG_ADDRESS) from None
+        raise ApiError(502, error) from None
     extra = parsed.username or parsed.password or parsed.path.strip("/") or parsed.query or parsed.fragment
-    if parsed.scheme != "https" or not parsed.hostname or extra or not port_allowed(state, port):
+    if parsed.scheme != "https" or not parsed.hostname or extra:
+        raise ApiError(502, error)
+    return parsed.hostname, port
+
+
+def origin(hostname, port):
+    return "https://" + hostname + ("" if port in (None, HTTPS_PORT) else f":{port}")
+
+
+def site_base(state):
+    address = state.settings.DPO_SITE_URL.strip()
+    if not address:
+        raise ApiError(409, NO_ADDRESS)
+    hostname, port = parse_origin(address, WRONG_ADDRESS)
+    if not port_allowed(state, port):
         raise ApiError(502, WRONG_ADDRESS)
-    return "https://" + parsed.hostname + ("" if port in (None, HTTPS_PORT) else f":{port}")
+    return origin(hostname, port)
+
+
+def link_base(state, base):
+    address = state.settings.DPO_SITE_LINK_URL.strip()
+    return origin(*parse_origin(address, WRONG_LINK)) if address else base
 
 
 def clean(value, limit=TEXT_LIMIT):
@@ -127,7 +145,7 @@ def cover_source(base, thumb):
     return base + source if MEDIA.fullmatch(source) else None
 
 
-def map_card(card, base):
+def map_card(card, base, links=None):
     if not isinstance(card, dict):
         return None
     hse_id, title, path = (clean(card.get(key)) for key in ("hse_id", "title", "path"))
@@ -143,7 +161,7 @@ def map_card(card, base):
         "dates": start_dates(card.get("start")),
         "price": parse_price(card.get("price")),
         "document": DOCUMENTS.get(clean(card.get("type_short"))),
-        "source_url": f"{base}/{path}",
+        "source_url": f"{links or base}/{path}",
         "cover_source": cover_source(base, card.get("thumb")),
     }
 
@@ -161,7 +179,7 @@ async def fetch_cards(state, site):
     cards = payload.get("cards") if isinstance(payload, dict) else None
     if not isinstance(cards, list):
         raise ApiError(502, NO_LIST)
-    return unique_cards(map_card(card, site.base) for card in cards)
+    return unique_cards(map_card(card, site.base, site.links) for card in cards)
 
 
 def check_complete(cards, published):
@@ -280,8 +298,9 @@ def summary(cards, changes):
 
 async def load(state):
     base = site_base(state)
+    links = link_base(state, base)
     async with site_client(state) as client:
-        return await load_from(state, Site(base, client))
+        return await load_from(state, Site(base, links, client))
 
 
 async def load_from(state, site):
