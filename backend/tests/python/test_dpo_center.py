@@ -16,7 +16,9 @@ CATALOG = SITE + center.CATALOG_PATH
 
 
 def state_with(**settings):
-    return SimpleNamespace(settings=SimpleNamespace(**{"DPO_SITE_CERTIFICATE": "", **settings}))
+    return SimpleNamespace(
+        settings=SimpleNamespace(**{"DPO_SITE_CERTIFICATE": "", "DPO_SITE_LINK_URL": "", **settings})
+    )
 
 
 def jpeg():
@@ -127,6 +129,32 @@ def test_site_address_keeps_only_origin():
 )
 def test_site_address_keeps_port_only_with_certificate(address, base):
     assert center.site_base(state_with(DPO_SITE_URL=address, DPO_SITE_CERTIFICATE="c2VydA==")) == base
+
+
+@pytest.mark.parametrize(
+    "address,links",
+    [
+        ("", SITE),
+        (" https://62.112.123.10:8443/ ", "https://62.112.123.10:8443"),
+        ("https://dpo.example.test:443", SITE),
+    ],
+)
+def test_card_links_use_public_address_when_set(address, links):
+    assert center.link_base(state_with(DPO_SITE_LINK_URL=address), SITE) == links
+
+
+@pytest.mark.parametrize("address", ["http://62.112.123.10:8443", "https://62.112.123.10:8443/catalog", "https://"])
+def test_card_link_address_must_be_plain_https(address):
+    with pytest.raises(ApiError) as failure:
+        center.link_base(state_with(DPO_SITE_LINK_URL=address), SITE)
+    assert (failure.value.status, failure.value.message) == (502, center.WRONG_LINK)
+
+
+def test_card_links_and_covers_use_their_own_addresses():
+    links = "https://62.112.123.10:8443"
+    mapped = center.map_card(card("101", "Право"), SITE, links)
+    assert mapped["source_url"] == links + "/programs/programma-101.html"
+    assert mapped["cover_source"] == SITE + "/media/catalog/101.jpg"
 
 
 @pytest.fixture

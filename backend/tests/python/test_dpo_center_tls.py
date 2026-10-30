@@ -14,6 +14,7 @@ from club_api.core.outgoing import UNAVAILABLE
 from club_api.modules.catalog import center
 
 PROGRAMS = 3
+PUBLIC = "https://62.112.123.10:8443"
 
 
 def issue_certificate(folder, name):
@@ -113,8 +114,9 @@ async def test_center_site_on_port_is_loaded_only_with_its_own_certificate(
     assert await failure(app) == center.NO_CERTIFICATE
     assert await programs(app) == {}
     monkeypatch.setattr(settings, "DPO_SITE_CERTIFICATE", encoded(certificate))
+    monkeypatch.setattr(settings, "DPO_SITE_LINK_URL", PUBLIC)
     result = await center.sync_center(app.state)
     assert (result["found"], result["created"]) == (PROGRAMS, PROGRAMS)
     rows = list((await programs(app)).values())
-    assert all(row["source_url"].startswith(address + "/programs/") for row in rows)
+    assert all(row["source_url"].startswith(PUBLIC + "/programs/") for row in rows)
     assert all(row["cover"] and row["cover_source"].startswith(address + "/media/") for row in rows)
