@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     JOBS_ENABLED: Literal["true", "false"] = "true"
     DPO_SYNC_ENABLED: Literal["true", "false"] = "true"
     DPO_SITE_URL: str = ""
+    DPO_SITE_CERTIFICATE: str = ""
     TELEGRAM_REACTIONS_CHAT_ID: str = Field(default="", pattern=r"^(-[0-9]+)?$")
     TELEGRAM_BOT_TOKEN: SecretStr = SecretStr("")
     TELEGRAM_WEBHOOK_SECRET: SecretStr = SecretStr("")

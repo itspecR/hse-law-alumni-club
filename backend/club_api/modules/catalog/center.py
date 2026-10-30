@@ -1,13 +1,18 @@
+import base64
 import io
 import logging
 import re
+import ssl
+from contextlib import nullcontext
+from dataclasses import dataclass
 from urllib.parse import urlsplit
 
+import httpx
 from django.http import HttpRequest
 
 from club_api.core.errors import ApiError
 from club_api.core.models import RESERVED_SLUGS, slugify
-from club_api.core.outgoing import IMAGE, Pacer, get_bytes, get_json, image_name
+from club_api.core.outgoing import HTTPS_PORT, IMAGE, Pacer, get_bytes, get_json, image_name
 from club_api.core.views import api_view
 from club_api.db.queries import Query, acquire_lock, release_lock
 from club_api.domain import DPO_CATALOG
@@ -41,12 +46,47 @@ MEDIA = re.compile(r"/media/[A-Za-z0-9._/-]{1,300}")
 PRICE = re.compile(r"(\d[\d \u00a0\u202f]{0,15})\s*₽")
 FREE = "Бесплатно"
 NO_ADDRESS = "Адрес сайта ДПО не задан на сервере."
-WRONG_ADDRESS = "Адрес сайта ДПО задан неверно: нужен https://домен без пути и порта."
+WRONG_ADDRESS = (
+    "Адрес сайта ДПО задан неверно: нужен https://домен без пути. "
+    "Порт можно указать, только если в настройках задан сертификат сайта ДПО."
+)
+NO_CERTIFICATE = "Сертификат сайта ДПО в настройках сервера поврежден."
 NO_LIST = "Сайт ДПО вернул ответ без списка программ."
 INCOMPLETE = "Сайт ДПО вернул неполный каталог. Список программ не изменен."
 BUSY = "Каталог ДПО уже обновляется. Повторите через минуту."
 FAILED = "Не удалось обновить каталог ДПО. Повторите позже."
 PROGRAM_FIELDS = ("id", "slug", "status", "hse_id", "cover", "cover_source")
+
+
+@dataclass(frozen=True)
+class Site:
+    base: str
+    client: httpx.AsyncClient
+
+    def limits(self):
+        parsed = urlsplit(self.base)
+        return {"allowed_hosts": {parsed.hostname}, "port": parsed.port or HTTPS_PORT, "client": self.client}
+
+
+def certificate(state):
+    return state.settings.DPO_SITE_CERTIFICATE.strip()
+
+
+def port_allowed(state, port):
+    return port in (None, HTTPS_PORT) or bool(certificate(state))
+
+
+def trusted_client(encoded):
+    try:
+        context = ssl.create_default_context(cadata=base64.b64decode(encoded, validate=True).decode("ascii"))
+    except ValueError, ssl.SSLError:
+        raise ApiError(502, NO_CERTIFICATE) from None
+    return httpx.AsyncClient(verify=context, follow_redirects=False, trust_env=False)
+
+
+def site_client(state):
+    encoded = certificate(state)
+    return trusted_client(encoded) if encoded else nullcontext(state.client)
 
 
 def site_base(state):
@@ -59,9 +99,9 @@ def site_base(state):
     except ValueError:
         raise ApiError(502, WRONG_ADDRESS) from None
     extra = parsed.username or parsed.password or parsed.path.strip("/") or parsed.query or parsed.fragment
-    if parsed.scheme != "https" or not parsed.hostname or port not in (None, 443) or extra:
+    if parsed.scheme != "https" or not parsed.hostname or extra or not port_allowed(state, port):
         raise ApiError(502, WRONG_ADDRESS)
-    return "https://" + parsed.hostname
+    return "https://" + parsed.hostname + ("" if port in (None, HTTPS_PORT) else f":{port}")
 
 
 def clean(value, limit=TEXT_LIMIT):
@@ -116,13 +156,12 @@ def unique_cards(cards):
     return list(found.values())
 
 
-async def fetch_cards(state, base):
-    hosts = {urlsplit(base).hostname}
-    payload = await get_json(state, base + CATALOG_PATH, allowed_hosts=hosts, max_bytes=MAX_CATALOG_BYTES)
+async def fetch_cards(state, site):
+    payload = await get_json(state, site.base + CATALOG_PATH, max_bytes=MAX_CATALOG_BYTES, **site.limits())
     cards = payload.get("cards") if isinstance(payload, dict) else None
     if not isinstance(cards, list):
         raise ApiError(502, NO_LIST)
-    return unique_cards(map_card(card, base) for card in cards)
+    return unique_cards(map_card(card, site.base) for card in cards)
 
 
 def check_complete(cards, published):
@@ -130,24 +169,22 @@ def check_complete(cards, published):
         raise ApiError(502, INCOMPLETE)
 
 
-async def save_cover(state, pacer, url):
+async def save_cover(state, site, pacer, url):
     try:
         await pacer.wait()
-        data = await get_bytes(
-            state, url, allowed_hosts={urlsplit(url).hostname}, max_bytes=MAX_IMAGE_BYTES, accept=IMAGE
-        )
+        data = await get_bytes(state, url, max_bytes=MAX_IMAGE_BYTES, accept=IMAGE, **site.limits())
         return (await state.media.save(io.BytesIO(data), filename=image_name(url), kind=MEDIA_KIND))["id"]
     except ApiError:
         logger.warning("Обложка программы ДПО не загружена")
         return None
 
 
-async def download_covers(state, cards, rows, covers):
+async def download_covers(state, site, cards, rows, covers):
     pacer = Pacer(IMAGE_DELAY_SECONDS)
     for card in cards:
         row = rows.get(card["hse_id"]) or {}
         if card["cover_source"] and card["cover_source"] != row.get("cover_source"):
-            if saved := await save_cover(state, pacer, card["cover_source"]):
+            if saved := await save_cover(state, site, pacer, card["cover_source"]):
                 covers[card["hse_id"]] = saved
 
 
@@ -243,11 +280,16 @@ def summary(cards, changes):
 
 async def load(state):
     base = site_base(state)
-    cards, rows = await fetch_cards(state, base), await dpo_rows(state)
+    async with site_client(state) as client:
+        return await load_from(state, Site(base, client))
+
+
+async def load_from(state, site):
+    cards, rows = await fetch_cards(state, site), await dpo_rows(state)
     check_complete(cards, sum(row["status"] == PUBLISHED for row in rows.values()))
     covers = {}
     try:
-        await download_covers(state, cards, rows, covers)
+        await download_covers(state, site, cards, rows, covers)
         changes = plan(cards, rows, covers, await taken_slugs(state))
         await apply(state, changes)
     except Exception:

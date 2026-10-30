@@ -16,7 +16,7 @@ CATALOG = SITE + center.CATALOG_PATH
 
 
 def state_with(**settings):
-    return SimpleNamespace(settings=SimpleNamespace(**settings))
+    return SimpleNamespace(settings=SimpleNamespace(**{"DPO_SITE_CERTIFICATE": "", **settings}))
 
 
 def jpeg():
@@ -116,6 +116,17 @@ def test_site_address_must_be_plain_https(address, status):
 
 def test_site_address_keeps_only_origin():
     assert center.site_base(state_with(DPO_SITE_URL=" https://dpo.example.test/ ")) == SITE
+
+
+@pytest.mark.parametrize(
+    "address,base",
+    [
+        ("https://62.112.123.10:8443", "https://62.112.123.10:8443"),
+        ("https://dpo.example.test:443/", SITE),
+    ],
+)
+def test_site_address_keeps_port_only_with_certificate(address, base):
+    assert center.site_base(state_with(DPO_SITE_URL=address, DPO_SITE_CERTIFICATE="c2VydA==")) == base
 
 
 @pytest.fixture

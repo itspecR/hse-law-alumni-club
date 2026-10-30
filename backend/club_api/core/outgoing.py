@@ -12,6 +12,7 @@ UNAVAILABLE = "Источник временно недоступен."
 HTML = "text/html"
 JSON = "application/json"
 IMAGE = "image/*"
+HTTPS_PORT = 443
 
 
 class Pacer:
@@ -35,22 +36,25 @@ async def get_html(state, url, *, allowed_hosts, max_bytes=2000000):
     return body.decode("utf-8", errors="replace")
 
 
-async def get_json(state, url, *, allowed_hosts, max_bytes):
-    body = await get_bytes(state, url, allowed_hosts=allowed_hosts, max_bytes=max_bytes, accept=JSON)
+async def get_json(state, url, *, allowed_hosts, max_bytes, port=HTTPS_PORT, client=None):
+    body = await get_bytes(
+        state, url, allowed_hosts=allowed_hosts, max_bytes=max_bytes, accept=JSON, port=port, client=client
+    )
     try:
         return json.loads(body)
     except ValueError:
         raise ApiError(502, "Источник вернул некорректный ответ.") from None
 
 
-async def get_bytes(state, url, *, allowed_hosts, max_bytes, accept):
+async def get_bytes(state, url, *, allowed_hosts, max_bytes, accept, port=HTTPS_PORT, client=None):
     try:
-        return await fetch(state, url, allowed_hosts, max_bytes, accept)
+        return await fetch(client or state.client, url, (allowed_hosts, port), max_bytes, accept)
     except httpx.HTTPError:
         raise ApiError(502, UNAVAILABLE) from None
 
 
-async def fetch(state, url, allowed_hosts, max_bytes, accept):
+async def fetch(client, url, origin, max_bytes, accept):
+    allowed_hosts, port = origin
     for _ in range(4):
         parsed = urlsplit(url)
         if (
@@ -58,10 +62,10 @@ async def fetch(state, url, allowed_hosts, max_bytes, accept):
             or parsed.hostname not in allowed_hosts
             or parsed.username
             or parsed.password
-            or parsed.port not in (None, 443)
+            or (parsed.port or HTTPS_PORT) != port
         ):
             raise ApiError(502, "Источник вернул неподходящий адрес.")
-        async with state.client.stream(
+        async with client.stream(
             "GET", url, timeout=15, headers={"User-Agent": "HSEAlumniClub/1.0", "Accept": accept}
         ) as response:
             if response.is_redirect and response.headers.get("location"):
