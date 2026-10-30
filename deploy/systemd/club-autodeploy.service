@@ -1,0 +1,14 @@
+[Unit]
+Description=Club deploy of the newest main commit with green CI
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/club
+EnvironmentFile=-/etc/club/autodeploy.env
+ExecStart=/usr/bin/python3 /opt/club/scripts/lib/autodeploy.py
+UMask=0077
+TimeoutStartSec=60min

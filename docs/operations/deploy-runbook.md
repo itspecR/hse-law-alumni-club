@@ -373,6 +373,41 @@ Backup: ежедневно 03:30 `Europe/Moscow`, `Persistent=true`; monitor: ч
 `club-backup.service` после исправления причины. Общий lock исключает одновременные
 backup/deploy/restore с тем же STATE_DIR.
 
+### Автовыкладка main
+
+`club-autodeploy.timer` раз в минуту запускает `scripts/lib/autodeploy.py`. Скрипт
+сравнивает выкаченный коммит с последним коммитом `main` в `origin` (`git ls-remote`).
+Новый коммит выкатывается через `scripts/deploy.sh` только после того, как в GitHub
+зелёные все проверки CI этого коммита: `build-test`, `mariadb-integration`,
+`postgres-integration`, `live-stack`, `secrets`. Выкатывается ровно проверенный SHA
+(`DEPLOY_COMMIT`), даже если за это время в `main` появился следующий.
+
+- CI ещё идёт – ждём; CI красный – не выкатываем.
+- Идёт копия или другая операция с общим lock – пропускаем минуту, попытка не тратится.
+- Ошибка выкладки: `deploy.sh` возвращает прошлую версию, автовыкладка повторяет тот же
+  коммит не больше 3 раз с паузой 5 минут, затем ждёт следующий коммит в `main`.
+  Счётчик хранится в `STATE_DIR/autodeploy.json`.
+
+Для публичного репозитория токен не нужен (лимит GitHub без токена – 60 запросов
+в час, CI спрашивается только при новом коммите). Для приватного создайте токен
+только на чтение и положите его в закрытый файл:
+
+```bash
+sudo install -m 0600 /dev/null /etc/club/autodeploy.env
+sudo editor /etc/club/autodeploy.env   # строка GITHUB_TOKEN=...
+```
+
+Включение, проверка и выключение:
+
+```bash
+cd /opt/club
+sudo install -m 0644 deploy/systemd/club-* /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now club-autodeploy.timer
+sudo journalctl -u club-autodeploy -n 50
+sudo systemctl disable --now club-autodeploy.timer
+```
+
 В `/etc/club/operations.env` задайте нужные ENV_FILE/override/CA и пороги как
 `NAME=value`. Для внутренней CA задают `MONITOR_CERT_MIN_DAYS=0.25`; для публичного
 сертификата штатный порог 14 дней. Файл читается systemd, shell-команды в нём запрещены.
