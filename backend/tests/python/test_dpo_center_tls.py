@@ -5,6 +5,7 @@ import subprocess
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import AsyncMock
+from urllib.parse import urlsplit
 
 import pytest
 from test_dpo_center import card, jpeg, programs
@@ -52,11 +53,15 @@ def encoded(certificate):
     return base64.b64encode(certificate.read_bytes()).decode()
 
 
+def stamped(number):
+    return card(str(number), f"Программа {number}", thumb={"src": f"/media/programs/thumbs/{number}.jpg?v=1761800000"})
+
+
 class CenterSite(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == center.CATALOG_PATH:
             self.answer("application/json", json.dumps(self.server.feed).encode())
-        elif self.path.endswith(".jpg"):
+        elif urlsplit(self.path).path.endswith(".jpg"):
             self.answer("image/jpeg", jpeg())
         else:
             self.send_error(404)
@@ -79,7 +84,7 @@ def center_site(tmp_path):
     context.load_cert_chain(certificate, key)
     server = ThreadingHTTPServer(("127.0.0.1", 0), CenterSite)
     server.socket = context.wrap_socket(server.socket, server_side=True)
-    server.feed = {"cards": [card(str(number), f"Программа {number}") for number in range(101, 101 + PROGRAMS)]}
+    server.feed = {"cards": [stamped(number) for number in range(101, 101 + PROGRAMS)]}
     threading.Thread(target=server.serve_forever, daemon=True).start()
     yield f"https://127.0.0.1:{server.server_address[1]}", certificate
     server.shutdown()
@@ -120,3 +125,4 @@ async def test_center_site_on_port_is_loaded_only_with_its_own_certificate(
     rows = list((await programs(app)).values())
     assert all(row["source_url"].startswith(PUBLIC + "/programs/") for row in rows)
     assert all(row["cover"] and row["cover_source"].startswith(address + "/media/") for row in rows)
+    assert all(row["cover_source"].endswith("?v=1761800000") for row in rows)
