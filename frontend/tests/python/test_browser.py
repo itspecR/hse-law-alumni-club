@@ -1667,6 +1667,35 @@ def test_cabinet_stats_and_sections(page, site, width):
 
 
 @pytest.mark.parametrize("width", [390, 1440])
+def test_cabinet_achievements_fit_in_strip_and_grid(page, site, width):
+    text = "Подпишитесь на канал клуба и подключите Telegram в профиле. " * 3
+    goals = [
+        {"title": f"Цель {number}", "description": text, "current": 0, "target": 3, "earned": False}
+        for number in range(7)
+    ]
+    seal = {"title": "Печать клуба", "description": "Готово", "current": 1, "target": 1, "earned": True}
+    site[1]["/me"] = {**PROFILE, "achievements": [*goals, seal]}
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk")
+    badges = page.locator(".cabinet-badge")
+    expect(badges).to_have_count(4)
+    expect(badges.first).to_contain_text("Печать клуба")
+    tiles = page.locator(".cabinet-achievement")
+    expect(tiles).to_have_count(len(goals) + 1)
+    grid = page.locator(".cabinet-achievements").bounding_box()
+    boxes = [tile.bounding_box() for tile in tiles.all()]
+    assert round(boxes[0]["y"]) == round(boxes[1]["y"])
+    assert all(grid["x"] <= box["x"] and box["x"] + box["width"] <= grid["x"] + grid["width"] + 1 for box in boxes)
+    description = tiles.nth(1).locator(".cabinet-achievement__text")
+    clamped = description.bounding_box()["height"]
+    tiles.nth(1).locator("summary").click()
+    expect(tiles.nth(1)).to_have_attribute("open", "")
+    assert description.bounding_box()["height"] > clamped
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
 def test_catalog_styles_stay_on_catalog_pages(page, site, width):
     site[1]["/admin/programs"] = [{**PROGRAM, "status": "published"}]
     site[1]["/programs"] = [

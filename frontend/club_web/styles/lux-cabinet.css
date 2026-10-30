@@ -38,6 +38,29 @@ html.lux .cabinet-page .site-two-col > div .site-panel h3 { margin: 0 0 8px; fon
 html.lux .cabinet-page .site-two-col > div .site-panel p { margin: 4px 0; color: var(--c-text-3); font-size: 15px; }
 html.lux .cabinet-page progress, html.lux .cabinet-page meter { accent-color: var(--c-accent); }
 html.lux .cabinet-page .site-two-col > div a:not(.lux-btn) { color: var(--c-text); text-decoration-color: var(--lux-hairline); text-underline-offset: 4px; }
+html.lux .cabinet-badges__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 28px 0 8px; }
+html.lux .cabinet-page aside.site-panel .cabinet-badges__head h3 { margin: 0; }
+html.lux .cabinet-badges__head a { display: inline-flex; align-items: center; min-height: 44px; color: var(--c-text); font-size: 14px; text-decoration-color: var(--lux-hairline); text-underline-offset: 4px; }
+html.lux .cabinet-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; padding: 0; list-style: none; }
+html.lux .cabinet-badge { display: grid; flex: 1 1 140px; align-content: space-between; gap: 6px; max-width: 220px; padding: 12px 14px; border-radius: 16px; background: var(--c-bg-sunken); }
+html.lux .cabinet-badge__title { font: 500 14px/1.3 var(--f-body); }
+html.lux .cabinet-badge__title > span, html.lux .cabinet-achievement__title > span { margin-right: 6px; color: var(--c-text-3); }
+html.lux :is(.cabinet-badge, .cabinet-achievement).is-earned :is(.cabinet-badge__title, .cabinet-achievement__title) > span { color: var(--c-accent-text); }
+html.lux .cabinet-badge small, html.lux .cabinet-achievement__count { color: var(--c-text-3); font-size: 13px; font-variant-numeric: tabular-nums; }
+html.lux .cabinet-page .site-two-col > div > section > .cabinet-achievements__summary { margin: -8px 0 16px; color: var(--c-text-3); font-size: 15px; }
+html.lux .cabinet-achievements { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+html.lux .cabinet-achievements > li { display: grid; min-width: 0; }
+html.lux .cabinet-achievement { border-radius: var(--r-lg); background: var(--c-bg-raised); }
+html.lux .cabinet-achievement summary { display: grid; grid-template-rows: auto 1fr auto auto; gap: 8px; height: 100%; padding: 16px; border-radius: inherit; list-style: none; cursor: pointer; }
+html.lux .cabinet-achievement summary::-webkit-details-marker { display: none; }
+html.lux .cabinet-achievement summary:focus-visible { outline: 3px solid var(--c-text); outline-offset: 2px; }
+html.lux .cabinet-achievement__title { font: 500 16px/1.3 var(--f-body); }
+html.lux .cabinet-achievement__text { display: -webkit-box; align-self: start; overflow: hidden; color: var(--c-text-3); font-size: 13px; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+html.lux .cabinet-achievement[open] .cabinet-achievement__text { display: block; overflow: visible; -webkit-line-clamp: unset; line-clamp: none; }
+html.lux .cabinet-achievement progress { width: 100%; height: 4px; border: 0; border-radius: 999px; background: var(--lux-control); overflow: hidden; appearance: none; }
+html.lux .cabinet-achievement progress::-webkit-progress-bar { border-radius: 999px; background: var(--lux-control); }
+html.lux .cabinet-achievement progress::-webkit-progress-value { border-radius: 999px; background: var(--c-accent); }
+html.lux .cabinet-achievement progress::-moz-progress-bar { border-radius: 999px; background: var(--c-accent); }
 
 @media (hover: hover) and (pointer: fine) {
   html.lux .cabinet-nav a:hover { background: var(--lux-hover); }
@@ -45,6 +68,8 @@ html.lux .cabinet-page .site-two-col > div a:not(.lux-btn) { color: var(--c-text
 }
 @media (max-width: 700px) {
   html.lux .cabinet-gate { margin: 16px 0 32px; }
+  html.lux .cabinet-badges { flex-wrap: nowrap; margin-inline: calc(-1 * clamp(24px, 2.6cqi, 32px)); padding-inline: clamp(24px, 2.6cqi, 32px); overflow-x: auto; scroll-padding-inline: clamp(24px, 2.6cqi, 32px); scroll-snap-type: x mandatory; scrollbar-width: none; }
+  html.lux .cabinet-badge { flex: 0 0 148px; scroll-snap-align: start; }
   html.lux .cabinet-gate__form { border-radius: var(--r-lg); }
   html.lux .cabinet-nav { flex-wrap: nowrap; margin: -8px calc(-1 * var(--page-gutter)) 0; padding: 8px var(--page-gutter); overflow-x: auto; scroll-padding-inline: var(--page-gutter); scrollbar-width: none; }
 }
