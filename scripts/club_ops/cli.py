@@ -11,6 +11,7 @@ import httpx
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row
 
+from club_ops.alumni import create_alumni
 from club_ops.bootstrap import BootstrapConfig, OperatorError, bootstrap
 from club_ops.office import Office
 from club_ops.podcasts import import_podcasts
@@ -37,9 +38,13 @@ async def operator_connection(values):
             yield connection
 
 
+PASSWORD_INPUTS = {"manage-staff": "STAFF_PASSWORD", "create-alumni": "ALUMNI_PASSWORD"}
+
+
 async def database_command(command, values):
-    if command == "manage-staff" and not values.get("STAFF_PASSWORD") and not sys.stdin.isatty():
-        values["STAFF_PASSWORD"] = sys.stdin.read(102).removesuffix("\n").removesuffix("\r")
+    secret = PASSWORD_INPUTS.get(command)
+    if secret and not values.get(secret) and not sys.stdin.isatty():
+        values[secret] = sys.stdin.read(102).removesuffix("\n").removesuffix("\r")
     async with operator_connection(values) as connection:
         if command == "migrate":
             if getattr(connection, "vendor", None) != "mysql":
@@ -72,6 +77,14 @@ async def database_command(command, values):
             print(
                 f"Bootstrap завершён: аккаунтов {result['createdUsers']}, записей {result['createdRows']}, главная создана: {result['createdHome']}"
             )
+        elif command == "create-alumni":
+            address = await create_alumni(
+                connection,
+                address=values.get("ALUMNI_EMAIL", ""),
+                fio=values.get("ALUMNI_FIO", ""),
+                password=values.get("ALUMNI_PASSWORD", ""),
+            )
+            print(f"Выпускник {address} создан: почта и статус выпускника подтверждены")
         else:
             result = await manage_staff(
                 connection,
@@ -134,7 +147,14 @@ async def main(args):
         else:
             tables = (await asyncio.to_thread(import_snapshot, args.snapshot))["tables"]
         print(f"{args.command}: таблиц {len(tables)}, записей {sum(table['rows'] for table in tables.values())}")
-    elif args.command in ("bootstrap", "manage-staff", "migrate", "configure-mariadb-role", "database-fingerprints"):
+    elif args.command in (
+        "bootstrap",
+        "manage-staff",
+        "create-alumni",
+        "migrate",
+        "configure-mariadb-role",
+        "database-fingerprints",
+    ):
         await database_command(args.command, values)
     elif args.command == "setup-telegram-webhook":
         await setup_webhook(values)
@@ -158,6 +178,7 @@ def run():
     for name in (
         "bootstrap",
         "manage-staff",
+        "create-alumni",
         "migrate",
         "configure-mariadb-role",
         "database-fingerprints",

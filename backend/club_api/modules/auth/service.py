@@ -1,5 +1,6 @@
 import logging
 import re
+import secrets
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
@@ -12,11 +13,16 @@ from club_api.core.security import LoginAttempts, constant_equal
 from club_api.db.queries import Query, acquire_lock
 from club_api.db.store import Store
 from club_api.modules.auth.passwords import hash_password, verify_password
+from club_api.resources import shared_data
 
 logger = logging.getLogger("club.auth")
 STAFF_ROLES = frozenset(("admin", "Administrator", "editor"))
 FULL_ROLES = frozenset(("admin", "Administrator"))
 DUPLICATE_ACCOUNT = "Аккаунт с этой почтой уже есть. Войдите или восстановите пароль."
+PDN_POLICY_VERSION = shared_data("legal-data.json")["version"]
+PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH = 8, 100
+PENDING, VERIFIED = "pending", "verified"
+REFERRAL_PREFIX = "RC-"
 ALUMNI_FIELDS = (
     "id",
     "user_id",
@@ -62,6 +68,59 @@ def public_user(user):
         },
         "role": user["role_name"] or "",
     }
+
+
+def alumni_names(fio):
+    first, _, rest = fio.strip().partition(" ")
+    return first, rest.strip() or "-"
+
+
+def alumni_profile(*, fio, cohort, edu_level, edu_program, interests=(), referred_by=None):
+    return {
+        "fio": fio.strip(),
+        "cohort": cohort,
+        "edu_level": edu_level,
+        "edu_program": edu_program.strip(),
+        "interests_json": list(interests),
+        "referral_code": REFERRAL_PREFIX + secrets.token_hex(4),
+        "referred_by": referred_by,
+        "consent_at": datetime.now(UTC),
+        "consent_version": PDN_POLICY_VERSION,
+    }
+
+
+async def insert_alumni(connection, *, email, hashed, status, verification, profile):
+    await acquire_lock(connection, "auth-email:" + email)
+    if await find_user(connection, email=email, lock=True):
+        raise ApiError(409, DUPLICATE_ACCOUNT)
+    cursor = await connection.execute("SELECT id FROM directus_roles WHERE name='alumni' LIMIT 2")
+    roles = await cursor.fetchall()
+    if len(roles) != 1:
+        raise RuntimeError("Роль выпускника не настроена")
+    user_id, profile_id = (str(uuid4()), str(uuid4()))
+    first_name, last_name = alumni_names(profile["fio"])
+    await connection.execute(
+        "INSERT INTO directus_users(id,email,password,role,status,provider,first_name,last_name) VALUES(%s,%s,%s,%s,%s,'default',%s,%s)",
+        (user_id, email, hashed, roles[0]["id"], status, first_name, last_name),
+    )
+    await connection.execute(
+        "INSERT INTO alumni(id,user_id,fio,cohort,edu_level,edu_program,interests_json,referral_code,referred_by,consent_at,consent_version,status,verification_status,points_cached,level_cached,personal_discount,token_version) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'active',%s,0,'graduate',0,0)",
+        (
+            profile_id,
+            user_id,
+            profile["fio"],
+            profile["cohort"],
+            profile["edu_level"],
+            profile["edu_program"],
+            Jsonb(profile["interests_json"]),
+            profile["referral_code"],
+            profile["referred_by"],
+            profile["consent_at"],
+            profile["consent_version"],
+            verification,
+        ),
+    )
+    return user_id
 
 
 async def find_user(connection, *, id=None, email=None, lock=False):
@@ -213,38 +272,12 @@ class AuthService:
             ("admin:" + jti,),
         )
 
-    async def register(self, *, email, password, first_name, last_name, status, profile):
+    async def register(self, *, email, password, status, profile, verification=PENDING):
         hashed = await hash_password(password)
         async with self.database.transaction() as connection:
-            await acquire_lock(connection, "auth-email:" + email)
-            if await find_user(connection, email=email, lock=True):
-                raise ApiError(409, DUPLICATE_ACCOUNT)
-            cursor = await connection.execute("SELECT id FROM directus_roles WHERE name='alumni' LIMIT 2")
-            roles = await cursor.fetchall()
-            if len(roles) != 1:
-                raise RuntimeError("Роль выпускника не настроена")
-            user_id, profile_id = (str(uuid4()), str(uuid4()))
-            await connection.execute(
-                "INSERT INTO directus_users(id,email,password,role,status,provider,first_name,last_name) VALUES(%s,%s,%s,%s,%s,'default',%s,%s)",
-                (user_id, email, hashed, roles[0]["id"], status, first_name, last_name),
+            return await insert_alumni(
+                connection, email=email, hashed=hashed, status=status, verification=verification, profile=profile
             )
-            await connection.execute(
-                "INSERT INTO alumni(id,user_id,fio,cohort,edu_level,edu_program,interests_json,referral_code,referred_by,consent_at,consent_version,status,verification_status,points_cached,level_cached,personal_discount,token_version) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'active','pending',0,'graduate',0,0)",
-                (
-                    profile_id,
-                    user_id,
-                    profile["fio"],
-                    profile["cohort"],
-                    profile["edu_level"],
-                    profile["edu_program"],
-                    Jsonb(profile["interests_json"]),
-                    profile["referral_code"],
-                    profile["referred_by"],
-                    profile["consent_at"],
-                    profile["consent_version"],
-                ),
-            )
-        return user_id
 
     async def confirm(self, user_id):
         async with self.database.transaction() as connection:
