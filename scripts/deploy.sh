@@ -13,7 +13,7 @@ usage() {
 
 run_as_root() {
   [[ "$(id -u)" = 0 ]] && return
-  exec sudo env ${ENV_FILE:+ENV_FILE="$ENV_FILE"} bash "$script" "$@"
+  exec sudo env ${ENV_FILE:+ENV_FILE="$ENV_FILE"} ${DEPLOY_COMMIT:+DEPLOY_COMMIT="$DEPLOY_COMMIT"} bash "$script" "$@"
 }
 
 use_installed_config() {
@@ -25,10 +25,22 @@ switch_to() {
   git -C "$repo" clean -fdq
 }
 
+pinned_target() {
+  local branch="refs/remotes/origin/$1"
+  [[ -n "${DEPLOY_COMMIT:-}" ]] || { echo "$branch"; return; }
+  if [[ ! "$DEPLOY_COMMIT" =~ ^[0-9a-f]{40}$ ]] || ! git -C "$repo" merge-base --is-ancestor "$DEPLOY_COMMIT" "$branch" 2>/dev/null; then
+    echo "Коммит DEPLOY_COMMIT=$DEPLOY_COMMIT не входит в ветку $1" >&2
+    return 1
+  fi
+  echo "$DEPLOY_COMMIT"
+}
+
 sync_branch() {
+  local target
   echo "Получаем ветку $1 из GitHub; локальные правки в $repo стираются"
   git -C "$repo" fetch -q origin "+refs/heads/$1:refs/remotes/origin/$1"
-  switch_to "refs/remotes/origin/$1"
+  target="$(pinned_target "$1")"
+  switch_to "$target"
   echo "Выкатываем $1, коммит $(git -C "$repo" rev-parse --short HEAD)"
 }
 

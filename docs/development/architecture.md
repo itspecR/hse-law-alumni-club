@@ -85,7 +85,7 @@ flowchart TB
     PGdata["volume pgdata"]
     Files["volume directus_uploads"]
     TLS["volumes caddy_data / caddy_config"]
-    Timer["systemd timers: backup / monitor"]
+    Timer["systemd timers: backup / monitor / autodeploy"]
     Backup["backup.sh: согласованный снимок и шифрование"]
     Archive["/var/backups/club: БД + uploads + version"]
     State["/var/lib/club-ops: результаты"]
@@ -240,6 +240,7 @@ origins, но не заменяет авторизацию. `POINTS_SERVICE_TOKE
 | Telegram polling | Длительный цикл при старте | Поведение повторов в `telegram-polling.ts` | Убрать токен, выключить polling или общий набор задач |
 | Резервная копия | systemd, ежедневно 03:30 | `Persistent=true` компенсирует пропущенное срабатывание; ошибка в journal и состоянии копии | Отключить только соответствующий timer |
 | Мониторинг | systemd: через 5 минут после загрузки, затем каждые 5 минут | Периодический опрос, локальный exit status и journal | Отключить только соответствующий timer |
+| Автовыкладка `main` | systemd: каждую минуту | Только при зелёном CI; до 3 попыток на коммит с паузой 5 минут, откат делает `deploy.sh` | Отключить `club-autodeploy.timer` |
 
 Планировщик API пишет идентификатор задачи, статус и длительность. Он не хранит
 устойчивую очередь всех календарных запусков: пропущенный при выключенном API

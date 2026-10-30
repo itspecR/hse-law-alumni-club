@@ -25,13 +25,13 @@ def git(directory, *args):
     ).stdout.strip()
 
 
-def run(directory, *args):
+def run(directory, *args, **extra):
     return subprocess.run(
         ["bash", str(directory / DEPLOY), *args],
         cwd=directory,
         capture_output=True,
         text=True,
-        env={"PATH": os.environ["PATH"]},
+        env={"PATH": os.environ["PATH"], **extra},
     )
 
 
@@ -101,6 +101,21 @@ class DeployBranches(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(git(self.work, "rev-parse", "HEAD"), self.main)
         self.assertEqual(self.deployed(), ["main"])
+
+    def test_pinned_commit_of_branch_is_deployed(self):
+        result = run(self.work, "good", DEPLOY_COMMIT=self.main)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(git(self.work, "rev-parse", "HEAD"), self.main)
+        self.assertEqual(self.deployed(), ["main"])
+
+    def test_pinned_commit_outside_branch_stops_before_switch(self):
+        for pinned in (self.good, "not-a-commit"):
+            with self.subTest(pinned=pinned):
+                result = run(self.work, "main", DEPLOY_COMMIT=pinned)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("не входит в ветку main", result.stderr)
+                self.assertEqual(git(self.work, "rev-parse", "HEAD"), self.main)
+                self.assertEqual(self.deployed(), [])
 
     def test_current_deploys_checkout_without_fetching(self):
         git(self.work, "checkout", "-q", "--detach", "origin/good")

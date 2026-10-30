@@ -1,0 +1,10 @@
+[Unit]
+Description=Check main for a new commit every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=1min
+Unit=club-autodeploy.service
+
+[Install]
+WantedBy=timers.target
