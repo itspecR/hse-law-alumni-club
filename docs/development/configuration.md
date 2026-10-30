@@ -73,6 +73,9 @@ Compose передаёт `PGHOST`, `PGUSER`, `PGDATABASE`, `PGPASSWORD` мигр
 | `STAFF_EMAIL` | Адрес сотрудника | Да | Закрытая служебная настройка | `editor@example.com` | manage-staff |
 | `STAFF_ROLE` | Ожидаемая роль сотрудника | `admin` или `editor` | Нет | `editor` | manage-staff |
 | `STAFF_PASSWORD` | Новый пароль сотрудника | Альтернатива stdin, 12–100 символов | Да | Предпочтительно stdin из закрытого файла | manage-staff |
+| `ALUMNI_EMAIL` | Почта выпускника, которого создаёт оператор | Да | Закрытая служебная настройка | `test.alumni@example.com` | create-alumni |
+| `ALUMNI_FIO` | ФИО выпускника | Необязательно; по умолчанию «Тестовый Выпускник» | Нет | `Тестовый Выпускник` | create-alumni |
+| `ALUMNI_PASSWORD` | Пароль выпускника | Альтернатива stdin, 8–100 символов | Да | Предпочтительно stdin из закрытого файла | create-alumni |
 | `CLUB_API_URL` | Корневой URL для ручных импортов через офисный API | По умолчанию локальный HTTP; снаружи HTTPS | Нет | `http://localhost` | Ручной импорт |
 | `CLUB_ADMIN_TOKEN` | Действующая сессия офиса для ручного импорта | Да для API-импорта | Да | Передать из закрытого окружения | Ручной импорт |
 

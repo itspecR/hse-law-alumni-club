@@ -1,7 +1,6 @@
 import re
 import secrets
 import time
-from datetime import UTC, datetime
 from typing import Literal
 from urllib.parse import quote
 
@@ -13,13 +12,18 @@ from club_api.core.security import client_ip
 from club_api.core.views import api_view, parse_body
 from club_api.db.queries import Query
 from club_api.domain import MAX_INTERESTS
-from club_api.modules.auth.service import DUPLICATE_ACCOUNT, auth_service, require_admin
+from club_api.modules.auth.service import (
+    DUPLICATE_ACCOUNT,
+    PASSWORD_MAX_LENGTH,
+    PASSWORD_MIN_LENGTH,
+    alumni_profile,
+    auth_service,
+    require_admin,
+)
 from club_api.modules.notifications.mail import CLUB_NAME, EMAIL_CONFIRMATION_KIND, club_subject
 from club_api.modules.telegram.signature import validate_init_data
 from club_api.observability.audit import audit
-from club_api.resources import shared_data
 
-PDN_POLICY_VERSION = shared_data("legal-data.json")["version"]
 RESEND_COOLDOWN_SECONDS = 600
 RESEND_CACHE_LIMIT = 10000
 NOT_ALUMNI = "Этот аккаунт не связан с профилем выпускника."
@@ -61,7 +65,7 @@ class LoginBody(EmailBody):
 
 class RegisterBody(EmailBody):
     fio: str = Field(min_length=2, max_length=200)
-    password: str = Field(min_length=8, max_length=100)
+    password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=PASSWORD_MAX_LENGTH)
     cohort: str = Field(pattern="^(19|20)\\d{2}$")
     edu_level: Literal["бакалавриат", "магистратура", "специалитет", "аспирантура"]
     edu_program: str = Field(min_length=2, max_length=200)
@@ -83,7 +87,7 @@ class TokenBody(Body):
 
 
 class ResetBody(TokenBody):
-    password: str = Field(min_length=8, max_length=100)
+    password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=PASSWORD_MAX_LENGTH)
 
 
 class ForgotBody(EmailBody):
@@ -185,22 +189,15 @@ async def register(request: HttpRequest):
     user_id = await service.register(
         email=email,
         password=body.password,
-        first_name=body.fio.split(" ")[0],
-        last_name=" ".join(body.fio.split(" ")[1:]) or "-",
         status="unverified" if confirm_required else "active",
-        profile={
-            "fio": body.fio.strip(),
-            "cohort": body.cohort,
-            "edu_level": body.edu_level,
-            "edu_program": body.edu_program.strip(),
-            "interests_json": list(dict.fromkeys(value for value in body.interests if value in interests))[
-                :MAX_INTERESTS
-            ],
-            "referral_code": "RC-" + secrets.token_hex(4),
-            "referred_by": referred_by,
-            "consent_at": datetime.now(UTC),
-            "consent_version": PDN_POLICY_VERSION,
-        },
+        profile=alumni_profile(
+            fio=body.fio,
+            cohort=body.cohort,
+            edu_level=body.edu_level,
+            edu_program=body.edu_program,
+            interests=list(dict.fromkeys(value for value in body.interests if value in interests))[:MAX_INTERESTS],
+            referred_by=referred_by,
+        ),
     )
     await audit(
         request,
