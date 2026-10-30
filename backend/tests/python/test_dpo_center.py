@@ -150,6 +150,20 @@ def test_card_link_address_must_be_plain_https(address):
     assert (failure.value.status, failure.value.message) == (502, center.WRONG_LINK)
 
 
+@pytest.mark.parametrize(
+    "source,expected",
+    [
+        ("/media/programs/thumbs/101.jpg?v=1761800000", SITE + "/media/programs/thumbs/101.jpg?v=1761800000"),
+        ("/media/programs/thumbs/101.jpg", SITE + "/media/programs/thumbs/101.jpg"),
+        ("/media/programs/thumbs/101.jpg?v=new", None),
+        ("/media/programs/thumbs/101.jpg?size=2", None),
+        ("https://evil.example.test/media/101.jpg", None),
+    ],
+)
+def test_cover_keeps_center_version_stamp(source, expected):
+    assert center.map_card(card("101", "Право", thumb={"src": source}), SITE)["cover_source"] == expected
+
+
 def test_card_links_and_covers_use_their_own_addresses():
     links = "https://62.112.123.10:8443"
     mapped = center.map_card(card("101", "Право"), SITE, links)
