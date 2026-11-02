@@ -174,7 +174,8 @@
 <h2>Однокурсники</h2>
 <ul class="cabinet-people">
 {% for person in classmates or [] %}
-<li class="cabinet-card cabinet-person">
+<li>
+<article class="cabinet-card cabinet-person">
 <span class="cabinet-avatar cabinet-avatar--small" aria-hidden="true">{{ person.fio.split()[:2]|map('first')|join|upper }}</span>
 <div>
 <h3>{{ person.fio }}</h3>
@@ -182,6 +183,7 @@
 {% if person.interests %}<p>{{ person.interests|join(' · ') }}</p>{% endif %}
 </div>
 <button data-api="/me/friends{{ '/'+person.id if person.friend_status in ('accepted','pending') else '' }}" data-method="{{ 'DELETE' if person.friend_status in ('accepted','pending') else 'POST' }}" data-body='{{ {"alumni_id":person.id}|tojson }}' data-member-action>{{ 'Отменить приглашение' if person.friend_status=='pending' else 'Убрать из друзей' if person.friend_status=='accepted' else 'Принять приглашение' if person.friend_status=='incoming' else 'Добавить в друзья' }}</button>
+</article>
 </li>
 {% else %}<li>{{ empty('Однокурсники появятся после подтверждения их заявок.') }}</li>{% endfor %}
 </ul>

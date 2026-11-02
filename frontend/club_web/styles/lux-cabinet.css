@@ -71,6 +71,7 @@ html.lux .cabinet-order__head { display: flex; flex-wrap: wrap; align-items: cen
 html.lux .cabinet-order__head h3 { margin: 0; }
 html.lux .cabinet-chip { display: inline-flex; align-items: center; min-height: 28px; padding: 0 12px; border-radius: 999px; background: var(--lux-control); color: var(--c-text-2); font-size: 13px; }
 html.lux .cabinet-people { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+html.lux .cabinet-people > li { display: grid; min-width: 0; }
 html.lux .cabinet-person { grid-template-columns: auto minmax(0, 1fr); align-items: start; column-gap: 16px; }
 html.lux .cabinet-person h3 { margin: 0 0 4px; }
 html.lux .cabinet-person > button { grid-column: 2; justify-self: start; }
