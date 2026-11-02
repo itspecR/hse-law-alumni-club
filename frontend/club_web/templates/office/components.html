@@ -1,6 +1,5 @@
-{% macro icon(name) %}
-<svg class="office-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ office_icons.get(name,'') }}"/></svg>
-{% endmacro %}
+{% from 'macros.html' import icon as site_icon with context %}
+{% macro icon(name) %}{{ site_icon(name, cls='office-icon') }}{% endmacro %}
 {% macro status(value,payment=false) %}
 {% if value %}<span class="office-status" data-status="{{ value }}">{{ 'Ожидает оплаты' if payment and value=='pending' else 'Без платежа' if payment and value=='none' else labels.get(value,value) }}</span>{% endif %}
 {% endmacro %}

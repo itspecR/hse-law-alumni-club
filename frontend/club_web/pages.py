@@ -10,13 +10,13 @@ from club_web.catalog import UPCOMING_LIMIT, club_programs_preview, prepare_cata
 from club_web.changes import parse_changes, select_changes
 from club_web.client import ApiFailure
 from club_web.formatting import page_items, rub, safe_url
+from club_web.icons import ICONS
 from club_web.office import (
     CHOICES,
     CREATE_DEFAULTS,
     DESCRIPTIONS,
     FIELDS,
     GROUPS,
-    ICONS,
     LABELS,
     METRICS,
     READ_ONLY_SECTIONS,
@@ -238,7 +238,7 @@ async def context(api, path, params, authorized=False):
         "office_nav": OFFICE_NAV,
         "office_groups": GROUPS,
         "office_descriptions": DESCRIPTIONS,
-        "office_icons": ICONS,
+        "icons": ICONS,
         "office_fields": FIELDS,
         "office_choices": CHOICES,
         "office_single": SINGLE_CHOICES,

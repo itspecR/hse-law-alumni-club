@@ -20,6 +20,7 @@ from club_web.formatting import (
 )
 from club_web.main import create_app
 from club_web.office import filter_content
+from club_web.icons import ICONS
 from club_web.pages import ACHIEVEMENT_STRIP, NAV, OFFICE_NAV, PUBLIC_PAGES, ordered_achievements
 from club_web.views import PUBLIC
 
@@ -856,6 +857,13 @@ async def cabinet_page(profile):
             transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
         ) as client:
             return (await client.get("/views/lk", headers={"authorization": "Bearer member-test"})).text
+
+
+def test_every_named_icon_exists():
+    templates = Path(club_web.__file__).parent / "templates"
+    named = {name for path in templates.rglob("*.html") for name in re.findall(r"icon\('([a-z-]+)'", path.read_text())}
+    assert named and named <= ICONS.keys()
+    assert {key for key, _ in OFFICE_NAV} <= ICONS.keys()
 
 
 def achievement(title, current, target):
