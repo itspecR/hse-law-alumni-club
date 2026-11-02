@@ -21,6 +21,7 @@ from club_web.formatting import (
     rub,
     safe_url,
 )
+from club_web.icons import ICONS
 from club_web.rich_text import rich_text
 
 ROOT = Path(__file__).parent
@@ -60,7 +61,7 @@ def environment(**options):
         rich_text=rich_text,
     )
     renderer.globals.update(
-        format_labels=FORMAT_LABELS, order_status_labels=ORDER_STATUS_LABELS, price_pending=PRICE_PENDING
+        format_labels=FORMAT_LABELS, order_status_labels=ORDER_STATUS_LABELS, price_pending=PRICE_PENDING, icons=ICONS
     )
     return renderer
 

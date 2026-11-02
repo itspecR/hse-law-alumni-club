@@ -11,6 +11,7 @@ from club_web.build import build_public
 from club_web.catalog import club_programs_preview, price_label
 from club_web.formatting import (
     local_datetime,
+    lowest_price,
     payment_url,
     price_or_pending,
     program_price,
@@ -431,7 +432,8 @@ async def test_home_shows_club_programs_after_join_steps(browser_client):
     assert '<h2 class="lux-h2 lux-reveal" id="lux-portfolio-title">Программы клуба.</h2>' in block
     assert "Курсы дополнительного образования, которые проводит клуб.</p>" in block
     assert '<h3><a href="/portfolio/club-one">Переговоры для юристов</a></h3>' in block
-    assert "Смешанный · 6 недель · 1 декабря 2026" in block and "45\u00a0000 ₽" in block
+    assert "Набор открыт · старт 1 декабря 2026" in block and "<dd>Смешанный</dd>" in block
+    assert "45\u00a0000 ₽" in block and "Цена выпускника от&nbsp;36\u00a0000 ₽" in block
     assert '<a href="/portfolio" class="foc lux-more">Все программы клуба <span' in block
     assert '<h2><a href="/portfolio/club-one">' in (await browser_client.get("/portfolio")).text
 
@@ -697,7 +699,7 @@ async def test_portfolio_pages_show_club_program_without_cart(browser_client):
     listing = await browser_client.get("/portfolio")
     assert listing.status_code == 200
     assert 'href="/portfolio/club-one"' in listing.text and "45\u00a0000 ₽" in listing.text
-    assert "Смешанный · 6 недель · 1 декабря 2026" in listing.text
+    assert "Набор открыт · старт 1 декабря 2026" in listing.text and "<dd>6 недель</dd>" in listing.text
     assert 'data-api="/cart"' not in listing.text
     card = await browser_client.get("/portfolio/club-one")
     assert card.status_code == 200
@@ -710,6 +712,34 @@ async def test_portfolio_pages_show_club_program_without_cart(browser_client):
         "Свободных мест" in card.text and 'max="20"' in card.text and "Мест нет. Заявку можно оставить" not in card.text
     )
     assert 'href="/portfolio-consent"' in card.text and 'href="/portfolio-terms"' in card.text
+
+
+async def portfolio_listing(items):
+    async def upstream(request):
+        if request.url.path == "/portfolio":
+            return httpx.Response(200, json=items)
+        return httpx.Response(200, json=[])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            return (await client.get("/portfolio")).text
+
+
+async def test_portfolio_cards_show_enrollment_facts_and_alumni_price():
+    cohorts = [{"starts_on": "2026-12-01", "price": 3900000}, {"starts_on": "2027-02-01", "price": 0}]
+    closed = {**PORTFOLIO, "slug": "club-two", "direction": "", "enrollment": "nonactual", "price": 0, "dates": None}
+    page = await portfolio_listing([{**PORTFOLIO, "cohorts": cohorts}, closed])
+    first, second = page.split('<article class="site-catalog-card program-card"')[1:]
+    assert '<p class="program-status program-status--open">Набор открыт · старт 1 декабря 2026</p>' in first
+    assert '<span class="lux-sr">Формат</span></dt><dd>Смешанный</dd>' in first
+    assert '<p class="site-price">от 39\u00a0000 ₽</p>' in first and "Цена выпускника от&nbsp;31\u00a0200 ₽" in first
+    assert "<span>Переговоры</span></div>" in first and "site-card-media--empty" not in page
+    assert '<p class="program-status">Набор закрыт</p>' in second
+    assert '<p class="site-price site-price--pending">Стоимость уточняется</p>' in second
+    assert "Цена выпускника" not in second
+    assert re.search(r'program-card__tile" aria-hidden="true">\s*<svg[^>]*><path[^>]*/></svg>\s*</div>', second)
 
 
 async def program_response(program):
@@ -1029,6 +1059,13 @@ def test_portfolio_start_and_price_follow_open_cohorts():
     assert program_price({**PORTFOLIO, "cohorts": cohorts[:1]}) == "39\u00a0000 ₽"
     assert (program_start(PORTFOLIO), program_price(PORTFOLIO)) == ("1 декабря 2026", "45\u00a0000 ₽")
     assert program_start({**PORTFOLIO, "cohorts": {"unexpected": True}}) == "1 декабря 2026"
+
+
+def test_lowest_price_takes_cheapest_paid_price():
+    cohorts = [{"price": 0}, {"price": 4100000}, {"price": 3900000}]
+    assert lowest_price({**PORTFOLIO, "cohorts": cohorts}) == 3900000
+    assert (lowest_price(PORTFOLIO), lowest_price(PROGRAM)) == (4500000, 300000)
+    assert lowest_price({**PORTFOLIO, "price": None}) == lowest_price({**PORTFOLIO, "cohorts": [{"price": 0}]}) == 0
 
 
 def test_portfolio_price_without_amount_is_pending():

@@ -2659,6 +2659,23 @@ def test_club_program_without_price_waits_for_agreement(page, site, width):
     expect(order).to_contain_text("До скидки: стоимость уточняется · промокод SPRING-15: 15%")
 
 
+def test_portfolio_cards_line_up_with_and_without_cover(page, site):
+    cover = {**PORTFOLIO, "cover": "0c7dfa32-12e5-4ba0-801b-97148917eb22"}
+    site[1]["/portfolio"] = [cover, {**PORTFOLIO, "id": "club-2", "slug": "club-two"}, {**cover, "slug": "club-3"}]
+    site[1]["/portfolio"].append({**PORTFOLIO, "id": "club-4", "slug": "club-four", "enrollment": "nonactual"})
+    page.route("**/api/media/**", lambda route: route.fulfill(status=404, body=""))
+    page.goto("/portfolio")
+    cards = page.locator(".program-card")
+    media = [cards.nth(index).locator(".site-card-media").bounding_box() for index in range(4)]
+    status = [cards.nth(index).locator(".program-status").bounding_box() for index in range(4)]
+    assert abs(media[1]["height"] - media[0]["height"]) < 1 and abs(status[1]["y"] - status[0]["y"]) < 1
+    assert media[3]["height"] < media[0]["height"] / 2
+    colors = [
+        cards.nth(index).locator(".program-status").evaluate("node => getComputedStyle(node).color") for index in (0, 3)
+    ]
+    assert colors[0] != colors[1]
+
+
 @pytest.mark.parametrize("width", [1440, 390])
 def test_portfolio_pages_fit_and_save_to_reading_list(page, width):
     page.set_viewport_size({"width": width, "height": 900})
