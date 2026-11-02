@@ -36,6 +36,8 @@ from club_web.search import search_groups
 HOME_EPISODES = 4
 HOME_CHANGES = 3
 ACHIEVEMENT_STRIP = 4
+FULL_PROGRESS = 100
+INITIALS = 2
 PUBLIC_PAGES = {
     "/": ("home.html", "Клуб выпускников факультета права"),
     "/tg": ("mini.html", "Клуб выпускников"),
@@ -196,6 +198,33 @@ def with_achievements(data):
     data["achievements"] = achievements
     data["achievement_strip"] = achievements[:ACHIEVEMENT_STRIP]
     data["achievements_earned"] = sum(bool(item.get("earned")) for item in achievements)
+
+
+def level_progress(level, levels):
+    current = next((item for item in levels if item["key"] == level.get("level")), None)
+    following = next((item for item in levels if item["title"] == level.get("next_level")), None)
+    if not current or not following:
+        return FULL_PROGRESS
+    span = following["min_points"] - current["min_points"]
+    return round(FULL_PROGRESS * (span - (level.get("to_next") or 0)) / span) if span > 0 else FULL_PROGRESS
+
+
+def activity_chart(months):
+    peak = max((month.get("points") or 0 for month in months), default=0)
+    if peak <= 0:
+        return []
+    return [{**month, "share": round(FULL_PROGRESS * max(month.get("points") or 0, 0) / peak)} for month in months]
+
+
+def initials(fio):
+    return "".join(part[0] for part in (fio or "").split()[:INITIALS]).upper()
+
+
+def with_cabinet(data):
+    with_achievements(data)
+    me = data["me"]
+    data["level_progress"] = level_progress(me.get("level") or {}, data["domain"]["levels"])
+    data["activity_chart"] = activity_chart(me.get("activity") or [])
 
 
 def pagination_page(value):
@@ -435,6 +464,7 @@ async def context(api, path, params, authorized=False):
         }
     elif path in ("/lk", "/lk/profile") and authorized:
         await load("me", "/me", {})
+        data["initials"] = initials(data["me"].get("alumni", {}).get("fio"))
         if path == "/lk" and data["me"].get("alumni", {}).get("verification_status") == "verified":
             await asyncio.gather(
                 load("orders", "/me/orders", []),
@@ -450,7 +480,7 @@ async def context(api, path, params, authorized=False):
                 key=lambda item: instant(item["starts_at"]),
             )
             data["next_event"] = upcoming[0] if upcoming else None
-            with_achievements(data)
+            with_cabinet(data)
     elif path == "/cart" and "x-cart-session" in api.headers:
         await load("cart", "/cart", {"items": [], "subtotal": 0})
     elif path == "/support":

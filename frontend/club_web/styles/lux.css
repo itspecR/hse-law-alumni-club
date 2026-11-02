@@ -89,7 +89,7 @@ html.lux .lux-disclosure[open] > summary::after { transform: rotate(45deg); }
 .lux-more__arrow { display: inline-block; font-size: 20px; line-height: 1; transition: transform 160ms var(--ease-out); }
 .lux-back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 16px; color: var(--c-text-3); font-size: 15px; text-decoration: none; transition: color 160ms ease; }
 html.lux .lux-back + .site-masthead { padding-top: clamp(24px, 3cqi, 40px); }
-html.lux.vis :is(h1, h2, h3, .cabinet-stats dd, .lux-hero__next, .lux-voice blockquote p, .club-menu a) { font-weight: 400 !important; }
+html.lux.vis :is(h1, h2, h3, .cabinet-metric dd, .lux-hero__next, .lux-voice blockquote p, .club-menu a) { font-weight: 400 !important; }
 html.vis .lux-disclosure > summary::after { color: var(--vis-fg); font-weight: 400; }
 html.lux.vis .lux-btn.lux-btn--ghost[aria-pressed="true"] { background-color: var(--vis-fg) !important; color: var(--vis-bg) !important; }
 html.lux.vis :is(.dpo-starts-grid article:has(a:focus-visible), .site-checkbox:has(input:focus-visible)) { outline-color: var(--vis-fg); }
