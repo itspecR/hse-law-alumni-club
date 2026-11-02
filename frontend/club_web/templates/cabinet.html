@@ -1,46 +1,118 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import login,empty %}
+{% from 'macros.html' import icon with context %}
 {% block content %}
 <main id="main" class="site-container cabinet-page">
 {% if not me or access_error %}{{ login(next=query.get('next','')) }}{% else %}
-<header class="site-masthead">
+{% set verified = me.alumni.verification_status == 'verified' %}
+<header class="cabinet-head">
+<div class="cabinet-head__person">
+{% if me.alumni.avatar %}<img class="cabinet-avatar" src="/api/avatars/{{ me.alumni.avatar }}" width="72" height="72" alt="Фото профиля">{% else %}<span class="cabinet-avatar" aria-hidden="true">{{ initials }}</span>{% endif %}
+<div>
 <h1>{{ me.alumni.fio or 'Личный кабинет' }}</h1>
-<p>Выпуск {{ me.alumni.cohort }} · {{ me.alumni.edu_program or '' }}</p>
-<div class="site-actions">
-<a href="/lk/profile" class="foc lux-btn lux-btn--ghost lux-btn--sm">Профиль</a>
-<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="logout">Выйти</button>
+<p>Выпуск {{ me.alumni.cohort }}{% if me.alumni.edu_program %} · {{ me.alumni.edu_program }}{% endif %}{% if verified %}<span class="cabinet-level-chip">{{ icon('level', 16) }}{{ me.level.level_title }}</span>{% endif %}</p>
+</div>
+</div>
+<div class="cabinet-head__actions">
+<a href="/lk/profile" class="lux-btn lux-btn--ghost lux-btn--sm" aria-label="Профиль">{{ icon('profile', 18) }}<span class="cabinet-head__label">Профиль</span></a>
+{% if verified %}<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="push-subscribe" aria-label="Включить уведомления">{{ icon('bell', 18) }}<span class="cabinet-head__label">Включить уведомления</span></button>{% endif %}
+<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="logout" aria-label="Выйти">{{ icon('logout', 18) }}<span class="cabinet-head__label">Выйти</span></button>
 </div>
 </header>
-{% if me.alumni.verification_status != 'verified' %}
-<section class="site-panel">
+{% if not verified %}
+<section class="cabinet-card cabinet-status">
 <h2>{{ 'Заявка отклонена' if me.alumni.verification_status=='rejected' else 'Заявка на проверке' }}</h2>
 <p>{{ 'Мы не смогли подтвердить данные заявки. Если это ошибка, напишите в поддержку.' if me.alumni.verification_status=='rejected' else 'Мы проверяем статус выпускника. Кабинет и скидка откроются после подтверждения.' }}</p>
+<div class="site-actions">
 {% if me.alumni.verification_status!='rejected' %}<a href="/lk/profile">Загрузить фото профиля</a>{% endif %}
 <a href="/support">Поддержка</a>
+</div>
 </section>
 {% else %}
-<div class="site-two-col">
-<aside class="site-panel">
-<h2>Участие в клубе</h2>
-<dl class="cabinet-stats">
-<div class="cabinet-stats__wide"><dt>Уровень</dt><dd>{{ me.level.level_title }}{% if me.level.next_level %}<span class="cabinet-stats__next">До уровня «{{ me.level.next_level }}» осталось баллов: {{ me.level.to_next }}</span>{% endif %}</dd></div>
-<div><dt>Баллы</dt><dd>{{ me.level.points }}</dd></div>
-<div><dt>Скидка выпускника</dt><dd>{{ me.level.discount }}%</dd></div>
-<div class="cabinet-stats__wide cabinet-stats__code"><dt>Код приглашения</dt><dd>{{ me.alumni.referral_code }}</dd></div>
+<dl class="cabinet-metrics">
+<div class="cabinet-metric cabinet-metric--level">
+<dt>{{ icon('level') }}Уровень</dt>
+<dd>{{ me.level.level_title }}
+{% if me.level.next_level %}<progress aria-label="Прогресс до уровня {{ me.level.next_level }}" value="{{ level_progress }}" max="100">{{ level_progress }}%</progress><span class="cabinet-metric__note">До уровня «{{ me.level.next_level }}» осталось баллов: {{ me.level.to_next }}</span>{% endif %}
+</dd>
+</div>
+<div class="cabinet-metric">
+<dt>{{ icon('points') }}Баллы</dt>
+<dd>{{ me.level.points }}</dd>
+</div>
+<div class="cabinet-metric">
+<dt>{{ icon('discount') }}Скидка выпускника</dt>
+<dd>{{ me.level.discount }}%</dd>
+</div>
+<div class="cabinet-metric">
+<dt>{{ icon('achievements') }}Достижения</dt>
+<dd><a href="#achievements">{{ achievements_earned }} из {{ achievements|length }}</a></dd>
+</div>
 </dl>
-<p>По вашему приглашению: подтверждено {{ me.alumni.referrals_verified or 0 }}, на проверке {{ me.alumni.referrals_pending or 0 }}.</p>
-<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="copy-invite" data-code="{{ me.alumni.referral_code }}">Скопировать ссылку-приглашение</button>
-{% if me.activity %}
-<h3>Активность за полгода</h3>
-<div class="site-chart">
-{% for month in me.activity %}
-<p>{{ month.month }} <meter aria-label="Баллы за {{ month.month }}" value="{{ month.points }}" max="{{ (me.activity|map(attribute='points')|max) or 1 }}">{{ month.points }}</meter> {{ month.points }}</p>
+<nav class="cabinet-tabs" aria-label="Разделы кабинета">
+<a href="#club-overview">{{ icon('overview', 18) }}Обзор</a>
+<a href="#orders">{{ icon('orders', 18) }}Заявки</a>
+<a href="#achievements">{{ icon('achievements', 18) }}Достижения</a>
+<a href="#community">{{ icon('members', 18) }}Однокурсники</a>
+<a href="#points">{{ icon('timeline', 18) }}Баллы</a>
+</nav>
+<div class="cabinet-panels">
+<section id="club-overview" class="cabinet-panel">
+<h2>Обзор</h2>
+{% if notifications %}
+<div class="cabinet-card cabinet-notices">
+<h3>{{ icon('bell', 18) }}Уведомления</h3>
+<ul>
+{% for notice in notifications %}
+<li>
+{% if notice.kind=='friend_request' %}
+<p>{{ notice.from_fio or 'Выпускник' }} приглашает вас в друзья.</p>
+<div class="site-actions">
+<button data-api="/me/friends" data-body='{{ {"alumni_id":notice.from_id}|tojson }}' data-member-action>Принять</button>
+<button data-api="/me/friends/{{ notice.from_id }}" data-method="DELETE" data-member-action>Отклонить</button>
+</div>
+{% elif notice.kind=='friend_accepted' %}
+<p>{{ notice.by_fio or 'Выпускник' }}: приглашение в друзья принято.</p>
+{% elif notice.kind=='order_status' %}
+<p>Заявка {{ notice.number }} · {{ order_status_labels.get(notice.status,notice.status) }}{% if notice.paid %} · Оплачено{% endif %}</p>
+{% elif notice.kind=='podcast_expiring' %}
+<p>Дней до окончания подписки на подкаст: {{ notice.days_left }}.</p>
+<a href="/podcasts#podcast-subscription">Продлить подписку</a>
+{% endif %}
+</li>
 {% endfor %}
+</ul>
 </div>
 {% endif %}
+{% if not me.alumni.contacts %}
+<div class="cabinet-card cabinet-callout">
+<p>Добавьте контакт, чтобы мы могли связаться с вами по заявкам.</p>
+<a href="/lk/profile">Заполнить профиль</a>
+</div>
+{% endif %}
+<div class="cabinet-overview">
+<div class="cabinet-card">
+<h3>{{ icon('events', 18) }}Ближайшее событие</h3>
+{% if next_event %}
+<p class="cabinet-card__title"><a href="/events/{{ next_event.id }}">{{ next_event.title }}</a></p>
+<p>{{ next_event.starts_at|date }} · {{ next_event.location or format_labels.get(next_event.format,'') }}</p>
+<a href="/events/{{ next_event.id }}">{{ 'Вы записаны. Подробнее о событии' if next_event.my_rsvp else 'Подробнее и запись' }}</a>
+{% else %}<p>Ближайших событий пока нет.</p>
+<a href="/events">Все события</a>{% endif %}
+</div>
+<div class="cabinet-card">
+<h3>{{ icon('news', 18) }}Новости клуба</h3>
+<ul class="cabinet-list">
+{% for article in club_news or [] %}
+<li><a href="/news/{{ article.slug }}">{{ article.title }}</a><span>{{ article.published_at|date }}</span></li>
+{% else %}<li>Новостей пока нет.</li>{% endfor %}
+</ul>
+</div>
+</div>
 {% if achievements %}
+<div class="cabinet-card">
 <div class="cabinet-badges__head">
-<h3>Достижения {{ achievements_earned }} из {{ achievements|length }}</h3>
+<h3>{{ icon('achievements', 18) }}Ближайшие достижения</h3>
 <a href="#achievements">Все достижения</a>
 </div>
 <ul class="cabinet-badges" aria-label="Ближайшие достижения">
@@ -48,53 +120,25 @@
 <li class="cabinet-badge{{ ' is-earned' if achievement.earned else '' }}"><span class="cabinet-badge__title"><span aria-hidden="true">{{ '★' if achievement.earned else '○' }}</span>{{ achievement.title }}</span><small>{{ achievement.current }}/{{ achievement.target }}</small></li>
 {% endfor %}
 </ul>
+</div>
 {% endif %}
-<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="push-subscribe">Включить уведомления</button>
-</aside>
-<div>
-<nav class="cabinet-nav" aria-label="Разделы кабинета">
-<a href="#club-overview">Обзор</a><a href="#orders">Мои заявки</a><a href="#community">Однокурсники</a><a href="#achievements">Достижения</a>
-</nav>
-<section id="club-overview">
-<h2>Обзор</h2>
-{% if not me.alumni.contacts %}
-<p>Добавьте контакт, чтобы мы могли связаться с вами по заявкам.</p>
-<a href="/lk/profile">Заполнить профиль</a>
-{% endif %}
-<h3>Ближайшее событие</h3>
-{% if next_event %}
-<article class="site-panel">
-<h3><a href="/events/{{ next_event.id }}">{{ next_event.title }}</a></h3>
-<p>{{ next_event.starts_at|date }} · {{ next_event.location or format_labels.get(next_event.format,'') }}</p>
-<a href="/events/{{ next_event.id }}">{{ 'Вы записаны. Подробнее о событии' if next_event.my_rsvp else 'Подробнее и запись' }}</a>
-</article>
-{% else %}{{ empty('Ближайших событий пока нет.') }}{% endif %}
-<h3>Новости клуба</h3>
-{% for article in club_news or [] %}
-<p><a href="/news/{{ article.slug }}">{{ article.title }}</a> · {{ article.published_at|date }}</p>
-{% else %}{{ empty('Новостей пока нет.') }}{% endfor %}
+<div class="cabinet-card cabinet-invite">
+<h3>{{ icon('invite', 18) }}Пригласить выпускника</h3>
+<p>Код приглашения <strong>{{ me.alumni.referral_code }}</strong></p>
+<p>По вашему приглашению: подтверждено {{ me.alumni.referrals_verified or 0 }}, на проверке {{ me.alumni.referrals_pending or 0 }}.</p>
+<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="copy-invite" data-code="{{ me.alumni.referral_code }}">{{ icon('copy', 18) }}Скопировать ссылку-приглашение</button>
+</div>
 <div class="site-actions"><a href="/dpo">Программы ДПО</a><a href="/events">События</a><a href="/podcasts">Подкасты</a></div>
 </section>
-<section id="achievements">
-<h2>Достижения</h2>
-{% if achievements %}
-<p class="cabinet-achievements__summary">Получено {{ achievements_earned }} из {{ achievements|length }}.</p>
-<ul class="cabinet-achievements">
-{% for achievement in achievements %}
-<li><details class="cabinet-achievement{{ ' is-earned' if achievement.earned else '' }}">
-<summary><span class="cabinet-achievement__title"><span aria-hidden="true">{{ '★' if achievement.earned else '○' }}</span>{{ achievement.title }}</span><span class="cabinet-achievement__text">{{ achievement.description or '' }}</span><progress aria-label="Прогресс достижения {{ achievement.title }}" value="{{ achievement.current }}" max="{{ achievement.target or 1 }}">{{ achievement.current }}/{{ achievement.target }}</progress><span class="cabinet-achievement__count">{{ achievement.current }}/{{ achievement.target }}</span></summary>
-</details></li>
-{% endfor %}
-</ul>
-{% else %}{{ empty('Достижения появятся по мере участия в клубе.') }}{% endif %}
-</section>
-<section id="orders">
+<section id="orders" class="cabinet-panel">
 <h2>Мои заявки</h2>
 {% for order in orders %}
-<article class="site-panel">
+<article class="cabinet-card cabinet-order">
+<div class="cabinet-order__head">
 <h3>Заявка {{ order.number }}</h3>
-<p>{{ order.created_at|date }} · {{ order_status_labels.get(order.status,order.status) }}</p>
-<p>{{ order.total_estimate|price_or_pending if order.type=='portfolio' else order.total_estimate|rub }} · {{ 'Оплачено' if order.payment_status=='succeeded' else 'Не оплачено' }}</p>
+<span class="cabinet-chip{{ ' is-paid' if order.payment_status=='succeeded' else '' }}">{{ order_status_labels.get(order.status,order.status) }}</span>
+</div>
+<p>{{ order.created_at|date }} · {{ order.total_estimate|price_or_pending if order.type=='portfolio' else order.total_estimate|rub }} · {{ 'Оплачено' if order.payment_status=='succeeded' else 'Не оплачено' }}</p>
 {% if order.type=='portfolio' %}
 <p>До скидки: {{ order.subtotal|price_or_pending|lower }} · {{ order|discount_label }} · участников: {{ order.participants }}{% if order.organization %} · {{ order.organization }}{% endif %}{% if order.starts_on %} · старт потока {{ order.starts_on|date }}{% endif %}.</p>
 {% else %}
@@ -110,48 +154,61 @@
 <button data-api="/orders/{{ order.number }}/pay" data-member-action>Получить ссылку на оплату</button>
 {% endif %}
 </article>
-{% else %}{{ empty('Вы еще не оформляли заявки.') }}{% endfor %}
+{% else %}{{ empty('Вы еще не оформляли заявки.') }}
+<div class="site-actions"><a href="/portfolio">Портфель программ</a><a href="/merch">Мерч</a></div>{% endfor %}
 </section>
-<section>
-<h2>Уведомления</h2>
-{% for notice in notifications or [] %}
-<article class="site-panel">
-{% if notice.kind=='friend_request' %}
-<p>{{ notice.from_fio or 'Выпускник' }} приглашает вас в друзья.</p>
-<button data-api="/me/friends" data-body='{{ {"alumni_id":notice.from_id}|tojson }}' data-member-action>Принять</button>
-<button data-api="/me/friends/{{ notice.from_id }}" data-method="DELETE" data-member-action>Отклонить</button>
-{% elif notice.kind=='friend_accepted' %}
-<p>{{ notice.by_fio or 'Выпускник' }}: приглашение в друзья принято.</p>
-{% elif notice.kind=='order_status' %}
-<p>Заявка {{ notice.number }} · {{ order_status_labels.get(notice.status,notice.status) }}{% if notice.paid %} · Оплачено{% endif %}
-</p>
-{% elif notice.kind=='podcast_expiring' %}
-<p>Дней до окончания подписки на подкаст: {{ notice.days_left }}.</p>
-<a href="/podcasts#podcast-subscription">Продлить подписку</a>
-{% endif %}
-</article>
-{% else %}{{ empty('Новых уведомлений нет.') }}{% endfor %}
+<section id="achievements" class="cabinet-panel">
+<h2>Достижения</h2>
+{% if achievements %}
+<p class="cabinet-achievements__summary">Получено {{ achievements_earned }} из {{ achievements|length }}.</p>
+<ul class="cabinet-achievements">
+{% for achievement in achievements %}
+<li><details class="cabinet-achievement{{ ' is-earned' if achievement.earned else '' }}">
+<summary><span class="cabinet-achievement__title"><span aria-hidden="true">{{ '★' if achievement.earned else '○' }}</span>{{ achievement.title }}</span><span class="cabinet-achievement__text">{{ achievement.description or '' }}</span><progress aria-label="Прогресс достижения {{ achievement.title }}" value="{{ achievement.current }}" max="{{ achievement.target or 1 }}">{{ achievement.current }}/{{ achievement.target }}</progress><span class="cabinet-achievement__count">{{ achievement.current }}/{{ achievement.target }}</span></summary>
+</details></li>
+{% endfor %}
+</ul>
+{% else %}{{ empty('Достижения появятся по мере участия в клубе.') }}{% endif %}
 </section>
-<section id="community">
+<section id="community" class="cabinet-panel">
 <h2>Однокурсники</h2>
+<ul class="cabinet-people">
 {% for person in classmates or [] %}
-<article class="site-cart-row">
+<li>
+<article class="cabinet-card cabinet-person">
+<span class="cabinet-avatar cabinet-avatar--small" aria-hidden="true">{{ person.fio.split()[:2]|map('first')|join|upper }}</span>
 <div>
 <h3>{{ person.fio }}</h3>
-<p>{{ person.cohort }} · {{ person.edu_program or '' }}</p>
+<p>{{ person.cohort }}{% if person.edu_program %} · {{ person.edu_program }}{% endif %}</p>
 {% if person.interests %}<p>{{ person.interests|join(' · ') }}</p>{% endif %}
 </div>
 <button data-api="/me/friends{{ '/'+person.id if person.friend_status in ('accepted','pending') else '' }}" data-method="{{ 'DELETE' if person.friend_status in ('accepted','pending') else 'POST' }}" data-body='{{ {"alumni_id":person.id}|tojson }}' data-member-action>{{ 'Отменить приглашение' if person.friend_status=='pending' else 'Убрать из друзей' if person.friend_status=='accepted' else 'Принять приглашение' if person.friend_status=='incoming' else 'Добавить в друзья' }}</button>
 </article>
-{% else %}{{ empty('Однокурсники появятся после подтверждения их заявок.') }}{% endfor %}
+</li>
+{% else %}<li>{{ empty('Однокурсники появятся после подтверждения их заявок.') }}</li>{% endfor %}
+</ul>
 </section>
-<section>
-<h2>История баллов</h2>
-{% for entry in ledger or [] %}
-<p>{{ entry.created_at|date }} · {{ entry.delta }} · {{ entry.comment or reason_labels.get(entry.reason,entry.reason) }}</p>
-{% else %}{{ empty('Начислений пока нет.') }}{% endfor %}
-</section>
+<section id="points" class="cabinet-panel">
+<h2>Баллы</h2>
+<div class="cabinet-card">
+<h3>{{ icon('analytics', 18) }}Активность за полгода</h3>
+{% if activity_chart %}
+<ul class="cabinet-chart">
+{% for month in activity_chart %}
+<li style="--share: {{ month.share }}%"><span>{{ month.points }}</span><i aria-hidden="true"></i><small>{{ month.month }}</small></li>
+{% endfor %}
+</ul>
+{% else %}<p>За полгода начислений не было.</p>{% endif %}
 </div>
+<div class="cabinet-card">
+<h3>{{ icon('timeline', 18) }}История баллов</h3>
+<ul class="cabinet-list">
+{% for entry in ledger or [] %}
+<li><span>{{ entry.comment or reason_labels.get(entry.reason,entry.reason) }}</span><span>{{ entry.created_at|date }} · <strong>{{ '+' if entry.delta > 0 else '' }}{{ entry.delta }}</strong></span></li>
+{% else %}<li>Начислений пока нет.</li>{% endfor %}
+</ul>
+</div>
+</section>
 </div>
 {% endif %}
 {% endif %}

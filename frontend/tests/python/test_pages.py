@@ -21,7 +21,16 @@ from club_web.formatting import (
 from club_web.icons import ICONS
 from club_web.main import create_app
 from club_web.office import filter_content
-from club_web.pages import ACHIEVEMENT_STRIP, NAV, OFFICE_NAV, PUBLIC_PAGES, ordered_achievements
+from club_web.pages import (
+    ACHIEVEMENT_STRIP,
+    NAV,
+    OFFICE_NAV,
+    PUBLIC_PAGES,
+    activity_chart,
+    initials,
+    level_progress,
+    ordered_achievements,
+)
 from club_web.views import PUBLIC
 
 NEWS = {
@@ -866,6 +875,35 @@ def test_every_named_icon_exists():
     assert {key for key, _ in OFFICE_NAV} <= ICONS.keys()
 
 
+@pytest.mark.parametrize(
+    "level,expected",
+    [
+        ({"level": "graduate", "next_level": "Друг клуба", "to_next": 200}, 0),
+        ({"level": "friend", "next_level": "Знаток", "to_next": 180}, 40),
+        ({"level": "ambassador", "next_level": None, "to_next": 0}, 100),
+    ],
+)
+def test_level_progress_is_share_of_current_level(level, expected):
+    levels = [
+        {"key": "graduate", "title": "Выпускник", "min_points": 0},
+        {"key": "friend", "title": "Друг клуба", "min_points": 200},
+        {"key": "expert", "title": "Знаток", "min_points": 500},
+        {"key": "ambassador", "title": "Амбассадор", "min_points": 1000},
+    ]
+    assert level_progress(level, levels) == expected
+
+
+def test_activity_chart_hides_empty_half_year():
+    assert activity_chart([{"month": "сен", "points": 0}, {"month": "окт", "points": 0}]) == []
+    chart = activity_chart([{"month": "сен", "points": 50}, {"month": "окт", "points": 200}])
+    assert [month["share"] for month in chart] == [25, 100]
+
+
+@pytest.mark.parametrize(("fio", "expected"), [("Анна Смирнова", "АС"), ("иван", "И"), ("", ""), (None, "")])
+def test_initials_take_two_first_letters(fio, expected):
+    assert initials(fio) == expected
+
+
 def achievement(title, current, target):
     return {
         "title": title,
@@ -889,7 +927,7 @@ def test_achievements_show_earned_then_closest_first():
 async def test_cabinet_groups_achievements_into_strip_and_grid():
     items = [achievement(f"Цель {number}", 0, 3) for number in range(5)] + [achievement("Печать клуба", 1, 1)]
     cabinet = await cabinet_page({**PROFILE, "achievements": items})
-    assert "<h3>Достижения 1 из 6</h3>" in cabinet and "Получено 1 из 6." in cabinet
+    assert '<a href="#achievements">1 из 6</a>' in cabinet and "Получено 1 из 6." in cabinet
     strip = cabinet.split('aria-label="Ближайшие достижения">')[1].split("</ul>")[0]
     assert strip.count("<li") == ACHIEVEMENT_STRIP and strip.index("Печать клуба") < strip.index("Цель 0")
     grid = cabinet.split('<ul class="cabinet-achievements">')[1].split("</ul>")[0]
@@ -904,10 +942,10 @@ async def test_join_cabinet_and_profile_texts_follow_glossary(browser_client):
     assert "Пароль, не меньше 8 символов" in join and ">Отправить заявку</button>" in join
     level = {"level_title": "Выпускник", "points": 123, "discount": 5, "next_level": "Друг клуба", "to_next": 77}
     cabinet = await cabinet_page({**PROFILE, "level": level})
-    assert "До уровня «Друг клуба» осталось баллов: 77" in cabinet and "<dt>Скидка выпускника</dt>" in cabinet
-    assert '<a href="#community">Однокурсники</a>' in cabinet and "<h2>Обзор</h2>" in cabinet
-    assert "<h3>Ближайшее событие</h3>" in cabinet and "Ближайших событий пока нет." in cabinet
-    assert "> 60</p>" in cabinet and "60 баллов" not in cabinet
+    assert "До уровня «Друг клуба» осталось баллов: 77" in cabinet and "Скидка выпускника</dt>" in cabinet
+    assert re.search(r'href="#community">.*?Однокурсники</a>', cabinet, re.DOTALL) and "<h2>Обзор</h2>" in cabinet
+    assert "Ближайшее событие</h3>" in cabinet and "Ближайших событий пока нет." in cabinet
+    assert "<span>60</span>" in cabinet and "60 баллов" not in cabinet
     rejected = await cabinet_page({**PROFILE, "alumni": {**PROFILE["alumni"], "verification_status": "rejected"}})
     assert "Мы не смогли подтвердить данные заявки. Если это ошибка, напишите в поддержку." in rejected
     assert "Загрузить фото профиля" not in rejected

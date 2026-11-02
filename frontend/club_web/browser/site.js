@@ -459,16 +459,42 @@ function alignOfficeNavigation() {
   if (item.top < container.top) navigation.scrollTop += item.top - container.top - 8;
 }
 
+const CABINET_SECTIONS = ["club-overview", "orders", "achievements", "community", "points"];
 let cabinetSectionOpened = false;
 
+function cabinetTabs() {
+  return currentPath() === "/lk" ? document.querySelector(".cabinet-tabs") : null;
+}
+
+function showCabinetSection(section) {
+  for (const link of cabinetTabs()?.querySelectorAll("a[href^='#']") || []) {
+    if (link.hash.slice(1) === section) link.setAttribute("aria-current", "true");
+    else link.removeAttribute("aria-current");
+  }
+  for (const panel of document.querySelectorAll(".cabinet-panel")) panel.hidden = panel.id !== section;
+}
+
 function openCabinetSection() {
-  if (cabinetSectionOpened || currentPath() !== "/lk") return;
-  const section = location.hash.slice(1) || new URLSearchParams(location.search).get("section");
-  if (!["club-overview", "orders", "community", "achievements"].includes(section)) return;
-  const target = document.getElementById(section);
-  if (!target) return;
-  target.scrollIntoView({ block: "start", behavior: "instant" });
+  const tabs = cabinetTabs();
+  if (!tabs) return;
+  document.querySelector(".cabinet-panels")?.classList.add("is-tabbed");
+  const requested = location.hash.slice(1) || new URLSearchParams(location.search).get("section");
+  const deepLink = CABINET_SECTIONS.includes(requested);
+  showCabinetSection(deepLink ? requested : CABINET_SECTIONS[0]);
+  if (cabinetSectionOpened || !deepLink) return;
+  tabs.scrollIntoView({ block: "start", behavior: "instant" });
   cabinetSectionOpened = true;
+}
+
+function switchCabinetSection(event) {
+  const link = event.target.closest?.("a[href^='#']");
+  const tabs = cabinetTabs();
+  const section = link?.hash.slice(1);
+  if (!tabs || !CABINET_SECTIONS.includes(section)) return;
+  event.preventDefault();
+  history.replaceState(history.state, "", link.hash);
+  showCabinetSection(section);
+  if (!link.closest(".cabinet-tabs")) tabs.scrollIntoView({ block: "start", behavior: "instant" });
 }
 
 function setupPage() {
@@ -589,6 +615,8 @@ document.addEventListener("submit", async event => {
     await perform(form, form.hasAttribute("data-file") ? new FormData(form) : formBody(form));
   } catch (error) { formError(form, error.message); }
 });
+
+document.addEventListener("click", switchCabinetSection);
 
 document.addEventListener("click", async event => {
   const target = event.target.closest("[data-action],button[data-api],[data-download]");
@@ -732,7 +760,7 @@ document.addEventListener("input", event => {
   if (event.target.matches("[data-quote-input]")) showQuote(event.target.form, "");
 });
 document.addEventListener("focusin", event => {
-  if (event.target.matches?.(":focus-visible")) event.target.closest(".dpo-starts-grid article, .cabinet-nav a")?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+  if (event.target.matches?.(":focus-visible")) event.target.closest(".dpo-starts-grid article, .cabinet-tabs a")?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
 });
 document.addEventListener("change", event => {
   if (event.target.matches("[data-audio-rate]")) event.target.closest(".site-player").querySelector("audio").playbackRate = Number(event.target.value);

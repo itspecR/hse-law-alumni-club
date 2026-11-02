@@ -1658,11 +1658,30 @@ def test_cabinet_stats_and_sections(page, site, width):
     page.set_viewport_size({"width": width, "height": 900})
     page.add_init_script("localStorage.setItem('club_token','member-qa');")
     page.goto("/lk")
-    stats = page.locator(".cabinet-stats")
-    expect(stats.locator("dt")).to_have_text(["Уровень", "Баллы", "Скидка выпускника", "Код приглашения"])
-    expect(stats.locator(".cabinet-stats__next")).to_have_text("До уровня «Друг клуба» осталось баллов: 100")
+    stats = page.locator(".cabinet-metrics")
+    expect(stats.locator("dt")).to_have_text(["Уровень", "Баллы", "Скидка выпускника", "Достижения"])
+    expect(stats.locator(".cabinet-metric__note")).to_have_text("До уровня «Друг клуба» осталось баллов: 100")
     for link in page.get_by_role("navigation", name="Разделы кабинета").get_by_role("link").all():
         assert link.bounding_box()["height"] >= 44
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_cabinet_tabs_show_one_section_and_keep_deep_links(page, site, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk?section=points")
+    panels = page.locator(".cabinet-panel")
+    expect(page.locator("#points")).to_be_visible()
+    assert [panel.get_attribute("id") for panel in panels.all() if panel.is_visible()] == ["points"]
+    tabs = page.get_by_role("navigation", name="Разделы кабинета")
+    expect(tabs.get_by_role("link", name="Баллы")).to_have_attribute("aria-current", "true")
+    tabs.get_by_role("link", name="Заявки").click()
+    expect(page).to_have_url(re.compile("#orders$"))
+    assert [panel.get_attribute("id") for panel in panels.all() if panel.is_visible()] == ["orders"]
+    page.locator(".cabinet-metrics").get_by_role("link").click()
+    expect(page.locator("#achievements")).to_be_visible()
+    expect(page.locator("#orders")).to_be_hidden()
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
@@ -1681,6 +1700,7 @@ def test_cabinet_achievements_fit_in_strip_and_grid(page, site, width):
     badges = page.locator(".cabinet-badge")
     expect(badges).to_have_count(4)
     expect(badges.first).to_contain_text("Печать клуба")
+    page.locator(".cabinet-tabs").get_by_role("link", name="Достижения").click()
     tiles = page.locator(".cabinet-achievement")
     expect(tiles).to_have_count(len(goals) + 1)
     grid = page.locator(".cabinet-achievements").bounding_box()
@@ -1809,7 +1829,7 @@ def test_disclosures_and_pressed_buttons_in_vision_mode(page, site):
     expect(compare).to_have_css("background-color", "rgb(0, 0, 0)")
     expect(compare).to_have_css("color", "rgb(255, 255, 255)")
     page.goto("/lk")
-    for node in page.locator("#main h2, .cabinet-stats dd").all():
+    for node in page.locator("#main h2:visible, .cabinet-metric dd").all():
         expect(node).to_have_css("font-weight", "400")
 
 
@@ -1861,9 +1881,17 @@ def test_touch_opens_peeking_ribbon_items(chromium, site):
     page.goto("/lk")
     nav = page.get_by_role("navigation", name="Разделы кабинета")
     nav.scroll_into_view_if_needed()
-    last = nav.get_by_role("link").last.bounding_box()
-    page.touchscreen.tap(min(last["x"] + last["width"] - 4, 386), last["y"] + last["height"] / 2)
-    expect(page).to_have_url(re.compile("#achievements$"))
+    links = nav.get_by_role("link").all()
+    edge = page.viewport_size["width"]
+    peeking = next(
+        link
+        for link in links
+        if link.bounding_box()["x"] < edge < sum(link.bounding_box()[key] for key in ("x", "width"))
+    )
+    box, target = peeking.bounding_box(), peeking.get_attribute("href")
+    page.touchscreen.tap((box["x"] + edge) / 2, box["y"] + box["height"] / 2)
+    expect(page).to_have_url(re.compile(target + "$"))
+    expect(page.locator(target)).to_be_visible()
     context.close()
 
 
