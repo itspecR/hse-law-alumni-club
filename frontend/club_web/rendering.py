@@ -9,6 +9,7 @@ from club_web.formatting import (
     PRICE_PENDING,
     date,
     discount_label,
+    initials,
     local_datetime,
     media,
     open_cohorts,
@@ -57,6 +58,7 @@ def environment(**options):
         program_cohorts=open_cohorts,
         program_start=program_start,
         program_price=program_price,
+        initials=initials,
         price_or_pending=price_or_pending,
         rich_text=rich_text,
     )

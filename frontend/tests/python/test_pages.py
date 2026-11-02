@@ -10,6 +10,7 @@ from club_web import office
 from club_web.build import build_public
 from club_web.catalog import club_programs_preview, price_label
 from club_web.formatting import (
+    initials,
     local_datetime,
     lowest_price,
     payment_url,
@@ -28,7 +29,6 @@ from club_web.pages import (
     OFFICE_NAV,
     PUBLIC_PAGES,
     activity_chart,
-    initials,
     level_progress,
     ordered_achievements,
 )
@@ -725,6 +725,22 @@ async def portfolio_listing(items):
             transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
         ) as client:
             return (await client.get("/portfolio")).text
+
+
+async def test_portfolio_program_page_leads_with_facts_and_price():
+    page = await portfolio_page({**PORTFOLIO, "competencies": ["Подготовка позиции", "Ведение переговоров"]})
+    hero = page[page.index('class="site-masthead portfolio-hero"') : page.index('class="site-panel portfolio-buy"')]
+    assert '<p class="program-status program-status--open">Набор открыт · старт 1 декабря 2026</p>' in hero
+    for label, value in (("Формат", "Смешанный"), ("Начало", "1 декабря 2026"), ("Свободных мест", "17")):
+        assert f"<span>{label}</span></dt><dd>{value}</dd>" in hero
+    panel = page[page.index('class="site-panel portfolio-buy"') : page.index('class="portfolio-body"')]
+    assert '<p class="lux-price">45\u00a0000 ₽</p>' in panel and "Цена выпускника от&nbsp;36\u00a0000 ₽" in panel
+    assert page.count('class="portfolio-points__icon"') == 3 and "<li>Telegram-чат группы</li>" in page
+    assert '<span class="portfolio-trainer__initials" aria-hidden="true">АВ</span>' in page
+    assert page.index('class="portfolio-dock"') < page.index('id="application"')
+    closed = await portfolio_page({**PORTFOLIO, "enrollment": "nonactual", "price": 0})
+    assert "portfolio-dock" not in closed and 'id="application"' not in closed
+    assert '<p class="lux-price lux-price--pending">Стоимость уточняется</p>' in closed
 
 
 async def test_portfolio_cards_show_enrollment_facts_and_alumni_price():

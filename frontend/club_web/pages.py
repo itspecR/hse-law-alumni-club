@@ -9,7 +9,7 @@ from club_web.calendar import google_calendar, instant, month_view
 from club_web.catalog import UPCOMING_LIMIT, club_programs_preview, prepare_catalog
 from club_web.changes import parse_changes, select_changes
 from club_web.client import ApiFailure
-from club_web.formatting import lowest_price, page_items, rub, safe_url
+from club_web.formatting import initials, lowest_price, page_items, rub, safe_url
 from club_web.office import (
     CHOICES,
     CREATE_DEFAULTS,
@@ -36,7 +36,6 @@ HOME_EPISODES = 4
 HOME_CHANGES = 3
 ACHIEVEMENT_STRIP = 4
 FULL_PROGRESS = 100
-INITIALS = 2
 PUBLIC_PAGES = {
     "/": ("home.html", "Клуб выпускников факультета права"),
     "/tg": ("mini.html", "Клуб выпускников"),
@@ -216,10 +215,6 @@ def activity_chart(months):
     return [{**month, "share": round(FULL_PROGRESS * max(month.get("points") or 0, 0) / peak)} for month in months]
 
 
-def initials(fio):
-    return "".join(part[0] for part in (fio or "").split()[:INITIALS]).upper()
-
-
 def with_cabinet(data):
     with_achievements(data)
     me = data["me"]
@@ -360,6 +355,7 @@ async def context(api, path, params, authorized=False):
         await load("item", "/portfolio/" + quote(path.rsplit("/", 1)[1], safe=""), {})
         if data["item"]:
             data["title"] = data["item"]["title"]
+            data["item"] = with_member_from(data["item"], data["domain"]["levels"])
     elif path.startswith("/dpo/"):
         await load("item", "/programs/" + quote(path.rsplit("/", 1)[1], safe=""), {})
         data["redirect"] = program_redirect(data["item"])

@@ -1,18 +1,31 @@
 {% extends 'base.html' %}
-{% from 'macros.html' import save,field,course_modules %}
+{% from 'macros.html' import save,field,course_modules,icon,program_status,program_facts %}
 {% block content %}
 {% set cohorts = item|program_cohorts %}
+{% set price = item|program_price %}
 <main id="main" class="site-container program-page portfolio-program" data-reading-title="{{ item.title }}" data-reading-kind="portfolio">
 <a href="/portfolio" class="foc lux-back"><span aria-hidden="true">‹</span> Портфель программ</a>
-<header class="site-masthead">
+<div class="site-two-col portfolio-flow">
+<header class="site-masthead portfolio-hero{{ ' portfolio-hero--cover' if item.cover|media }}">
+<div class="portfolio-hero__text">
 {% if item.direction %}<span class="club-caps">{{ item.direction }}</span>{% endif %}
 <h1>{{ item.title }}</h1>
-</header>
-<div class="site-two-col">
-<div>
+{{ program_status(item) }}
+{{ program_facts(item) }}
+</div>
 {% if item.cover|media %}
-<img class="site-cover site-program-cover" src="{{ item.cover|media }}" alt="{{ item.title }}" width="900" height="600">
+<img class="site-cover site-program-cover portfolio-hero__cover" src="{{ item.cover|media }}" alt="{{ item.title }}" width="900" height="600">
 {% endif %}
+</header>
+<aside class="site-panel portfolio-buy">
+<h2>Стоимость</h2>
+<p class="lux-price{{ ' lux-price--pending' if price==price_pending }}">{{ price }}</p>
+{% if item.member_from %}<p class="portfolio-buy__member">{{ icon('discount',18) }}<span>Цена выпускника от&nbsp;{{ item.member_from }}</span></p>{% endif %}
+{% if item.enrollment=='nonactual' %}<p role="status">Набор закрыт</p>{% else %}<a href="#application" class="site-primary">Оставить заявку</a>{% endif %}
+{{ save(path,item.title,'portfolio') }}
+<p>Выпускникам после входа в кабинет действует скидка. Промокод вводится в заявке, из двух скидок применяется большая.</p>
+</aside>
+<div class="portfolio-body">
 {% if item.description %}
 <section>
 <h2>О программе</h2>
@@ -23,59 +36,48 @@
 {% if item.trainers %}
 <section>
 <h2>{{ 'Тренер' if item.trainers|length==1 else 'Тренеры' }}</h2>
-<div class="lux-teachers">
+<div class="lux-teachers portfolio-trainers">
 {% for trainer in item.trainers %}
-<article>
-{% if trainer.photo|media %}<img class="site-teacher-photo" src="{{ trainer.photo|media }}" alt="{{ trainer.fio }}" width="200" height="200" loading="lazy">{% endif %}
+<article class="portfolio-trainer">
+{% if trainer.photo|media %}<img class="site-teacher-photo" src="{{ trainer.photo|media }}" alt="{{ trainer.fio }}" width="200" height="200" loading="lazy">{% else %}<span class="portfolio-trainer__initials" aria-hidden="true">{{ trainer.fio|initials }}</span>{% endif %}
+<div>
 <h3>{{ trainer.fio }}</h3>
 {% if trainer.bio %}<p>{{ trainer.bio }}</p>{% endif %}
+</div>
 </article>
 {% endfor %}
 </div>
 </section>
 {% endif %}
-{% for key,label in [('audience','Для кого'),('competencies','Компетенции'),('communication','Коммуникация')] %}
+{% for key,label,mark in [('audience','Для кого','profile'),('competencies','Компетенции','check')] %}
 {% if item[key] %}
 <section>
 <h2>{{ label }}</h2>
-<ul>
+<ul class="portfolio-points">
 {% for text in item[key] %}
-<li>{{ text }}</li>
+<li>{{ icon(mark,20,'portfolio-points__icon') }}<span>{{ text }}</span></li>
 {% endfor %}
 </ul>
 </section>
 {% endif %}
 {% endfor %}
+{% if item.communication %}
+<section>
+<h2>Коммуникация</h2>
+<ul class="portfolio-chips">
+{% for text in item.communication %}
+<li>{{ text }}</li>
+{% endfor %}
+</ul>
+</section>
+{% endif %}
 </div>
-<aside class="site-panel">
-<h2>Обучение</h2>
-<dl>
-<dt>Формат</dt>
-<dd>{{ (format_labels.get(item.format,item.format) or '')|capitalize }}</dd>
-<dt>Продолжительность</dt>
-<dd>{{ item.duration }}</dd>
-{% if cohorts|length>1 %}
-<dt>Потоки</dt>
-<dd>{{ cohorts|map(attribute='starts_on')|map('date')|join(', ') }}</dd>
-{% else %}
-<dt>Начало</dt>
-<dd>{{ (item|program_start or 'По мере набора')|date }}</dd>
+{% if item.enrollment!='nonactual' %}
+<div class="portfolio-dock">
+<p><span>{{ price }}</span>{% if item.member_from %}<small>выпускникам от&nbsp;{{ item.member_from }}</small>{% endif %}</p>
+<a href="#application" class="site-primary">Оставить заявку</a>
+</div>
 {% endif %}
-<dt>Документ</dt>
-<dd>{{ item.document }}</dd>
-{% if item.capacity and not cohorts %}
-<dt>Мест в группе</dt>
-<dd>{{ item.capacity }}</dd>
-<dt>Свободных мест</dt>
-<dd>{{ item.seats_left }}</dd>
-{% endif %}
-<dt>Стоимость</dt>
-<dd class="lux-price">{{ item|program_price }}</dd>
-</dl>
-{% if item.enrollment=='nonactual' %}<p role="status">Набор закрыт</p>{% else %}<a href="#application" class="site-primary">Оставить заявку</a>{% endif %}
-{{ save(path,item.title,'portfolio') }}
-<p>Выпускникам после входа в кабинет действует скидка. Промокод вводится в заявке, из двух скидок применяется большая.</p>
-</aside>
 </div>
 {% if item.enrollment!='nonactual' %}
 <section id="application" class="site-panel portfolio-application" aria-labelledby="application-title">
