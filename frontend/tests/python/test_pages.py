@@ -18,9 +18,9 @@ from club_web.formatting import (
     rub,
     safe_url,
 )
+from club_web.icons import ICONS
 from club_web.main import create_app
 from club_web.office import filter_content
-from club_web.icons import ICONS
 from club_web.pages import ACHIEVEMENT_STRIP, NAV, OFFICE_NAV, PUBLIC_PAGES, ordered_achievements
 from club_web.views import PUBLIC
 
