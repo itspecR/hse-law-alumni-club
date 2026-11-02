@@ -103,3 +103,6 @@
 </p>
 </form>
 {% endmacro %}
+{% macro icon(name,size=20,cls='site-icon') %}
+<svg class="{{ cls }}" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ icons.get(name,'') }}"/></svg>
+{% endmacro %}
