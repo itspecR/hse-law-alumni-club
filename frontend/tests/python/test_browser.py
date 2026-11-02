@@ -1750,6 +1750,17 @@ def test_program_panel_actions_have_gap(page, site, width):
     expect(panel).to_have_css("position", "sticky" if width > 900 else "static")
 
 
+@pytest.mark.parametrize("width", [320, 360, 390])
+def test_program_facts_fit_their_tiles(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/portfolio/" + PORTFOLIO["slug"])
+    crowded = page.locator(".portfolio-hero .program-facts > div").evaluate_all(
+        "tiles => tiles.filter(tile => [...tile.children].some(part => part.getBoundingClientRect().right"
+        " > tile.getBoundingClientRect().right - parseFloat(getComputedStyle(tile).paddingRight) + .5)).length"
+    )
+    assert crowded == 0
+
+
 def test_program_dock_is_only_for_phone(page):
     page.goto("/portfolio/" + PORTFOLIO["slug"])
     expect(page.locator(".portfolio-dock")).to_be_hidden()
