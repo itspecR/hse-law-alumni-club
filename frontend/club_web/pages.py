@@ -9,8 +9,7 @@ from club_web.calendar import google_calendar, instant, month_view
 from club_web.catalog import UPCOMING_LIMIT, club_programs_preview, prepare_catalog
 from club_web.changes import parse_changes, select_changes
 from club_web.client import ApiFailure
-from club_web.formatting import page_items, rub, safe_url
-from club_web.icons import ICONS
+from club_web.formatting import lowest_price, page_items, rub, safe_url
 from club_web.office import (
     CHOICES,
     CREATE_DEFAULTS,
@@ -162,9 +161,10 @@ def with_member_prices(program, levels):
 
 
 def with_member_from(program, levels):
-    if not program.get("price"):
+    price = lowest_price(program)
+    if not price:
         return program
-    return {**program, "member_from": rub(min(row["price"] for row in member_prices(program["price"], levels)))}
+    return {**program, "member_from": rub(min(row["price"] for row in member_prices(price, levels)))}
 
 
 def program_redirect(item):
@@ -267,7 +267,6 @@ async def context(api, path, params, authorized=False):
         "office_nav": OFFICE_NAV,
         "office_groups": GROUPS,
         "office_descriptions": DESCRIPTIONS,
-        "icons": ICONS,
         "office_fields": FIELDS,
         "office_choices": CHOICES,
         "office_single": SINGLE_CHOICES,
@@ -322,7 +321,10 @@ async def context(api, path, params, authorized=False):
             key=lambda item: instant(item["starts_at"]),
         )[:2]
         data.update(home_programs(data["programs"], data["domain"]["levels"]))
-        data["club_programs"] = club_programs_preview(page_items(data["portfolio"]))
+        data["club_programs"] = [
+            with_member_from(item, data["domain"]["levels"])
+            for item in club_programs_preview(page_items(data["portfolio"]))
+        ]
         data["episodes"] = page_items(data["podcasts"])[:HOME_EPISODES]
         data["recent_changes"] = recent_changes() if features.CHANGES_ENABLED else []
     elif path in ("/dpo", "/merch"):
@@ -353,6 +355,7 @@ async def context(api, path, params, authorized=False):
             await load("me", "/me", {})
     elif path == "/portfolio":
         await load("items", "/portfolio", [])
+        data["items"] = [with_member_from(item, data["domain"]["levels"]) for item in data["items"]]
     elif path.startswith("/portfolio/"):
         await load("item", "/portfolio/" + quote(path.rsplit("/", 1)[1], safe=""), {})
         if data["item"]:

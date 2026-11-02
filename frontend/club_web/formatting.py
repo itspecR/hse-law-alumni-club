@@ -55,12 +55,19 @@ def price_or_pending(value):
     return rub(value) if value else PRICE_PENDING
 
 
+def program_prices(item):
+    return sorted({cohort.get("price") or 0 for cohort in open_cohorts(item)}) or [item.get("price") or 0]
+
+
+def lowest_price(item):
+    return next((price for price in program_prices(item) if price), 0)
+
+
 def program_price(item):
-    prices = sorted({cohort.get("price") or 0 for cohort in open_cohorts(item)}) or [item.get("price") or 0]
-    paid = [price for price in prices if price]
-    if not paid:
+    lowest = lowest_price(item)
+    if not lowest:
         return PRICE_PENDING
-    return ("от " if len(prices) > 1 else "") + rub(paid[0])
+    return ("от " if len(program_prices(item)) > 1 else "") + rub(lowest)
 
 
 def discount_label(order, automatic=False):
