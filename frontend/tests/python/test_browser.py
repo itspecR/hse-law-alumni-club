@@ -1750,6 +1750,35 @@ def test_program_panel_actions_have_gap(page, site, width):
     expect(panel).to_have_css("position", "sticky" if width > 900 else "static")
 
 
+@pytest.mark.parametrize("width", [320, 360, 390])
+def test_program_facts_fit_their_tiles(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/portfolio/" + PORTFOLIO["slug"])
+    crowded = page.locator(".portfolio-hero .program-facts > div").evaluate_all(
+        "tiles => tiles.filter(tile => [...tile.children].some(part => part.getBoundingClientRect().right"
+        " > tile.getBoundingClientRect().right - parseFloat(getComputedStyle(tile).paddingRight) + .5)).length"
+    )
+    assert crowded == 0
+
+
+def test_program_dock_is_only_for_phone(page):
+    page.goto("/portfolio/" + PORTFOLIO["slug"])
+    expect(page.locator(".portfolio-dock")).to_be_hidden()
+
+
+def test_program_dock_keeps_application_in_reach_on_phone(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto("/portfolio/" + PORTFOLIO["slug"])
+    dock = page.locator(".portfolio-dock")
+    tabs = page.locator(".mobile-tabs").bounding_box()
+    expect(dock.get_by_role("link", name="Оставить заявку", exact=True)).to_be_visible()
+    assert abs(dock.bounding_box()["y"] + dock.bounding_box()["height"] - tabs["y"]) < 1
+    page.locator("#application").scroll_into_view_if_needed()
+    page.evaluate("window.scrollBy(0, -200)")
+    application = page.locator("#application").bounding_box()
+    assert dock.bounding_box()["y"] + dock.bounding_box()["height"] <= application["y"]
+
+
 def test_pwa_column_uses_phone_gutter(page):
     page.set_viewport_size({"width": 1440, "height": 900})
     page.goto("/tg?pwa=1")
@@ -2686,7 +2715,7 @@ def test_portfolio_pages_fit_and_save_to_reading_list(page, width):
     card.get_by_role("link", name="Подробнее о программе «" + PORTFOLIO["title"] + "»").click()
     expect(page.get_by_role("heading", name=PORTFOLIO["title"], level=1)).to_be_visible()
     expect(page.get_by_role("heading", name="Тренер", exact=True)).to_be_visible()
-    expect(page.locator("aside.site-panel")).to_contain_text("Мест в группе")
+    expect(page.locator(".portfolio-hero")).to_contain_text("Мест в группе")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     page.wait_for_load_state("load")
     page.locator("aside.site-panel").get_by_role("button", name="Сохранить", exact=True).click()
@@ -2751,10 +2780,10 @@ def test_portfolio_application_goes_to_chosen_cohort(page, site, width):
     expect(card).to_contain_text("1 декабря 2026")
     expect(card.locator(".site-price")).to_have_text("от 39\u00a0000 ₽")
     page.goto("/portfolio/club-one")
-    panel = page.locator("aside.site-panel")
-    expect(panel).to_contain_text(re.compile(r"Потоки\s*1 декабря 2026, 1 февраля 2027"))
-    expect(panel.locator(".lux-price")).to_have_text("от 39\u00a0000 ₽")
-    expect(panel).not_to_contain_text("Мест в группе")
+    facts = page.locator(".portfolio-hero .program-facts")
+    expect(facts).to_contain_text(re.compile(r"Потоки\s*1 декабря 2026, 1 февраля 2027"))
+    expect(page.locator("aside.site-panel .lux-price")).to_have_text("от 39\u00a0000 ₽")
+    expect(facts).not_to_contain_text("Мест в группе")
     form = page.locator("form[data-application]")
     cohorts = form.get_by_role("group", name="Поток")
     expect(cohorts.get_by_role("radio")).to_have_count(2)

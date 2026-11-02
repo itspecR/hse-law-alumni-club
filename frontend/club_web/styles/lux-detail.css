@@ -54,3 +54,57 @@ html.lux .portfolio-application .site-consent input { flex: none; width: 20px; h
 html.lux .portfolio-application form > .site-primary { margin-top: 8px; }
 html.lux .portfolio-receipt { padding: 20px 0 0; }
 html.lux .portfolio-receipt h3 { margin: 0 0 8px; font: 500 20px/1.3 var(--f-body); }
+html.lux .portfolio-hero { display: grid; row-gap: clamp(28px, 4cqi, 56px); align-items: end; }
+html.lux .portfolio-hero--cover { grid-template-columns: subgrid; }
+html.lux .portfolio-hero h1 { margin-bottom: 20px; }
+html.lux .portfolio-hero p.program-status { max-width: none; margin: 0; font-size: 15px; letter-spacing: 0; color: var(--c-text-3); }
+html.lux .portfolio-hero p.program-status--open { color: var(--c-ok-text); }
+html.lux .portfolio-hero .program-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; margin-top: 28px; }
+html.lux .portfolio-hero .program-facts > div { flex-direction: column; align-items: flex-start; gap: 6px; padding: 16px 18px; border-radius: var(--r-lg); background: var(--c-bg-raised); }
+html.lux .portfolio-hero .program-facts dt { font-size: 13px; color: var(--c-text-3); }
+html.lux .portfolio-hero .program-facts dd { font-size: 17px; line-height: 1.3; }
+html.lux .portfolio-program { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); column-gap: clamp(32px, 4cqi, 64px); align-items: start; }
+html.lux .portfolio-program > .portfolio-flow { display: contents; }
+html.lux .portfolio-program > .lux-back { grid-column: 1 / -1; grid-row: 1; justify-self: start; }
+html.lux .portfolio-flow > .portfolio-hero { grid-column: 1 / -1; grid-row: 2; padding-top: clamp(24px, 3cqi, 40px); }
+html.lux .portfolio-flow > .portfolio-body { grid-column: 1; grid-row: 3; }
+html.lux .portfolio-flow > .portfolio-buy { grid-column: 2; grid-row: 3 / span 2; }
+html.lux .portfolio-program > .portfolio-application { grid-column: 1; grid-row: 4; margin: clamp(40px, 5cqi, 64px) 0 0; }
+html.lux .portfolio-program .portfolio-flow > .portfolio-body > section:first-child { margin-top: 0; }
+html.lux .portfolio-program .portfolio-flow > aside.site-panel.portfolio-buy h2 { margin: 0 0 6px; font: 400 14px/1.3 var(--f-body); letter-spacing: 0; color: var(--c-text-3); }
+html.lux .portfolio-buy .lux-price { margin: 0; }
+html.lux .portfolio-program .portfolio-flow > aside.site-panel.portfolio-buy .lux-price--pending { font-size: 22px; color: var(--c-text-2); }
+html.lux .portfolio-buy__member { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 15px; color: var(--c-accent-text); }
+html.lux .portfolio-buy__member svg { flex: none; }
+html.lux .portfolio-buy > :is(.site-primary, [role=status]) { margin-top: 24px; }
+html.lux .portfolio-program .portfolio-flow > .portfolio-body > section > ul.portfolio-points { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+html.lux .portfolio-program .portfolio-flow > .portfolio-body > section > ul.portfolio-points > li { display: flex; align-items: flex-start; gap: 12px; padding: 16px 18px; border: 0; border-radius: var(--r-lg); background: var(--c-bg-raised); font-size: 16px; line-height: 1.45; }
+html.lux .portfolio-points__icon { flex: none; margin-top: 1px; color: var(--c-accent-text); }
+html.lux .portfolio-program .portfolio-flow > .portfolio-body > section > ul.portfolio-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+html.lux .portfolio-program .portfolio-flow > .portfolio-body > section > ul.portfolio-chips > li { padding: 8px 14px; border: 1px solid var(--c-line-strong); border-radius: 999px; font-size: 15px; line-height: 1.3; }
+html.lux .portfolio-trainers { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+html.lux .portfolio-trainers > .portfolio-trainer { grid-template-columns: 72px minmax(0, 1fr); align-items: start; gap: 16px; padding: 18px; border-radius: var(--r-lg); background: var(--c-bg-raised); }
+html.lux .portfolio-trainer > .site-teacher-photo { max-width: 72px; max-height: 96px; margin: 0; border-radius: 12px; }
+html.lux .portfolio-trainer__initials { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: var(--lux-control); font: 500 22px/1 var(--f-body); }
+html.lux .portfolio-trainer > div { display: grid; gap: 6px; }
+html.lux .portfolio-dock { display: none; }
+@media (max-width: 900px) {
+  html.lux .portfolio-hero--cover { grid-template-columns: minmax(0, 1fr); }
+  html.lux .portfolio-program { display: block; }
+  html.lux .portfolio-program > .portfolio-flow { display: block; margin-bottom: 0; }
+  html.lux .portfolio-flow > .portfolio-buy { margin: 8px 0 clamp(40px, 5cqi, 64px); }
+  html.lux .portfolio-program > .portfolio-application { margin-top: 24px; }
+  html.lux .portfolio-dock { position: sticky; bottom: var(--tabs-h, 0px); z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 40px calc(-1 * var(--page-gutter)) 0; padding: 12px var(--page-gutter); border-top: 1px solid var(--c-line); background: color-mix(in srgb, var(--c-bg) 90%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+  html.lux .portfolio-dock p { display: grid; gap: 2px; margin: 0; font-size: 19px; font-variant-numeric: tabular-nums; }
+  html.lux .portfolio-dock small { font-size: 13px; color: var(--c-accent-text); }
+  html.lux .portfolio-dock .site-primary { flex: none; min-height: 48px; }
+}
+@media (max-width: 640px) {
+  html.lux .portfolio-hero .program-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  html.lux .portfolio-hero .program-facts > div { padding: 14px; }
+  html.lux .portfolio-hero .program-facts dd { font-size: 16px; }
+  html.lux .portfolio-hero .program-facts dt { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+@media (max-width: 359px) {
+  html.lux .portfolio-hero .program-facts { grid-template-columns: minmax(0, 1fr); }
+}

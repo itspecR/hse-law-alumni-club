@@ -40,9 +40,15 @@
 <div><dt>{{ icon(name,18,'program-facts__icon') }}<span{% if brief %} class="lux-sr"{% endif %}>{{ label }}</span></dt><dd>{{ value }}</dd></div>
 {% endmacro %}
 {% macro program_facts(item,brief=false) %}
+{% set cohorts = item|program_cohorts %}
 <dl class="program-facts{{ ' program-facts--brief' if brief }}">
 {% if item.format %}{{ program_fact('place','Формат',(format_labels.get(item.format,item.format))|capitalize,brief) }}{% endif %}
 {% if item.duration %}{{ program_fact('clock','Продолжительность',item.duration,brief) }}{% endif %}
+{% if not brief %}
+{% if cohorts|length>1 %}{{ program_fact('events','Потоки',cohorts|map(attribute='starts_on')|map('date')|join(', '),brief) }}{% else %}{{ program_fact('events','Начало',(item|program_start or 'По мере набора')|date,brief) }}{% endif %}
+{% if item.document %}{{ program_fact('document','Документ',item.document,brief) }}{% endif %}
+{% if item.capacity and not cohorts %}{{ program_fact('members','Мест в группе',item.capacity,brief) }}{{ program_fact('invite','Свободных мест',item.seats_left,brief) }}{% endif %}
+{% endif %}
 </dl>
 {% endmacro %}
 {% macro program_card(item,heading='h2') %}

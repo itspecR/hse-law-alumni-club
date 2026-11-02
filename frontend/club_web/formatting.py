@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 MOSCOW = ZoneInfo("Europe/Moscow")
 PRICE_PENDING = "Стоимость уточняется"
+INITIALS = 2
 MONTHS = (
     "января",
     "февраля",
@@ -68,6 +69,10 @@ def program_price(item):
     if not lowest:
         return PRICE_PENDING
     return ("от " if len(program_prices(item)) > 1 else "") + rub(lowest)
+
+
+def initials(fio):
+    return "".join(part[0] for part in (fio or "").split()[:INITIALS]).upper()
 
 
 def discount_label(order, automatic=False):
