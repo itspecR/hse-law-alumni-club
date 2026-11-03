@@ -1,4 +1,3 @@
-import json
 from datetime import UTC, datetime, timedelta
 
 from playwright.sync_api import expect
@@ -179,14 +178,8 @@ def profile_tools(page, request, headers, image):
     form.locator('[name="interests"]').first.uncheck()
     submit(page, form, "/me/profile", "PATCH")
     assert request.get("/api/me", headers=headers).json()["alumni"]["interests"] == []
-    with page.expect_download() as downloaded:
-        page.get_by_role("button", name="Скачать мои данные", exact=True).click()
-    exported = json.loads(downloaded.value.path().read_text())
-    assert exported["profile"]["fio"] and "password" not in json.dumps(exported)
-    with page.expect_response(lambda response: response.url.endswith("/api/me/tg-link")) as link:
-        page.get_by_role("button", name="Подключить Telegram", exact=True).click()
-    assert link.value.status == 503
-    expect(page.locator("#toast")).to_contain_text("Подключение Telegram пока недоступно")
+    expect(page.get_by_role("button", name="Скачать мои данные", exact=True)).to_have_count(0)
+    expect(page.get_by_role("heading", name="Telegram", exact=True)).to_have_count(0)
 
 
 def office_exports(office):

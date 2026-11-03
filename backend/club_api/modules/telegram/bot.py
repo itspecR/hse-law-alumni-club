@@ -97,19 +97,15 @@ class Telegram:
                         ),
                     ]
                 )
-                if not await self.alumni(telegram_id):
-                    lines.append(
-                        "Чтобы /points показывал ваши данные, нажмите «Подключить Telegram» в профиле на сайте клуба."
-                    )
             lines.extend(["", "🌐 " + self.link("/", "Сайт клуба")])
             return "\n".join(lines)
         if command == "/points":
             alumni = await self.alumni(telegram_id)
             if not alumni:
                 return (
-                    "🔒 <b>Telegram не подключен</b>\n\nОткройте "
-                    + self.link("/lk/profile", "профиль")
-                    + " и нажмите «Подключить Telegram». После этого /points покажет баллы, уровень и скидку."
+                    "🔒 <b>Telegram не подключен</b>\n\nБаллы, уровень и скидка видны в "
+                    + self.link("/lk", "личном кабинете")
+                    + " на сайте клуба."
                 )
             name = html.escape(alumni["fio"] or "Выпускник")
             if alumni["verification_status"] != "verified":

@@ -31,13 +31,7 @@
 </form>
 {% endif %}
 <section>
-<h2>Telegram</h2>
-<p>{{ 'Telegram подключен.' if me.alumni.telegram_linked else 'Подключите Telegram, чтобы входить в мини-приложение клуба.' }}</p>
-<button data-api="/me/tg-link" data-method="GET">{{ 'Проверить подключение' if me.alumni.telegram_linked else 'Подключить Telegram' }}</button>
-</section>
-<section>
 <h2>Ваши данные</h2>
-<button data-download="/me/export" data-filename="club-profile.json">Скачать мои данные</button>
 <details>
 <summary>Удалить профиль</summary>
 <p>Данные профиля будут обезличены, доступ к кабинету и скидке выпускника закроется.</p>

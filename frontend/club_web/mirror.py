@@ -38,7 +38,6 @@ def snapshot(data):
             "contacts": alumni.get("contacts_json") or {},
             "interests": alumni.get("interests_json") or [],
             "referral_code": "DEMO",
-            "telegram_linked": False,
         },
         "level": {"level_title": "Участник", "points": alumni.get("points_cached", 0), "discount": 5},
         "achievements": [],

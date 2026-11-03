@@ -29,7 +29,7 @@ async def test_private_bot_profile_uses_current_account_access(active):
     assert ("Вымышленный участник" in result) is active
     assert ("15%" in result) is active
     assert ("До уровня «Друг клуба» осталось баллов: 77" in result) is active
-    assert ("«Подключить Telegram»" in result and "/lk/profile" in result) is not active
+    assert ("личном кабинете" in result and "Подключить Telegram" not in result) is not active
 
 
 @pytest.mark.parametrize("active", [True, False])
