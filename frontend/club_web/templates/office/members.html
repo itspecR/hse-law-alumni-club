@@ -10,6 +10,21 @@
 </label>
 <button>Показать</button>
 </form>
+{% if point_history %}
+<section class="site-panel office-history" aria-labelledby="point-history-title">
+<div class="office-record-head">
+<h2 id="point-history-title">История баллов: {{ point_history.fio }}</h2>
+<a href="/admin/members">Закрыть</a>
+</div>
+<p class="office-meta">Сейчас {{ point_history.points }} баллов. Показаны последние записи, не больше 100.</p>
+<ul class="office-ledger">
+{% for entry in point_history['items'] %}
+{% set label = reason_labels.get(entry.reason, entry.reason) %}
+<li><span class="office-meta">{{ entry.created_at|date(true) }} · {{ label }}</span><span>{{ entry.comment if entry.comment and entry.comment != label else '' }}</span><strong>{{ '+' if entry.delta > 0 else '' }}{{ entry.delta }}</strong></li>
+{% else %}<li>Записей пока нет.</li>{% endfor %}
+</ul>
+</section>
+{% endif %}
 <div class="office-toolbar"><p>Выпускников на странице: {{ rows|length }}</p></div>
 {% if point_programs %}<template id="point-programs">{% for label, programs in point_programs %}{% if programs %}<optgroup label="{{ label }}">{% for program in programs %}<option value="{{ program.id }}">{{ program.title }}</option>{% endfor %}</optgroup>{% endif %}{% endfor %}</template>{% endif %}
 <div class="office-list">
@@ -19,7 +34,7 @@
 <h2>{{ member.fio }}</h2>
 {{ status(member.verification_status) }}</div>
 <p class="office-meta">{{ member.email or '' }} · {{ member.cohort }} · {{ member.edu_program or '' }}</p>
-<p>{{ member.points_cached }} баллов</p>
+<p>{{ member.points_cached }} баллов{% if role in ('admin','Administrator') %} · <a href="/admin/members?id={{ member.id }}">История баллов</a>{% endif %}</p>
 {% if role in ('admin','Administrator') %}
 <form class="office-edit-grid" data-api="/admin/members/{{ member.id }}" data-method="PATCH">
 <label>Проверка<select aria-label="Проверка" name="verification_status">

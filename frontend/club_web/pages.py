@@ -288,6 +288,7 @@ async def context(api, path, params, authorized=False):
     data["reason_labels"] = {
         **{rule["reason"]: rule["description"] for rule in data["domain"]["point_rules"]},
         "manual": "Начисление клуба",
+        "decay": "Списание за неактивность",
     }
     data["point_values"] = {rule["reason"]: rule["points"] for rule in data["domain"]["point_rules"]}
 
@@ -530,6 +531,8 @@ async def context(api, path, params, authorized=False):
                     data["office_cohorts"] = cohort_options(page_items(await load("cohorts", "/admin/cohorts", [])))
                 if params.get("id") and section == "events":
                     await load("roster", "/admin/events/" + quote(params["id"], safe="") + "/rsvps", [])
+                if params.get("id") and section == "members" and data["role"] in FULL_ADMIN_ROLES:
+                    await load("point_history", "/admin/members/" + quote(params["id"], safe="") + "/points", {})
                 data["rows"] = section_records(section, page_items(data.get("records")), data["office_names"])
                 if section in FIELDS:
                     data["office_total"] = len(data["rows"])

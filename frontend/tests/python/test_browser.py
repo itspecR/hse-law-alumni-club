@@ -1790,6 +1790,36 @@ def test_member_points_reason_switches_fields_and_sends_program(page, site, widt
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
+@pytest.mark.parametrize("width", [390, 1440])
+def test_member_point_history_fits_and_closes(page, site, width):
+    member = {"id": "member-1", "fio": "Вымышленный Выпускник", "verification_status": "verified", "points_cached": 150}
+    site[1]["/admin/members"] = {"items": [member], "total": 1}
+    site[1]["/admin/members/member-1/points"] = {
+        "id": "member-1",
+        "fio": member["fio"],
+        "points": 150,
+        "items": [
+            {
+                "id": "a",
+                "delta": 120,
+                "reason": "mentorship",
+                "comment": "Наставничество: " + "очень длинный поток " * 6,
+            },
+            {"id": "b", "delta": 30, "reason": "manual", "comment": "Начисление клуба"},
+        ],
+    }
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/members")
+    page.get_by_role("link", name="История баллов", exact=True).click()
+    history = page.locator(".office-history")
+    expect(history.get_by_role("heading", name="История баллов: Вымышленный Выпускник")).to_be_visible()
+    expect(history.locator(".office-ledger li")).to_have_count(2)
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    history.get_by_role("link", name="Закрыть", exact=True).click()
+    expect(page.locator(".office-history")).to_have_count(0)
+
+
 def test_program_dock_is_only_for_phone(page):
     page.goto("/portfolio/" + PORTFOLIO["slug"])
     expect(page.locator(".portfolio-dock")).to_be_hidden()
