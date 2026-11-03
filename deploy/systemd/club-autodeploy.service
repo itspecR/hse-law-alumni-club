@@ -10,5 +10,5 @@ User=root
 WorkingDirectory=/opt/club
 EnvironmentFile=-/etc/club/autodeploy.env
 ExecStart=/usr/bin/python3 /opt/club/scripts/lib/autodeploy.py
-UMask=0077
+UMask=0022
 TimeoutStartSec=60min

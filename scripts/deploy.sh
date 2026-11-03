@@ -3,6 +3,7 @@ set -euo pipefail
 DEFAULT_BRANCH=main
 INSTALLED_ENV_FILE=/etc/club/compose.env
 CURRENT=--current
+CHECKOUT_UMASK=022
 script="$(realpath "${BASH_SOURCE[0]}")"
 repo="$(dirname "$(dirname "$script")")"
 
@@ -21,8 +22,11 @@ use_installed_config() {
 }
 
 switch_to() {
-  git -C "$repo" checkout -q -f --detach "$1"
-  git -C "$repo" clean -fdq
+  (
+    umask "$CHECKOUT_UMASK"
+    git -C "$repo" checkout -q -f --detach "$1"
+    git -C "$repo" clean -fdq
+  )
 }
 
 pinned_target() {

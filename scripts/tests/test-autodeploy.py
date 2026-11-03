@@ -173,5 +173,11 @@ class Cycle(unittest.TestCase):
         self.assertEqual(self.deployments, [self.target])
 
 
+class Unit(unittest.TestCase):
+    def test_service_keeps_checked_out_files_readable(self):
+        unit = pathlib.Path(__file__).resolve().parents[2] / "deploy/systemd/club-autodeploy.service"
+        self.assertIn("UMask=0022", unit.read_text().splitlines())
+
+
 if __name__ == "__main__":
     unittest.main()

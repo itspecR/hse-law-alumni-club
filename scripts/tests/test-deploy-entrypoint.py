@@ -25,13 +25,14 @@ def git(directory, *args):
     ).stdout.strip()
 
 
-def run(directory, *args, **extra):
+def run(directory, *args, umask=0o022, **extra):
     return subprocess.run(
         ["bash", str(directory / DEPLOY), *args],
         cwd=directory,
         capture_output=True,
         text=True,
         env={"PATH": os.environ["PATH"], **extra},
+        umask=umask,
     )
 
 
@@ -116,6 +117,12 @@ class DeployBranches(unittest.TestCase):
                 self.assertIn("не входит в ветку main", result.stderr)
                 self.assertEqual(git(self.work, "rev-parse", "HEAD"), self.main)
                 self.assertEqual(self.deployed(), [])
+
+    def test_checkout_stays_readable_under_private_umask(self):
+        result = run(self.work, "good", umask=0o077)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        mode = (self.work / "scripts/lib/mariadb_native.py").stat().st_mode & 0o777
+        self.assertEqual(mode, 0o644)
 
     def test_current_deploys_checkout_without_fetching(self):
         git(self.work, "checkout", "-q", "--detach", "origin/good")
