@@ -1415,6 +1415,56 @@ def test_home_member_price_follows_selected_level(page, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
+def header_page(chromium, site, viewport, script=""):
+    context = chromium.new_context(base_url=site[0], viewport=viewport, reduced_motion="reduce")
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');" + script)
+    page = context.new_page()
+    page.goto("/news")
+    expect(page.locator(".club-header__cta")).to_have_attribute("data-guest-label", "Вступить")
+    return context, page
+
+
+def test_join_button_reveals_login_on_hover_and_focus(chromium, site):
+    context, page = header_page(chromium, site, {"width": 1440, "height": 900})
+    join, login = page.locator(".club-header__cta"), page.locator(".club-header__login")
+    expect(login).to_be_hidden()
+    join.hover()
+    expect(login).to_be_visible()
+    expect(login).to_have_text("Войти")
+    expect(login).to_have_attribute("href", "/lk")
+    under, over = login.bounding_box(), join.bounding_box()
+    assert (
+        under["y"] >= over["y"] + over["height"] and abs(under["x"] + under["width"] - over["x"] - over["width"]) <= 1
+    )
+    page.mouse.move(over["x"] + over["width"] / 2, (over["y"] + over["height"] + under["y"]) / 2)
+    login.hover()
+    expect(login).to_be_visible()
+    page.mouse.move(10, 400)
+    expect(login).to_be_hidden()
+    join.focus()
+    expect(login).to_be_visible()
+    page.keyboard.press("Tab")
+    expect(login).to_be_focused()
+    page.keyboard.press("Enter")
+    expect(page).to_have_url(re.compile("/lk$"))
+    context.close()
+
+
+def test_login_link_waits_in_phone_menu_and_hides_for_members(chromium, site):
+    context, page = header_page(chromium, site, {"width": 390, "height": 844})
+    page.locator(".club-header__burger").click()
+    expect(page.locator("#club-menu").get_by_role("link", name="Войти", exact=True)).to_be_visible()
+    context.close()
+    context, page = header_page(
+        chromium, site, {"width": 1440, "height": 900}, "localStorage.setItem('club_token','member-qa');"
+    )
+    expect(page.locator(".club-header__cta")).to_have_text("Кабинет")
+    page.locator(".club-header__cta").hover()
+    expect(page.locator(".club-header__login")).to_be_hidden()
+    expect(page.locator("#club-menu [data-guest-only]")).to_be_hidden()
+    context.close()
+
+
 def test_hero_progress_reaches_only_its_readers(chromium, site):
     context = chromium.new_context(
         base_url=site[0], viewport={"width": 1440, "height": 900}, reduced_motion="no-preference"
