@@ -1820,6 +1820,27 @@ def test_member_point_history_fits_and_closes(page, site, width):
     expect(page.locator(".office-history")).to_have_count(0)
 
 
+@pytest.mark.parametrize("width", [390, 1440])
+def test_event_roster_undoes_attendance_after_confirmation(page, site, width):
+    site[1]["/admin/events"] = [{**EVENT, "id": "event-1"}]
+    site[1]["/admin/events/event-1/rsvps"] = [
+        {"id": "rsvp-1", "event_id": "event-1", "alumni_id": "a-1", "fio": "Отмеченный Выпускник", "attended": True},
+        {"id": "rsvp-2", "event_id": "event-1", "alumni_id": "a-2", "fio": "Новый Выпускник", "attended": False},
+    ]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/events?id=event-1")
+    roster = page.locator("section.site-panel").filter(has_text="Участники события")
+    expect(roster.get_by_role("button", name="Отметить участие", exact=True)).to_have_count(1)
+    dialogs = []
+    page.on("dialog", lambda dialog: (dialogs.append(dialog.message), dialog.accept()))
+    with page.expect_response(lambda response: response.url.endswith("/api/admin/events/rsvp/rsvp-1/unattend")):
+        roster.get_by_role("button", name="Снять отметку", exact=True).click()
+    assert dialogs == ["Снять отметку участия? Баллы за событие будут списаны."]
+    assert any(row["path"] == "/admin/events/rsvp/rsvp-1/unattend" for row in site[2])
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
 def test_program_dock_is_only_for_phone(page):
     page.goto("/portfolio/" + PORTFOLIO["slug"])
     expect(page.locator(".portfolio-dock")).to_be_hidden()

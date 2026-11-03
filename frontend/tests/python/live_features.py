@@ -271,7 +271,7 @@ def order_form(office, order_id):
     expect(office.locator(f'form[data-api="/admin/orders/{order_id}"] [name="status"]')).to_have_value("in_progress")
 
 
-def event_actions(page, office, event_id):
+def event_signup(page, event_id):
     page.goto("/events/" + event_id)
     button = page.get_by_role("button", name="Записаться", exact=True)
     with page.expect_response(lambda response: response.url.endswith(f"/api/events/{event_id}/rsvp")) as registered:
@@ -285,6 +285,9 @@ def event_actions(page, office, event_id):
     with page.expect_response(lambda response: response.url.endswith(f"/api/events/{event_id}/rsvp")):
         page.get_by_role("button", name="Записаться", exact=True).click()
     expect(page.get_by_role("button", name="Отменить запись", exact=True)).to_be_visible()
+
+
+def event_attendance(office, event_id):
     office.goto("/admin/events?id=" + event_id)
     with office.expect_response(
         lambda response: "/api/admin/events/rsvp/" in response.url and response.url.endswith("/attend")

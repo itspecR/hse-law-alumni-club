@@ -5,6 +5,14 @@ from club_api.db.queries import Query, acquire_lock
 from club_api.domain import ACHIEVEMENTS, DOMAIN, LEVELS, compute_level
 
 logger = logging.getLogger("club.points")
+EVENT_UNDO = "event_undo"
+REVOCABLE_TYPES = ("events_attended",)
+EVENT_ENTRIES = Query(
+    "SELECT COALESCE(sum(delta),0)::int AS net, count(*) FILTER (WHERE reason=%s)::int AS undos "
+    "FROM points_ledger WHERE alumni_id=%s AND ref=%s AND reason IN (%s,%s)",
+    "SELECT CAST(COALESCE(sum(delta),0) AS SIGNED) AS net, CAST(COALESCE(sum(reason=%s),0) AS SIGNED) AS undos "
+    "FROM points_ledger WHERE alumni_id=%s AND ref=%s AND reason IN (%s,%s)",
+)
 
 
 def stats_from_ledger(alumni, ledger):
@@ -12,7 +20,7 @@ def stats_from_ledger(alumni, ledger):
     points = alumni.get("points_cached") or 0
     return {
         "programs_completed": counts["program"],
-        "events_attended": counts["event"],
+        "events_attended": counts["event"] - counts[EVENT_UNDO],
         "mentorship_count": counts["mentorship"],
         "referrals_count": counts["referral"],
         "orders_count": counts["order"],
@@ -92,6 +100,36 @@ class Gamification:
             connection=connection,
         )
         return await self.recompute(connection, alumni_id)
+
+    async def event_entries(self, connection, alumni_id, event_id):
+        cursor = await connection.execute(EVENT_ENTRIES, (EVENT_UNDO, alumni_id, event_id, "event", EVENT_UNDO))
+        return await cursor.fetchone()
+
+    async def revoke_achievements(self, alumni_id):
+        async with self.state.database.transaction() as connection:
+            ledger = await self.state.store.read(
+                "points_ledger",
+                filters={"alumni_id": {"_eq": alumni_id}},
+                fields=("reason",),
+                limit=-1,
+                connection=connection,
+            )
+            stats = stats_from_ledger({}, ledger)
+            lost = [
+                item["key"]
+                for item in ACHIEVEMENTS
+                if item["rule_json"]["type"] in REVOCABLE_TYPES
+                and stats[item["rule_json"]["type"]] < item["rule_json"]["gte"]
+            ]
+            if not lost:
+                return
+            defs = await self.state.store.read(
+                "achievements", filters={"key": {"_in": lost}}, fields=("id",), limit=-1, connection=connection
+            )
+            for item in defs:
+                await connection.execute(
+                    "DELETE FROM alumni_achievements WHERE alumni_id=%s AND achievement_id=%s", (alumni_id, item["id"])
+                )
 
     async def refresh_achievements(self, alumni_id):
         try:

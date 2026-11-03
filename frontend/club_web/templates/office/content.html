@@ -33,7 +33,9 @@
 {% if roster %}
 <section class="site-panel"><h2>Участники события</h2>
 {% for participant in roster %}
-<p>{{ participant.fio }} · {{ 'Отмечен' if participant.attended else 'Не отмечен' }}{% if not participant.attended %}
+<p>{{ participant.fio }} · {{ 'Отмечен' if participant.attended else 'Не отмечен' }}{% if participant.attended %}
+<button data-api="/admin/events/rsvp/{{ participant.id }}/unattend" data-confirm="Снять отметку участия? Баллы за событие будут списаны.">Снять отметку</button>
+{% else %}
 <button data-api="/admin/events/rsvp/{{ participant.id }}/attend">Отметить участие</button>
 {% endif %}
 </p>

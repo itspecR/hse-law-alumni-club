@@ -25,6 +25,7 @@ from club_api.modules.auth.service import require_admin
 from club_api.modules.catalog.scope import PUBLISHED_DPO
 from club_api.modules.events.notifications import announce
 from club_api.modules.gamification.routes import verified_alumni
+from club_api.modules.gamification.service import EVENT_UNDO
 from club_api.observability.audit import audit
 
 ROUTE_LIMITS = {("POST", "/events/{id}/rsvp"): 20}
@@ -345,6 +346,16 @@ async def delete_event(request: HttpRequest, id: str):
     return {"ok": True}
 
 
+def event_title(event):
+    return event["title"] if event else "событие клуба"
+
+
+def event_day_started(event):
+    if not event or not event.get("starts_at"):
+        return True
+    return parse_date(event["starts_at"]).astimezone(CLUB_TIMEZONE).date() <= datetime.now(CLUB_TIMEZONE).date()
+
+
 @api_view(permission=require_admin)
 async def attend(request: HttpRequest, rsvpId: str):
     admin = await require_admin(request)
@@ -361,20 +372,61 @@ async def attend(request: HttpRequest, rsvpId: str):
         if current["attended"]:
             return {"ok": True, "already": True}
         event = await state.store.one("events", row["event_id"], connection=connection)
+        if not event_day_started(event):
+            raise ApiError(400, "Отметить участие можно с дня события.")
+        undos = (await state.gamification.event_entries(connection, row["alumni_id"], row["event_id"]))["undos"]
         await state.gamification.add_in_transaction(
             connection,
             row["alumni_id"],
             reason="event",
             delta=event.get("points", 60) if event else 60,
             ref=row["event_id"],
-            comment="Участие: " + (event["title"] if event else "событие клуба"),
-            idempotency_key=f"event-{row['event_id']}-{row['alumni_id']}",
+            comment="Участие: " + event_title(event),
+            idempotency_key=f"event-{row['event_id']}-{row['alumni_id']}" + (f"-{undos}" if undos else ""),
         )
         await state.store.update("event_rsvps", {"attended": True}, id=row["id"], connection=connection)
     await state.gamification.refresh_achievements(row["alumni_id"])
     await audit(
         request,
         "event.attended",
+        actor="admin:" + admin["userId"],
+        subject="alumni:" + row["alumni_id"],
+        detail={"event": row["event_id"]},
+    )
+    return {"ok": True}
+
+
+@api_view(permission=require_admin)
+async def unattend(request: HttpRequest, rsvpId: str):
+    admin = await require_admin(request)
+    state = request.services
+    row = await state.store.one("event_rsvps", guid(rsvpId))
+    if not row:
+        raise ApiError(404, "Запись на событие не найдена.")
+    async with state.database.transaction() as connection:
+        await acquire_lock(connection, "rsvp:" + row["event_id"] + ":" + row["alumni_id"])
+        cursor = await connection.execute("SELECT attended FROM event_rsvps WHERE id=%s FOR UPDATE", (row["id"],))
+        current = await cursor.fetchone()
+        if not current:
+            raise ApiError(404, "Запись на событие не найдена.")
+        if not current["attended"]:
+            return {"ok": True, "already": True}
+        event = await state.store.one("events", row["event_id"], connection=connection)
+        entries = await state.gamification.event_entries(connection, row["alumni_id"], row["event_id"])
+        await state.gamification.add_in_transaction(
+            connection,
+            row["alumni_id"],
+            reason=EVENT_UNDO,
+            delta=-entries["net"],
+            ref=row["event_id"],
+            comment="Отметка участия снята: " + event_title(event),
+            idempotency_key=f"event-undo-{row['event_id']}-{row['alumni_id']}-{entries['undos'] + 1}",
+        )
+        await state.store.update("event_rsvps", {"attended": False}, id=row["id"], connection=connection)
+    await state.gamification.revoke_achievements(row["alumni_id"])
+    await audit(
+        request,
+        "event.unattended",
         actor="admin:" + admin["userId"],
         subject="alumni:" + row["alumni_id"],
         detail={"event": row["event_id"]},

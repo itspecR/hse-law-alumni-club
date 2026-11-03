@@ -1,5 +1,6 @@
 import asyncio
 import io
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import httpx
@@ -31,11 +32,12 @@ async def test_event_attendance_replay_and_server_points(database_app):
     app = database_app
     alumni_id, member_headers = await account(app)
     _, editor_headers = await account(app, "editor")
+    later = (datetime.now(UTC) + timedelta(days=30)).replace(microsecond=0)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://localhost") as client:
         response = await client.post(
             "/admin/events",
             headers=editor_headers,
-            json={"title": "Тестовое событие", "starts_at": "2026-12-01T15:00:00Z", "points": 75},
+            json={"title": "Тестовое событие", "starts_at": later.strftime("%Y-%m-%dT%H:%M:%SZ"), "points": 75},
         )
         assert response.status_code == 200, response.text
         event_id = response.json()["id"]
@@ -45,6 +47,14 @@ async def test_event_attendance_replay_and_server_points(database_app):
             rows = rows["items"] if isinstance(rows, dict) else rows
             assert next(row for row in rows if row["id"] == event_id)["rsvp_count"] == 1, listing
         roster = (await client.get(f"/admin/events/{event_id}/rsvps", headers=editor_headers)).json()
+        early = await client.post(f"/admin/events/rsvp/{roster[0]['id']}/attend", headers=editor_headers)
+        assert early.status_code == 400 and early.json()["error"] == "Отметить участие можно с дня события."
+        calendar = await client.get(f"/events/{event_id}.ics")
+        assert calendar.status_code == 200 and "DTSTART:" + later.strftime("%Y%m%dT%H%M%SZ") in calendar.text
+        today = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        assert (
+            await client.patch(f"/admin/events/{event_id}", headers=editor_headers, json={"starts_at": today})
+        ).status_code == 200
         results = await asyncio.gather(
             *(client.post(f"/admin/events/rsvp/{roster[0]['id']}/attend", headers=editor_headers) for _ in range(2))
         )
@@ -52,8 +62,6 @@ async def test_event_attendance_replay_and_server_points(database_app):
         assert (await app.state.store.one("alumni", alumni_id))["points_cached"] == 75
         assert len(await app.state.store.read("points_ledger", fields=("id",))) == 1
         assert (await client.post(f"/events/{event_id}/rsvp", headers=member_headers)).status_code == 400
-        calendar = await client.get(f"/events/{event_id}.ics")
-        assert calendar.status_code == 200 and "DTSTART:20261201T150000Z" in calendar.text
         assert (
             await client.patch(f"/admin/events/{event_id}", headers=editor_headers, json={"title": "Новое название"})
         ).status_code == 200
