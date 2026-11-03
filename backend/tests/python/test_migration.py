@@ -59,6 +59,7 @@ def test_all_legacy_routes_are_present():
         ("GET", "/admin/dpo-sync"),
         ("GET", "/admin/point-programs"),
         ("GET", "/admin/members/{id}/points"),
+        ("POST", "/admin/events/rsvp/{rsvpId}/unattend"),
     }
     retired = {
         ("POST", "/admin/news-sources/{source}/refresh"),
@@ -69,7 +70,7 @@ def test_all_legacy_routes_are_present():
         ("POST", "/points"),
         ("POST", "/decay/run"),
     }
-    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 140
+    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 141
 
 
 def test_sentry_privacy():

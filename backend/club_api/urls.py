@@ -140,6 +140,7 @@ routes = (
             endpoint({"PATCH": events_routes.patch_event, "DELETE": events_routes.delete_event}),
         ),
         path("admin/events/rsvp/<str:rsvpId>/attend", endpoint({"POST": events_routes.attend})),
+        path("admin/events/rsvp/<str:rsvpId>/unattend", endpoint({"POST": events_routes.unattend})),
         path("push/vapid", endpoint({"GET": notifications_push.vapid})),
         path("me/push/subscribe", endpoint({"POST": notifications_push.subscribe})),
         path("me/push/unsubscribe", endpoint({"POST": notifications_push.unsubscribe})),

@@ -10,7 +10,8 @@ from urllib.parse import urlsplit
 import pytest
 from live_features import (
     content_forms,
-    event_actions,
+    event_attendance,
+    event_signup,
     friends_after_restart,
     home_form,
     member_points_discount,
@@ -330,7 +331,10 @@ def test_live_system(name, width, height):
                 },
             )
         )
-        event_actions(page, office, event["id"])
+        event_signup(page, event["id"])
+        today = {"starts_at": datetime.now(UTC).isoformat()}
+        result(request.patch(f"/api/admin/events/{event['id']}", headers=headers, data=today))
+        event_attendance(office, event["id"])
         roster = result(request.get(f"/api/admin/events/{event['id']}/rsvps", headers=headers))
         assert len(roster) == 1
         for _ in range(2):

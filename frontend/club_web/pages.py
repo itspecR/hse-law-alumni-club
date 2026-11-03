@@ -289,6 +289,7 @@ async def context(api, path, params, authorized=False):
         **{rule["reason"]: rule["description"] for rule in data["domain"]["point_rules"]},
         "manual": "Начисление клуба",
         "decay": "Списание за неактивность",
+        "event_undo": "Отметка участия снята",
     }
     data["point_values"] = {rule["reason"]: rule["points"] for rule in data["domain"]["point_rules"]}
 
