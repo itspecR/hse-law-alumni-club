@@ -117,6 +117,7 @@ routes = (
         path("me/export", endpoint({"GET": members_profile.export})),
         path("me/delete", endpoint({"POST": members_profile.delete_me})),
         path("admin/members", endpoint({"GET": members_admin.members})),
+        path("admin/point-programs", endpoint({"GET": members_admin.point_programs})),
         path("admin/members/<str:id>/podcast-sub", endpoint({"POST": members_admin.grant_subscription})),
         path("admin/members/<str:id>", endpoint({"PATCH": members_admin.patch_member})),
         path("admin/members/<str:id>/points", endpoint({"POST": members_admin.points})),

@@ -127,7 +127,7 @@ def member_points_discount(office, request, headers, member_headers, member_id):
         row.get_by_text("Начислить или списать баллы", exact=True).click()
         form = row.locator(f'form[data-api="/admin/members/{member_id}/points"]')
         form.get_by_label("Изменение баллов", exact=True).fill(str(delta))
-        form.get_by_label("Причина", exact=True).fill("Проверка начисления")
+        form.get_by_label("Комментарий", exact=True).fill("Проверка начисления")
         submit(office, form, "/admin/members/" + member_id + "/points")
         members = request.get("/api/admin/members", headers=headers).json()["items"]
         assert next(item for item in members if item["id"] == member_id)["points_cached"] == total

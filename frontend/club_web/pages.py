@@ -35,6 +35,8 @@ from club_web.search import search_groups
 HOME_EPISODES = 4
 HOME_CHANGES = 3
 ACHIEVEMENT_STRIP = 4
+FULL_ADMIN_ROLES = ("admin", "Administrator")
+POINT_PROGRAM_GROUPS = (("portfolio", "Программы клуба"), ("dpo", "Программы ДПО"))
 FULL_PROGRESS = 100
 PUBLIC_PAGES = {
     "/": ("home.html", "Клуб выпускников факультета права"),
@@ -152,6 +154,10 @@ def select_page(path):
         if path.startswith(prefix) and "/" not in path[len(prefix) :] and path[len(prefix) :]:
             return template, "Клуб выпускников"
     return "not-found.html", "Страница не найдена"
+
+
+def point_program_groups(rows):
+    return [(label, [row for row in rows if row.get("catalog") == catalog]) for catalog, label in POINT_PROGRAM_GROUPS]
 
 
 def with_member_prices(program, levels):
@@ -283,6 +289,7 @@ async def context(api, path, params, authorized=False):
         **{rule["reason"]: rule["description"] for rule in data["domain"]["point_rules"]},
         "manual": "Начисление клуба",
     }
+    data["point_values"] = {rule["reason"]: rule["points"] for rule in data["domain"]["point_rules"]}
 
     async def load(key, endpoint, default=None):
         try:
@@ -498,7 +505,7 @@ async def context(api, path, params, authorized=False):
                 data["role"] = data["session"]["role"]
                 if section == "support":
                     await load("bot", "/admin/bot-status", {})
-                if section == "support" and data["role"] not in ("admin", "Administrator"):
+                if section == "support" and data["role"] not in FULL_ADMIN_ROLES:
                     data["records"] = []
                 elif section == "pages":
                     await load("record", "/admin/pages/home", {})
@@ -511,6 +518,10 @@ async def context(api, path, params, authorized=False):
                     await load("health", "/admin/system-health", {})
                 if section == "programs":
                     await load("dpo_sync", "/admin/dpo-sync", {})
+                if section == "members" and data["role"] in FULL_ADMIN_ROLES:
+                    data["point_programs"] = point_program_groups(
+                        page_items(await load("point_programs", "/admin/point-programs", []))
+                    )
                 for source in choice_sources(section):
                     rows = page_items(await load("choices:" + source, OFFICE_ENDPOINTS[source], []))
                     data["office_options"][source] = choice_options(source, rows)

@@ -762,7 +762,20 @@ document.addEventListener("input", event => {
 document.addEventListener("focusin", event => {
   if (event.target.matches?.(":focus-visible")) event.target.closest(".dpo-starts-grid article, .cabinet-tabs a")?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
 });
+function choosePointsReason(select) {
+  const form = select.form;
+  form.querySelectorAll("[data-points-field]").forEach(field => {
+    const shown = field.dataset.pointsField === select.value;
+    field.hidden = !shown;
+    field.querySelectorAll("input,select").forEach(input => { input.disabled = !shown; });
+  });
+  const programs = form.elements.program_id;
+  const source = document.getElementById("point-programs");
+  if (select.value === "program" && source && programs.options.length === 1) programs.append(source.content.cloneNode(true));
+}
+
 document.addEventListener("change", event => {
+  if (event.target.matches("[data-points-reason]")) choosePointsReason(event.target);
   if (event.target.matches("[data-audio-rate]")) event.target.closest(".site-player").querySelector("audio").playbackRate = Number(event.target.value);
   if (event.target.matches("[data-unread-filter],[data-reading-kind]")) renderReading();
   if (event.target.matches("[data-applicant]")) { toggleApplicant(event.target); showQuote(event.target.form, ""); }

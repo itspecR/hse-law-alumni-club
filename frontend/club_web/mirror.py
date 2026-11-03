@@ -69,6 +69,9 @@ def snapshot(data):
         "/admin/analytics": {"pulse": {}, "series": {}},
         "/admin/orders": [],
         "/admin/members": data["alumni"],
+        "/admin/point-programs": [
+            {"id": row["id"], "title": row["title"], "catalog": "dpo"} for row in data["programs"]
+        ],
         "/admin/podcast-subs": {"items": []},
         "/admin/news-sources": {"sources": [], "items": []},
         "/admin/pages/home": {"blocks": {}},

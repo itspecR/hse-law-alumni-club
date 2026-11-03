@@ -8,6 +8,7 @@ from pydantic import Field
 from club_api.core.errors import ApiError
 from club_api.core.models import count, group_count, guid, query_choice, query_page, query_search, sub_active
 from club_api.core.views import api_view, defer, parse_body
+from club_api.domain import DOMAIN
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin, require_full_admin
 from club_api.modules.members.service import alumni_email, anonymize
@@ -39,10 +40,17 @@ class MemberPatch(Body):
     personal_discount: int = Field(default=None, ge=0, le=10)
 
 
+MANUAL_COMMENT = "Начисление клуба"
+MENTORSHIP_NOTE_MIN = 3
+POINTS_LIMIT = DOMAIN["limits"]["manual_points_max"]
+COMMENT_LIMIT = DOMAIN["limits"]["points_comment_max"]
+
+
 class PointsBody(Body):
-    reason: Literal["program", "event", "referral", "mentorship", "manual"] = "manual"
-    delta: int = Field(ge=-2000, le=2000)
-    comment: str = None
+    reason: Literal["manual", "program", "mentorship"] = "manual"
+    delta: int | None = Field(default=None, ge=-POINTS_LIMIT, le=POINTS_LIMIT)
+    program_id: str | None = None
+    comment: str | None = Field(default=None, max_length=COMMENT_LIMIT)
 
 
 @api_view(permission=require_admin)
@@ -173,13 +181,53 @@ async def patch_member(request: HttpRequest, id: str):
     return {"ok": True}
 
 
+def note(body):
+    return (body.comment or "").strip()
+
+
+def manual_award(body):
+    if not body.delta:
+        raise ApiError(400, "Укажите изменение баллов, не равное нулю.")
+    return {"reason": "manual", "delta": body.delta, "comment": note(body) or MANUAL_COMMENT}
+
+
+def mentorship_award(body):
+    if len(note(body)) < MENTORSHIP_NOTE_MIN:
+        raise ApiError(400, "Напишите в комментарии, кого наставлял выпускник.")
+    return {"reason": "mentorship", "comment": "Наставничество: " + note(body)}
+
+
+async def program_award(state, alumni_id, body):
+    program = await state.store.one("programs", guid(body.program_id)) if body.program_id else None
+    if not program:
+        raise ApiError(400, "Выберите программу из списка.")
+    key = f"program-{alumni_id}-{program['id']}"
+    if await state.store.read("points_ledger", filters={"idempotency_key": {"_eq": key}}, fields=("id",), limit=1):
+        raise ApiError(409, f"За программу «{program['title']}» баллы уже начислены.")
+    comment = "Программа: " + program["title"] + (". " + note(body) if note(body) else "")
+    return {"reason": "program", "ref": program["id"], "comment": comment, "idempotency_key": key}
+
+
+async def points_award(state, alumni_id, body):
+    if body.reason == "program":
+        return await program_award(state, alumni_id, body)
+    return mentorship_award(body) if body.reason == "mentorship" else manual_award(body)
+
+
+@api_view(permission=require_full_admin)
+async def point_programs(request: HttpRequest):
+    await require_full_admin(request)
+    return await request.services.store.read(
+        "programs", fields=("id", "title", "catalog"), sort=("catalog", "title"), limit=-1
+    )
+
+
 @api_view(body=PointsBody, permission=require_full_admin)
 async def points(request: HttpRequest, id: str):
     admin = await require_full_admin(request)
     body = parse_body(request, PointsBody)
-    result = await request.services.gamification.add(
-        guid(id), reason=body.reason, delta=body.delta, comment=body.comment or "Начисление клуба"
-    )
+    award = await points_award(request.services, guid(id), body)
+    result = await request.services.gamification.add(guid(id), **award)
     await audit(
         request, "member.points", actor="admin:" + admin["userId"], subject="alumni:" + id, detail=body.model_dump()
     )
