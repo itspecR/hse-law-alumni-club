@@ -408,7 +408,8 @@ async def test_home_texts_follow_glossary(browser_client):
     )
     assert "<h3>Проверка</h3><p>Мы подтверждаем статус выпускника факультета.</p>" in page
     assert "Программы клуба и&nbsp;ДПО по&nbsp;цене выпускника, события и&nbsp;подкасты.</p>" in page
-    assert "«Друг клуба» с&nbsp;200&nbsp;баллов, «Знаток» с&nbsp;500, «Амбассадор» с&nbsp;1000." in page
+    assert "Скидка 15% с&nbsp;уровня «Знаток», от&nbsp;500&nbsp;баллов. Личная скидка" in page
+    assert "Амбассадор" not in page
     home = (Path(club_web.__file__).parent / "templates/home.html").read_text()
     assert re.findall(".{0,40}[ёЁ–—].{0,20}", home) == []
 
@@ -434,7 +435,7 @@ async def test_home_shows_club_programs_after_join_steps(browser_client):
     assert "Курсы дополнительного образования, которые проводит клуб.</p>" in block
     assert '<h3><a href="/portfolio/club-one">Переговоры для юристов</a></h3>' in block
     assert "Набор открыт · старт 1 декабря 2026" in block and "<dd>Смешанный</dd>" in block
-    assert "45\u00a0000 ₽" in block and "Цена выпускника от&nbsp;36\u00a0000 ₽" in block
+    assert "45\u00a0000 ₽" in block and "Цена выпускника от&nbsp;38\u00a0250 ₽" in block
     assert '<a href="/portfolio" class="foc lux-more">Все программы клуба <span' in block
     assert '<h2><a href="/portfolio/club-one">' in (await browser_client.get("/portfolio")).text
 
@@ -735,7 +736,7 @@ async def test_portfolio_program_page_leads_with_facts_and_price():
     for label, value in (("Формат", "Смешанный"), ("Начало", "1 декабря 2026"), ("Свободных мест", "17")):
         assert f"<span>{label}</span></dt><dd>{value}</dd>" in hero
     panel = page[page.index('class="site-panel portfolio-buy"') : page.index('class="portfolio-body"')]
-    assert '<p class="lux-price">45\u00a0000 ₽</p>' in panel and "Цена выпускника от&nbsp;36\u00a0000 ₽" in panel
+    assert '<p class="lux-price">45\u00a0000 ₽</p>' in panel and "Цена выпускника от&nbsp;38\u00a0250 ₽" in panel
     assert page.count('class="portfolio-points__icon"') == 3 and "<li>Telegram-чат группы</li>" in page
     assert '<span class="portfolio-trainer__initials" aria-hidden="true">АВ</span>' in page
     assert page.index('class="portfolio-dock"') < page.index('id="application"')
@@ -751,7 +752,7 @@ async def test_portfolio_cards_show_enrollment_facts_and_alumni_price():
     first, second = page.split('<article class="site-catalog-card program-card"')[1:]
     assert '<p class="program-status program-status--open">Набор открыт · старт 1 декабря 2026</p>' in first
     assert '<span class="lux-sr">Формат</span></dt><dd>Смешанный</dd>' in first
-    assert '<p class="site-price">от 39\u00a0000 ₽</p>' in first and "Цена выпускника от&nbsp;31\u00a0200 ₽" in first
+    assert '<p class="site-price">от 39\u00a0000 ₽</p>' in first and "Цена выпускника от&nbsp;33\u00a0150 ₽" in first
     assert "<span>Переговоры</span></div>" in first and "site-card-media--empty" not in page
     assert '<p class="program-status">Набор закрыт</p>' in second
     assert '<p class="site-price site-price--pending">Стоимость уточняется</p>' in second
@@ -830,7 +831,7 @@ async def test_dpo_catalog_links_to_center_site_with_alumni_price(browser_client
     link = f'href="{PROGRAM["source_url"]}" target="_blank" rel="noopener noreferrer"'
     assert page.count(link) == 2 and '<a href="/dpo/course-one"' not in page
     assert "Скидка выпускника по уровню в клубе. Подробности при оформлении на сайте Центра ДПО." in page
-    assert '<p class="site-price">3\u00a0000 ₽</p>' in page and "<p>Цена выпускника от&nbsp;2\u00a0400 ₽</p>" in page
+    assert '<p class="site-price">3\u00a0000 ₽</p>' in page and "<p>Цена выпускника от&nbsp;2\u00a0550 ₽</p>" in page
     assert '<span class="lux-more__arrow" aria-hidden="true">↗</span>' in page
 
 
@@ -1029,9 +1030,10 @@ async def test_join_cabinet_and_profile_texts_follow_glossary(browser_client):
     join = (await browser_client.get("/join")).text
     assert "Как вступить <em>в клуб</em>" in join and "<li>Откроется кабинет</li>" in join
     assert "Пароль, не меньше 8 символов" in join and ">Отправить заявку</button>" in join
-    level = {"level_title": "Выпускник", "points": 123, "discount": 5, "next_level": "Друг клуба", "to_next": 77}
+    level = {"level_title": "Выпускник", "points": 123, "discount": 10, "next_level": "Друг клуба", "to_next": 77}
     cabinet = await cabinet_page({**PROFILE, "level": level})
     assert "До уровня «Друг клуба» осталось баллов: 77" in cabinet and "Скидка выпускника</dt>" in cabinet
+    assert '<dd>10%<span class="cabinet-metric__note">на программы ДПО</span></dd>' in cabinet
     assert re.search(r'href="#community">.*?Однокурсники</a>', cabinet, re.DOTALL) and "<h2>Обзор</h2>" in cabinet
     assert "Ближайшее событие</h3>" in cabinet and "Ближайших событий пока нет." in cabinet
     assert "<span>60</span>" in cabinet and "60 баллов" not in cabinet

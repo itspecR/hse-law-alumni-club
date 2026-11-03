@@ -121,7 +121,7 @@ class Telegram:
                 "",
                 f"Уровень: <b>{html.escape(info['level_title'])}</b>",
                 f"Баллы: <b>{info['points']}</b>",
-                f"Скидка выпускника: <b>{info['discount']}%</b>",
+                f"Скидка выпускника на ДПО: <b>{info['discount']}%</b>",
             ]
             if info["next_level"]:
                 lines.append(f"До уровня «{html.escape(info['next_level'])}» осталось баллов: {info['to_next']}")

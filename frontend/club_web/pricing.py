@@ -6,11 +6,18 @@ def discount_amount(price, percent):
     return (price * percent + HALF_UP) // PERCENT
 
 
+def discount_tiers(levels):
+    tiers = {}
+    for level in sorted(levels, key=lambda level: level["sort"]):
+        tiers.setdefault(level["discount_percent"], level)
+    return list(tiers.values())
+
+
 def member_prices(price, levels):
     return [
         {
             "level": level["key"],
             "price": price - discount_amount(price, level["discount_percent"]),
         }
-        for level in sorted(levels, key=lambda level: level["sort"])
+        for level in discount_tiers(levels)
     ]

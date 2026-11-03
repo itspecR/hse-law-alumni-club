@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 
 from club_web.pages import home_programs, resource
-from club_web.pricing import discount_amount, member_prices
+from club_web.pricing import discount_amount, discount_tiers, member_prices
 
 LEVELS = resource("domain-data.json")["levels"]
 
@@ -16,10 +16,14 @@ def test_discount_rounds_half_up_like_api(price, percent, expected):
     assert discount_amount(price, percent) == expected
 
 
-def test_member_prices_follow_levels_in_order():
+def test_member_prices_follow_discount_tiers_in_order():
     prices = member_prices(5000000, list(reversed(LEVELS)))
-    assert [row["level"] for row in prices] == ["graduate", "friend", "expert", "ambassador"]
-    assert [row["price"] for row in prices] == [4750000, 4500000, 4250000, 4000000]
+    assert [row["level"] for row in prices] == ["graduate", "expert"]
+    assert [row["price"] for row in prices] == [4500000, 4250000]
+
+
+def test_discount_tiers_keep_first_level_of_each_discount():
+    assert [level["key"] for level in discount_tiers(list(reversed(LEVELS)))] == ["graduate", "expert"]
 
 
 def test_home_programs_prefer_upcoming_starts_with_prices():
@@ -54,9 +58,9 @@ def test_home_programs_prefer_upcoming_starts_with_prices():
     data = home_programs(rows, LEVELS, date(2026, 10, 22))
     assert data["home_starts"] is True
     assert [item["slug"] for item in data["home_programs"]] == ["soon"]
-    assert data["home_programs"][0]["member_prices"][0]["price"] == 3800000
+    assert data["home_programs"][0]["member_prices"][0]["price"] == 3600000
     assert (data["programs_total"], data["programs_open"]) == (4, 3)
-    assert [level["key"] for level in data["levels"]] == ["graduate", "friend", "expert", "ambassador"]
+    assert [level["key"] for level in data["levels"]] == ["graduate", "expert"]
 
 
 def test_home_programs_fall_back_to_open_programs_without_dates():

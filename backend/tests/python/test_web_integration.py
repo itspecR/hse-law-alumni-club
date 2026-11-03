@@ -6,7 +6,7 @@ from test_auth_integration import fixture
 
 
 @pytest.mark.parametrize(
-    ("verified", "personal", "discount"), [(False, 0, 0), (True, 0, 5), (True, 15, 15), (False, 25, 0)]
+    ("verified", "personal", "discount"), [(False, 0, 0), (True, 0, 10), (True, 15, 20), (False, 25, 0)]
 )
 async def test_cart_uses_current_catalog_prices_and_server_discount(database_app, verified, personal, discount):
     app = database_app
