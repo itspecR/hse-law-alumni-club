@@ -1406,7 +1406,9 @@ def test_home_member_price_follows_selected_level(page, width):
     expect(page.locator(".lux-home")).to_have_attribute("data-home-ready", "true")
     expect(page.locator("[data-starts-empty]")).to_be_hidden()
     expect(page.locator("input[name='member-level']")).to_have_count(2)
-    expect(page.locator(".lux-calc__foot")).to_contain_text(re.compile(r"Скидка 15%\sс\sуровня «Знаток», от\s500\sбаллов\."))
+    expect(page.locator(".lux-calc__foot")).to_contain_text(
+        re.compile(r"Скидка 15%\sс\sуровня «Знаток», от\s500\sбаллов\.")
+    )
     page.get_by_role("radio", name=re.compile("^Знаток")).check()
     expect(price).to_have_text(rub(255000))
     expect(page.locator("[data-level-status]")).to_have_text(
