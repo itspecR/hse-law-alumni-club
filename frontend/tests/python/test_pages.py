@@ -31,6 +31,7 @@ from club_web.pages import (
     activity_chart,
     level_progress,
     ordered_achievements,
+    point_program_groups,
 )
 from club_web.views import PUBLIC
 
@@ -912,6 +913,14 @@ async def cabinet_page(profile):
             transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
         ) as client:
             return (await client.get("/views/lk", headers={"authorization": "Bearer member-test"})).text
+
+
+def test_point_programs_are_grouped_club_first():
+    rows = [
+        {"id": "d", "title": "Медиация", "catalog": "dpo"},
+        {"id": "c", "title": "Переговоры", "catalog": "portfolio"},
+    ]
+    assert point_program_groups(rows) == [("Программы клуба", [rows[1]]), ("Программы ДПО", [rows[0]])]
 
 
 def test_every_named_icon_exists():

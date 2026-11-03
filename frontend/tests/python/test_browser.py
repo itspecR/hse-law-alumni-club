@@ -1761,6 +1761,35 @@ def test_program_facts_fit_their_tiles(page, width):
     assert crowded == 0
 
 
+@pytest.mark.parametrize("width", [390, 1440])
+def test_member_points_reason_switches_fields_and_sends_program(page, site, width):
+    member = {"id": "member-1", "fio": "Вымышленный Выпускник", "verification_status": "verified", "points_cached": 0}
+    site[1]["/admin/members"] = {"items": [member], "total": 1}
+    site[1]["/admin/point-programs"] = [
+        {"id": "club-program", "title": "Переговоры", "catalog": "portfolio"},
+        {"id": "dpo-program", "title": "Медиация", "catalog": "dpo"},
+    ]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/members")
+    page.get_by_text("Начислить или списать баллы", exact=True).click()
+    form = page.locator("form.office-points")
+    programs = form.locator("[name='program_id']")
+    expect(programs).to_have_count(1)
+    expect(programs).to_be_hidden()
+    expect(form.locator("[name='delta']")).to_be_visible()
+    form.locator("[name='reason']").select_option("program")
+    expect(form.locator("[name='delta']")).to_be_hidden()
+    expect(programs).to_be_visible()
+    expect(programs.locator("optgroup")).to_have_count(2)
+    programs.select_option("dpo-program")
+    with page.expect_response(lambda response: response.url.endswith("/api/admin/members/member-1/points")):
+        form.get_by_role("button", name="Применить", exact=True).click()
+    write = next(row for row in site[2] if row["path"] == "/admin/members/member-1/points")
+    assert write["body"] == {"reason": "program", "program_id": "dpo-program", "comment": ""}
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
 def test_program_dock_is_only_for_phone(page):
     page.goto("/portfolio/" + PORTFOLIO["slug"])
     expect(page.locator(".portfolio-dock")).to_be_hidden()

@@ -11,6 +11,7 @@
 <button>Показать</button>
 </form>
 <div class="office-toolbar"><p>Выпускников на странице: {{ rows|length }}</p></div>
+{% if point_programs %}<template id="point-programs">{% for label, programs in point_programs %}{% if programs %}<optgroup label="{{ label }}">{% for program in programs %}<option value="{{ program.id }}">{{ program.title }}</option>{% endfor %}</optgroup>{% endif %}{% endfor %}</template>{% endif %}
 <div class="office-list">
 {% for member in rows %}
 <article class="site-panel office-record">
@@ -35,7 +36,19 @@
 </form>
 <details>
 <summary>Начислить или списать баллы</summary>
-<form data-api="/admin/members/{{ member.id }}/points">{{ field('delta','Изменение баллов',type='number') }}{{ field('comment','Причина') }}<input type="hidden" name="reason" value="manual">
+<form class="office-points" data-api="/admin/members/{{ member.id }}/points">
+<label class="site-field">Причина<select name="reason" data-points-reason>
+<option value="manual">Начисление клуба</option>
+<option value="program">Программа: {{ point_values.program }} баллов</option>
+<option value="mentorship">Наставничество: {{ point_values.mentorship }} баллов</option>
+</select>
+</label>
+<label class="site-field" data-points-field="manual">Изменение баллов<input name="delta" type="number" min="-{{ domain.limits.manual_points_max }}" max="{{ domain.limits.manual_points_max }}" required>
+</label>
+<label class="site-field" data-points-field="program" hidden>Программа<select name="program_id" required disabled><option value="">Выберите программу</option></select>
+</label>
+<label class="site-field">Комментарий<input name="comment" maxlength="{{ domain.limits.points_comment_max }}">
+</label>
 <button>Применить</button>
 <p role="alert" data-error hidden>
 </p>

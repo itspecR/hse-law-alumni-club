@@ -33,7 +33,7 @@
     {
       "reason": "program",
       "points": 100,
-      "description": "Завершение программы ДПО"
+      "description": "Завершение программы ДПО или клуба"
     },
     {
       "reason": "event",
@@ -141,9 +141,9 @@
     {
       "key": "student_again",
       "title": "Снова студент",
-      "description": "Завершите первую программу ДПО со скидкой выпускника.",
+      "description": "Завершите первую программу ДПО или клуба со скидкой выпускника.",
       "icon": "С",
-      "kind": "программы ДПО",
+      "kind": "программы ДПО и клуба",
       "rule_json": {
         "type": "programs_completed",
         "gte": 1
@@ -153,9 +153,9 @@
     {
       "key": "eternal_student",
       "title": "Вечный студент",
-      "description": "Завершите 3 программы ДПО со скидкой выпускника.",
+      "description": "Завершите 3 программы ДПО или клуба со скидкой выпускника.",
       "icon": "Д",
-      "kind": "программы ДПО",
+      "kind": "программы ДПО и клуба",
       "rule_json": {
         "type": "programs_completed",
         "gte": 3
@@ -165,9 +165,9 @@
     {
       "key": "scholar5",
       "title": "Эрудит",
-      "description": "Завершите 5 программ ДПО со скидкой выпускника.",
+      "description": "Завершите 5 программ ДПО или клуба со скидкой выпускника.",
       "icon": "Э",
-      "kind": "программы ДПО",
+      "kind": "программы ДПО и клуба",
       "rule_json": {
         "type": "programs_completed",
         "gte": 5
@@ -271,6 +271,8 @@
     "max_cart_lines": 30,
     "max_line_qty": 99,
     "max_interests": 8,
-    "podcast_year_price": 499900
+    "podcast_year_price": 499900,
+    "manual_points_max": 2000,
+    "points_comment_max": 300
   }
 }
