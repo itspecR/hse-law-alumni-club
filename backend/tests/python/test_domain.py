@@ -4,7 +4,6 @@ from club_api.domain import (
     ACHIEVEMENT_FLAGS,
     ACHIEVEMENTS,
     achievement_progress,
-    decay_delta,
     effective_discount,
     level_info,
     member_discount,
@@ -30,11 +29,6 @@ def test_level_boundaries(points, key, discount):
     assert member_discount(points) == discount
     assert effective_discount(False, points, 10) == 0
     assert member_discount(points, 999) == min(25, discount + 10)
-
-
-@pytest.mark.parametrize(("points", "delta"), [(0, 0), (-1, 0), (10, -2), (30, -5), (100, -15)])
-def test_decay_uses_existing_rounding(points, delta):
-    assert decay_delta(points) == delta
 
 
 def test_discount_applies_to_training_only_and_rounds_half_up():

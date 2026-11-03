@@ -97,7 +97,6 @@ async def podcast_reminders(state):
 
 def scheduled(state):
     return [
-        ("points-decay", lambda now: now.day == 1 and now.hour == 3 and now.minute == 0, state.gamification.decay),
         ("dpo-sync", lambda now: center.due(state, now), lambda: center.scheduled_sync(state)),
         ("event-reminders", lambda now: now.hour == 10 and now.minute == 0, lambda: event_reminders(state)),
         ("podcast-reminders", lambda now: now.hour == 11 and now.minute == 0, lambda: podcast_reminders(state)),

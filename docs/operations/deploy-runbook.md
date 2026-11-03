@@ -89,7 +89,7 @@ MariaDB уже установлена, установщик её не переу
 - `ADMIN_EMAIL` – начальный администратор; SMTP, отправитель и выбранный канал офиса.
 - `PUBLIC_URL` – корневой HTTPS-адрес; `WEB_DOMAIN` – сайт. `ADMIN_DOMAIN` обслуживает
   прежние `/assets` и перенаправляет в `/admin`, Studio на нём больше нет.
-- Неиспользуемые ЮKassa, Telegram, push, Sentry и `POINTS_SERVICE_TOKEN` оставьте пустыми.
+- Неиспользуемые ЮKassa, Telegram, push и Sentry оставьте пустыми.
 
 `CHECKOUT_DATABASE_URL` можно оставить пустым: Compose соберёт URL отдельной роли
 из `CHECKOUT_DB_*`. Preflight не допускает подмену `postgres:5432`, внешнюю БД,
