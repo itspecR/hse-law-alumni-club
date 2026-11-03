@@ -120,7 +120,10 @@ routes = (
         path("admin/point-programs", endpoint({"GET": members_admin.point_programs})),
         path("admin/members/<str:id>/podcast-sub", endpoint({"POST": members_admin.grant_subscription})),
         path("admin/members/<str:id>", endpoint({"PATCH": members_admin.patch_member})),
-        path("admin/members/<str:id>/points", endpoint({"POST": members_admin.points})),
+        path(
+            "admin/members/<str:id>/points",
+            endpoint({"GET": members_admin.point_history, "POST": members_admin.points}),
+        ),
         path("admin/members/<str:id>/anonymize", endpoint({"POST": members_admin.erase})),
         path("me/classmates", endpoint({"GET": members_community.classmates})),
         path("me/events", endpoint({"GET": members_community.notifications})),

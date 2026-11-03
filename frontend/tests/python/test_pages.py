@@ -851,6 +851,40 @@ def test_dpo_price_labels_follow_center_catalog():
     )
 
 
+async def test_office_member_point_history_shows_reasons_and_closes():
+    history = {
+        "id": "member-1",
+        "fio": "Вымышленный Выпускник",
+        "points": 140,
+        "items": [
+            {"id": "a", "delta": 120, "reason": "mentorship", "comment": "Наставничество: Поток 2024"},
+            {"id": "b", "delta": 30, "reason": "manual", "comment": "Начисление клуба"},
+            {"id": "c", "delta": -10, "reason": "decay", "comment": None},
+        ],
+    }
+    endpoints = {
+        "/auth/admin-session": {"role": "admin"},
+        "/admin/members": {"items": [{"id": "member-1", "fio": "Вымышленный Выпускник", "points_cached": 140}]},
+        "/admin/members/member-1/points": history,
+    }
+
+    async def upstream(request):
+        return httpx.Response(200, json=endpoints.get(request.url.path, []))
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            headers = {"authorization": "Bearer admin-test"}
+            page = (await client.get("/views/admin/members?id=member-1", headers=headers)).text
+            plain = (await client.get("/views/admin/members", headers=headers)).text
+    assert "История баллов: Вымышленный Выпускник" in page and "Сейчас 140 баллов." in page
+    assert "Наставничество младшего потока</span><span>Наставничество: Поток 2024</span><strong>+120</strong>" in page
+    assert "Начисление клуба</span><span></span><strong>+30</strong>" in page
+    assert "Списание за неактивность</span><span></span><strong>-10</strong>" in page
+    assert '<a href="/admin/members?id=member-1">История баллов</a>' in plain and "office-history" not in plain
+
+
 async def test_office_dpo_section_is_read_only_with_sync_status():
     error = "Сайт ДПО вернул неполный каталог. Список программ не изменен."
     sync = {"address": True, "enabled": True, "minute": 41, "run": {"checked_at": "2026-10-29T10:00:00Z", "found": 34}}

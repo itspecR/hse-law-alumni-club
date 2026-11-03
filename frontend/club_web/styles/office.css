@@ -188,3 +188,12 @@
   .site-office fieldset { padding:12px 16px 20px; }
   .office-list-heading { gap:8px; }
 }
+.office-history { margin-bottom:24px; }
+.office-ledger { display:grid; gap:0; margin:16px 0 0; padding:0; list-style:none; }
+.office-ledger li { display:grid; grid-template-columns:minmax(0,220px) minmax(0,1fr) auto; gap:4px 16px; align-items:baseline; padding:12px 0; border-top:1px solid var(--c-line); }
+.office-ledger strong { font-variant-numeric:tabular-nums; }
+@media (max-width: 640px) {
+  .office-ledger li { grid-template-columns:minmax(0,1fr) auto; }
+  .office-ledger li > span:first-child { grid-column:1 / -1; }
+}
+

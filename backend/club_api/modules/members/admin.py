@@ -44,6 +44,8 @@ MANUAL_COMMENT = "Начисление клуба"
 MENTORSHIP_NOTE_MIN = 3
 POINTS_LIMIT = DOMAIN["limits"]["manual_points_max"]
 COMMENT_LIMIT = DOMAIN["limits"]["points_comment_max"]
+HISTORY_LIMIT = 100
+HISTORY_FIELDS = ("id", "delta", "reason", "comment", "created_at")
 
 
 class PointsBody(Body):
@@ -220,6 +222,23 @@ async def point_programs(request: HttpRequest):
     return await request.services.store.read(
         "programs", fields=("id", "title", "catalog"), sort=("catalog", "title"), limit=-1
     )
+
+
+@api_view(permission=require_full_admin)
+async def point_history(request: HttpRequest, id: str):
+    await require_full_admin(request)
+    store = request.services.store
+    member = await store.one("alumni", guid(id))
+    if not member:
+        raise ApiError(404, "Выпускник не найден.")
+    items = await store.read(
+        "points_ledger",
+        filters={"alumni_id": {"_eq": member["id"]}},
+        fields=HISTORY_FIELDS,
+        sort=("-created_at", "-id"),
+        limit=HISTORY_LIMIT,
+    )
+    return {"id": member["id"], "fio": member["fio"], "points": member["points_cached"] or 0, "items": items}
 
 
 @api_view(body=PointsBody, permission=require_full_admin)

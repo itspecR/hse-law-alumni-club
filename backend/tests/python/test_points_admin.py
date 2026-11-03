@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import httpx
 from test_community_integration import account
 
@@ -65,3 +67,22 @@ async def test_mentorship_needs_a_note_and_manual_points_are_not_zero(database_a
     comments = [row["comment"] for row in await app.state.store.read("points_ledger", limit=-1)]
     assert set(comments) == {"Начисление клуба", "Наставничество: Поток 2024"}
     assert achievement(me, "mentor")["earned"]
+
+
+async def test_point_history_shows_latest_entries_to_full_admin_only(database_app):
+    app = database_app
+    alumni_id, _ = await account(app)
+    _, admin = await account(app, "admin")
+    _, editor = await account(app, "editor")
+    path = f"/admin/members/{alumni_id}/points"
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://localhost") as client:
+        await client.post(path, headers=admin, json={"reason": "manual", "delta": 30, "comment": "Первое"})
+        await client.post(path, headers=admin, json={"reason": "mentorship", "comment": "Поток 2024"})
+        history = await client.get(path, headers=admin)
+        assert (await client.get(path, headers=editor)).status_code == 403
+        assert (await client.get(f"/admin/members/{uuid4()}/points", headers=admin)).status_code == 404
+    body = history.json()
+    assert (body["fio"], body["points"]) == ("Вымышленный участник", 30 + MENTORSHIP_POINTS)
+    assert {row["comment"] for row in body["items"]} == {"Первое", "Наставничество: Поток 2024"}
+    created = [row["created_at"] for row in body["items"]]
+    assert created == sorted(created, reverse=True)
