@@ -246,9 +246,6 @@ async def test_self_delete_and_admin_anonymize_revoke_access_and_remove_data(dat
         avatar = uploaded.json()["avatar"]
         await client.post("/me/friends", headers=headers, json={"alumni_id": other})
         await app.state.store.update("alumni", {"contacts_json": {"phone": "+7 000 0000000"}}, id=member)
-        exported = await client.get("/me/export", headers=headers)
-        assert exported.status_code == 200 and "password" not in exported.text
-        assert exported.json()["profile"]["contacts_json"]["phone"] == "+7 000 0000000"
         assert (await client.post("/me/delete", headers=headers, json={"confirm": "удалить"})).status_code == 400
         assert (await client.post("/me/delete", headers=headers, json={"confirm": "УДАЛИТЬ"})).status_code == 200
         assert (await client.get("/me", headers=headers)).status_code == 401

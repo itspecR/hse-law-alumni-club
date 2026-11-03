@@ -383,9 +383,6 @@ async function perform(target, body) {
       const link = element("a", "Оплатить через ЮKassa", { href: payment, class: "site-primary" });
       target.after(link);
       notice("Заявка " + result.number + " сохранена.");
-    } else if (path === "/me/tg-link" && result.url) {
-      const link = safeLink(result.url);
-      if (link && new URL(link).hostname === "t.me") target.after(element("a", "Открыть Telegram", { href: link, target: "_blank", rel: "noopener noreferrer" }));
     } else if (target.dataset.success) {
       notice(target.dataset.success);
       target.reset();

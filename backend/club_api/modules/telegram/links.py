@@ -1,21 +1,7 @@
 import re
-import secrets
 
 from club_api.db.queries import Query, acquire_lock
 from club_api.modules.checkout.store import digest
-
-
-async def make_link(database, alumni_id):
-    code = "l" + secrets.token_urlsafe(24)
-    await database.execute("DELETE FROM club_telegram_links WHERE expires_at <= now()")
-    await database.execute(
-        Query(
-            "INSERT INTO club_telegram_links(alumni_id,token_hash,expires_at) VALUES(%s,%s,now()+interval '10 minutes') ON CONFLICT(alumni_id) DO UPDATE SET token_hash=EXCLUDED.token_hash,expires_at=EXCLUDED.expires_at",
-            "INSERT INTO club_telegram_links(alumni_id,token_hash,expires_at) VALUES(%s,%s,now()+INTERVAL 10 MINUTE) ON DUPLICATE KEY UPDATE token_hash=VALUES(token_hash),expires_at=VALUES(expires_at)",
-        ),
-        (alumni_id, digest(code)),
-    )
-    return code
 
 
 async def consume_link(database, code, telegram_id):

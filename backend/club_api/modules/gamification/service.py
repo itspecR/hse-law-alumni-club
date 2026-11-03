@@ -131,13 +131,13 @@ class Gamification:
                     "DELETE FROM alumni_achievements WHERE alumni_id=%s AND achievement_id=%s", (alumni_id, item["id"])
                 )
 
-    async def refresh_achievements(self, alumni_id, extra=None):
+    async def refresh_achievements(self, alumni_id):
         try:
-            await self.grant_achievements(alumni_id, extra)
+            await self.grant_achievements(alumni_id)
         except Exception:
             logger.error("Не удалось обновить достижения")
 
-    async def grant_achievements(self, alumni_id, extra=None):
+    async def grant_achievements(self, alumni_id):
         async with self.state.database.transaction() as connection:
             cursor = await connection.execute(
                 "SELECT id,points_cached,verification_status FROM alumni WHERE id=%s FOR UPDATE", (alumni_id,)
@@ -152,7 +152,7 @@ class Gamification:
                 limit=-1,
                 connection=connection,
             )
-            stats = {**await self.stats(alumni, ledger, connection), **(extra or {})}
+            stats = await self.stats(alumni, ledger, connection)
             keys = [
                 item["key"]
                 for item in ACHIEVEMENTS
