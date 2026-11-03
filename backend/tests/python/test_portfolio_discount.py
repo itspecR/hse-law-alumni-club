@@ -52,12 +52,14 @@ async def test_application_mail_without_price_promises_to_agree_it(database_app,
     assert "Предварительная сумма" not in mails[0]["text"]
 
 
-async def test_office_discount_replaces_member_discount_and_can_be_reset(database_app, mails):
+async def test_office_discount_replaces_promo_discount_and_can_be_reset(database_app, mails):
     app = database_app
+    _, admin = await account(app, "admin")
     _, editor = await account(app, "editor")
     _, member = await account(app)
     async with client_for(app) as client:
-        receipt, row = await submitted(app, client, FORM, member)
+        await create_promo(client, admin)
+        receipt, row = await submitted(app, client, with_code(FORM), member)
         response = await set_discount(client, editor, row["id"], {"discount": 30, "reason": " Договор с ООО «Пример» "})
         listed = (await client.get("/admin/orders", headers=editor)).json()["items"][0]
         own = (await client.get("/me/orders", headers=member)).json()[0]
@@ -71,17 +73,17 @@ async def test_office_discount_replaces_member_discount_and_can_be_reset(databas
         "office_reason": "Договор с ООО «Пример»",
         "total_estimate": PRICE * 70 // 100,
     }
-    assert (changed["member_discount"], changed["discount_source"]) == (receipt["member_discount"], "member")
+    assert (changed["member_discount"], changed["discount_source"]) == (15, "promo")
     assert (listed["office_discount"], listed["office_reason"], listed["total_estimate"]) == (
         30,
         "Договор с ООО «Пример»",
         PRICE * 70 // 100,
     )
-    assert own["office_discount"] == 30 and "office_reason" not in own and own["discount_source"] == "member"
+    assert own["office_discount"] == 30 and "office_reason" not in own and own["discount_source"] == "promo"
     assert reset.json()["total_estimate"] == receipt["total_estimate"] and reset.json()["office_reason"] is None
     assert [mail["to"] for mail in mails[1:]] == ["applicant@example.test", "applicant@example.test"]
     assert "индивидуальная скидка 30%" in mails[1]["text"] and rubles(PRICE * 70 // 100) in mails[1]["text"]
-    assert f"отменена, действует скидка {receipt['member_discount']}%" in mails[2]["text"]
+    assert "отменена, действует скидка 15%" in mails[2]["text"]
     assert "ООО «Пример»" not in mails[1]["text"]
     events = await app.state.store.read("audit_log", filters={"event": {"_eq": "order.discount"}})
     assert len(events) == 2 and events[0]["subject"] == "order:" + receipt["number"]

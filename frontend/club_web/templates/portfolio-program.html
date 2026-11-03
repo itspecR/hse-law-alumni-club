@@ -20,10 +20,9 @@
 <aside class="site-panel portfolio-buy">
 <h2>Стоимость</h2>
 <p class="lux-price{{ ' lux-price--pending' if price==price_pending }}">{{ price }}</p>
-{% if item.member_from %}<p class="portfolio-buy__member">{{ icon('discount',18) }}<span>Цена выпускника от&nbsp;{{ item.member_from }}</span></p>{% endif %}
 {% if item.enrollment=='nonactual' %}<p role="status">Набор закрыт</p>{% else %}<a href="#application" class="site-primary">Оставить заявку</a>{% endif %}
 {{ save(path,item.title,'portfolio') }}
-<p>Выпускникам после входа в кабинет действует скидка. Промокод вводится в заявке, из двух скидок применяется большая.</p>
+<p>Промокод на скидку вводится в заявке.</p>
 </aside>
 <div class="portfolio-body">
 {% if item.description %}
@@ -74,7 +73,7 @@
 </div>
 {% if item.enrollment!='nonactual' %}
 <div class="portfolio-dock">
-<p><span>{{ price }}</span>{% if item.member_from %}<small>выпускникам от&nbsp;{{ item.member_from }}</small>{% endif %}</p>
+<p><span>{{ price }}</span></p>
 <a href="#application" class="site-primary">Оставить заявку</a>
 </div>
 {% endif %}

@@ -72,7 +72,6 @@ html.lux .program-facts dd { margin: 0; }
 html.lux .program-facts__icon { flex: none; color: var(--c-accent-text); }
 html.lux .program-facts--brief { margin-top: 4px; font-size: 15px; color: var(--c-text-2); }
 html.lux .program-card .site-price.site-price--pending { font-size: 16px; color: var(--c-text-3); }
-html.lux .program-card p.program-card__member { margin-top: 4px; font-size: 14px; color: var(--c-accent-text); }
 @media (max-width: 640px) {
   html.lux .program-card > .program-card__tile { flex-direction: row; align-items: center; justify-content: flex-start; gap: 12px; min-height: 64px; padding: 16px 18px; }
 }

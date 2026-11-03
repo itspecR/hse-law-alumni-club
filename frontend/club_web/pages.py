@@ -325,10 +325,7 @@ async def context(api, path, params, authorized=False):
             key=lambda item: instant(item["starts_at"]),
         )[:2]
         data.update(home_programs(data["programs"], data["domain"]["levels"]))
-        data["club_programs"] = [
-            with_member_from(item, data["domain"]["levels"])
-            for item in club_programs_preview(page_items(data["portfolio"]))
-        ]
+        data["club_programs"] = club_programs_preview(page_items(data["portfolio"]))
         data["episodes"] = page_items(data["podcasts"])[:HOME_EPISODES]
         data["recent_changes"] = recent_changes() if features.CHANGES_ENABLED else []
     elif path in ("/dpo", "/merch"):
@@ -359,12 +356,10 @@ async def context(api, path, params, authorized=False):
             await load("me", "/me", {})
     elif path == "/portfolio":
         await load("items", "/portfolio", [])
-        data["items"] = [with_member_from(item, data["domain"]["levels"]) for item in data["items"]]
     elif path.startswith("/portfolio/"):
         await load("item", "/portfolio/" + quote(path.rsplit("/", 1)[1], safe=""), {})
         if data["item"]:
             data["title"] = data["item"]["title"]
-            data["item"] = with_member_from(data["item"], data["domain"]["levels"])
     elif path.startswith("/dpo/"):
         await load("item", "/programs/" + quote(path.rsplit("/", 1)[1], safe=""), {})
         data["redirect"] = program_redirect(data["item"])

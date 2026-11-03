@@ -67,7 +67,6 @@
 <{{ heading }}><a href="/portfolio/{{ item.slug }}">{{ item.title }}</a></{{ heading }}>
 {{ program_facts(item,true) }}
 <p class="site-price{{ ' site-price--pending' if price==price_pending }}">{{ price }}</p>
-{% if item.member_from %}<p class="program-card__member">Цена выпускника от&nbsp;{{ item.member_from }}</p>{% endif %}
 <div class="site-actions">
 <a href="/portfolio/{{ item.slug }}" class="foc lux-more">Подробнее<span class="lux-sr"> о программе «{{ item.title }}»</span> <span class="lux-more__arrow" aria-hidden="true">›</span></a>{{ save('/portfolio/'+item.slug,item.title,'portfolio') }}
 </div>

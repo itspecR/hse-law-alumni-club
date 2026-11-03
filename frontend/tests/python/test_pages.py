@@ -407,7 +407,7 @@ async def test_home_texts_follow_glossary(browser_client):
         in page
     )
     assert "<h3>Проверка</h3><p>Мы подтверждаем статус выпускника факультета.</p>" in page
-    assert "Программы клуба и&nbsp;ДПО по&nbsp;цене выпускника, события и&nbsp;подкасты.</p>" in page
+    assert "Программы клуба, ДПО по&nbsp;цене выпускника, события и&nbsp;подкасты.</p>" in page
     assert "Скидка 15% с&nbsp;уровня «Знаток», от&nbsp;500&nbsp;баллов. Личная скидка" in page
     assert "Амбассадор" not in page
     home = (Path(club_web.__file__).parent / "templates/home.html").read_text()
@@ -435,7 +435,7 @@ async def test_home_shows_club_programs_after_join_steps(browser_client):
     assert "Курсы дополнительного образования, которые проводит клуб.</p>" in block
     assert '<h3><a href="/portfolio/club-one">Переговоры для юристов</a></h3>' in block
     assert "Набор открыт · старт 1 декабря 2026" in block and "<dd>Смешанный</dd>" in block
-    assert "45\u00a0000 ₽" in block and "Цена выпускника от&nbsp;38\u00a0250 ₽" in block
+    assert "45\u00a0000 ₽" in block and "Цена выпускника" not in block
     assert '<a href="/portfolio" class="foc lux-more">Все программы клуба <span' in block
     assert '<h2><a href="/portfolio/club-one">' in (await browser_client.get("/portfolio")).text
 
@@ -736,7 +736,8 @@ async def test_portfolio_program_page_leads_with_facts_and_price():
     for label, value in (("Формат", "Смешанный"), ("Начало", "1 декабря 2026"), ("Свободных мест", "17")):
         assert f"<span>{label}</span></dt><dd>{value}</dd>" in hero
     panel = page[page.index('class="site-panel portfolio-buy"') : page.index('class="portfolio-body"')]
-    assert '<p class="lux-price">45\u00a0000 ₽</p>' in panel and "Цена выпускника от&nbsp;38\u00a0250 ₽" in panel
+    assert '<p class="lux-price">45\u00a0000 ₽</p>' in panel and "<p>Промокод на скидку вводится в заявке.</p>" in panel
+    assert "Цена выпускника" not in page and "выпускникам от" not in page
     assert page.count('class="portfolio-points__icon"') == 3 and "<li>Telegram-чат группы</li>" in page
     assert '<span class="portfolio-trainer__initials" aria-hidden="true">АВ</span>' in page
     assert page.index('class="portfolio-dock"') < page.index('id="application"')
@@ -745,14 +746,14 @@ async def test_portfolio_program_page_leads_with_facts_and_price():
     assert '<p class="lux-price lux-price--pending">Стоимость уточняется</p>' in closed
 
 
-async def test_portfolio_cards_show_enrollment_facts_and_alumni_price():
+async def test_portfolio_cards_show_enrollment_facts_and_price_without_member_discount():
     cohorts = [{"starts_on": "2026-12-01", "price": 3900000}, {"starts_on": "2027-02-01", "price": 0}]
     closed = {**PORTFOLIO, "slug": "club-two", "direction": "", "enrollment": "nonactual", "price": 0, "dates": None}
     page = await portfolio_listing([{**PORTFOLIO, "cohorts": cohorts}, closed])
     first, second = page.split('<article class="site-catalog-card program-card"')[1:]
     assert '<p class="program-status program-status--open">Набор открыт · старт 1 декабря 2026</p>' in first
     assert '<span class="lux-sr">Формат</span></dt><dd>Смешанный</dd>' in first
-    assert '<p class="site-price">от 39\u00a0000 ₽</p>' in first and "Цена выпускника от&nbsp;33\u00a0150 ₽" in first
+    assert '<p class="site-price">от 39\u00a0000 ₽</p>' in first and "Цена выпускника" not in first
     assert "<span>Переговоры</span></div>" in first and "site-card-media--empty" not in page
     assert '<p class="program-status">Набор закрыт</p>' in second
     assert '<p class="site-price site-price--pending">Стоимость уточняется</p>' in second
@@ -1050,7 +1051,7 @@ async def test_portfolio_texts_follow_glossary(browser_client):
     card = (await browser_client.get("/portfolio/club-one")).text
     assert "<p>Программы дополнительного образования, которые проводит клуб.</p>" in listing
     assert '<span class="lux-sr"> о программе «' in listing
-    assert "Промокод вводится в заявке, из двух скидок применяется большая." in card
+    assert "Промокод на скидку вводится в заявке." in card and "из двух скидок" not in card
     assert "Платить на сайте не нужно. Мы свяжемся с вами" in card
     templates = Path(club_web.__file__).parent / "templates"
     for name in ("portfolio.html", "portfolio-program.html"):

@@ -157,7 +157,7 @@ def site():
                 return httpx.Response(503, json={"error": "Временно недоступно"})
             if path.endswith("/applications"):
                 participants = body.get("participants", 1)
-                promo = PROMO_QUOTE if body.get("promo_code") else records.get("member_quote", NO_DISCOUNT)
+                promo = PROMO_QUOTE if body.get("promo_code") else NO_DISCOUNT
                 return httpx.Response(
                     200,
                     json={
@@ -2655,8 +2655,7 @@ def test_application_retry_reuses_key_only_for_same_data(page, site):
     assert page.evaluate("localStorage.getItem('club_application:/portfolio/club-one/applications')") is None
 
 
-def test_portfolio_receipt_names_member_discount(page, site):
-    site[1]["member_quote"] = {"discount": 10, "source": "member", "message": None}
+def test_portfolio_receipt_without_promo_has_no_discount_line(page, site):
     page.goto("/portfolio/club-one")
     form = page.locator("form[data-application]")
     form.get_by_label("ФИО", exact=True).fill("Вымышленный Заявитель")
@@ -2666,7 +2665,8 @@ def test_portfolio_receipt_names_member_discount(page, site):
     form.get_by_label("Соглашаюсь с условиями обучения").check()
     form.get_by_role("button", name="Отправить заявку", exact=True).click()
     receipt = page.locator(".portfolio-receipt")
-    expect(receipt).to_contain_text("Скидка выпускника 10%.")
+    expect(receipt).to_contain_text("Заявка ALU-2026-000777 принята")
+    expect(receipt).not_to_contain_text("кидк")
     expect(receipt).not_to_contain_text("Промокод")
 
 

@@ -63,7 +63,7 @@ def mails(database_app, monkeypatch):
     return sent
 
 
-def test_member_discount_covers_club_programs():
+def test_discount_covers_club_programs_but_not_merch():
     items = [{"type": "portfolio", "price": 100000, "qty": 2}, {"type": "merch", "price": 50000, "qty": 1}]
     assert order_totals(items, 10)["total"] == 230000
 
@@ -91,14 +91,16 @@ async def test_guest_application_is_priced_on_server_and_confirmed_by_mail(datab
     assert mails[0]["text"].endswith("Платить на сайте не нужно. " + CONTACT_LINE)
 
 
-async def test_verified_member_gets_discount_only_for_self(database_app, mails):
+async def test_verified_member_pays_full_price_for_club_programs(database_app, mails):
     app = database_app
     item = await program(app)
     _, member = await account(app)
     async with client_for(app) as client:
+        assert (await client.get("/me", headers=member)).json()["level"]["discount"] > 0
         own = (await apply(client, item["slug"], FORM, member)).json()
         group = (await apply(client, item["slug"], GROUP, member)).json()
-    assert own["member_discount"] > 0 and own["total_estimate"] < PRICE
+    assert (own["member_discount"], own["discount_source"], own["total_estimate"]) == (0, None, PRICE)
+    assert own["message"] is None
     assert (group["member_discount"], group["subtotal"], group["total_estimate"]) == (0, 3 * PRICE, 3 * PRICE)
     saved = await order(app, group["number"])
     assert (saved["participants"], saved["organization"]) == (3, "ООО «Пример»")

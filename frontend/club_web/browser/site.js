@@ -239,17 +239,11 @@ function estimateText(form, total) {
   return total ? "Предварительная сумма " + rubles(total) : form.querySelector("[data-quote]").dataset.pricePending;
 }
 
-function discountText(discount, source, message) {
-  if (message) return message;
-  return source === "member" ? "Скидка выпускника " + discount + "%." : "";
-}
-
 function applicationReceipt(form, result) {
   const receipt = element("div", undefined, { role: "status", class: "portfolio-receipt", tabindex: "-1" });
   receipt.append(element("h3", "Заявка " + result.number + " принята"), element("p", "Участников: " + result.participants + " · " + estimateText(form, result.total_estimate).toLowerCase()));
   if (result.starts_on) receipt.append(element("p", "Старт потока: " + (form.querySelector("[name='cohort_id']:checked")?.dataset.start || result.starts_on)));
-  const discount = discountText(result.member_discount, result.discount_source, result.message);
-  if (discount) receipt.append(element("p", discount));
+  if (result.message) receipt.append(element("p", result.message));
   receipt.append(element("p", "Мы свяжемся с вами по указанным контактам, чтобы согласовать договор и оплату."));
   if (!result.notified?.ok) receipt.append(element("p", notNotifiedText, { role: "alert" }));
   form.replaceWith(receipt);
@@ -293,7 +287,7 @@ async function quotePromo(button) {
   button.disabled = true;
   try {
     const quote = await request(button.dataset.quoteApi, "POST", body);
-    showQuote(form, [discountText(quote.discount, quote.source, quote.message), estimateText(form, quote.total) + "."].filter(Boolean).join(" "));
+    showQuote(form, [quote.message, estimateText(form, quote.total) + "."].filter(Boolean).join(" "));
   } catch (error) { showQuote(form, error.message, true); }
   finally { button.disabled = false; }
 }
