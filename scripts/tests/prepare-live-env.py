@@ -46,7 +46,6 @@ def prepare(destination, directory):
     for name in (
         "POSTGRES_PASSWORD",
         "CHECKOUT_DB_PASSWORD",
-        "POINTS_SERVICE_TOKEN",
         "ADMIN_PASSWORD",
         "AUTH_SECRET",
         "ADMIN_AUTH_SECRET",

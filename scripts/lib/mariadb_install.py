@@ -446,7 +446,6 @@ def prepare_restore(context, config, port, mail_port):
         "OFFICE_TG_BOT_TOKEN",
         "OFFICE_TG_CHAT_ID",
         "SENTRY_DSN",
-        "POINTS_SERVICE_TOKEN",
     ):
         runtime[name] = ""
     operator_values = {

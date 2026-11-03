@@ -271,7 +271,6 @@
     "max_cart_lines": 30,
     "max_line_qty": 99,
     "max_interests": 8,
-    "decay_rate": 0.15,
     "podcast_year_price": 499900
   }
 }

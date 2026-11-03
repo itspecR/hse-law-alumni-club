@@ -64,8 +64,10 @@ def test_all_legacy_routes_are_present():
         ("POST", "/admin/programs"),
         ("PATCH", "/admin/programs/{id}"),
         ("DELETE", "/admin/programs/{id}"),
+        ("POST", "/points"),
+        ("POST", "/decay/run"),
     }
-    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 140
+    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 138
 
 
 def test_sentry_privacy():

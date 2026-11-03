@@ -1,5 +1,3 @@
-import math
-
 from club_api.resources import shared_data
 
 DOMAIN = shared_data("domain-data.json")
@@ -50,10 +48,6 @@ def level_info(points, personal=0):
         "next_level": next_level["title"] if next_level else None,
         "to_next": max(0, next_level["min_points"] - points) if next_level else 0,
     }
-
-
-def decay_delta(points):
-    return -math.floor(max(0, points) * DOMAIN["limits"]["decay_rate"] + 0.5)
 
 
 def achievement_progress(stats):

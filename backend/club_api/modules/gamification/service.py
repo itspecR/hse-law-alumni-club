@@ -1,14 +1,10 @@
 import logging
 from collections import Counter
-from datetime import UTC, datetime, timedelta
 
-from club_api.core.models import parse_date
 from club_api.db.queries import Query, acquire_lock
-from club_api.db.store import normalize
-from club_api.domain import ACHIEVEMENTS, DOMAIN, LEVELS, compute_level, decay_delta
+from club_api.domain import ACHIEVEMENTS, DOMAIN, LEVELS, compute_level
 
 logger = logging.getLogger("club.points")
-POINT_REASONS = ("program", "event", "referral", "mentorship", "order", "decay", "manual", "achievement")
 
 
 def stats_from_ledger(alumni, ledger):
@@ -95,8 +91,6 @@ class Gamification:
             },
             connection=connection,
         )
-        if reason != "decay":
-            await connection.execute("UPDATE alumni SET last_activity_at=now() WHERE id=%s", (alumni_id,))
         return await self.recompute(connection, alumni_id)
 
     async def refresh_achievements(self, alumni_id):
@@ -146,58 +140,3 @@ class Gamification:
                         {"alumni_id": alumni_id, "achievement_id": item["id"]},
                         connection=connection,
                     )
-
-    async def decay(self, now=None):
-        now = now or datetime.now(UTC)
-        month, affected = now.strftime("%Y-%m"), 0
-        rows = await self.state.store.read(
-            "alumni",
-            filters={
-                "_or": [
-                    {"last_activity_at": {"_lte": normalize(now - timedelta(days=30))}},
-                    {"last_activity_at": {"_null": True}},
-                ]
-            },
-            fields=("id",),
-            limit=-1,
-        )
-        for row in rows:
-            try:
-                async with self.state.database.transaction() as connection:
-                    cursor = await connection.execute(
-                        "SELECT last_activity_at FROM alumni WHERE id=%s FOR UPDATE", (row["id"],)
-                    )
-                    alumni = await cursor.fetchone()
-                    if not alumni or (
-                        alumni["last_activity_at"] and parse_date(alumni["last_activity_at"]) > now - timedelta(days=30)
-                    ):
-                        continue
-                    ledger = await self.state.store.read(
-                        "points_ledger",
-                        filters={"alumni_id": {"_eq": row["id"]}},
-                        fields=("delta", "reason", "created_at"),
-                        limit=-1,
-                        connection=connection,
-                    )
-                    last = max(
-                        (item["created_at"] for item in ledger if item["reason"] == "decay" and item["created_at"]),
-                        default=None,
-                    )
-                    if last and now - parse_date(last) < timedelta(days=27):
-                        continue
-                    delta = decay_delta(sum(item["delta"] or 0 for item in ledger))
-                    if delta >= 0:
-                        continue
-                    await self.add_in_transaction(
-                        connection,
-                        row["id"],
-                        reason="decay",
-                        delta=delta,
-                        idempotency_key=f"decay-{row['id']}-{month}",
-                        comment="Списание за месяц неактивности",
-                    )
-                await self.refresh_achievements(row["id"])
-                affected += 1
-            except Exception:
-                logger.error("Не удалось обработать списание баллов")
-        return {"month": month, "affected": affected}

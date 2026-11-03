@@ -9,7 +9,7 @@ from django.http import HttpRequest
 from psycopg.types.json import Jsonb
 
 from club_api.core.errors import ApiError
-from club_api.core.security import LoginAttempts, constant_equal
+from club_api.core.security import LoginAttempts
 from club_api.db.queries import Query, acquire_lock
 from club_api.db.store import Store
 from club_api.modules.auth.passwords import hash_password, verify_password
@@ -179,9 +179,6 @@ class AuthService:
         match = re.fullmatch("Bearer\\s+(.+)", request.headers.get("authorization", ""), re.I)
         return match[1] if match else None
 
-    def service_token(self, request):
-        return constant_equal(self.bearer(request), self.settings.secret("POINTS_SERVICE_TOKEN"))
-
     async def user(self, *, id=None, email=None, alumni=False, active=False, staff=False):
         async with self.database.connection() as connection:
             user = await find_user(connection, id=id, email=email)
@@ -215,7 +212,7 @@ class AuthService:
 
     async def resolve_admin(self, request):
         token = self.bearer(request)
-        if not token or self.service_token(request):
+        if not token:
             return None
         payload = self.decode(token, admin=True)
         if not payload or payload.get("scope") != "admin":
@@ -238,7 +235,7 @@ class AuthService:
 
     async def resolve_alumni(self, request):
         token = self.bearer(request)
-        if not token or self.service_token(request):
+        if not token:
             return None
         payload = self.decode(token)
         if not payload or not isinstance(payload.get("alumni_id"), str):

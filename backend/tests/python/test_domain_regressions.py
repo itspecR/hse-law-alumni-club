@@ -9,8 +9,8 @@ from test_checkout_integration import contact, fill, product
 from test_community_integration import account
 
 from club_api.core.errors import ApiError
-from club_api.domain import ACHIEVEMENTS
-from club_api.jobs.tasks import retention
+from club_api.domain import ACHIEVEMENTS, DOMAIN
+from club_api.jobs.tasks import retention, scheduled
 
 
 async def test_retention_scrubs_only_expired_orders_and_audit(database_app):
@@ -182,27 +182,16 @@ async def test_canceled_rsvp_cannot_receive_attendance_points(database_app, monk
     assert (await original("alumni", alumni_id))["points_cached"] == 0
 
 
-async def test_decay_rechecks_activity_after_candidate_selection(database_app, monkeypatch):
+async def test_points_never_expire_and_have_no_service_entry(database_app):
     state = database_app.state
-    alumni = await state.store.create("alumni", {"fio": "Активный участник"})
-    await state.gamification.add(alumni["id"], reason="manual", delta=100)
-    await state.store.update("alumni", {"last_activity_at": datetime.now(UTC) - timedelta(days=40)}, id=alumni["id"])
-    original = state.store.read
-    selected = False
-
-    async def resume_activity(table, **kwargs):
-        nonlocal selected
-        rows = await original(table, **kwargs)
-        if table == "alumni" and not selected:
-            selected = True
-            await state.gamification.add(alumni["id"], reason="manual", delta=100)
-        return rows
-
-    monkeypatch.setattr(state.store, "read", resume_activity)
-    result = await state.gamification.decay()
-    assert selected and result["affected"] == 0
-    assert (await state.store.one("alumni", alumni["id"]))["points_cached"] == 200
-    assert not await original("points_ledger", filters={"alumni_id": {"_eq": alumni["id"]}, "reason": {"_eq": "decay"}})
+    alumni = await state.store.create("alumni", {"fio": "Тихий участник"})
+    await state.gamification.add(alumni["id"], reason="manual", delta=500)
+    assert "points-decay" not in {job for job, _, _ in scheduled(state)} and "decay_rate" not in DOMAIN["limits"]
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=database_app), base_url="http://test") as client:
+        for path in ("/points", "/decay/run"):
+            response = await client.post(path, headers={"Authorization": "Bearer " + "s" * 40}, json={})
+            assert response.status_code == 404, path
+    assert (await state.store.one("alumni", alumni["id"]))["points_cached"] == 500
 
 
 async def test_event_history_does_not_hide_upcoming_month_or_detail(database_app):

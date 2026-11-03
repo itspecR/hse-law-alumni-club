@@ -55,8 +55,6 @@ routes = (
         path("auth/forgot", endpoint({"POST": auth_routes.forgot})),
         path("auth/reset", endpoint({"POST": auth_routes.reset})),
         path("auth/telegram", endpoint({"POST": auth_routes.telegram_login})),
-        path("points", endpoint({"POST": gamification_routes.points})),
-        path("decay/run", endpoint({"POST": gamification_routes.decay})),
         path("me/ledger", endpoint({"GET": gamification_routes.ledger})),
         path("admin/dpo-sync", endpoint({"GET": catalog_sync.status, "POST": catalog_sync.sync})),
         path("admin/pages/<str:slug>", endpoint({"GET": content_admin.admin_page, "PATCH": content_admin.patch_page})),

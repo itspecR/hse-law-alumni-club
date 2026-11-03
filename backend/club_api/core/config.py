@@ -21,7 +21,6 @@ class Settings(BaseSettings):
     SUPPORT_OPERATOR_CONTACT: str = "Письменное обращение по юридическому адресу оператора"
     SUPPORT_RETENTION_DAYS: int = Field(default=30, ge=1, le=365)
     OFFICE_EMAIL: str = ""
-    POINTS_SERVICE_TOKEN: SecretStr = SecretStr("")
     AUTH_SECRET: SecretStr = Field(min_length=32)
     ADMIN_AUTH_SECRET: SecretStr = SecretStr("")
     NEWS_SYNC_ENABLED: Literal["true", "false"] = "false"
@@ -82,9 +81,6 @@ class Settings(BaseSettings):
             errors.append("AUTH_SECRET содержит шаблонное значение")
         if len(admin) < 32 or placeholder.search(admin) or admin == auth:
             errors.append("ADMIN_AUTH_SECRET должен быть отдельным случайным секретом длиной не менее 32 символов")
-        service = self.secret("POINTS_SERVICE_TOKEN")
-        if service and (len(service) < 32 or placeholder.search(service)):
-            errors.append("POINTS_SERVICE_TOKEN должен быть случайным секретом длиной не менее 32 символов")
         try:
             url = urlsplit(self.PUBLIC_URL)
             valid = url.scheme == "https" and bool(url.hostname) and not url.username and not url.password
