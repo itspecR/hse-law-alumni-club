@@ -11,7 +11,7 @@ from club_api.domain import MAX_INTERESTS, achievement_progress, level_info
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_alumni
 from club_api.modules.gamification.routes import verified_alumni
-from club_api.modules.gamification.social import social_progress
+from club_api.modules.gamification.social import SOCIAL_COUNTS, social_progress
 from club_api.modules.members.service import anonymize
 from club_api.modules.telegram.links import make_link
 from club_api.observability.audit import audit
@@ -85,7 +85,7 @@ async def me(request: HttpRequest):
     social = await social_progress(state, alumni["id"], alumni["telegram_id"]) if verified else None
     stats = await state.gamification.stats(alumni, ledger) if verified else None
     if verified:
-        await state.gamification.refresh_achievements(alumni["id"])
+        await state.gamification.refresh_achievements(alumni["id"], {key: social[key] for key in SOCIAL_COUNTS})
     profile = {
         key: alumni[key]
         for key in ("fio", "cohort", "verification_status", "edu_program", "edu_level", "avatar", "referral_code")

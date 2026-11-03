@@ -3,6 +3,7 @@ import logging
 from club_api.db.queries import Query
 
 logger = logging.getLogger("club.social")
+SOCIAL_COUNTS = ("telegram_subscribed", "telegram_reactions")
 
 
 async def social_progress(state, alumni_id, telegram_id=None):
