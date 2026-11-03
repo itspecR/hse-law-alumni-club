@@ -99,7 +99,7 @@
 {% endif %}
 <p class="lux-sr" role="status" data-level-status></p>
 <div class="lux-calc__foot">
-<p>Уровни: {% for level in levels[1:] %}«{{ level.title }}» с&nbsp;{{ level.min_points }}{% if loop.first %}&nbsp;баллов{% endif %}{{ ', ' if not loop.last else '' }}{% endfor %}. Личная скидка добавляет еще до&nbsp;{{ domain.limits.personal_discount_max }}%, всего не&nbsp;больше {{ domain.limits.member_discount_cap }}%. Подробности при&nbsp;оформлении на&nbsp;сайте Центра ДПО.</p>
+<p>{% for level in levels[1:] %}Скидка {{ level.discount_percent }}% с&nbsp;уровня «{{ level.title }}», от&nbsp;{{ level.min_points }}&nbsp;баллов. {% endfor %}Личная скидка добавляет еще до&nbsp;{{ domain.limits.personal_discount_max }}%, всего не&nbsp;больше {{ domain.limits.member_discount_cap }}%. Подробности при&nbsp;оформлении на&nbsp;сайте Центра ДПО.</p>
 <a href="/dpo" class="foc lux-more">Весь каталог <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </div>
 </div>

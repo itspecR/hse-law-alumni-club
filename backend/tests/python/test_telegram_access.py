@@ -27,7 +27,7 @@ async def test_private_bot_profile_uses_current_account_access(active):
     result = await Telegram(state).reply("/points", "", "12345")
     state.auth.user.assert_awaited_once_with(id=user_id, alumni=True, active=True)
     assert ("Вымышленный участник" in result) is active
-    assert ("15%" in result) is active
+    assert ("Скидка выпускника на ДПО: <b>20%</b>" in result) is active
     assert ("До уровня «Друг клуба» осталось баллов: 77" in result) is active
     assert ("личном кабинете" in result and "Подключить Telegram" not in result) is not active
 

@@ -1402,15 +1402,19 @@ def test_home_member_price_follows_selected_level(page, width):
     page.set_viewport_size({"width": width, "height": 900})
     page.goto("/")
     price = page.locator(".lux-prog").filter(has_text=PROGRAM["title"]).locator("[data-member-price]")
-    expect(price).to_have_text(rub(285000))
+    expect(price).to_have_text(rub(270000))
     expect(page.locator(".lux-home")).to_have_attribute("data-home-ready", "true")
     expect(page.locator("[data-starts-empty]")).to_be_hidden()
-    page.get_by_role("radio", name=re.compile("^Амбассадор")).check()
-    expect(price).to_have_text(rub(240000))
-    expect(page.locator("[data-level-status]")).to_have_text(
-        "Уровень «Амбассадор»: скидка 20%, цены выпускника пересчитаны."
+    expect(page.locator("input[name='member-level']")).to_have_count(2)
+    expect(page.locator(".lux-calc__foot")).to_contain_text(
+        re.compile(r"Скидка 15%\sс\sуровня «Знаток», от\s500\sбаллов\.")
     )
-    page.get_by_role("radio", name=re.compile("^Друг клуба")).check()
+    page.get_by_role("radio", name=re.compile("^Знаток")).check()
+    expect(price).to_have_text(rub(255000))
+    expect(page.locator("[data-level-status]")).to_have_text(
+        "Уровень «Знаток»: скидка 15%, цены выпускника пересчитаны."
+    )
+    page.get_by_role("radio", name=re.compile("^Выпускник")).check()
     expect(price).to_have_text(rub(270000))
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
@@ -1710,7 +1714,9 @@ def test_cabinet_stats_and_sections(page, site, width):
     page.goto("/lk")
     stats = page.locator(".cabinet-metrics")
     expect(stats.locator("dt")).to_have_text(["Уровень", "Баллы", "Скидка выпускника", "Достижения"])
-    expect(stats.locator(".cabinet-metric__note")).to_have_text("До уровня «Друг клуба» осталось баллов: 100")
+    expect(stats.locator(".cabinet-metric__note")).to_have_text(
+        ["До уровня «Друг клуба» осталось баллов: 100", "на программы ДПО"]
+    )
     for link in page.get_by_role("navigation", name="Разделы кабинета").get_by_role("link").all():
         assert link.bounding_box()["height"] >= 44
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
@@ -2300,7 +2306,7 @@ def test_home_without_javascript_shows_graduate_prices(chromium, site):
     page.goto("/")
     expect(page.locator(".lux-calc__levels")).to_be_hidden()
     expect(page.locator(".lux-prog").filter(has_text=PROGRAM["title"]).locator("[data-member-price]")).to_have_text(
-        rub(285000)
+        rub(270000)
     )
     context.close()
 

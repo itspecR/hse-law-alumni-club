@@ -14,14 +14,14 @@ from club_api.domain import (
 @pytest.mark.parametrize(
     ("points", "key", "discount"),
     [
-        (-1, "graduate", 5),
-        (0, "graduate", 5),
-        (199, "graduate", 5),
+        (-1, "graduate", 10),
+        (0, "graduate", 10),
+        (199, "graduate", 10),
         (200, "friend", 10),
         (499, "friend", 10),
         (500, "expert", 15),
         (999, "expert", 15),
-        (1000, "ambassador", 20),
+        (1000, "ambassador", 15),
     ],
 )
 def test_level_boundaries(points, key, discount):

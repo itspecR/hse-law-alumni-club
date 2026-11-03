@@ -29,7 +29,7 @@ from club_web.office import (
     section_records,
     status_values,
 )
-from club_web.pricing import member_prices
+from club_web.pricing import discount_tiers, member_prices
 from club_web.search import search_groups
 
 HOME_EPISODES = 4
@@ -182,7 +182,7 @@ def home_programs(programs, levels, today=None):
     starts = catalog["upcoming"]
     shown = starts or [item for item in catalog["items"] if item.get("enrollment") == "actual"][:UPCOMING_LIMIT]
     return {
-        "levels": sorted(levels, key=lambda level: level["sort"]),
+        "levels": discount_tiers(levels),
         "home_starts": bool(starts),
         "home_programs": [with_member_prices(item, levels) for item in shown],
         "programs_total": len(programs),

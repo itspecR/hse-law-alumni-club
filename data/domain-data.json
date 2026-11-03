@@ -4,7 +4,7 @@
       "key": "graduate",
       "title": "Выпускник",
       "min_points": 0,
-      "discount_percent": 5,
+      "discount_percent": 10,
       "sort": 1
     },
     {
@@ -25,7 +25,7 @@
       "key": "ambassador",
       "title": "Амбассадор",
       "min_points": 1000,
-      "discount_percent": 20,
+      "discount_percent": 15,
       "sort": 4
     }
   ],
