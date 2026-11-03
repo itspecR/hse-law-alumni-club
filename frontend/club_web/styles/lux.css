@@ -124,11 +124,19 @@ html.lux .club-header__tools .club-chrome-icon-btn { width: 40px; height: 44px; 
 html.lux .club-header__cta { position: relative; min-height: 32px; margin-left: 4px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--c-accent); color: var(--c-on-accent); font: 600 14px/1 var(--f-body); letter-spacing: -0.01em; text-transform: none; box-shadow: none; transition: transform 160ms var(--ease-out), background-color 160ms ease; }
 html.lux .club-header__cta::after { content: ""; position: absolute; inset: -6px -2px; }
 html.lux .club-header__cta:active { transform: scale(0.97); }
+html.lux .club-header__join { position: relative; display: flex; }
+html.lux .club-header__login { position: absolute; top: 100%; left: 4px; right: 0; display: flex; align-items: center; justify-content: center; min-height: 32px; margin-top: 8px; border-radius: 999px; background: var(--lux-control); color: var(--c-text); font: 600 14px/1 var(--f-body); letter-spacing: -0.01em; text-decoration: none; opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), visibility 0s linear 160ms, background-color 160ms ease; }
+html.lux .club-header__login::before { content: ""; position: absolute; inset: -10px 0 100%; }
+html.lux .club-header__login:hover { background: var(--lux-hairline); }
+html.lux .club-header__join:is(:hover, :focus-within) .club-header__login { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+html.lux .club-header__login[hidden] { display: none; }
 html.lux .club-header__burger { width: 44px; height: 44px; border: 0; border-radius: 999px; background: transparent; color: var(--lux-ink); font-size: 20px; }
 html.lux .club-menu { padding: 8px var(--page-gutter) 32px; border-top: 0; background: var(--lux-black); }
 html.lux .club-menu a, html.lux .club-menu button { min-height: 52px; padding: 6px 0; border: 0; background: none; color: var(--lux-ink); font: 200 28px/1.15 var(--f-display); letter-spacing: -0.03em; }
 html.lux .club-menu a[aria-current="page"] { padding-inline: 0; background: none; color: var(--lux-ink); }
 html.lux .club-menu [data-member-link] { justify-content: center; min-height: 48px; margin-top: 20px; border-radius: 999px; background: var(--c-accent); color: var(--c-on-accent); font: 600 17px/1 var(--f-body); letter-spacing: -0.01em; }
+html.lux .club-menu [data-guest-only] { justify-content: center; min-height: 48px; margin-top: 12px; border-radius: 999px; background: var(--lux-control); color: var(--c-text); font: 600 17px/1 var(--f-body); letter-spacing: -0.01em; }
+html.lux .club-menu [data-guest-only][hidden] { display: none; }
 html.lux .club-menu button[data-action="vision"] { font-size: 17px; font-weight: 400; letter-spacing: 0; color: var(--lux-mute); }
 
 html.lux .club-footer { background: var(--lux-sunken); color: var(--lux-quiet); border-top: 0; }
