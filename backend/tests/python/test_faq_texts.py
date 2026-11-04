@@ -2,6 +2,7 @@ import re
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
+from club_api.domain import LEVELS
 from club_api.modules.telegram.faq import FAQ, answer_faq, duration_text, program_to_bot, site_reply
 
 QUALIFICATION = "Удостоверение о повышении квалификации"
@@ -54,4 +55,25 @@ async def test_price_range_keeps_sentence_commas():
     reply = await site_reply(bot_state(rows), "сколько стоят программы")
     assert reply["text"] == (
         "Программы стоят от 30 000 до 150 000 ₽. Чтобы отобрать по цене, напишите, например, «до 30000» или «от 50000»."
+    )
+
+
+def faq_answer(id):
+    return next(answer for answer in FAQ["answers"] if answer["id"] == id)
+
+
+async def test_points_questions_find_points_answer():
+    for query in ("Как начисляются баллы?", "баллы в кабинете", "какие есть уровни"):
+        reply = await site_reply(bot_state([]), query)
+        assert (reply["text"], reply["anchor"]) == (faq_answer("points")["text"], "/lk"), query
+
+
+def test_discount_answers_follow_level_discounts():
+    base = LEVELS[0]["discount_percent"]
+    top = next(level for level in LEVELS if level["discount_percent"] == max(row["discount_percent"] for row in LEVELS))
+    percent = top["discount_percent"]
+    assert f"{base}%, с уровня «{top['title']}» {percent}%" in faq_answer("discount")["text"]
+    assert (
+        f"с уровня «{top['title']}» скидка выпускника на программы ДПО растет с {base} до {percent}%"
+        in (faq_answer("points")["text"])
     )
