@@ -9,7 +9,7 @@ from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
 from club_api.core.views import api_view, parse_body
-from club_api.domain import PORTFOLIO_CATALOG, effective_discount, order_totals
+from club_api.domain import PORTFOLIO_CATALOG, order_totals
 from club_api.modules.auth.routes import Body, EmailBody, RegisterBody
 from club_api.modules.catalog.scope import PUBLISHED_PORTFOLIO
 from club_api.modules.checkout.store import PENDING_NOTICE, digest
@@ -31,7 +31,6 @@ MAX_PARTICIPANTS = 20
 MIN_GROUP = 2
 PROMO_CODE_LENGTH = 32
 PROMO_SOURCE = "promo"
-MEMBER_SOURCE = "member"
 SELF_MESSAGE = "Заявка для себя подается на одного участника."
 CONSENTS = shared_data("legal-data.json")["portfolio_consents"]
 logger = logging.getLogger("club.portfolio")
@@ -122,28 +121,12 @@ async def open_program(state, slug):
     return rows[0]
 
 
-def applicant_discount(applicant, alumni):
-    if applicant != "self" or not alumni:
-        return 0
-    return effective_discount(
-        alumni["verification_status"] == "verified", alumni["points_cached"] or 0, alumni["personal_discount"] or 0
-    )
+async def chosen_promo(connection, code, program, email, *, lock):
+    return await valid_promo(connection, code, program["id"], email, lock=lock) if code else None
 
 
-async def chosen_promo(connection, code, program, email, member, *, lock):
-    if not code:
-        return None, None
-    try:
-        promo = await valid_promo(connection, code, program["id"], email, lock=lock)
-    except ApiError as error:
-        if member:
-            return None, error.message
-        raise
-    return (promo if promo["percent"] > member else None), None
-
-
-def pricing(program, cohort, participants, member, promo):
-    discount, source = (promo["percent"], PROMO_SOURCE) if promo else (member, MEMBER_SOURCE if member else None)
+def pricing(program, cohort, participants, promo):
+    discount, source = (promo["percent"], PROMO_SOURCE) if promo else (0, None)
     items = [
         {
             "type": PORTFOLIO_CATALOG,
@@ -156,18 +139,12 @@ def pricing(program, cohort, participants, member, promo):
     return items, order_totals(items, discount), discount, source
 
 
-def promo_message(code, source, discount, rejected=None):
-    if source == PROMO_SOURCE:
-        return f"Промокод применен, скидка {discount}%."
-    if rejected:
-        return f"{rejected} Действует ваша скидка выпускника {discount}%."
-    if code:
-        return "Ваша скидка выпускника не меньше, промокод не нужен."
-    return None
+def promo_message(source, discount):
+    return f"Промокод применен, скидка {discount}%." if source == PROMO_SOURCE else None
 
 
-def order_base(body, program, cohort, alumni, member, promo):
-    items, totals, discount, source = pricing(program, cohort, body.participants, member, promo)
+def order_base(body, program, cohort, alumni, promo):
+    items, totals, discount, source = pricing(program, cohort, body.participants, promo)
     return {
         "alumni_id": alumni["id"] if alumni else None,
         "type": PORTFOLIO_CATALOG,
@@ -197,7 +174,7 @@ def cohort_start(choice):
     return choice["cohort"]["starts_on"] if choice.get("cohort") else None
 
 
-def application_receipt(code, choice, number, base, notified=PENDING_NOTICE):
+def application_receipt(choice, number, base, notified=PENDING_NOTICE):
     return {
         "number": number,
         "status": base["status"],
@@ -205,7 +182,7 @@ def application_receipt(code, choice, number, base, notified=PENDING_NOTICE):
         "member_discount": base["member_discount"],
         "discount_source": base["discount_source"],
         "promo_code": base["promo_code"],
-        "message": promo_message(code, base["discount_source"], base["member_discount"], choice.get("rejected")),
+        "message": promo_message(base["discount_source"], base["member_discount"]),
         "starts_on": cohort_start(choice),
         "subtotal": base["subtotal"],
         "total_estimate": base["total_estimate"],
@@ -250,18 +227,14 @@ async def apply(request: HttpRequest, slug: str):
         return previous
     await require_captcha(state, body.captcha)
     program = await open_program(state, slug)
-    member = applicant_discount(body.applicant, alumni)
-
     choice = {}
 
     async def build(connection):
         choice["cohort"] = await chosen_cohort(state, program["id"], body.cohort_id, connection, lock=True)
-        choice["promo"], choice["rejected"] = await chosen_promo(
-            connection, body.promo_code, program, body.contact_email, member, lock=True
-        )
-        return order_base(body, program, choice["cohort"], alumni, member, choice["promo"])
+        promo = await chosen_promo(connection, body.promo_code, program, body.contact_email, lock=True)
+        return order_base(body, program, choice["cohort"], alumni, promo)
 
-    receipt = partial(application_receipt, body.promo_code, choice)
+    receipt = partial(application_receipt, choice)
     result = await state.checkout.commit_single(key=key, request_hash=request_hash, build=build, receipt=receipt)
     if result["replay"]:
         return result["replay"]
@@ -292,17 +265,15 @@ async def quote(request: HttpRequest, slug: str):
     body = parse_body(request, QuoteBody)
     require_group(body.applicant, body.participants)
     state = request.services
-    alumni = await state.auth.resolve_alumni(request)
     program = await open_program(state, slug)
-    member = applicant_discount(body.applicant, alumni)
     async with state.database.connection() as connection:
         cohort = await chosen_cohort(state, program["id"], body.cohort_id, connection)
-        promo, rejected = await chosen_promo(connection, body.promo_code, program, None, member, lock=False)
-    _, totals, discount, source = pricing(program, cohort, body.participants, member, promo)
+        promo = await chosen_promo(connection, body.promo_code, program, None, lock=False)
+    _, totals, discount, source = pricing(program, cohort, body.participants, promo)
     return {
         "subtotal": totals["subtotal"],
         "discount": discount,
         "source": source,
         "total": totals["total"],
-        "message": promo_message(body.promo_code, source, discount, rejected),
+        "message": promo_message(source, discount),
     }

@@ -100,7 +100,7 @@ async def test_promo_programs_are_portfolio_only_and_dates_checked_on_patch(data
     assert rejected.status_code == 400 and late.status_code == 400
 
 
-async def test_promo_beats_smaller_member_discount_and_is_recorded(database_app, mails):
+async def test_member_promo_is_applied_and_recorded(database_app, mails):
     app = database_app
     item = await program(app)
     _, admin = await account(app, "admin")
@@ -116,7 +116,7 @@ async def test_promo_beats_smaller_member_discount_and_is_recorded(database_app,
     assert '"SPRING-15"' in export
 
 
-async def test_bigger_member_discount_keeps_promo_unused(database_app, mails):
+async def test_member_gets_small_promo_without_member_discount(database_app, mails):
     app = database_app
     item = await program(app)
     _, admin = await account(app, "admin")
@@ -124,10 +124,10 @@ async def test_bigger_member_discount_keeps_promo_unused(database_app, mails):
     async with client_for(app) as client:
         id = await create_promo(client, admin, percent=1, total_limit=1)
         receipt = (await apply(client, item["slug"], with_code(FORM), member)).json()
-        assert (await promo_row(client, admin, id))["used"] == 0
-    assert receipt["discount_source"] == "member" and receipt["promo_code"] is None
-    assert receipt["member_discount"] > 1 and "промокод не нужен" in receipt["message"]
-    assert (await order(app, receipt["number"]))["promo_id"] is None
+        assert (await promo_row(client, admin, id))["used"] == 1
+    assert (receipt["discount_source"], receipt["promo_code"], receipt["member_discount"]) == ("promo", "SPRING-15", 1)
+    assert receipt["message"] == "Промокод применен, скидка 1%." and receipt["total_estimate"] == PRICE * 99 // 100
+    assert (await order(app, receipt["number"]))["promo_id"] == id
 
 
 async def test_organization_gets_promo(database_app, mails):
@@ -239,7 +239,10 @@ async def test_quote_matches_server_pricing(database_app):
                 json={"applicant": "organization", "participants": 3, "promo_code": "spring-15"},
             )
         ).json()
-        member_wins = (
+        member_plain = (
+            await client.post(f"/portfolio/{item['slug']}/quote", headers=member, json={"applicant": "self"})
+        ).json()
+        member_promo = (
             await client.post(
                 f"/portfolio/{item['slug']}/quote",
                 headers=member,
@@ -248,7 +251,8 @@ async def test_quote_matches_server_pricing(database_app):
         ).json()
     assert (plain["subtotal"], plain["total"], plain["source"], plain["message"]) == (3 * PRICE, 3 * PRICE, None, None)
     assert (promo["discount"], promo["source"], promo["total"]) == (1, "promo", 3 * PRICE * 99 // 100)
-    assert member_wins["source"] == "member" and "промокод не нужен" in member_wins["message"]
+    assert (member_plain["discount"], member_plain["source"], member_plain["total"]) == (0, None, PRICE)
+    assert (member_promo["discount"], member_promo["source"], member_promo["total"]) == (1, "promo", PRICE * 99 // 100)
 
 
 async def test_deleted_promo_keeps_code_in_application(database_app, mails):
@@ -314,7 +318,7 @@ async def test_quote_does_not_reveal_who_used_the_code(database_app, mails):
         ),
     ],
 )
-async def test_member_keeps_discount_when_code_is_unusable(database_app, mails, extra, code, reason):
+async def test_unusable_code_blocks_member_application(database_app, mails, extra, code, reason):
     app = database_app
     item = await program(app)
     _, admin = await account(app, "admin")
@@ -326,12 +330,10 @@ async def test_member_keeps_discount_when_code_is_unusable(database_app, mails, 
             f"/portfolio/{item['slug']}/quote", headers=member, json={"applicant": "self", "promo_code": code}
         )
         group = await apply(client, item["slug"], with_code(GROUP, code), member)
-    receipt = response.json()
-    assert response.status_code == 200 and (receipt["discount_source"], receipt["promo_code"]) == ("member", None)
-    assert receipt["message"] == f"{reason} Действует ваша скидка выпускника {receipt['member_discount']}%."
-    assert quote.status_code == 200 and quote.json()["message"] == receipt["message"]
-    assert group.status_code == 400 and group.json()["error"] == reason
+    for result in (response, quote, group):
+        assert result.status_code == 400 and result.json()["error"] == reason
 
 
-def test_equal_member_discount_message_does_not_claim_it_is_bigger():
-    assert promo_message("SPRING-15", "member", 15) == "Ваша скидка выпускника не меньше, промокод не нужен."
+def test_promo_message_names_only_promo():
+    assert promo_message("promo", 15) == "Промокод применен, скидка 15%."
+    assert promo_message(None, 0) is None
