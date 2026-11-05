@@ -48,7 +48,7 @@
 <p role="alert" data-error hidden>
 </p>
 </form>
-<a href="/forgot{{ '?next='+query.get('next')|urlencode if query.get('next')=='/podcasts#podcast-subscription' else '' }}">Получить новый код</a>
+<p>Код не пришел или устарел? <a href="/forgot{{ '?next='+query.get('next')|urlencode if query.get('next')=='/podcasts#podcast-subscription' else '' }}">Получить новый код</a></p>
 {% else %}
 <p>Мы отправили код на почту из заявки. Введите его, чтобы подтвердить почту.</p>
 <form data-api="/auth/confirm" data-success="Почта подтверждена. Мы проверим заявку.">{{ field('email','Почта',type='email',remember=true) }}{{ code_field() }}<button class="site-primary">Подтвердить почту</button>
