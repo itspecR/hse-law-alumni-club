@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros.html' import login,field %}
+{% from 'macros.html' import login,field,mailing_field %}
 {% block content %}
 <main id="main" class="site-article profile-page">
 {% if not me or access_error %}{{ login(next=query.get('next','')) }}{% else %}
@@ -24,8 +24,7 @@
 <label class="site-checkbox">
 <input type="checkbox" name="interests" value="{{ interest }}" {% if interest in me.alumni.interests %}checked{% endif %}>{{ interest }}</label>
 {% endfor %}
-</fieldset>
-<button class="site-primary">Сохранить профиль</button>
+</fieldset>{{ mailing_field('mailing_consent',me.alumni.mailing_consent) }}<button class="site-primary">Сохранить профиль</button>
 <p role="alert" data-error hidden>
 </p>
 </form>

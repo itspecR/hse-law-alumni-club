@@ -57,6 +57,7 @@ PUBLIC_PAGES = {
     "/privacy": ("legal/privacy.html", "Политика обработки персональных данных"),
     "/terms": ("legal/terms.html", "Пользовательское соглашение"),
     "/consent": ("legal/consent.html", "Согласие на обработку персональных данных"),
+    "/mailing-consent": ("legal/mailing-consent.html", "Согласие на получение рассылок"),
     "/confidential": ("legal/confidential.html", "Политика конфиденциальности"),
     "/requisites": ("legal/requisites.html", "Реквизиты"),
     "/support": ("support.html", "Поддержка клуба"),

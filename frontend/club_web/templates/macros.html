@@ -110,6 +110,11 @@
 {% endif %}
 </div>
 {% endmacro %}
+{% macro mailing_field(name,checked=false) %}
+<label class="site-consent">
+<input type="checkbox" name="{{ name }}"{% if checked %} checked{% endif %}>Получать рассылки о программах, мероприятиях и других инициативах клуба. <a href="/mailing-consent">Согласие на получение рассылок</a>, необязательно
+</label>
+{% endmacro %}
 {% macro consent(purpose='registration') %}
 <label class="site-consent">
 <input type="checkbox" name="consent_pdn" required>Даю <a href="/consent#{{ purpose }}">согласие на обработку персональных данных</a>. <a href="/privacy">Политика обработки персональных данных</a>

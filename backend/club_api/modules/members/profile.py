@@ -10,6 +10,7 @@ from club_api.domain import MAX_INTERESTS, achievement_progress, level_info
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_alumni
 from club_api.modules.gamification.routes import verified_alumni
+from club_api.modules.members.mailing import mailing_consent
 from club_api.modules.members.service import anonymize
 from club_api.observability.audit import audit
 
@@ -34,6 +35,7 @@ class ProfileBody(Body):
     fio: str = Field(default=None, min_length=2, max_length=200)
     contacts: dict[Annotated[str, Field(max_length=40)], Annotated[str, Field(max_length=200)]] = None
     interests: list[Annotated[str, Field(max_length=80)]] = Field(default=None, max_length=30)
+    mailing_consent: bool = None
 
     @field_validator("contacts")
     @classmethod
@@ -78,6 +80,7 @@ async def me(request: HttpRequest):
         interests=alumni["interests_json"] or [],
         referrals_verified=sum(row["verification_status"] == "verified" for row in referred),
         referrals_pending=sum(row["verification_status"] == "pending" for row in referred),
+        mailing_consent=bool(alumni["mailing_consent_at"]),
     )
     result = {
         "alumni": profile,
@@ -102,6 +105,10 @@ async def profile(request: HttpRequest):
         patch["interests_json"] = list(
             dict.fromkeys(value for value in data["interests"] if value in request.services.domain["legal_interests"])
         )[:MAX_INTERESTS]
+    if "mailing_consent" in data and data["mailing_consent"] != bool(alumni["mailing_consent_at"]):
+        patch.update(mailing_consent(data["mailing_consent"]))
+        event = "mailing.consent" if data["mailing_consent"] else "mailing.withdraw"
+        await audit(request, event, actor="alumni:" + alumni["id"], subject="alumni:" + alumni["id"])
     if patch:
         await request.services.store.update("alumni", patch, id=alumni["id"])
     return {"ok": True}

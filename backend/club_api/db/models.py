@@ -44,6 +44,8 @@ class Alumnus(models.Model):
     token_version = models.IntegerField(null=True, db_default=0)
     consent_at = models.DateTimeField(null=True)
     consent_version = models.CharField(max_length=255, null=True)
+    mailing_consent_at = models.DateTimeField(null=True)
+    mailing_consent_version = models.CharField(max_length=32, null=True)
     verified_at = models.DateTimeField(null=True)
     referred_by = models.ForeignKey(
         "Alumnus", on_delete=models.SET_NULL, db_column="referred_by", related_name="+", null=True

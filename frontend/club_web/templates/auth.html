@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros.html' import field,consent,code_field %}
+{% from 'macros.html' import field,consent,code_field,mailing_field %}
 {% block content %}
 <main id="main" class="club-auth {{ 'club-auth--split' if path=='/join' else '' }}">
 {% if path=='/join' %}
@@ -32,7 +32,7 @@
 <label class="site-checkbox">
 <input type="checkbox" name="interests" value="{{ interest }}">{{ interest }}</label>
 {% endfor %}
-</fieldset><p>Как работают кабинет и проверка выпуска, описано в <a href="/terms">пользовательском соглашении</a>.</p>{{ consent() }}<button class="site-primary">Отправить заявку</button>
+</fieldset><p>Как работают кабинет и проверка выпуска, описано в <a href="/terms">пользовательском соглашении</a>.</p>{{ consent() }}{{ mailing_field('consent_mailing') }}<button class="site-primary">Отправить заявку</button>
 <p role="alert" data-error hidden>
 </p>
 </form>

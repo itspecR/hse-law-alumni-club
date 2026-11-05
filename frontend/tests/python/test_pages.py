@@ -1141,6 +1141,40 @@ async def test_portfolio_leads_the_navigation():
     assert NAV[0] == ("/portfolio", "Портфель программ")
 
 
+async def profile_page(profile):
+    async def upstream(request):
+        return httpx.Response(200, json=profile if request.url.path == "/me" else [])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            return (await client.get("/views/lk/profile", headers={"authorization": "Bearer member-test"})).text
+
+
+async def test_mailing_consent_page_names_operator_and_how_to_withdraw(browser_client):
+    page = (await browser_client.get("/mailing-consent")).text
+    assert "<h1>Согласие на получение рассылок</h1>" in page and "Редакция от 5 ноября 2026 года" in page
+    assert "других инициативах АНО «Клуб выпускников факультета права НИУ ВШЭ»*" in page
+    assert "до 5 (Пяти) рабочих дней" in page and "сняв отметку «Получать рассылки»" in page
+    assert "НИУ ВШЭ*" not in page.replace("ВШЭ»*", "")
+
+
+async def test_join_offers_optional_unchecked_mailing_consent(browser_client):
+    page = (await browser_client.get("/join")).text
+    field = re.search(r'<input type="checkbox" name="consent_mailing"[^>]*>', page)[0]
+    assert "required" not in field and "checked" not in field
+    assert '<a href="/mailing-consent">Согласие на получение рассылок</a>, необязательно' in page
+
+
+async def test_profile_shows_current_mailing_consent():
+    for given in (True, False):
+        alumni = {**PROFILE["alumni"], "verification_status": "verified", "mailing_consent": given}
+        page = await profile_page({**PROFILE, "alumni": alumni})
+        field = re.search(r'<input type="checkbox" name="mailing_consent"[^>]*>', page)[0]
+        assert ("checked" in field) is given
+
+
 async def test_consent_placeholders_show_draft_version(browser_client):
     for path in ("/portfolio-consent", "/portfolio-terms"):
         response = await browser_client.get(path)
