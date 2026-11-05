@@ -6,6 +6,7 @@ html.lux .cabinet-gate__intro h2 { margin: clamp(32px, 5cqi, 64px) 0 16px; font:
 html.lux .cabinet-gate__intro h2 em, html.lux .club-auth__aside h2 em { font-style: normal; color: inherit; }
 html.lux .cabinet-gate__intro p { color: var(--c-text-3); font-size: 17px; }
 html.lux .cabinet-gate__benefits span { padding: 16px 0; border-color: var(--c-line); font-size: 15px; color: var(--c-text-2); }
+html.lux .cabinet-gate__form[hidden] { display: none; }
 html.lux .cabinet-gate__form { display: grid; align-content: start; gap: 16px; padding: clamp(28px, 4cqi, 56px); border-radius: var(--r-tile); background: var(--c-bg-raised); }
 html.lux .cabinet-gate__form h1 { margin: 0; font-size: clamp(28px, 3cqi, 36px); }
 html.lux .cabinet-gate__form > p { margin: 0 0 8px; color: var(--c-text-3); }

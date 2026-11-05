@@ -38,6 +38,16 @@ function prefillEmail() {
   document.querySelectorAll("input[data-auth-email]").forEach(input => { if (!input.value) input.value = saved; });
 }
 
+function showStaffCode(form, email, sent) {
+  const step = form.parentElement.querySelector("form[data-staff-code]");
+  if (!step) throw new Error("Не удалось открыть ввод кода. Обновите страницу.");
+  step.elements.email.value = email;
+  if (!sent) step.querySelector("[data-staff-code-note]").textContent = "Письмо с кодом не отправилось. Попросите оператора сервера выдать код командой admin-code.";
+  form.hidden = true;
+  step.hidden = false;
+  step.querySelector("input[name=code]").focus();
+}
+
 function url(path) {
   return base + path.replace(/^\//, "");
 }
@@ -358,7 +368,9 @@ async function perform(target, body) {
     }
     if (body && path.startsWith("/admin/support/") && !body.message?.trim()) delete body.message;
     const result = await request(path, method, body, headers);
-    if (target.dataset.login) {
+    if (target.dataset.login && result.code_required) {
+      showStaffCode(target, body.email, result.sent);
+    } else if (target.dataset.login) {
       if (!result.token) throw new Error("Не удалось подтвердить вход.");
       if (!store(target.dataset.login === "office" ? officeKey : memberKey, result.token)) throw new Error("Не удалось сохранить вход. Разрешите хранилище браузера.");
       const next = new URLSearchParams(location.search).get("next");

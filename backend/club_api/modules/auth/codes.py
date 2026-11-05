@@ -13,7 +13,12 @@ CODE_WINDOW = timedelta(hours=1)
 CODE_WINDOW_LIMIT = 5
 CONFIRM_PURPOSE = "email-confirm"
 RESET_PURPOSE = "reset"
-CODE_TTL = {CONFIRM_PURPOSE: timedelta(minutes=15), RESET_PURPOSE: timedelta(minutes=15)}
+ADMIN_PURPOSE = "admin-login"
+CODE_TTL = {
+    CONFIRM_PURPOSE: timedelta(minutes=15),
+    RESET_PURPOSE: timedelta(minutes=15),
+    ADMIN_PURPOSE: timedelta(minutes=10),
+}
 STORED_SQL = (
     "SELECT id,code_hash,attempts,expires_at,sent_at,window_started_at,window_count "
     "FROM club_email_codes WHERE user_id=%s AND purpose=%s FOR UPDATE"
@@ -47,17 +52,21 @@ def window(row, now):
     return now, 0
 
 
+def waiting(row, now):
+    return bool(row["code_hash"]) and parse_date(row["sent_at"]) + CODE_RESEND > now
+
+
 def can_send(row, now):
     if not row:
         return True
     _, count = window(row, now)
-    return parse_date(row["sent_at"]) + CODE_RESEND <= now and count < CODE_WINDOW_LIMIT
+    return not waiting(row, now) and count < CODE_WINDOW_LIMIT
 
 
-async def issue_code(connection, secret, user_id, purpose, now):
+async def issue_code(connection, secret, user_id, purpose, now, *, limited=True):
     await acquire_lock(connection, f"code:{purpose}:{user_id}")
     row = await stored(connection, user_id, purpose)
-    if not can_send(row, now):
+    if limited and not can_send(row, now):
         return None
     code = new_code()
     started, count = window(row, now)

@@ -53,11 +53,22 @@ def result(response, status=200):
     return response.json()
 
 
+STAFF_CODE_SUBJECT = "Код входа в панель управления"
+
+
+def office_token(request, email, password):
+    first = result(request.post("/api/auth/admin-login", data={"email": email, "password": password}))
+    if not first.get("code_required"):
+        return first["token"]
+    code = mail_code(request, email, STAFF_CODE_SUBJECT)
+    return result(request.post("/api/auth/admin-code", data={"email": email, "code": code}))["token"]
+
+
 def mail_code(request, email, subject):
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         inbox = result(request.get(value("E2E_MAIL_URL") + "/api/v1/messages"))
-        for message in inbox["messages"]:
+        for message in sorted(inbox["messages"], key=lambda item: item.get("Created", ""), reverse=True):
             if not message["Subject"].startswith(subject):
                 continue
             if not any(recipient["Address"] == email for recipient in message["To"]):
@@ -81,7 +92,14 @@ def login(page, email, password, office=False):
         )
     ) as response:
         page.get_by_role("button", name="Войти" if office else "Войти в кабинет", exact=True).click()
-    result(response.value)
+    if result(response.value).get("code_required"):
+        code = mail_code(page.context.request, email, STAFF_CODE_SUBJECT)
+        page.get_by_label("Код из письма", exact=True).fill(code)
+        with page.expect_response(
+            lambda response: response.url.endswith("/api/auth/admin-code") and response.request.method == "POST"
+        ) as confirmed:
+            page.get_by_role("button", name="Войти", exact=True).click()
+        result(confirmed.value)
     key = "club_admin_token" if office else "club_token"
     expect(page.locator("#page")).not_to_contain_text(
         "Только для сотрудников клуба" if office else "Вход для выпускников"
@@ -357,12 +375,7 @@ def test_live_system(name, width, height):
             office.locator(f'[data-api="/admin/members/{member["id"]}/podcast-sub"]').click()
         result(granted.value)
         assert result(request.get("/api/podcasts", headers=auth(previous_token)))["subscribed"]
-        editor = result(
-            request.post(
-                "/api/auth/admin-login",
-                data={"email": value("TEST_EDITOR_EMAIL"), "password": value("TEST_EDITOR_PASSWORD")},
-            )
-        )["token"]
+        editor = office_token(request, value("TEST_EDITOR_EMAIL"), value("TEST_EDITOR_PASSWORD"))
         assert result(request.get("/api/auth/admin-session", headers=auth(editor)))["role"] == "editor"
         assert request.get("/api/admin/programs", headers=auth(editor)).status == 200
         assert (

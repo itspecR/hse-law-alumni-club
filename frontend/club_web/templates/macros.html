@@ -99,6 +99,15 @@
 </div>
 {% endif %}
 </form>
+{% if office %}
+<form class="cabinet-gate__form" data-api="/auth/admin-code" data-login="office" data-staff-code hidden>
+<h1>Код из письма</h1>
+<p data-staff-code-note>Мы отправили код на почту сотрудника. Введите его, чтобы войти.</p>
+<input type="hidden" name="email">{{ code_field() }}<p role="alert" data-error hidden>
+</p>
+<button class="site-primary">Войти</button>
+</form>
+{% endif %}
 </div>
 {% endmacro %}
 {% macro consent(purpose='registration') %}

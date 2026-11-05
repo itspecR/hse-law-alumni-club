@@ -8,7 +8,7 @@ from club_api.core.errors import ApiError
 from club_api.core.security import client_ip
 from club_api.core.views import api_view, parse_body
 from club_api.domain import MAX_INTERESTS
-from club_api.modules.auth.codes import CODE_DIGITS, CONFIRM_PURPOSE, RESET_PURPOSE, ttl_minutes
+from club_api.modules.auth.codes import ADMIN_PURPOSE, CODE_DIGITS, CONFIRM_PURPOSE, RESET_PURPOSE, ttl_minutes
 from club_api.modules.auth.service import (
     DUPLICATE_ACCOUNT,
     PASSWORD_MAX_LENGTH,
@@ -28,6 +28,7 @@ OFFICE_REVIEW = "Проверьте ее в панели управления, �
 ROUTE_LIMITS = {
     "/auth/login": 5,
     "/auth/admin-login": 5,
+    "/auth/admin-code": 10,
     "/auth/register": 3,
     "/auth/telegram": 10,
     "/auth/resend-confirmation": 3,
@@ -108,6 +109,31 @@ def reset_letter(code, public_url):
     )
 
 
+def staff_letter(code):
+    return (
+        f"Здравствуйте!\n\nКод для входа в панель управления: {code}\n\n"
+        f"Код действует {ttl_minutes(ADMIN_PURPOSE)} минут и срабатывает один раз.\n\n"
+        "Если Вы не входили в панель, сообщите администратору клуба: кто-то знает Ваш пароль."
+    )
+
+
+def staff_session(service, user):
+    return {"token": service.staff_session(user["id"], user["role"], user["staff_version"]), "role": user["role"]}
+
+
+async def staff_second_step(request, user):
+    service = auth_service(request)
+    if not request.services.notifications.mail_enabled:
+        await audit(request, "admin.login.ok", actor="user:" + user["id"])
+        return staff_session(service, user)
+    code = await service.send_code(user["id"], ADMIN_PURPOSE)
+    sent = bool(code) and await request.services.notifications.send_email(
+        user["email"], club_subject("Код входа в панель управления"), staff_letter(code)
+    )
+    await audit(request, "admin.login.code", actor="user:" + user["id"], detail={"sent": bool(sent)})
+    return {"code_required": True, "sent": bool(sent)}
+
+
 async def queue_confirmation(request, user_id, email):
     service = auth_service(request)
     code = await service.send_code(user_id, CONFIRM_PURPOSE)
@@ -146,8 +172,7 @@ async def login(request, body, scope):
         raise ApiError(401, "Неверная почта или пароль.")
     if scope == "admin":
         service.attempts.success(email, ip)
-        await audit(request, "admin.login.ok", actor="user:" + user["id"])
-        return {"token": service.staff_session(user["id"], user["role"], user["staff_version"]), "role": user["role"]}
+        return await staff_second_step(request, user)
     alumni = await service.profile(user["id"])
     if not alumni or alumni["id"] != user["alumni_id"]:
         raise ApiError(403, NOT_ALUMNI)
@@ -169,6 +194,19 @@ async def alumni_login(request: HttpRequest):
 async def admin_login(request: HttpRequest):
     body = parse_body(request, LoginBody)
     return await login(request, body, "admin")
+
+
+@api_view(body=CodeBody)
+async def admin_code(request: HttpRequest):
+    body = parse_body(request, CodeBody)
+    service = auth_service(request)
+    email = body.email.lower().strip()
+    user = await service.user(email=email, staff=True, active=True)
+    if not user or not await service.staff_code(user["id"], body.code):
+        await audit(request, "admin.login.code_fail", actor="email:" + email)
+        raise ApiError(400, CODE_INVALID)
+    await audit(request, "admin.login.ok", actor="user:" + user["id"])
+    return staff_session(service, user)
 
 
 @api_view(permission=require_admin)

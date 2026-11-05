@@ -23,7 +23,7 @@ def check(name):
 def email_code(recipient, subject):
     for _ in range(30):
         messages = json.load(urllib.request.urlopen(mail + "/api/v1/messages"))["messages"]
-        for item in messages:
+        for item in sorted(messages, key=lambda message: message.get("Created", ""), reverse=True):
             if not item.get("Subject", "").startswith(subject): continue
             if not any(to.get("Address") == recipient for to in item["To"]): continue
             full = json.load(urllib.request.urlopen(mail + "/api/v1/message/" + item["ID"]))
@@ -34,7 +34,10 @@ def email_code(recipient, subject):
 
 assert request("/ready")["status"] == "ok"
 request("/admin/overview", expected=401)
-admin = request("/auth/admin-login", {"email": env["ADMIN_EMAIL"], "password": env["ADMIN_PASSWORD"]})["token"]
+admin = request("/auth/admin-login", {"email": env["ADMIN_EMAIL"], "password": env["ADMIN_PASSWORD"]})
+if admin.get("code_required"):
+    admin = request("/auth/admin-code", {"email": env["ADMIN_EMAIL"], "code": email_code(env["ADMIN_EMAIL"], "Код входа в панель управления")})
+admin = admin["token"]
 check("readiness and admin authentication")
 email = "release-" + uuid.uuid4().hex[:10] + "@release.example.com"
 password = secrets.token_hex(16)

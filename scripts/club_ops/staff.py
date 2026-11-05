@@ -1,10 +1,19 @@
 import re
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from club_api.db.operator import is_operator
 from club_api.db.queries import Query, acquire_lock
+from club_api.modules.auth.codes import ADMIN_PURPOSE, issue_code
 from club_api.modules.auth.passwords import hash_password
 from club_ops.bootstrap import OperatorError, email
+
+STAFF_ROLES = ("admin", "Administrator", "editor")
+SECRET_MIN_LENGTH = 32
+STAFF_SQL = (
+    "SELECT u.id,r.name AS role,u.status,u.provider,u.tfa_secret FROM directus_users u "
+    "LEFT JOIN directus_roles r ON r.id=u.role WHERE lower(u.email)=%s LIMIT 2"
+)
 
 
 def validate_input(action, address, role, password):
@@ -72,3 +81,27 @@ async def manage_staff(connection, *, action, address, role, password):
                 (user["id"],),
             )
     return "created" if action == "create" else "password-reset"
+
+
+def active_staff(rows):
+    user = rows[0] if len(rows) == 1 else None
+    return bool(
+        user
+        and user["role"] in STAFF_ROLES
+        and user["status"] == "active"
+        and user["provider"] in (None, "", "default")
+        and not user["tfa_secret"]
+    )
+
+
+async def staff_code(connection, *, address, secret):
+    address = email(address, "STAFF_EMAIL")
+    if len(secret or "") < SECRET_MIN_LENGTH:
+        raise OperatorError("Нужен AUTH_SECRET сайта из закрытого файла настроек оператора")
+    async with connection.transaction():
+        if not await is_operator(connection):
+            raise OperatorError("Команда доступна только владельцу базы данных")
+        rows = await (await connection.execute(STAFF_SQL, (address,))).fetchall()
+        if not active_staff(rows):
+            raise OperatorError("Нужен активный локальный аккаунт сотрудника без MFA")
+        return await issue_code(connection, secret, str(rows[0]["id"]), ADMIN_PURPOSE, datetime.now(UTC), limited=False)

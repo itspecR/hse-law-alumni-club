@@ -146,6 +146,10 @@ def site():
                 return httpx.Response(
                     200, json={"number": "ORD-QA", "total_estimate": 300000, "notified": {"ok": True}}
                 )
+            if path == "/auth/admin-login" and records.get("staff_code"):
+                return httpx.Response(200, json={"code_required": True, "sent": records["staff_code"] == "sent"})
+            if path == "/auth/admin-code":
+                return httpx.Response(200, json={"token": "admin-qa", "role": "admin"})
             if path.endswith("login"):
                 return httpx.Response(200, json={"token": "member-qa"})
             if path == "/auth/register":
@@ -2293,6 +2297,40 @@ def test_account_forms_keep_form_width(page, width, path):
     assert abs(card["x"] + card["width"] / 2 - width / 2) <= 1
     assert page.locator(".club-auth__card h1").evaluate(WORDS_UNBROKEN)
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_office_login_asks_for_code_from_mail(page, site, width):
+    site[1]["staff_code"] = "sent"
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/admin")
+    page.get_by_label("Почта", exact=True).fill("office@example.test")
+    page.get_by_label("Пароль", exact=True).fill("synthetic-office-password")
+    page.get_by_role("button", name="Войти", exact=True).click()
+    code = page.get_by_label("Код из письма", exact=True)
+    expect(code).to_be_focused()
+    expect(page.get_by_role("heading", name="Вход в панель", exact=True)).to_be_hidden()
+    expect(page.locator("[data-staff-code-note]")).to_have_text(
+        "Мы отправили код на почту сотрудника. Введите его, чтобы войти."
+    )
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    code.fill("123456")
+    page.get_by_role("button", name="Войти", exact=True).click()
+    expect(page.locator("#page")).not_to_contain_text("Только для сотрудников клуба")
+    write = next(row for row in site[2] if row["path"] == "/auth/admin-code")
+    assert write["body"] == {"email": "office@example.test", "code": "123456"}
+    assert page.evaluate("localStorage.getItem('club_admin_token')") == "admin-qa"
+
+
+def test_office_login_explains_operator_code_when_mail_fails(page, site):
+    site[1]["staff_code"] = "failed"
+    page.goto("/admin")
+    page.get_by_label("Почта", exact=True).fill("office@example.test")
+    page.get_by_label("Пароль", exact=True).fill("synthetic-office-password")
+    page.get_by_role("button", name="Войти", exact=True).click()
+    expect(page.locator("[data-staff-code-note]")).to_have_text(
+        "Письмо с кодом не отправилось. Попросите оператора сервера выдать код командой admin-code."
+    )
 
 
 @pytest.mark.parametrize("width", [390, 1440])
