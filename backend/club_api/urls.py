@@ -47,6 +47,7 @@ routes = (
         path("admin/audit", endpoint({"GET": office_routes.audit_rows})),
         path("auth/login", endpoint({"POST": auth_routes.alumni_login})),
         path("auth/admin-login", endpoint({"POST": auth_routes.admin_login})),
+        path("auth/admin-code", endpoint({"POST": auth_routes.admin_code})),
         path("auth/admin-logout", endpoint({"POST": auth_routes.admin_logout})),
         path("auth/admin-session", endpoint({"GET": auth_routes.admin_session})),
         path("auth/register", endpoint({"POST": auth_routes.register})),

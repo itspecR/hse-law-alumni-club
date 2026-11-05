@@ -34,7 +34,7 @@ def test_all_legacy_routes_are_present():
     }
     old = json.loads(Path(__file__).with_name("legacy-routes.json").read_text())
     expected = {(row["method"], row["path"]) for row in old}
-    added = {("GET", "/auth/admin-session"), ("POST", "/support/ask")}
+    added = {("GET", "/auth/admin-session"), ("POST", "/support/ask"), ("POST", "/auth/admin-code")}
     portfolio = {
         (method, "/admin/" + name + suffix)
         for name in ("trainers", "portfolio", "cohorts")
@@ -72,7 +72,7 @@ def test_all_legacy_routes_are_present():
         ("GET", "/me/tg-link"),
         ("GET", "/me/export"),
     }
-    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 139
+    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 140
 
 
 def test_sentry_privacy():

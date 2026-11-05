@@ -11,11 +11,12 @@ import httpx
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row
 
+from club_api.modules.auth.codes import ADMIN_PURPOSE, ttl_minutes
 from club_ops.alumni import create_alumni
 from club_ops.bootstrap import BootstrapConfig, OperatorError, bootstrap
 from club_ops.office import Office
 from club_ops.podcasts import import_podcasts
-from club_ops.staff import manage_staff
+from club_ops.staff import manage_staff, staff_code
 
 
 @asynccontextmanager
@@ -85,6 +86,14 @@ async def database_command(command, values):
                 password=values.get("ALUMNI_PASSWORD", ""),
             )
             print(f"Выпускник {address} создан: почта и статус выпускника подтверждены")
+        elif command == "admin-code":
+            code = await staff_code(
+                connection, address=values.get("STAFF_EMAIL", ""), secret=values.get("AUTH_SECRET", "")
+            )
+            print(
+                f"Код входа в панель: {code}. Действует {ttl_minutes(ADMIN_PURPOSE)} минут, "
+                "введите его после пароля; код из письма больше не действует"
+            )
         else:
             result = await manage_staff(
                 connection,
@@ -150,6 +159,7 @@ async def main(args):
     elif args.command in (
         "bootstrap",
         "manage-staff",
+        "admin-code",
         "create-alumni",
         "migrate",
         "configure-mariadb-role",
@@ -178,6 +188,7 @@ def run():
     for name in (
         "bootstrap",
         "manage-staff",
+        "admin-code",
         "create-alumni",
         "migrate",
         "configure-mariadb-role",

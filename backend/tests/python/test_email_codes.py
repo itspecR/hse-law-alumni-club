@@ -1,6 +1,9 @@
 from datetime import UTC, datetime, timedelta
 
 import httpx
+import pytest
+from club_ops.bootstrap import BootstrapConfig, OperatorError, bootstrap
+from club_ops.staff import staff_code
 from test_auth_integration import fixture
 
 from club_api.modules.auth.codes import (
@@ -102,6 +105,15 @@ async def test_new_code_waits_a_minute_replaces_old_and_has_hourly_limit(databas
     assert await app.state.auth.confirm(user_id, latest) == "confirmed"
 
 
+async def test_used_code_allows_next_code_at_once(database_app):
+    app = database_app
+    user_id, _ = await fixture(app)
+    pending = await app.state.auth.send_code(user_id, RESET_PURPOSE)
+    assert await app.state.auth.send_code(user_id, RESET_PURPOSE) is None
+    assert await app.state.auth.reset(user_id, "synthetic-new-password", pending) == "reset"
+    assert await app.state.auth.send_code(user_id, RESET_PURPOSE)
+
+
 async def test_reset_by_code_revokes_sessions_and_rejects_reuse(database_app):
     app = database_app
     user_id, alumni_id = await fixture(app)
@@ -155,3 +167,92 @@ async def test_deleted_profile_loses_codes(database_app):
     await app.state.auth.send_code(user_id, RESET_PURPOSE)
     await anonymize(app.state, alumni_id)
     assert await app.state.database.rows("SELECT id FROM club_email_codes WHERE user_id=%s", (user_id,)) == []
+
+
+OFFICE = BootstrapConfig(
+    "production", False, "office@example.test", "synthetic-office-password", "https://club.example.test"
+)
+
+
+async def office(app):
+    async with app.state.database.connection() as connection:
+        await bootstrap(connection, OFFICE)
+
+
+def letters(app, monkeypatch):
+    sent = []
+
+    async def capture(to, subject, text):
+        sent.append({"to": to, "subject": subject, "text": text})
+        return True
+
+    monkeypatch.setattr(app.state.settings, "SMTP_HOST", "smtp.example.test")
+    monkeypatch.setattr(app.state.notifications, "send_email", capture)
+    return sent
+
+
+async def test_office_login_needs_code_from_mail(database_app, monkeypatch):
+    app = database_app
+    await office(app)
+    sent = letters(app, monkeypatch)
+    credentials = {"email": OFFICE.admin_email, "password": OFFICE.admin_password}
+    async with client_for(app) as client:
+        first = (await client.post("/auth/admin-login", json=credentials)).json()
+        [letter] = sent
+        code = letter["text"].split("панель управления: ", 1)[1][:6]
+        wrong = await client.post("/auth/admin-code", json={"email": OFFICE.admin_email, "code": other(code)})
+        accepted = (await client.post("/auth/admin-code", json={"email": OFFICE.admin_email, "code": code})).json()
+        again = await client.post("/auth/admin-code", json={"email": OFFICE.admin_email, "code": code})
+        session = await client.get("/auth/admin-session", headers={"authorization": "Bearer " + accepted["token"]})
+    assert first == {"code_required": True, "sent": True}
+    assert letter["to"] == OFFICE.admin_email and letter["subject"].startswith("Код входа в панель управления")
+    assert "Код действует 10 минут" in letter["text"]
+    assert wrong.status_code == 400 and wrong.json()["error"] == CODE_INVALID
+    assert accepted["role"] in ("admin", "Administrator") and again.status_code == 400
+    assert session.status_code == 200
+
+
+async def test_wrong_office_password_sends_no_code(database_app, monkeypatch):
+    app = database_app
+    await office(app)
+    sent = letters(app, monkeypatch)
+    async with client_for(app) as client:
+        response = await client.post("/auth/admin-login", json={"email": OFFICE.admin_email, "password": "wrong-pass"})
+    assert response.status_code == 401 and sent == []
+
+
+async def test_alumni_code_does_not_open_office(database_app, monkeypatch):
+    app = database_app
+    user_id, _ = await fixture(app)
+    code = await app.state.auth.send_code(user_id, RESET_PURPOSE)
+    async with client_for(app) as client:
+        response = await client.post("/auth/admin-code", json={"email": user_id + "@example.test", "code": code})
+    assert response.status_code == 400
+
+
+async def test_operator_issues_emergency_office_code(database_app, monkeypatch):
+    app = database_app
+    await office(app)
+    sent = letters(app, monkeypatch)
+    secret = app.state.settings.secret("AUTH_SECRET")
+    async with client_for(app) as client:
+        await client.post("/auth/admin-login", json={"email": OFFICE.admin_email, "password": OFFICE.admin_password})
+        async with app.state.database.connection() as connection:
+            code = await staff_code(connection, address=OFFICE.admin_email.upper(), secret=secret)
+        mailed = sent[0]["text"].split("панель управления: ", 1)[1][:6]
+        stale = await client.post("/auth/admin-code", json={"email": OFFICE.admin_email, "code": mailed})
+        accepted = await client.post("/auth/admin-code", json={"email": OFFICE.admin_email, "code": code})
+    assert mailed == code or stale.status_code == 400
+    assert accepted.status_code == 200 and accepted.json()["token"]
+
+
+async def test_operator_code_needs_staff_and_site_secret(database_app):
+    app = database_app
+    await office(app)
+    user_id, _ = await fixture(app)
+    secret = app.state.settings.secret("AUTH_SECRET")
+    cases = [(OFFICE.admin_email, "short"), ("nobody@example.test", secret), (user_id + "@example.test", secret)]
+    async with app.state.database.connection() as connection:
+        for address, key in cases:
+            with pytest.raises(OperatorError):
+                await staff_code(connection, address=address, secret=key)
