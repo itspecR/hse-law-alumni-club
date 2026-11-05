@@ -246,7 +246,7 @@ def test_live_system(name, width, height):
             lambda response: response.url.endswith("/api/auth/register") and response.request.method == "POST"
         ) as registration:
             page.get_by_role("button", name="Отправить заявку", exact=True).click()
-        result(registration.value)
+        assert registration.value.status == 200, registration.value.status
         expect(page.get_by_role("heading", name="Подтвердить почту", exact=True)).to_be_visible()
         expect(page.get_by_label("Почта", exact=True)).to_have_value(email)
         page.get_by_label("Код из письма", exact=True).fill(mail_code(request, email, "Код подтверждения почты"))
