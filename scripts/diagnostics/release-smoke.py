@@ -1,4 +1,4 @@
-import base64, json, os, re, secrets, time, urllib.request, urllib.error, urllib.parse, uuid
+import base64, json, os, re, secrets, time, urllib.request, urllib.error, uuid
 from pathlib import Path
 
 root = Path(os.environ["RELEASE_QA_DIR"])
@@ -20,14 +20,15 @@ def request(path, data=None, token=None, method=None, headers=None, expected=200
 def check(name):
     report.append(name); print("PASS " + name, flush=True)
 
-def email_token(recipient, purpose):
+def email_code(recipient, subject):
     for _ in range(30):
         messages = json.load(urllib.request.urlopen(mail + "/api/v1/messages"))["messages"]
         for item in messages:
+            if not item.get("Subject", "").startswith(subject): continue
             if not any(to.get("Address") == recipient for to in item["To"]): continue
             full = json.load(urllib.request.urlopen(mail + "/api/v1/message/" + item["ID"]))
-            match = re.search(r"/" + purpose + r"\?token=([^\s<]+)", full.get("Text", ""))
-            if match: return urllib.parse.unquote(match.group(1).split("&")[0])
+            match = re.search(r"Код[^:\n]*: (\d{6})", full.get("Text", ""))
+            if match: return match.group(1)
         time.sleep(.3)
     raise AssertionError("Local confirmation/reset email missing")
 
@@ -40,8 +41,8 @@ password = secrets.token_hex(16)
 body = {"fio": "Проверка релиза", "email": email, "password": password, "cohort": "2020", "edu_level": "магистратура", "edu_program": "Право", "consent_pdn": True}
 assert request("/auth/register", body)["confirm_required"]
 request("/auth/login", {"email": email, "password": password}, expected=403)
-confirm = email_token(email, "confirm")
-assert request("/auth/confirm", {"token": confirm})["ok"]
+confirm = email_code(email, "Код подтверждения почты")
+assert request("/auth/confirm", {"email": email, "code": confirm})["ok"]
 user = request("/auth/login", {"email": email, "password": password})["token"]
 assert request("/me", token=user)["alumni"]["verification_status"] == "pending"
 request("/admin/overview", token=user, expected=401)
@@ -73,10 +74,10 @@ request("/admin/support/" + ticket, {"status": "answered", "message": "Отве�
 assert request("/support/" + ticket, headers={"X-Support-Key": key})["status"] == "answered"
 check("support ticket privacy and office reply")
 request("/auth/forgot", {"email": email})
-reset = email_token(email, "reset")
+reset = email_code(email, "Код для восстановления пароля")
 new_password = secrets.token_hex(16)
-request("/auth/reset", {"token": reset, "password": new_password})
-request("/auth/reset", {"token": reset, "password": new_password}, expected=400)
+request("/auth/reset", {"email": email, "code": reset, "password": new_password})
+request("/auth/reset", {"email": email, "code": reset, "password": new_password}, expected=400)
 request("/me", token=user, expected=401)
 user = request("/auth/login", {"email": email, "password": new_password})["token"]
 check("SMTP password reset, replay rejection and old-session revocation")

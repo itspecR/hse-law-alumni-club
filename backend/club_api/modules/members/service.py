@@ -2,6 +2,7 @@ import logging
 
 from club_api.core.errors import ApiError
 from club_api.db.queries import Query, acquire_lock
+from club_api.modules.auth.codes import forget_codes
 from club_api.modules.notifications.mail import EMAIL_CONFIRMATION_KIND, mail_user_lock
 
 logger = logging.getLogger("club.members")
@@ -48,6 +49,7 @@ async def anonymize(state, alumni_id):
                 "DELETE FROM club_mail_outbox WHERE kind=%s AND owner_user_id=%s",
                 (EMAIL_CONFIRMATION_KIND, user_id),
             )
+            await forget_codes(connection, user_id)
             if user and user["role_name"] == "alumni" and user["email"]:
                 await connection.execute(
                     "DELETE FROM club_mail_outbox WHERE kind=%s AND owner_user_id IS NULL AND lower(to_addr)=%s",

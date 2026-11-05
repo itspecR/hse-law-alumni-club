@@ -6,6 +6,7 @@ from uuid import uuid4
 import httpx
 import pytest
 
+from club_api.modules.auth.codes import CONFIRM_PURPOSE, RESET_PURPOSE
 from club_api.modules.auth.passwords import hash_password, verify_password
 
 
@@ -32,9 +33,9 @@ async def test_roles_existing_passwords_and_one_time_reset(database_app):
     status, user = await auth.authenticate(user_id + "@example.test", "synthetic-old-password", scope="alumni")
     assert status == "ok" and user["alumni_version"] == 0
     assert "password" not in user
-    jti = str(uuid4())
-    results = await asyncio.gather(*(auth.reset(user_id, "synthetic-new-password", jti, 0) for _ in range(2)))
-    assert sorted(results) == ["reset", "used"]
+    code = await auth.send_code(user_id, RESET_PURPOSE)
+    results = await asyncio.gather(*(auth.reset(user_id, "synthetic-new-password", code) for _ in range(2)))
+    assert sorted(results) == ["invalid", "reset"]
     profile = await auth.profile(user_id)
     assert profile["token_version"] == 1
     assert (await auth.authenticate(user_id + "@example.test", "synthetic-old-password", scope="alumni"))[
@@ -45,9 +46,8 @@ async def test_roles_existing_passwords_and_one_time_reset(database_app):
 
     scope = {"type": "http", "app": app, "headers": [(b"authorization", ("Bearer " + original).encode())]}
     assert await auth.resolve_alumni(Request(scope)) is None
-    assert (await db.rows("SELECT count(*) AS n FROM club_auth_revocations WHERE token_key=%s", ("reset:" + jti,)))[0][
-        "n"
-    ] == 1
+    stored = (await db.rows("SELECT code_hash FROM club_email_codes WHERE user_id=%s", (user_id,)))[0]
+    assert stored["code_hash"] is None
 
 
 @pytest.mark.asyncio
@@ -68,7 +68,7 @@ async def test_no_role_or_sso_bypass(database_app, role, provider, tfa, scope, e
     )[0] == expected
     if role != "alumni" or provider != "default" or tfa:
         assert await database_app.state.auth.user(id=user_id, alumni=True) is None
-        assert await database_app.state.auth.reset(user_id, "synthetic-new-password", str(uuid4()), 0) == "invalid"
+        assert await database_app.state.auth.reset(user_id, "synthetic-new-password", "000000") == "invalid"
 
 
 @pytest.mark.asyncio
@@ -143,6 +143,7 @@ async def test_registration_confirmation_and_secret_projection(database_app):
         assert set(users[0]) == {"id", "email", "first_name", "last_name", "status", "role"}
         assert (await client.get("/ready")).status_code == 200
         await app.state.database.execute("UPDATE directus_users SET status='unverified' WHERE id=%s", (user["id"],))
-        token = app.state.auth.token({"sub": user["id"], "purpose": "email-confirm"}, 86400)
-        assert (await client.post("/auth/confirm", json={"token": token})).json() == {"ok": True}
-        assert (await client.post("/auth/confirm", json={"token": token})).json() == {"ok": True, "already": True}
+        code = await app.state.auth.send_code(user["id"], CONFIRM_PURPOSE)
+        confirm = {"email": body["email"], "code": code}
+        assert (await client.post("/auth/confirm", json=confirm)).json() == {"ok": True}
+        assert (await client.post("/auth/confirm", json=confirm)).json() == {"ok": True, "already": True}

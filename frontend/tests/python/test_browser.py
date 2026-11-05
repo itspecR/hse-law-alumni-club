@@ -148,6 +148,8 @@ def site():
                 )
             if path.endswith("login"):
                 return httpx.Response(200, json={"token": "member-qa"})
+            if path == "/auth/register":
+                return httpx.Response(200, json={"ok": True, "pending": True, "confirm_required": True})
             if path.endswith("/quote"):
                 if (body.get("promo_code") or "").upper() != "SPRING-15":
                     return httpx.Response(400, json={"error": "Промокод не найден."})
@@ -2290,6 +2292,53 @@ def test_account_forms_keep_form_width(page, width, path):
     assert card["width"] <= 480
     assert abs(card["x"] + card["width"] / 2 - width / 2) <= 1
     assert page.locator(".club-auth__card h1").evaluate(WORDS_UNBROKEN)
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_registration_leads_to_code_with_remembered_email(page, site, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/join")
+    form = page.locator("form[data-registration]")
+    form.get_by_label("ФИО", exact=True).fill("Вымышленный Выпускник")
+    form.get_by_label("Почта", exact=True).fill("graduate@example.test")
+    form.get_by_label("Год выпуска", exact=True).fill("2020")
+    form.get_by_label("Образовательная программа", exact=True).fill("Право")
+    form.get_by_label("Пароль, не меньше 8 символов", exact=True).fill("synthetic-password")
+    form.locator("input[name=consent_pdn]").check()
+    form.get_by_role("button", name="Отправить заявку", exact=True).click()
+    expect(page).to_have_url(re.compile(r"/confirm$"))
+    expect(page.get_by_label("Почта", exact=True)).to_have_value("graduate@example.test")
+    expect(page.get_by_label("Почта для нового кода", exact=True)).to_have_value("graduate@example.test")
+    code = page.get_by_label("Код из письма", exact=True)
+    expect(code).to_have_attribute("autocomplete", "one-time-code")
+    expect(code).to_have_attribute("inputmode", "numeric")
+    code.fill("123456")
+    page.get_by_role("button", name="Подтвердить почту", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("Почта подтверждена")
+    write = next(row for row in site[2] if row["path"] == "/auth/confirm")
+    assert write["body"] == {"email": "graduate@example.test", "code": "123456"}
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_password_recovery_keeps_email_and_subscription_return(page, site, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/forgot?next=%2Fpodcasts%23podcast-subscription")
+    page.get_by_label("Почта", exact=True).fill("graduate@example.test")
+    page.get_by_role("button", name="Получить код", exact=True).click()
+    expect(page).to_have_url(re.compile(r"/reset\?next=%2Fpodcasts%23podcast-subscription$"))
+    expect(page.get_by_label("Почта", exact=True)).to_have_value("graduate@example.test")
+    expect(page.get_by_role("link", name="Получить новый код", exact=True)).to_have_attribute(
+        "href", "/forgot?next=/podcasts%23podcast-subscription"
+    )
+    page.get_by_label("Код из письма", exact=True).fill("654321")
+    page.get_by_label("Новый пароль, не меньше 8 символов", exact=True).fill("synthetic-new-password")
+    page.get_by_label("Повторите пароль", exact=True).fill("synthetic-new-password")
+    page.get_by_role("button", name="Сохранить пароль", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("Пароль изменен")
+    write = next(row for row in site[2] if row["path"] == "/auth/reset")
+    assert write["body"] == {"email": "graduate@example.test", "code": "654321", "password": "synthetic-new-password"}
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 

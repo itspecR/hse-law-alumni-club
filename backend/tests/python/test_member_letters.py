@@ -48,12 +48,27 @@ async def test_verification_letter_follows_style(monkeypatch, status, subject, l
 
 async def test_confirmation_letter_follows_style():
     sent, capture = mailbox()
-    auth = SimpleNamespace(token=lambda payload, ttl: "token", settings=SimpleNamespace(PUBLIC_URL=PUBLIC_URL))
+    auth = SimpleNamespace(send_code=AsyncMock(return_value="012345"), settings=SimpleNamespace(PUBLIC_URL=PUBLIC_URL))
     request = SimpleNamespace(services=SimpleNamespace(auth=auth, notifications=SimpleNamespace(enqueue_mail=capture)))
     await routes.queue_confirmation(request, "user-1", "new@example.test")
     [letter] = sent
-    assert letter["subject"] == "Подтвердите почту - " + CLUB_NAME
-    assert f"Вы подали заявку на вступление в {CLUB_NAME}. Чтобы подтвердить почту, откройте ссылку" in letter["text"]
-    assert PUBLIC_URL + "/confirm?token=token" in letter["text"]
+    assert letter["subject"] == "Код подтверждения почты - " + CLUB_NAME
+    assert f"Вы подали заявку на вступление в {CLUB_NAME}. Код подтверждения почты: 012345" in letter["text"]
+    assert f"Код действует 15 минут. Введите его на странице {PUBLIC_URL}/confirm" in letter["text"]
     assert letter["text"].endswith("Если заявку подавали не Вы, проигнорируйте письмо, аккаунт останется неактивным.")
     assert re.findall("[ёЁ–—]", letter["subject"] + letter["text"]) == []
+
+
+async def test_confirmation_is_not_queued_while_code_waits():
+    sent, capture = mailbox()
+    auth = SimpleNamespace(send_code=AsyncMock(return_value=None), settings=SimpleNamespace(PUBLIC_URL=PUBLIC_URL))
+    request = SimpleNamespace(services=SimpleNamespace(auth=auth, notifications=SimpleNamespace(enqueue_mail=capture)))
+    assert await routes.queue_confirmation(request, "user-1", "new@example.test") == {"sent": False, "id": None}
+    assert sent == []
+
+
+def test_reset_letter_names_code_and_page():
+    letter = routes.reset_letter("654321", PUBLIC_URL)
+    assert "Вы запросили восстановление пароля. Код: 654321" in letter
+    assert f"Код действует 15 минут и срабатывает один раз. Введите его на странице {PUBLIC_URL}/reset" in letter
+    assert re.findall("[ёЁ–—]", letter) == []
