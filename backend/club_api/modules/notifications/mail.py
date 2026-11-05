@@ -1,5 +1,6 @@
 import logging
 from email.message import EmailMessage
+from email.utils import formataddr, parseaddr
 from urllib.parse import urlsplit
 
 import aiosmtplib
@@ -49,35 +50,49 @@ class Notifications:
     def mail_enabled(self):
         return bool(self.settings.SMTP_HOST)
 
+    def sender(self):
+        name, address = parseaddr(self.settings.SMTP_FROM or self.settings.SMTP_USER)
+        return formataddr((name or CLUB_NAME, address))
+
+    def letter(self, to, subject, text):
+        message = EmailMessage()
+        message["From"] = self.sender()
+        message["To"] = to
+        message["Subject"] = subject
+        if self.settings.MAIL_REPLY_TO:
+            message["Reply-To"] = self.settings.MAIL_REPLY_TO
+        message.set_content(text)
+        return message
+
+    def local_mailpit(self):
+        return (
+            self.settings.SMTP_HOST == "mailpit"
+            and self.settings.SMTP_PORT == 1025
+            and not self.settings.SMTP_USER
+            and not self.settings.secret("SMTP_PASS")
+            and urlsplit(self.settings.PUBLIC_URL).hostname in {"localhost", "127.0.0.1", "::1"}
+        )
+
+    async def deliver(self, message):
+        implicit_tls = self.settings.SMTP_PORT == 465
+        await aiosmtplib.send(
+            message,
+            hostname=self.settings.SMTP_HOST,
+            port=self.settings.SMTP_PORT,
+            username=self.settings.SMTP_USER or None,
+            password=self.settings.secret("SMTP_PASS") or None,
+            use_tls=implicit_tls,
+            start_tls=not implicit_tls and not self.local_mailpit(),
+            validate_certs=True,
+            timeout=15,
+        )
+
     async def send_email(self, to, subject, text):
         if not self.mail_enabled:
             logger.warning("SMTP не настроен; письмо не отправлено")
             return False
-        message = EmailMessage()
         try:
-            message["From"] = self.settings.SMTP_FROM or self.settings.SMTP_USER
-            message["To"] = to
-            message["Subject"] = subject
-            message.set_content(text)
-            implicit_tls = self.settings.SMTP_PORT == 465
-            local_mailpit = (
-                self.settings.SMTP_HOST == "mailpit"
-                and self.settings.SMTP_PORT == 1025
-                and not self.settings.SMTP_USER
-                and not self.settings.secret("SMTP_PASS")
-                and urlsplit(self.settings.PUBLIC_URL).hostname in {"localhost", "127.0.0.1", "::1"}
-            )
-            await aiosmtplib.send(
-                message,
-                hostname=self.settings.SMTP_HOST,
-                port=self.settings.SMTP_PORT,
-                username=self.settings.SMTP_USER or None,
-                password=self.settings.secret("SMTP_PASS") or None,
-                use_tls=implicit_tls,
-                start_tls=not implicit_tls and not local_mailpit,
-                validate_certs=True,
-                timeout=15,
-            )
+            await self.deliver(self.letter(to, subject, text))
             return True
         except Exception:
             logger.error("Ошибка доставки письма; содержимое и адрес скрыты")
