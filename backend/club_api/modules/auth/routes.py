@@ -138,7 +138,9 @@ async def login(request, body, scope):
         service.attempts.fail(email, ip)
         await audit(request, prefix + ".fail", actor="email:" + email)
         if status == "unverified":
-            raise ApiError(403, "Почта не подтверждена. Введите код из письма на странице подтверждения, проверьте и папку «Спам».")
+            raise ApiError(
+                403, "Почта не подтверждена. Введите код из письма на странице подтверждения, проверьте и папку «Спам»."
+            )
         if status == "forbidden":
             raise ApiError(403, "Доступ в панель управления закрыт." if scope == "admin" else NOT_ALUMNI)
         raise ApiError(401, "Неверная почта или пароль.")
