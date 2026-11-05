@@ -16,6 +16,7 @@ common = importlib.import_module('mariadb_common')
 installer = importlib.import_module('mariadb_install')
 maintenance = importlib.import_module('mariadb_native')
 backup = importlib.import_module('mariadb_backup')
+certificate = importlib.import_module('certificate')
 
 
 class NativeDatabaseGuards(unittest.TestCase):
@@ -566,6 +567,122 @@ class PublicAddressChange(unittest.TestCase):
         self.assertEqual((one['SMTP_FROM'], one['OFFICE_EMAIL']), ('club@club.example.org', 'club@club.example.org'))
         self.assertEqual((two['SMTP_FROM'], two['OFFICE_EMAIL']), ('noreply@club.example.org', 'noreply@club.example.org'))
         self.assertEqual(one['PUBLIC_URL'], 'https://club.example.org')
+
+
+def openssl(*arguments):
+    subprocess.run(['openssl', *arguments], check=True, capture_output=True)
+
+
+def extensions(folder, name, text):
+    path = pathlib.Path(folder, name + '.ext')
+    path.write_text(text)
+    return str(path)
+
+
+class CertificateCommands(unittest.TestCase):
+    DOMAIN = 'club.example.org'
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = pathlib.Path(self.temp.name)
+        authority = extensions(self.root, 'ca', 'basicConstraints=critical,CA:TRUE\nkeyUsage=critical,keyCertSign,cRLSign\n')
+        openssl('req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '30', '-subj', '/CN=Test Root',
+                '-keyout', str(self.root / 'root.key'), '-out', str(self.root / 'root.pem'),
+                '-addext', 'basicConstraints=critical,CA:TRUE', '-addext', 'keyUsage=critical,keyCertSign,cRLSign')
+        openssl('req', '-new', '-newkey', 'rsa:2048', '-nodes', '-subj', '/CN=Test Intermediate',
+                '-keyout', str(self.root / 'middle.key'), '-out', str(self.root / 'middle.csr'))
+        openssl('x509', '-req', '-in', str(self.root / 'middle.csr'), '-days', '30', '-CA', str(self.root / 'root.pem'),
+                '-CAkey', str(self.root / 'root.key'), '-CAcreateserial', '-extfile', authority,
+                '-out', str(self.root / 'middle.pem'))
+        with patch.object(certificate.time, 'strftime', return_value='request'):
+            self.folder = certificate.request(self.DOMAIN, self.root / 'home')
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def issue(self, names=None, days=30, csr=None):
+        names = names or [self.DOMAIN, 'www.' + self.DOMAIN]
+        site = extensions(self.root, 'site', 'subjectAltName=' + ','.join('DNS:' + name for name in names)
+                          + '\nextendedKeyUsage=serverAuth\nbasicConstraints=CA:FALSE\n')
+        target = self.root / ('site-' + str(len(list(self.root.glob('site-*')))) + '.pem')
+        openssl('x509', '-req', '-in', str(csr or self.folder / certificate.REQUEST_NAME), '-days', str(days),
+                '-CA', str(self.root / 'middle.pem'), '-CAkey', str(self.root / 'middle.key'), '-CAcreateserial',
+                '-extfile', site, '-out', str(target))
+        return target
+
+    def prepare(self, *files):
+        return certificate.prepare(self.folder, [str(path) for path in files], self.root / 'root.pem')
+
+    def test_request_keeps_private_key_and_asks_for_domain_and_www(self):
+        text = subprocess.run(['openssl', 'req', '-noout', '-text', '-in', str(self.folder / certificate.REQUEST_NAME)],
+                              check=True, capture_output=True, text=True).stdout
+        self.assertIn('DNS:club.example.org, DNS:www.club.example.org', text)
+        self.assertEqual(oct((self.folder / certificate.KEY_NAME).stat().st_mode & 0o777), '0o600')
+        self.assertEqual(certificate.request_names(self.folder), ['club.example.org', 'www.club.example.org'])
+
+    def test_prepare_builds_full_chain_with_site_first(self):
+        site = self.issue()
+        ends = self.prepare(self.root / 'middle.pem', site)
+        chain = (self.folder / certificate.CHAIN_NAME).read_text()
+        self.assertTrue(chain.startswith(site.read_text().strip()[:80]))
+        self.assertIn(chain.split(certificate.PEM_END)[1].strip()[:80], (self.root / 'middle.pem').read_text())
+        self.assertTrue(ends.endswith('GMT'))
+
+    def test_prepare_refuses_broken_certificates(self):
+        other = self.root / 'other'
+        (self.root / 'site.der').write_bytes(bytes([0x30, 0x82, 0xFF, 0xFE]))
+        openssl('req', '-new', '-newkey', 'rsa:2048', '-nodes', '-subj', '/CN=' + self.DOMAIN,
+                '-keyout', str(other.with_suffix('.key')), '-out', str(other.with_suffix('.csr')))
+        cases = [
+            ((self.issue(),), 'Цепочка.*unable to get local issuer certificate\\)$'),
+            ((self.issue([self.DOMAIN]), self.root / 'middle.pem'), 'www.club.example.org'),
+            ((self.issue(days=2), self.root / 'middle.pem'), 'истекает'),
+            ((self.issue(csr=other.with_suffix('.csr')), self.root / 'middle.pem'), 'ключу'),
+            ((self.root / 'root.key',), 'PEM'),
+            ((self.root / 'site.der',), 'PEM'),
+        ]
+        for files, message in cases:
+            with self.subTest(message), self.assertRaisesRegex(ValueError, message):
+                self.prepare(*files)
+        self.assertFalse((self.folder / certificate.CHAIN_NAME).exists())
+
+    def site(self, address='club.example.org'):
+        tls = self.root / 'tls'
+        tls.mkdir(exist_ok=True)
+        for name in (certificate.CHAIN_NAME, certificate.KEY_NAME):
+            (tls / name).write_text('old ' + name)
+        context = Mock(runtime={'PUBLIC_URL': 'https://' + address}, values={'CLUB_TLS_DIR': str(tls)})
+        return context, tls
+
+    def test_apply_replaces_certificate_and_checks_site(self):
+        self.prepare(self.root / 'middle.pem', self.issue())
+        context, tls = self.site()
+        with patch.object(certificate, 'protect_tls'):
+            certificate.apply(self.folder, context, self.root / 'root.pem')
+        self.assertEqual((tls / certificate.CHAIN_NAME).read_text(), (self.folder / certificate.CHAIN_NAME).read_text())
+        context.execute.assert_called_once_with('up', '-d', '--wait', '--force-recreate', 'nginx')
+        context.verify_http.assert_called_once_with()
+        self.assertEqual(list(self.folder.glob(certificate.PREVIOUS_SUFFIX + '*')), [])
+
+    def test_apply_returns_previous_certificate_when_site_check_fails(self):
+        self.prepare(self.root / 'middle.pem', self.issue())
+        context, tls = self.site()
+        context.verify_http.side_effect = [ValueError('сертификат: unable to verify'), None]
+        with patch.object(certificate, 'protect_tls'), self.assertRaisesRegex(ValueError, 'возвращён прежний'):
+            certificate.apply(self.folder, context, self.root / 'root.pem')
+        self.assertEqual((tls / certificate.CHAIN_NAME).read_text(), 'old fullchain.pem')
+        self.assertEqual((tls / certificate.KEY_NAME).read_text(), 'old privkey.pem')
+        self.assertEqual(context.execute.call_count, 2)
+
+    def test_apply_refuses_other_domain_and_unprepared_folder(self):
+        context, tls = self.site('other.example.org')
+        with self.assertRaisesRegex(ValueError, 'other.example.org'):
+            certificate.apply(self.folder, context, self.root / 'root.pem')
+        context, tls = self.site()
+        with self.assertRaisesRegex(ValueError, 'prepare'):
+            certificate.apply(self.folder, context, self.root / 'root.pem')
+        self.assertEqual((tls / certificate.CHAIN_NAME).read_text(), 'old fullchain.pem')
+        context.execute.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main()
