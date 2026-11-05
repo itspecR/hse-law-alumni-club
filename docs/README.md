@@ -25,6 +25,7 @@
 
 | Документ | Назначение |
 |---|---|
+| [Запуск на домене](operations/launch.md) | Домен, VPS, купленный сертификат, Яндекс 360 и проверки первого запуска |
 | [Runbook Ubuntu](operations/deploy-runbook.md) | Установка, обновление, копирование, восстановление и мониторинг |
 | [Перенос в MariaDB](operations/mariadb-migration.md) | Django ORM, импорт, отдельный контур nginx и порядок отката |
 | [Изолированная Ubuntu-репетиция](operations/ubuntu-vm-rehearsal.md) | Подготовка VM и проверка без внешних операций |
