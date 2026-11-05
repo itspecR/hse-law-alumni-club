@@ -14,6 +14,7 @@ from psycopg.rows import dict_row
 from club_api.modules.auth.codes import ADMIN_PURPOSE, ttl_minutes
 from club_ops.alumni import create_alumni
 from club_ops.bootstrap import BootstrapConfig, OperatorError, bootstrap
+from club_ops.mail_check import send_test_mail
 from club_ops.office import Office
 from club_ops.podcasts import import_podcasts
 from club_ops.staff import manage_staff, staff_code
@@ -168,6 +169,8 @@ async def main(args):
         await database_command(args.command, values)
     elif args.command == "setup-telegram-webhook":
         await setup_webhook(values)
+    elif args.command == "send-test-mail":
+        print(await send_test_mail(values))
     else:
         office = Office(values)
         try:
@@ -195,6 +198,7 @@ def run():
         "database-fingerprints",
         "sync-dpo",
         "setup-telegram-webhook",
+        "send-test-mail",
     ):
         sub.add_parser(name)
     sub.add_parser("import-podcasts").add_argument("manifest")

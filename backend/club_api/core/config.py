@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     SUPPORT_OPERATOR_CONTACT: str = "Письменное обращение по юридическому адресу оператора"
     SUPPORT_RETENTION_DAYS: int = Field(default=30, ge=1, le=365)
     OFFICE_EMAIL: str = ""
+    MAIL_REPLY_TO: str = ""
     AUTH_SECRET: SecretStr = Field(min_length=32)
     ADMIN_AUTH_SECRET: SecretStr = SecretStr("")
     NEWS_SYNC_ENABLED: Literal["true", "false"] = "false"
@@ -56,12 +57,12 @@ class Settings(BaseSettings):
     MAIL_OUTBOX_MAX_ATTEMPTS: int = Field(default=8, ge=1, le=50)
     RATE_LIMIT_MAX: int = Field(default=1000, gt=0)
 
-    @field_validator("OFFICE_EMAIL")
+    @field_validator("OFFICE_EMAIL", "MAIL_REPLY_TO")
     @classmethod
-    def office_address(cls, value):
+    def mail_address(cls, value, info):
         value = value.strip()
         if value and (len(value) > 128 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value)):
-            raise ValueError("Некорректный OFFICE_EMAIL")
+            raise ValueError("Некорректный " + info.field_name)
         return value
 
     def secret(self, name: str) -> str:
