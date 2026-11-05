@@ -1192,10 +1192,26 @@ def test_saved_search_undo_and_recent_limit(page):
     expect(page.locator("[data-reading-list=recent] a")).to_have_count(4)
 
 
+CHANGES_PREPARED = ".changes-page[data-prepared]"
+
+
+def open_changes(page, path):
+    page.goto(path)
+    expect(page.locator(CHANGES_PREPARED)).to_be_attached()
+
+
+def open_change(page, link):
+    identifier = link.get_attribute("data-change-open")
+    link.click()
+    expect(page).to_have_url(re.compile("/changes/" + re.escape(identifier) + r"\?"))
+    expect(page.locator(CHANGES_PREPARED)).to_be_attached()
+    return identifier
+
+
 @pytest.mark.parametrize("width", [360, 390, 768, 1280, 1440])
 def test_changes_filters_reader_back_and_copy_fallback(changes_section, page, width):
     page.set_viewport_size({"width": width, "height": 1000})
-    page.goto("/changes?view=all&sort=oldest")
+    open_changes(page, "/changes?view=all&sort=oldest")
     if width < 768:
         page.get_by_role("button", name="Поиск и фильтры").click()
         dialog = page.locator("[data-changes-filters]")
@@ -1203,9 +1219,7 @@ def test_changes_filters_reader_back_and_copy_fallback(changes_section, page, wi
         dialog.get_by_role("button", name="Отмена", exact=True).click()
         expect(page.locator("[data-changes-form] input[name=q]")).to_have_value("")
         expect(page.get_by_role("button", name="Поиск и фильтры")).to_be_focused()
-    link = page.locator("[data-change-open]").first
-    target = link.get_attribute("data-change-open")
-    link.click()
+    target = open_change(page, page.locator("[data-change-open]").first)
     expect(page).to_have_url(re.compile(r"/changes/.*\?view=all&sort=oldest"))
     expect(page.locator(".changes-reader")).to_be_visible()
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
@@ -1251,11 +1265,9 @@ def test_mirror_changes_search_reading_and_dialog_are_independent(changes_sectio
 
 
 def test_changes_reader_navigation_preserves_list_return(changes_section, page):
-    page.goto("/changes?view=all")
-    page.locator("[data-change-open]").first.click()
-    second = page.locator("[data-change-open]").nth(1)
-    identifier = second.get_attribute("data-change-open")
-    second.click()
+    open_changes(page, "/changes?view=all")
+    open_change(page, page.locator("[data-change-open]").first)
+    identifier = open_change(page, page.locator("[data-change-open]").nth(1))
     page.get_by_role("link", name="← Все материалы", exact=True).click()
     expect(page.locator('[data-change-open="' + identifier + '"]')).to_be_focused()
 
