@@ -26,6 +26,11 @@ http {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header Forwarded "";
     proxy_hide_header Server;
+    map "$scheme://$host" $www_alias {
+        "${PUBLIC_URL}" 0;
+        "~^https://www\." 1;
+        default 0;
+    }
     server {
         listen 8080;
         location = /health { return 200 'ok'; }
@@ -38,6 +43,7 @@ http {
         ssl_protocols TLSv1.2 TLSv1.3;
         ssl_session_cache shared:TLS:1m;
         error_page 497 =308 https://$http_host$request_uri;
+        if ($www_alias) { return 308 ${PUBLIC_URL}$request_uri; }
         add_header Strict-Transport-Security "max-age=15552000; includeSubDomains" always;
         add_header X-Content-Type-Options nosniff always;
         add_header Referrer-Policy strict-origin-when-cross-origin always;
