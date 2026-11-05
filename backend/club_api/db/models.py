@@ -211,6 +211,22 @@ class MailOutbox(models.Model):
         ]
 
 
+class EmailCodes(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    user_id = models.UUIDField()
+    purpose = models.CharField(max_length=32)
+    code_hash = models.CharField(max_length=64, null=True)
+    attempts = models.IntegerField(db_default=0)
+    expires_at = models.DateTimeField(null=True)
+    sent_at = models.DateTimeField()
+    window_started_at = models.DateTimeField()
+    window_count = models.IntegerField(db_default=0)
+
+    class Meta:
+        db_table = "club_email_codes"
+        constraints = [models.UniqueConstraint(fields=["user_id", "purpose"], name="club_email_codes_user_purpose")]
+
+
 class CaptchaUses(models.Model):
     salt_hash = models.CharField(max_length=64, primary_key=True)
     expires_at = models.DateTimeField()

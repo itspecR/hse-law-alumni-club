@@ -26,6 +26,18 @@ function store(key, value) {
   catch { notice("Хранилище браузера недоступно. Проверьте настройки приватности."); return false; }
 }
 
+const authEmailKey = "club-auth-email";
+
+function rememberEmail(value) {
+  try { sessionStorage.setItem(authEmailKey, value); } catch {}
+}
+
+function prefillEmail() {
+  let saved = "";
+  try { saved = sessionStorage.getItem(authEmailKey) || ""; } catch {}
+  document.querySelectorAll("input[data-auth-email]").forEach(input => { if (!input.value) input.value = saved; });
+}
+
 function url(path) {
   return base + path.replace(/^\//, "");
 }
@@ -359,8 +371,14 @@ async function perform(target, body) {
       store("club_checkout:" + cartSession(), null);
       checkoutReceipt(result);
       void updateCartCount();
+    } else if (target.hasAttribute("data-registration") && result.confirm_required) {
+      rememberEmail(body.email);
+      location.href = url("confirm");
     } else if (target.hasAttribute("data-registration")) {
-      target.replaceWith(element("div", result.confirm_required ? "Мы отправили письмо со ссылкой. Подтвердите почту, и мы проверим заявку." : "Заявка сохранена. Мы проверим статус выпускника, обычно это занимает 1-2 рабочих дня.", { role: "status", class: "site-panel" }));
+      target.replaceWith(element("div", "Заявка сохранена. Мы проверим статус выпускника, обычно это занимает 1-2 рабочих дня.", { role: "status", class: "site-panel" }));
+    } else if (target.dataset.continue) {
+      rememberEmail(body.email);
+      location.href = url(target.dataset.continue + location.search);
     } else if (target.hasAttribute("data-delete-profile")) {
       store(memberKey, null);
       location.href = url("/");
@@ -504,6 +522,7 @@ function setupPage() {
     } catch (error) { notice(error.message); }
   }
   renderReading();
+  prefillEmail();
   document.querySelectorAll("[data-member-link]").forEach(link => {
     link.dataset.guestLabel ||= link.textContent;
     link.dataset.guestHref ||= link.getAttribute("href");

@@ -12,6 +12,7 @@ from club_api.core.errors import ApiError
 from club_api.core.security import LoginAttempts
 from club_api.db.queries import Query, acquire_lock
 from club_api.db.store import Store
+from club_api.modules.auth.codes import CONFIRM_PURPOSE, RESET_PURPOSE, accept_code, issue_code
 from club_api.modules.auth.passwords import hash_password, verify_password
 from club_api.resources import shared_data
 
@@ -152,7 +153,6 @@ class AuthService:
         self.database = database
         self.store = store
         self.attempts = LoginAttempts()
-        self.confirmation_resends = {}
 
     def token(self, payload, ttl, *, admin=False):
         now = datetime.now(UTC)
@@ -276,19 +276,30 @@ class AuthService:
                 connection, email=email, hashed=hashed, status=status, verification=verification, profile=profile
             )
 
-    async def confirm(self, user_id):
+    async def send_code(self, user_id, purpose):
+        async with self.database.transaction() as connection:
+            return await issue_code(
+                connection, self.settings.secret("AUTH_SECRET"), user_id, purpose, datetime.now(UTC)
+            )
+
+    async def accept(self, connection, user_id, purpose, code):
+        return await accept_code(
+            connection, self.settings.secret("AUTH_SECRET"), user_id, purpose, code, datetime.now(UTC)
+        )
+
+    async def confirm(self, user_id, code):
         async with self.database.transaction() as connection:
             user = await find_user(connection, id=user_id, lock=True)
             if not recoverable_alumni(user):
                 return "invalid"
             if user["status"] == "active":
                 return "already"
+            if not await self.accept(connection, user_id, CONFIRM_PURPOSE, code):
+                return "invalid"
             await connection.execute("UPDATE directus_users SET status='active' WHERE id=%s", (user_id,))
             return "confirmed"
 
-    async def reset(self, user_id, password, jti, version):
-        if not jti:
-            return "invalid"
+    async def reset(self, user_id, password, code):
         hashed = await hash_password(password)
         async with self.database.transaction() as connection:
             user = await find_user(connection, id=user_id, lock=True)
@@ -298,26 +309,9 @@ class AuthService:
                 "SELECT id,token_version FROM alumni WHERE user_id=%s ORDER BY id LIMIT 2 FOR UPDATE", (user_id,)
             )
             profiles = await cursor.fetchall()
-            if len(profiles) != 1:
+            if len(profiles) != 1 or not await self.accept(connection, user_id, RESET_PURPOSE, code):
                 return "invalid"
             profile = profiles[0]
-            if version is not None and version != (profile["token_version"] or 0):
-                return "used"
-            await acquire_lock(connection, "reset:" + jti)
-            previous = await (
-                await connection.execute(
-                    "SELECT token_key FROM club_auth_revocations WHERE token_key=%s", ("reset:" + jti,)
-                )
-            ).fetchone()
-            if previous:
-                return "used"
-            await connection.execute(
-                Query(
-                    "INSERT INTO club_auth_revocations(token_key,expires_at) VALUES(%s,now() + interval '24 hours')",
-                    "INSERT INTO club_auth_revocations(token_key,expires_at) VALUES(%s,now() + INTERVAL 24 HOUR)",
-                ),
-                ("reset:" + jti,),
-            )
             await connection.execute("UPDATE directus_users SET password=%s WHERE id=%s", (hashed, user_id))
             await connection.execute(
                 "UPDATE alumni SET token_version=COALESCE(token_version,0)+1 WHERE id=%s", (profile["id"],)

@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros.html' import field,consent %}
+{% from 'macros.html' import field,consent,code_field %}
 {% block content %}
 <main id="main" class="club-auth {{ 'club-auth--split' if path=='/join' else '' }}">
 {% if path=='/join' %}
@@ -37,22 +37,21 @@
 </p>
 </form>
 {% elif path=='/forgot' %}
-<p>Пришлем ссылку на почту выпускника. Сотрудники клуба восстанавливают доступ через оператора.</p>
-<form data-api="/auth/forgot" data-success="Если аккаунт с такой почтой есть, письмо со ссылкой придет на этот адрес.">{{ field('email','Почта',type='email') }}<input type="hidden" name="next" value="{{ query.get('next','') }}">
-<button class="site-primary">Отправить ссылку</button>
+<p>Пришлем код на почту выпускника. Сотрудники клуба восстанавливают доступ через оператора.</p>
+<form data-api="/auth/forgot" data-continue="reset">{{ field('email','Почта',type='email') }}<button class="site-primary">Получить код</button>
 <p role="alert" data-error hidden>
 </p>
 </form>
 {% elif path=='/reset' %}
-<form data-api="/auth/reset" data-success="Пароль изменен. Войдите в кабинет с новым паролем.">
-<input type="hidden" name="token" value="{{ query.get('token','') }}">{{ field('password','Новый пароль, не меньше 8 символов',type='password') }}{{ field('repeat_password','Повторите пароль',type='password') }}<button class="site-primary">Сохранить пароль</button>
+<p>Если аккаунт с этой почтой есть, мы отправили на нее код. Введите код из письма и новый пароль.</p>
+<form data-api="/auth/reset" data-success="Пароль изменен. Войдите в кабинет с новым паролем.">{{ field('email','Почта',type='email',remember=true) }}{{ code_field() }}{{ field('password','Новый пароль, не меньше 8 символов',type='password') }}{{ field('repeat_password','Повторите пароль',type='password') }}<button class="site-primary">Сохранить пароль</button>
 <p role="alert" data-error hidden>
 </p>
 </form>
+<a href="/forgot{{ '?next='+query.get('next')|urlencode if query.get('next')=='/podcasts#podcast-subscription' else '' }}">Получить новый код</a>
 {% else %}
-<form data-api="/auth/confirm" data-success="Почта подтверждена. Мы проверим заявку.">
-<input type="hidden" name="token" value="{{ query.get('token','') }}">
-<button class="site-primary">Подтвердить почту</button>
+<p>Мы отправили код на почту из заявки. Введите его, чтобы подтвердить почту.</p>
+<form data-api="/auth/confirm" data-success="Почта подтверждена. Мы проверим заявку.">{{ field('email','Почта',type='email',remember=true) }}{{ code_field() }}<button class="site-primary">Подтвердить почту</button>
 <p role="alert" data-error hidden>
 </p>
 </form>
@@ -62,8 +61,8 @@
 <a href="/">На главную</a>
 </div>
 <details>
-<summary>Отправить ссылку подтверждения еще раз</summary>
-<form data-api="/auth/resend-confirmation" data-success="Если заявка с этой почтой ожидает подтверждения, письмо придет на этот адрес.">{{ field('email','Почта для повторной ссылки',type='email') }}<button>Отправить ссылку</button>
+<summary>Отправить код подтверждения еще раз</summary>
+<form data-api="/auth/resend-confirmation" data-success="Если заявка с этой почтой ожидает подтверждения, новый код придет на этот адрес. Повторно код можно запросить через минуту.">{{ field('email','Почта для нового кода',type='email',remember=true) }}<button>Отправить код</button>
 <p role="alert" data-error hidden>
 </p>
 </form>

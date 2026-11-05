@@ -1,8 +1,5 @@
 import re
-import secrets
-import time
 from typing import Literal
-from urllib.parse import quote
 
 from django.http import HttpRequest
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -10,8 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from club_api.core.errors import ApiError
 from club_api.core.security import client_ip
 from club_api.core.views import api_view, parse_body
-from club_api.db.queries import Query
 from club_api.domain import MAX_INTERESTS
+from club_api.modules.auth.codes import CODE_DIGITS, CONFIRM_PURPOSE, RESET_PURPOSE, ttl_minutes
 from club_api.modules.auth.service import (
     DUPLICATE_ACCOUNT,
     PASSWORD_MAX_LENGTH,
@@ -24,8 +21,7 @@ from club_api.modules.notifications.mail import CLUB_NAME, EMAIL_CONFIRMATION_KI
 from club_api.modules.telegram.signature import validate_init_data
 from club_api.observability.audit import audit
 
-RESEND_COOLDOWN_SECONDS = 600
-RESEND_CACHE_LIMIT = 10000
+CODE_INVALID = "Неверный или устаревший код. Запросите новый код."
 NOT_ALUMNI = "Этот аккаунт не связан с профилем выпускника."
 TELEGRAM_LOGIN_FAILED = "Не удалось проверить вход через Telegram."
 OFFICE_REVIEW = "Проверьте ее в панели управления, раздел «Выпускники»."
@@ -82,30 +78,45 @@ class RegisterBody(EmailBody):
         return value
 
 
-class TokenBody(Body):
-    token: str = Field(min_length=10)
+class CodeBody(EmailBody):
+    code: str = Field(min_length=CODE_DIGITS, max_length=CODE_DIGITS * 2)
 
 
-class ResetBody(TokenBody):
+class ResetBody(CodeBody):
     password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=PASSWORD_MAX_LENGTH)
-
-
-class ForgotBody(EmailBody):
-    next: str | None = Field(default=None, max_length=200)
 
 
 class TelegramBody(Body):
     initData: str = Field(min_length=1, max_length=16384)
 
 
+def confirmation_letter(code, public_url):
+    return (
+        f"Здравствуйте!\n\nВы подали заявку на вступление в {CLUB_NAME}. Код подтверждения почты: {code}\n\n"
+        f"Код действует {ttl_minutes(CONFIRM_PURPOSE)} минут. Введите его на странице {public_url}/confirm\n\n"
+        "После подтверждения мы проверим заявку.\n\n"
+        "Если заявку подавали не Вы, проигнорируйте письмо, аккаунт останется неактивным."
+    )
+
+
+def reset_letter(code, public_url):
+    return (
+        f"Здравствуйте!\n\nВы запросили восстановление пароля. Код: {code}\n\n"
+        f"Код действует {ttl_minutes(RESET_PURPOSE)} минут и срабатывает один раз. "
+        f"Введите его на странице {public_url}/reset\n\n"
+        "Если это были не Вы, проигнорируйте письмо."
+    )
+
+
 async def queue_confirmation(request, user_id, email):
     service = auth_service(request)
-    token = service.token({"sub": user_id, "purpose": "email-confirm"}, 86400)
-    body = f"Здравствуйте!\n\nВы подали заявку на вступление в {CLUB_NAME}. Чтобы подтвердить почту, откройте ссылку, она действует 24 часа:\n{service.settings.PUBLIC_URL}/confirm?token={quote(token)}\n\nПосле подтверждения мы проверим заявку.\n\nЕсли заявку подавали не Вы, проигнорируйте письмо, аккаунт останется неактивным."
+    code = await service.send_code(user_id, CONFIRM_PURPOSE)
+    if not code:
+        return {"sent": False, "id": None}
     return await request.services.notifications.enqueue_mail(
         email,
-        club_subject("Подтвердите почту"),
-        body,
+        club_subject("Код подтверждения почты"),
+        confirmation_letter(code, service.settings.PUBLIC_URL),
         kind=EMAIL_CONFIRMATION_KIND,
         owner_user_id=user_id,
     )
@@ -127,7 +138,7 @@ async def login(request, body, scope):
         service.attempts.fail(email, ip)
         await audit(request, prefix + ".fail", actor="email:" + email)
         if status == "unverified":
-            raise ApiError(403, "Почта не подтверждена. Откройте ссылку из письма, проверьте и папку «Спам».")
+            raise ApiError(403, "Почта не подтверждена. Введите код из письма на странице подтверждения, проверьте и папку «Спам».")
         if status == "forbidden":
             raise ApiError(403, "Доступ в панель управления закрыт." if scope == "admin" else NOT_ALUMNI)
         raise ApiError(401, "Неверная почта или пароль.")
@@ -223,79 +234,46 @@ async def resend_confirmation(request: HttpRequest):
     if not request.services.notifications.mail_enabled:
         raise ApiError(503, "Отправка писем временно недоступна. Повторите позже.")
     service = auth_service(request)
-    email, now = (body.email.lower().strip(), time.monotonic())
-    entries = service.confirmation_resends
-    if entries.get(email, 0) > now:
-        return {"ok": True}
-    if len(entries) >= RESEND_CACHE_LIMIT:
-        for address, until in list(entries.items()):
-            if until <= now:
-                del entries[address]
-        if len(entries) >= RESEND_CACHE_LIMIT:
-            raise ApiError(429, "Слишком много запросов. Попробуйте позже.")
-    entries[email] = now + RESEND_COOLDOWN_SECONDS
-    try:
-        recent = await service.database.rows(
-            Query(
-                "SELECT id FROM club_mail_outbox WHERE kind=%s AND to_addr=%s AND created_at > now() - interval '10 minutes' LIMIT 1",
-                "SELECT id FROM club_mail_outbox WHERE kind=%s AND to_addr=%s AND created_at > now() - INTERVAL 10 MINUTE LIMIT 1",
-            ),
-            (EMAIL_CONFIRMATION_KIND, email),
-        )
-        if recent:
-            return {"ok": True}
-        user = await service.user(email=email, alumni=True)
-        if user and user["status"] == "unverified" and await service.profile(user["id"]):
-            await queue_confirmation(request, user["id"], email)
-    except Exception:
-        entries.pop(email, None)
-        raise
+    email = body.email.lower().strip()
+    user = await service.user(email=email, alumni=True)
+    if user and user["status"] == "unverified" and await service.profile(user["id"]):
+        await queue_confirmation(request, user["id"], email)
     return {"ok": True}
 
 
-@api_view(body=TokenBody)
+@api_view(body=CodeBody)
 async def confirm(request: HttpRequest):
-    body = parse_body(request, TokenBody)
+    body = parse_body(request, CodeBody)
     service = auth_service(request)
-    payload = service.decode(body.token)
-    if not payload:
-        raise ApiError(400, "Ссылка недействительна или истекла. Подайте заявку заново.")
-    if payload.get("purpose") != "email-confirm":
-        raise ApiError(400, "Ссылка недействительна.")
-    result = await service.confirm(payload["sub"])
+    user = await service.user(email=body.email.lower().strip(), alumni=True)
+    result = await service.confirm(user["id"], body.code) if user else "invalid"
     if result == "invalid":
-        raise ApiError(400, "Ссылка недействительна.")
+        raise ApiError(400, CODE_INVALID)
     if result == "already":
         return {"ok": True, "already": True}
-    await audit(request, "email.confirm", actor="user:" + payload["sub"])
+    await audit(request, "email.confirm", actor="user:" + user["id"])
     await request.services.notifications.office_text(
         f"Новая заявка на вступление в клуб, почта подтверждена. {OFFICE_REVIEW}"
     )
     return {"ok": True}
 
 
-@api_view(body=ForgotBody)
+@api_view(body=EmailBody)
 async def forgot(request: HttpRequest):
-    body = parse_body(request, ForgotBody)
+    body = parse_body(request, EmailBody)
     service = auth_service(request)
     if not request.services.notifications.mail_enabled:
         raise ApiError(503, "Восстановление пароля временно недоступно. Напишите в поддержку.")
     user = await service.user(email=body.email.lower().strip(), alumni=True)
-    if user:
-        profile = await service.profile(user["id"])
-        if not profile:
-            return {"ok": True}
-        token = service.token(
-            {"sub": user["id"], "purpose": "reset", "jti": secrets.token_hex(16), "ver": profile["token_version"]}, 1800
-        )
-        continuation = "&next=" + quote(body.next, safe="") if body.next == "/podcasts#podcast-subscription" else ""
-        url = f"{service.settings.PUBLIC_URL}/reset?token={quote(token)}{continuation}"
-        await audit(request, "password.forgot", actor="email:" + body.email)
-        await request.services.notifications.send_email(
-            body.email,
-            club_subject("Восстановление пароля"),
-            f"Здравствуйте!\n\nВы запросили восстановление пароля. Ссылка действует 30 минут и срабатывает один раз:\n{url}\n\nЕсли это были не Вы, проигнорируйте письмо.",
-        )
+    if user and await service.profile(user["id"]):
+        code = await service.send_code(user["id"], RESET_PURPOSE)
+        if code:
+            await audit(request, "password.forgot", actor="email:" + body.email)
+            await request.services.notifications.send_email(
+                body.email,
+                club_subject("Код для восстановления пароля"),
+                reset_letter(code, service.settings.PUBLIC_URL),
+            )
     return {"ok": True}
 
 
@@ -303,22 +281,10 @@ async def forgot(request: HttpRequest):
 async def reset(request: HttpRequest):
     body = parse_body(request, ResetBody)
     service = auth_service(request)
-    payload = service.decode(body.token)
-    if not payload:
-        raise ApiError(400, "Ссылка недействительна или истекла. Запросите новую.")
-    if (
-        payload.get("purpose") != "reset"
-        or not isinstance(payload.get("jti"), str)
-        or (not await service.user(id=payload["sub"], alumni=True))
-    ):
-        raise ApiError(400, "Ссылка недействительна.")
-    result = await service.reset(payload["sub"], body.password, payload["jti"], payload.get("ver"))
-    if result == "invalid":
-        raise ApiError(400, "Ссылка недействительна.")
-    if result == "used":
-        await audit(request, "password.reset.replay", actor="user:" + payload["sub"])
-        raise ApiError(400, "Ссылка уже использована. Запросите новую.")
-    await audit(request, "password.reset", actor="user:" + payload["sub"])
+    user = await service.user(email=body.email.lower().strip(), alumni=True)
+    if not user or await service.reset(user["id"], body.password, body.code) == "invalid":
+        raise ApiError(400, CODE_INVALID)
+    await audit(request, "password.reset", actor="user:" + user["id"])
     return {"ok": True}
 
 

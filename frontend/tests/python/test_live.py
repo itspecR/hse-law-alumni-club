@@ -53,20 +53,21 @@ def result(response, status=200):
     return response.json()
 
 
-def mail_link(request, email, path):
+def mail_code(request, email, subject):
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         inbox = result(request.get(value("E2E_MAIL_URL") + "/api/v1/messages"))
         for message in inbox["messages"]:
+            if not message["Subject"].startswith(subject):
+                continue
             if not any(recipient["Address"] == email for recipient in message["To"]):
                 continue
             body = result(request.get(value("E2E_MAIL_URL") + "/api/v1/message/" + message["ID"]))
-            for link in re.findall(r"https?://[^\s<>]+", body["Text"]):
-                if urlsplit(link).path == path:
-                    assert link.startswith(value("E2E_BASE_URL") + "/")
-                    return link
+            found = re.search(r"Код[^:\n]*: (\d{6})", body["Text"])
+            if found:
+                return found[1]
         time.sleep(0.25)
-    raise AssertionError("Не получено тестовое письмо " + path)
+    raise AssertionError("Не получено тестовое письмо: " + subject)
 
 
 def login(page, email, password, office=False):
@@ -246,7 +247,9 @@ def test_live_system(name, width, height):
         ) as registration:
             page.get_by_role("button", name="Отправить заявку", exact=True).click()
         result(registration.value)
-        page.goto(mail_link(request, email, "/confirm"))
+        expect(page.get_by_role("heading", name="Подтвердить почту", exact=True)).to_be_visible()
+        expect(page.get_by_label("Почта", exact=True)).to_have_value(email)
+        page.get_by_label("Код из письма", exact=True).fill(mail_code(request, email, "Код подтверждения почты"))
         with page.expect_response(
             lambda response: response.url.endswith("/api/auth/confirm") and response.request.method == "POST"
         ) as confirmed:
@@ -379,8 +382,10 @@ def test_live_system(name, width, height):
         with page.expect_response(
             lambda response: response.url.endswith("/api/auth/forgot") and response.request.method == "POST"
         ):
-            page.get_by_role("button", name="Отправить ссылку", exact=True).first.click()
-        page.goto(mail_link(request, email, "/reset"))
+            page.get_by_role("button", name="Получить код", exact=True).click()
+        expect(page.get_by_role("heading", name="Новый пароль", exact=True)).to_be_visible()
+        expect(page.get_by_label("Почта", exact=True)).to_have_value(email)
+        page.get_by_label("Код из письма", exact=True).fill(mail_code(request, email, "Код для восстановления пароля"))
         page.get_by_label("Новый пароль, не меньше 8 символов", exact=True).fill(value("E2E_LIVE_NEW_PASSWORD"))
         page.get_by_label("Повторите пароль", exact=True).fill(value("E2E_LIVE_NEW_PASSWORD"))
         with page.expect_response(
