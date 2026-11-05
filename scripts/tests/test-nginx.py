@@ -176,9 +176,16 @@ def main():
             assert request("/assets/site.css?v=1", headers=compressed)[1].get("Content-Encoding") == "gzip"
             for path in ("/news", "/api/probe"):
                 assert request(path, headers=compressed)[1].get("Content-Encoding") is None, path
+            status, headers, _ = request("/news?page=2", headers={"Host": "www.localhost"})
+            assert status == 308 and headers["Location"] == "https://localhost/news?page=2"
+            assert headers["Strict-Transport-Security"]
+            assert request("/news", headers={"Host": "127.0.0.1"})[0] == 200
             statuses = [request("/api/auth/admin-login", b"{}")[0] for _ in range(15)]
             assert 200 in statuses and 429 in statuses
-            print("nginx: TLS, прокси, защита заголовков IP, CSP, сжатие статики, лимиты тела и входа проверены")
+            print(
+                "nginx: TLS, прокси, защита заголовков IP, CSP, сжатие статики, переход с www, "
+                "лимиты тела и входа проверены"
+            )
     finally:
         for container in reversed(owned):
             command("docker", "rm", "-f", container)
