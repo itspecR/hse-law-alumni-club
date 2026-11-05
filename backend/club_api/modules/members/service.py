@@ -58,7 +58,7 @@ async def anonymize(state, alumni_id):
         await connection.execute("DELETE FROM club_social_reactions WHERE alumni_id=%s", (alumni_id,))
         await connection.execute("DELETE FROM club_social_membership WHERE alumni_id=%s", (alumni_id,))
         await connection.execute(
-            "UPDATE alumni SET fio=%s,contacts_json=NULL,telegram_id=NULL,avatar=NULL,interests_json=NULL,edu_program=NULL,edu_level=NULL,cohort=NULL,verification_status='rejected',points_cached=0,status='alumni_left',user_id=NULL,token_version=COALESCE(token_version,0)+1 WHERE id=%s",
+            "UPDATE alumni SET fio=%s,contacts_json=NULL,telegram_id=NULL,avatar=NULL,interests_json=NULL,edu_program=NULL,edu_level=NULL,cohort=NULL,verification_status='rejected',points_cached=0,status='alumni_left',user_id=NULL,mailing_consent_at=NULL,mailing_consent_version=NULL,token_version=COALESCE(token_version,0)+1 WHERE id=%s",
             (DELETED_NAME, alumni_id),
         )
         await connection.execute(

@@ -14,6 +14,7 @@ from club_api.db.queries import Query, acquire_lock
 from club_api.db.store import Store
 from club_api.modules.auth.codes import ADMIN_PURPOSE, CONFIRM_PURPOSE, RESET_PURPOSE, accept_code, issue_code
 from club_api.modules.auth.passwords import hash_password, verify_password
+from club_api.modules.members.mailing import mailing_consent
 from club_api.resources import shared_data
 
 logger = logging.getLogger("club.auth")
@@ -41,6 +42,7 @@ ALUMNI_FIELDS = (
     "referral_code",
     "token_version",
     "telegram_id",
+    "mailing_consent_at",
 )
 
 
@@ -76,8 +78,9 @@ def alumni_names(fio):
     return first, rest.strip() or "-"
 
 
-def alumni_profile(*, fio, cohort, edu_level, edu_program, interests=(), referred_by=None):
+def alumni_profile(*, fio, cohort, edu_level, edu_program, interests=(), referred_by=None, mailing=False):
     return {
+        **mailing_consent(mailing),
         "fio": fio.strip(),
         "cohort": cohort,
         "edu_level": edu_level,
@@ -105,7 +108,7 @@ async def insert_alumni(connection, *, email, hashed, status, verification, prof
         (user_id, email, hashed, roles[0]["id"], status, first_name, last_name),
     )
     await connection.execute(
-        "INSERT INTO alumni(id,user_id,fio,cohort,edu_level,edu_program,interests_json,referral_code,referred_by,consent_at,consent_version,status,verification_status,points_cached,level_cached,personal_discount,token_version) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'active',%s,0,'graduate',0,0)",
+        "INSERT INTO alumni(id,user_id,fio,cohort,edu_level,edu_program,interests_json,referral_code,referred_by,consent_at,consent_version,mailing_consent_at,mailing_consent_version,status,verification_status,points_cached,level_cached,personal_discount,token_version) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'active',%s,0,'graduate',0,0)",
         (
             profile_id,
             user_id,
@@ -118,6 +121,8 @@ async def insert_alumni(connection, *, email, hashed, status, verification, prof
             profile["referred_by"],
             profile["consent_at"],
             profile["consent_version"],
+            profile["mailing_consent_at"],
+            profile["mailing_consent_version"],
             verification,
         ),
     )

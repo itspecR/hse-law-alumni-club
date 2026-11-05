@@ -757,6 +757,10 @@ def test_legal_pages_and_separate_form_consent(page, width):
         expect(page.locator("main")).to_contain_text("20 октября 2026 года")
         expect(page.get_by_role("navigation", name="Правовые документы")).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    assert page.goto("/mailing-consent").status == 200
+    expect(page.locator("main")).to_contain_text("5 ноября 2026 года")
+    expect(page.get_by_role("navigation", name="Правовые документы")).to_be_visible()
+    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     page.goto("/privacy#cookies")
     expect(page.locator("h2#cookies")).to_be_visible()
     page.get_by_role("button", name="Cookies", exact=True).click()
@@ -768,7 +772,8 @@ def test_legal_pages_and_separate_form_consent(page, width):
     checkbox = page.locator("input[name=consent_pdn]")
     expect(checkbox).not_to_be_checked()
     expect(page.locator(".site-consent a").first).to_have_attribute("href", "/consent#registration")
-    expect(page.locator(".site-consent")).not_to_contain_text("соглашение")
+    expect(page.locator(".site-consent", has=checkbox)).not_to_contain_text("соглашение")
+    expect(page.locator("input[name=consent_mailing]")).not_to_be_checked()
     page.locator(".site-consent a").first.click()
     expect(page.locator("#registration")).to_be_in_viewport()
     page.goto("/merch/" + PRODUCT["slug"])
@@ -2344,8 +2349,10 @@ def test_registration_leads_to_code_with_remembered_email(page, site, width):
     form.get_by_label("Образовательная программа", exact=True).fill("Право")
     form.get_by_label("Пароль, не меньше 8 символов", exact=True).fill("synthetic-password")
     form.locator("input[name=consent_pdn]").check()
+    form.get_by_role("checkbox", name=re.compile("^Получать рассылки")).check()
     form.get_by_role("button", name="Отправить заявку", exact=True).click()
     expect(page).to_have_url(re.compile(r"/confirm$"))
+    assert next(row for row in site[2] if row["path"] == "/auth/register")["body"]["consent_mailing"] is True
     expect(page.get_by_label("Почта", exact=True)).to_have_value("graduate@example.test")
     expect(page.get_by_label("Почта для нового кода", exact=True)).to_have_value("graduate@example.test")
     code = page.get_by_label("Код из письма", exact=True)
@@ -2357,6 +2364,20 @@ def test_registration_leads_to_code_with_remembered_email(page, site, width):
     write = next(row for row in site[2] if row["path"] == "/auth/confirm")
     assert write["body"] == {"email": "graduate@example.test", "code": "123456"}
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+def test_profile_withdraws_mailing_consent(page, site):
+    alumni = {**PROFILE["alumni"], "verification_status": "verified", "mailing_consent": True}
+    site[1]["/me"] = {**PROFILE, "alumni": alumni}
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk/profile")
+    consent = page.get_by_role("checkbox", name=re.compile("^Получать рассылки"))
+    expect(consent).to_be_checked()
+    consent.uncheck()
+    page.get_by_role("button", name="Сохранить профиль", exact=True).click()
+    expect(page.locator("#toast")).to_be_visible()
+    write = next(row for row in site[2] if row["path"] == "/me/profile")
+    assert write["method"] == "PATCH" and write["body"]["mailing_consent"] is False
 
 
 @pytest.mark.parametrize("width", [390, 1440])

@@ -69,6 +69,7 @@ class RegisterBody(EmailBody):
     interests: list[str] = Field(default_factory=list)
     ref: str | None = Field(default=None, max_length=40)
     consent_pdn: Literal[True]
+    consent_mailing: bool = False
     website: str = Field(default="", max_length=0)
 
     @field_validator("consent_pdn", mode="before")
@@ -248,6 +249,7 @@ async def register(request: HttpRequest):
             edu_program=body.edu_program,
             interests=list(dict.fromkeys(value for value in body.interests if value in interests))[:MAX_INTERESTS],
             referred_by=referred_by,
+            mailing=body.consent_mailing,
         ),
     )
     await audit(

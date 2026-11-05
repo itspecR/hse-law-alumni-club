@@ -22,6 +22,8 @@ DATA_COLUMNS = {
         "token_version",
         "consent_at",
         "consent_version",
+        "mailing_consent_at",
+        "mailing_consent_version",
         "verified_at",
         "referred_by",
         "joined_at",
