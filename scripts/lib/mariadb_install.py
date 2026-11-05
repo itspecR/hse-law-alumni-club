@@ -240,8 +240,8 @@ def ask_public(values):
     values["SMTP_PORT"] = HELPERS["prompt"]("Порт SMTP", "587", lambda value: str(HELPERS["port"](value)))
     values["SMTP_USER"] = HELPERS["prompt"]("Логин SMTP")
     values["SMTP_PASS"] = HELPERS["prompt"]("Пароль SMTP", hidden=True)
-    values["SMTP_FROM"] = HELPERS["prompt"]("Разрешённый SMTP-отправитель", check=HELPERS["email"])
-    values["OFFICE_EMAIL"] = HELPERS["prompt"]("Email получателя заявок", check=HELPERS["email"])
+    values["SMTP_FROM"] = HELPERS["prompt"]("Разрешённый SMTP-отправитель", values["SMTP_USER"], HELPERS["email"])
+    values["OFFICE_EMAIL"] = HELPERS["prompt"]("Email получателя заявок", values["SMTP_FROM"], HELPERS["email"])
     certificate = pathlib.Path(HELPERS["prompt"]("Абсолютный путь к fullchain.pem")).resolve(strict=True)
     key = pathlib.Path(HELPERS["prompt"]("Абсолютный путь к privkey.pem")).resolve(strict=True)
     return certificate, key
