@@ -543,5 +543,29 @@ class PublicAddressChange(unittest.TestCase):
         self.assertEqual(values['PUBLIC_URL'], 'https://62.112.123.10:9443')
 
 
+    def public_answers(self, answers):
+        with tempfile.TemporaryDirectory() as temp:
+            files = {name: pathlib.Path(temp, name) for name in ('fullchain.pem', 'privkey.pem')}
+            for path in files.values():
+                path.write_text('')
+            answers = {'Абсолютный путь к fullchain': str(files['fullchain.pem']),
+                       'Абсолютный путь к privkey': str(files['privkey.pem']), **answers}
+            def prompt(label, default='', check=None, hidden=False):
+                value = next((value for key, value in answers.items() if label.startswith(key)), '') or default
+                return check(value) if check else value
+            values = {}
+            with patch.dict(installer.HELPERS, {'prompt': prompt}):
+                installer.ask_public(values)
+            return values
+
+    def test_public_install_uses_one_mailbox_unless_told_otherwise(self):
+        base = {'Домен': 'club.example.org', 'Email первого': 'admin@club.example.org',
+                'Сервер SMTP': 'smtp.example.org', 'Логин SMTP': 'club@club.example.org', 'Пароль': 'synthetic'}
+        one = self.public_answers(base)
+        two = self.public_answers({**base, 'Разрешённый': 'noreply@club.example.org'})
+        self.assertEqual((one['SMTP_FROM'], one['OFFICE_EMAIL']), ('club@club.example.org', 'club@club.example.org'))
+        self.assertEqual((two['SMTP_FROM'], two['OFFICE_EMAIL']), ('noreply@club.example.org', 'noreply@club.example.org'))
+        self.assertEqual(one['PUBLIC_URL'], 'https://club.example.org')
+
 if __name__ == '__main__':
     unittest.main()
