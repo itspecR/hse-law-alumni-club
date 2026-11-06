@@ -1128,6 +1128,28 @@ def test_office_texts_follow_glossary():
         assert re.findall(".{0,40}[ёЁ–—].{0,20}", template.read_text()) == [], template.name
 
 
+WEBP_ALPHA_FLAG = 0x10
+WEBP_METADATA_FLAGS = 0x20 | 0x08 | 0x04
+
+
+def webp_canvas(path):
+    data = path.read_bytes()
+    assert data[:4] == b"RIFF" and data[8:16] == b"WEBPVP8X"
+    width = 1 + int.from_bytes(data[24:27], "little")
+    height = 1 + int.from_bytes(data[27:30], "little")
+    return width, height, data[20]
+
+
+def test_themis_poster_matches_animation_frame():
+    package = Path(club_web.__file__).parent
+    width, height, flags = webp_canvas(PUBLIC / "assets/themis-alive.webp")
+    source = re.search(r"const SOURCE = \[\d+, \d+, (\d+), (\d+)\]", (package / "browser/themis.js").read_text())
+    ratio = re.search(r"--themis-ratio: (\d+) / (\d+)", (package / "styles/themis.css").read_text())
+    assert f'width="{width}" height="{height}"' in (package / "templates/themis.html").read_text()
+    assert tuple(map(int, source.groups())) == tuple(map(int, ratio.groups())) == (width, height)
+    assert flags & WEBP_ALPHA_FLAG and not flags & WEBP_METADATA_FLAGS
+
+
 async def test_event_form_picks_moscow_date_and_time():
     async def upstream(request):
         if request.url.path == "/auth/admin-session":
