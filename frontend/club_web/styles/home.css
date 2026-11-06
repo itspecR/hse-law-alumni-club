@@ -2,7 +2,7 @@
 
 .lux-home {
   --lux-nav: var(--lux-header);
-  --lux-top: calc(var(--lux-nav) + var(--office-notice-height, 0px));
+  --lux-top: var(--lux-nav);
   --lux-gutter: var(--page-gutter);
   --lux-h2: clamp(34px, 4.4cqi, 64px);
   --lux-h3: clamp(24px, 2.2cqi, 32px);

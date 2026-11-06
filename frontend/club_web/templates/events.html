@@ -7,7 +7,7 @@
 <p>Встречи выпускников, лекции и события факультета.</p>
 </header>
 {% if not item %}
-<section class="site-calendar" aria-label="Календарь событий" {% if mirror %}data-calendar-events='{{ items|tojson }}'{% endif %}>
+<section class="site-calendar" aria-label="Календарь событий">
 <header class="site-actions">
 <a href="?month={{ calendar.previous }}" data-calendar-month="previous" aria-label="Предыдущий месяц">←</a>
 <h2>{{ calendar.title }}</h2>
@@ -53,7 +53,7 @@
 {% else %}
 <button class="site-primary" data-api="/events/{{ event.id }}/rsvp" data-member-action>{{ 'Отменить запись' if event.my_rsvp else 'Записаться' }}</button>
 {% endif %}
-<a href="{{ "/calendar/" if mirror else "/api/events/" }}{{ event.id }}.ics" download>Файл для календаря (.ics)</a>
+<a href="/api/events/{{ event.id }}.ics" download>Файл для календаря (.ics)</a>
 <a href="{{ event.calendar_url }}" target="_blank" rel="noopener noreferrer">Google Календарь ↗</a>{{ save('/events/'+event.id,event.title,'events') }}</div>
 </div>
 </article>

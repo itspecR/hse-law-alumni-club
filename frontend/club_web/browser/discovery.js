@@ -1,8 +1,7 @@
-const normalized = value => String(value || "").toLocaleLowerCase("ru").replace(/ё/g, "е").trim();
 let searchReady = false;
 const CHANGES_RETURN = "club-changes-return";
 
-function prepareSearch(url, mirror) {
+function prepareSearch(url) {
   const dialog = document.querySelector("#search-dialog");
   if (!dialog || searchReady) return;
   searchReady = true;
@@ -34,7 +33,7 @@ function prepareSearch(url, mirror) {
     status.textContent = "Ищем материалы…";
     results.setAttribute("aria-busy", "true");
     try {
-      const endpoint = mirror ? "views/search.html" : "views/search?q=" + encodeURIComponent(q);
+      const endpoint = "views/search?q=" + encodeURIComponent(q);
       const response = await fetch(url(endpoint), { signal: controller.signal });
       if (!response.ok) throw new Error();
       const parsed = new DOMParser().parseFromString(await response.text(), "text/html");
@@ -42,10 +41,6 @@ function prepareSearch(url, mirror) {
       if (!groups || parsed.querySelector(".site-errors")) throw new Error();
       if (turn !== sequence || !dialog.open) return;
       results.append(document.importNode(groups, true));
-      if (mirror) {
-        results.querySelectorAll("[data-search-row]").forEach(row => { row.hidden = !normalized(q).split(/\s+/).every(word => normalized(row.dataset.searchText || row.textContent).includes(word)); });
-        results.querySelectorAll("section,nav").forEach(group => { [...group.querySelectorAll("[data-search-row]")].filter(row => !row.hidden).slice(6).forEach(row => { row.hidden = true; }); group.hidden = ![...group.querySelectorAll("[data-search-row]")].some(row => !row.hidden); });
-      }
       const count = [...results.querySelectorAll("[data-search-row]")].filter(row => !row.hidden).length;
       status.textContent = count ? "Найдено: " + count : "Ничего не найдено. Попробуйте другое слово.";
       if (pendingDirection && document.activeElement === input) focusResult(pendingDirection);
@@ -108,12 +103,6 @@ function prepareChanges(url) {
       home.append(form);
       open.focus();
     });
-    form.addEventListener("submit", () => {
-      if (dialog.open && document.body.dataset.mirror === "true") {
-        original = [...form.elements].map(input => input.value);
-        dialog.close();
-      }
-    });
   }
   page.querySelectorAll("[data-change-open]").forEach(link => link.addEventListener("click", () => {
     try {
@@ -148,14 +137,9 @@ function prepareChanges(url) {
       status.textContent = "Копирование недоступно. Выделенный текст можно скопировать вручную.";
     }
   });
-  page.querySelectorAll("[data-changes-back]").forEach(link => {
-    if (document.body.dataset.mirror !== "true") return;
-    const query = location.search;
-    link.href = url("changes") + query;
-  });
 }
 
-export function prepareDiscovery(url, mirror) {
-  prepareSearch(url, mirror);
+export function prepareDiscovery(url) {
+  prepareSearch(url);
   prepareChanges(url);
 }

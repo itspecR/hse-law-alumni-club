@@ -20,7 +20,7 @@
 <label class="changes-reading-filter"><input type="checkbox" data-unread-filter> Только непрочитанные в этом браузере</label><p role="status" data-changes-count>Найдено: {{ total }}</p>
 <div class="site-editorial-list">
 {% for entry in items %}
-<article class="changes-row{% if item and entry.id==item.id %} is-selected{% endif %}" data-reading-path="/changes/{{ entry.id }}" data-change-row='{{ {"id":entry.id,"title":entry.title,"number":entry.number,"summary":entry.summary,"text":entry.blocks|map(attribute="segments")|sum(start=[])|map(attribute="text")|join(" "),"kind":entry.kind,"topic":entry.topic,"date":entry.sourcePublishedAt or entry.published,"entryType":entry.entryType}|tojson }}'>
+<article class="changes-row{% if item and entry.id==item.id %} is-selected{% endif %}" data-reading-path="/changes/{{ entry.id }}">
 <div class="changes-row-meta"><time>{{ (entry.sourcePublishedAt or entry.published)|date }}</time><span>{{ entry.kind }} · {{ entry.topic }}</span></div>
 <h2><a href="/changes/{{ entry.id }}{{ changes_suffix }}" data-change-open="{{ entry.id }}" {% if item and entry.id==item.id %}aria-current="page"{% endif %}>{{ entry.title }}</a></h2><p class="changes-row-summary">{{ entry.summary }}</p>
 <div class="site-actions">{{ save('/changes/'+entry.id,entry.title,'change') }}<button data-action="mark-read" data-href="/changes/{{ entry.id }}" aria-pressed="false">Отметить прочитанным</button></div>

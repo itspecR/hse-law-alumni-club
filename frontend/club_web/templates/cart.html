@@ -6,7 +6,7 @@
 <h1>Корзина</h1>
 <p>Программы ДПО и товары, которые войдут в заявку.</p>
 </header>
-{% if mirror %}<section data-mirror-cart></section>{% elif cart and cart['items'] %}
+{% if cart and cart['items'] %}
 <div class="site-two-col">
 <div>
 {% for item in cart['items'] %}

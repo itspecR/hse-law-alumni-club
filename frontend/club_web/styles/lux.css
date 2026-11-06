@@ -160,7 +160,6 @@ html.lux #install-app { border: 0; border-radius: 999px; background: var(--lux-i
 html.lux :is(#site-dialog, #search-dialog) { border: 0; border-radius: var(--r-lg); background: var(--lux-raised); color: var(--lux-ink); box-shadow: none; }
 html.lux :is(#site-dialog, #search-dialog)::backdrop { background: rgb(0 0 0 / 0.64); }
 html.lux #toast { border-radius: 999px; background: var(--lux-ink); color: var(--lux-black); box-shadow: none; }
-html.lux .site-notice { background: var(--lux-raised); color: var(--lux-ink-2); }
 
 @media (hover: hover) and (pointer: fine) {
   html.lux .club-header__link:hover,

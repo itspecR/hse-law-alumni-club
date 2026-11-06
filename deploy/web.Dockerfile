@@ -11,7 +11,7 @@ COPY frontend/public frontend/public
 COPY data data
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --project frontend --frozen --no-dev --no-editable --reinstall-package club-web && \
     /opt/venv/bin/python -m club_web.build --output /opt/venv/lib/python3.14/site-packages/club_web/public && \
-    rm /opt/venv/lib/python3.14/site-packages/club_web/mirror.py /opt/venv/lib/python3.14/site-packages/club_web/sync_changes.py /opt/venv/lib/python3.14/site-packages/club_web/build.py && \
+    rm /opt/venv/lib/python3.14/site-packages/club_web/sync_changes.py /opt/venv/lib/python3.14/site-packages/club_web/build.py && \
     /opt/venv/bin/python -m compileall -q -b -s /opt/venv/lib/python3.14/site-packages -p /app /opt/venv/lib/python3.14/site-packages/club_web && \
     find /opt/venv/lib/python3.14/site-packages/club_web -name '*.py' -delete && \
     find /opt/venv/lib/python3.14/site-packages/club_web -type d -name __pycache__ -exec rm -rf {} + && \

@@ -1,7 +1,6 @@
 # Прямые ссылки мини-приложения клуба
 
-Ссылка предпросмотра: `/tg?startapp=dpo`. На зеркале перед `/tg` используется
-базовый путь `/club-pravo-hse-mirror`.
+Ссылка предпросмотра: `/tg?startapp=dpo`.
 
 После настройки Main Mini App у бота через BotFather можно использовать
 `https://t.me/pravohse_alumni_bot?startapp=dpo`.

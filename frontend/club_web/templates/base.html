@@ -8,7 +8,7 @@
 <meta name="description" content="Клуб выпускников факультета права НИУ ВШЭ. Программы клуба и ДПО, события, подкасты{{ ', новости и изменения в праве' if changes_enabled else ' и новости' }}.">
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="robots" content="{{ 'noindex,nofollow' if mirror or path.startswith(('/lk','/admin','/cart','/join','/reset','/confirm','/saved','/give/')) else 'index,follow' }}">
+<meta name="robots" content="{{ 'noindex,nofollow' if path.startswith(('/lk','/admin','/cart','/join','/reset','/confirm','/saved','/give/')) else 'index,follow' }}">
 <link rel="icon" href="{{ base }}favicon.ico">
 <link rel="manifest" href="{{ base }}manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}icon-180.png">
@@ -23,23 +23,9 @@
 </script>
 <script type="module" src="{{ base }}assets/site.js?v={{ asset_version }}">
 </script>
-{% if mirror %}
-<script type="module" src="{{ base }}assets/mirror.js?v={{ asset_version }}">
-</script>
-{% endif %}
 </head>
-<body data-base="{{ base }}" data-mirror="{{ 'true' if mirror else 'false' }}" data-offline-reading="{{ 'true' if offline_reading else 'false' }}">
+<body data-base="{{ base }}" data-offline-reading="{{ 'true' if offline_reading else 'false' }}">
 <a href="#main" class="skip">К содержанию страницы</a>
-{% if mirror %}
-<aside class="site-notice">
-<span>Демоверсия · отправка заявок отключена</span>
-<nav aria-label="Демоверсия">
-<a href="{{ base }}tg/?pwa=1" data-mobile-preview>Мобильный просмотр</a>
-<a href="{{ base }}lk/">Кабинет</a>
-<a href="{{ base }}admin/">Панель управления</a>
-</nav>
-</aside>
-{% endif %}
 <div id="site-shell">
 <div id="site-stage">
 <aside id="offline-notice" class="offline-notice" role="status" hidden>

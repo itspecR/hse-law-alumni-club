@@ -8,7 +8,6 @@ import { prepareProgramEditor } from "./program-editor.js";
 import { hideSkeleton, prepareSkeleton } from "./skeleton.js";
 
 const base = document.body.dataset.base || "/";
-const mirror = document.body.dataset.mirror === "true";
 const memberKey = "club_token";
 const officeKey = "club_admin_token";
 const readingKey = "club-reading-v1";
@@ -17,7 +16,6 @@ const notNotifiedText = "Заявка сохранена, но мы не пол�
 let pendingCart = 0;
 let pendingCheckout = false;
 let installPrompt = null;
-let mirrorApi = null;
 let readingPageSaved = false;
 let removedReading = null;
 
@@ -90,14 +88,6 @@ function safeLink(value, payment = false) {
 
 async function request(path, method = "GET", body, extra = {}) {
   if (!navigator.onLine && method !== "GET") throw new Error("Нет подключения к интернету. Подключитесь и повторите.");
-  if (mirror) {
-    if (path === "/cart" && window.clubMirrorCart) return window.clubMirrorCart(method, body);
-    if (method !== "GET") throw new Error("В демоверсии отправка и изменение данных отключены.");
-    mirrorApi ||= await fetch(url("data/mirror-api.json")).then(response => response.json());
-    const key = path.split("?")[0];
-    if (!Object.hasOwn(mirrorApi, key)) throw new Error("Эти данные недоступны в демоверсии.");
-    return structuredClone(mirrorApi[key]);
-  }
   const headers = { accept: "application/json", ...extra };
   const session = token();
   if (session) headers.authorization = `Bearer ${session}`;
@@ -201,7 +191,7 @@ async function refresh() {
   const headers = {};
   if (token()) headers.authorization = `Bearer ${token()}`;
   if (path === "/cart") headers["x-cart-session"] = cartSession();
-  const endpoint = mirror ? "views/" + (path === "/" ? "home" : path.slice(1)) + ".html" : "views" + (path === "/" ? "/" : path) + location.search;
+  const endpoint = "views" + (path === "/" ? "/" : path) + location.search;
   try {
     const response = await fetch(url(endpoint), { headers, cache: "no-store" });
     if (response.status === 401) {
@@ -469,8 +459,7 @@ function renderReading() {
       list.append(row);
     }
   });
-  if (mirror) document.dispatchEvent(new CustomEvent("club-reading-updated", { detail: { read: data.read } }));
-  else document.querySelectorAll("[data-reading-path]").forEach(article => { article.hidden = !!document.querySelector("[data-unread-filter]")?.checked && data.read.includes(article.dataset.readingPath); });
+  document.querySelectorAll("[data-reading-path]").forEach(article => { article.hidden = !!document.querySelector("[data-unread-filter]")?.checked && data.read.includes(article.dataset.readingPath); });
 }
 
 function alignOfficeNavigation() {
@@ -522,7 +511,7 @@ function switchCabinetSection(event) {
 }
 
 function setupPage() {
-  prepareDiscovery(url, mirror);
+  prepareDiscovery(url);
   prepareCatalog(url, notice);
   prepareHome();
   prepareGive({ request, solveCaptcha, safeLink, formError });
@@ -561,7 +550,7 @@ function setupPage() {
     const retry = player.querySelector("[data-audio-retry]");
     const failure = player.querySelector("[data-audio-error]");
     const renew = async () => {
-      if (refreshing || mirror) return;
+      if (refreshing) return;
       refreshing = true;
       const position = audio.currentTime;
       const playing = !audio.paused;
@@ -585,11 +574,10 @@ function setupPage() {
     };
     retry.addEventListener("click", () => { retried = true; void renew(); });
     audio.addEventListener("error", () => {
-      if (!retried && !mirror) { retried = true; void renew(); }
-      else { failure.textContent = "Не удалось загрузить аудио. Проверьте соединение и повторите."; failure.hidden = false; retry.hidden = mirror; }
+      if (!retried) { retried = true; void renew(); }
+      else { failure.textContent = "Не удалось загрузить аудио. Проверьте соединение и повторите."; failure.hidden = false; retry.hidden = false; }
     });
   });
-  if (mirror) document.querySelectorAll("[data-api] button,button[data-api],input[type='file']").forEach(button => { if (!button.closest("[data-cart]")) { button.disabled = true; button.title = "В демоверсии отправка и изменение данных отключены."; } });
   document.dispatchEvent(new Event("club-page-ready"));
 }
 
@@ -623,7 +611,6 @@ async function supportThread(access) {
 }
 
 async function download(button) {
-  if (mirror) throw new Error("Выгрузки доступны в рабочем приложении.");
   const headers = token() ? { authorization: `Bearer ${token()}` } : {};
   const response = await fetch(url("api" + button.dataset.download), { headers });
   if (!response.ok) throw new Error("Не удалось скачать файл. Проверьте доступ и повторите.");
@@ -767,7 +754,7 @@ function vision(action) {
 }
 
 async function pageview() {
-  if (mirror || !["all", "1"].includes(stored("club_cookie_consent")) || currentPath().startsWith("/admin")) return;
+  if (!["all", "1"].includes(stored("club_cookie_consent")) || currentPath().startsWith("/admin")) return;
   try { await fetch(url("api/analytics/pageview"), { method: "POST", credentials: "omit", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: currentPath() }) }); } catch {}
 }
 
@@ -844,11 +831,6 @@ const chromeObserver = new ResizeObserver(measureChrome);
 for (const [selector] of chromeSizes) { const node = document.querySelector(selector); if (node) chromeObserver.observe(node); }
 window.addEventListener("resize", measureChrome);
 measureChrome();
-const mirrorNotice = document.querySelector(".site-notice");
-if (mirrorNotice) new ResizeObserver(() => {
-  document.body.style.setProperty("--office-notice-height", mirrorNotice.offsetHeight + "px");
-  alignOfficeNavigation();
-}).observe(mirrorNotice);
 function offlineNotice() {
   const box = document.querySelector("#offline-notice");
   if (!box) return;

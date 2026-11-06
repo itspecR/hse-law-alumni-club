@@ -37,7 +37,6 @@ frontend/public/assets/site.css
 frontend/public/assets/site.js
 
 frontend/public/assets/mini.js
-frontend/public/assets/mirror.js
 frontend/public/assets/offline.js
 
 frontend/public/sw.js
