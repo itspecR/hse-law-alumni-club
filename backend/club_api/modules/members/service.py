@@ -66,6 +66,9 @@ async def anonymize(state, alumni_id):
             (DELETED_NAME, alumni_id),
         )
         await connection.execute(
+            "UPDATE club_donations SET email='-',name=NULL,alumni_id=NULL WHERE alumni_id=%s", (alumni_id,)
+        )
+        await connection.execute(
             "DELETE FROM alumni_friends WHERE alumni_id=%s OR friend_id=%s", (alumni_id, alumni_id)
         )
         await connection.execute("DELETE FROM push_subs WHERE alumni_id=%s", (alumni_id,))

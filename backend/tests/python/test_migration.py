@@ -46,6 +46,8 @@ def test_all_legacy_routes_are_present():
         ("POST", "/portfolio/{slug}/applications"),
         ("POST", "/portfolio/{slug}/quote"),
         ("GET", "/portfolio/challenge"),
+        ("POST", "/donations"),
+        ("GET", "/donations/config"),
     }
     promo = {
         (method, "/admin/promo-codes" + suffix)
@@ -72,7 +74,7 @@ def test_all_legacy_routes_are_present():
         ("GET", "/me/tg-link"),
         ("GET", "/me/export"),
     }
-    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 140
+    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 142
 
 
 def test_sentry_privacy():

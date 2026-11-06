@@ -9,6 +9,7 @@ import club_api.modules.checkout.orders as checkout_orders
 import club_api.modules.checkout.payments as checkout_payments
 import club_api.modules.content.admin as content_admin
 import club_api.modules.content.routes as content_routes
+import club_api.modules.donations.routes as donations_routes
 import club_api.modules.events.routes as events_routes
 import club_api.modules.gamification.routes as gamification_routes
 import club_api.modules.media.routes as media_routes
@@ -87,6 +88,8 @@ routes = (
         path("payments/config", endpoint({"GET": checkout_payments.payment_config})),
         path("orders/<str:number>/pay", endpoint({"POST": checkout_payments.pay})),
         path("payments/yookassa/webhook", endpoint({"POST": checkout_payments.webhook})),
+        path("donations", endpoint({"POST": donations_routes.donate})),
+        path("donations/config", endpoint({"GET": donations_routes.donation_config})),
         path("orders", endpoint({"POST": checkout_orders.create_order})),
         path("me/orders", endpoint({"GET": checkout_orders.my_orders})),
         path("admin/orders", endpoint({"GET": checkout_admin.orders})),

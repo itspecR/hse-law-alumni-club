@@ -18,17 +18,34 @@ def digest(value):
     return hashlib.sha256(value.encode()).hexdigest()
 
 
-async def next_order_number(connection):
-    await acquire_lock(connection, "order.sequence")
-    year = datetime.now(ZoneInfo("Europe/Moscow")).year
-    cursor = await connection.execute(
+NUMBER_SEQUENCES = {
+    "orders": (
+        "ALU",
         Query(
             "SELECT COALESCE(MAX(CAST(split_part(number,'-',3) AS integer)),0)+1 AS seq FROM orders WHERE number ~ %s",
             "SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(number,'-',-1) AS integer)),0)+1 AS seq FROM orders WHERE number REGEXP %s",
         ),
-        (f"^ALU-{year}-[0-9]+$",),
-    )
-    return f"ALU-{year}-{(await cursor.fetchone())['seq']:06d}"
+    ),
+    "club_donations": (
+        "DON",
+        Query(
+            "SELECT COALESCE(MAX(CAST(split_part(number,'-',3) AS integer)),0)+1 AS seq FROM club_donations WHERE number ~ %s",
+            "SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(number,'-',-1) AS integer)),0)+1 AS seq FROM club_donations WHERE number REGEXP %s",
+        ),
+    ),
+}
+
+
+async def next_number(connection, table):
+    prefix, query = NUMBER_SEQUENCES[table]
+    await acquire_lock(connection, table + ".sequence")
+    year = datetime.now(ZoneInfo("Europe/Moscow")).year
+    cursor = await connection.execute(query, (f"^{prefix}-{year}-[0-9]+$",))
+    return f"{prefix}-{year}-{(await cursor.fetchone())['seq']:06d}"
+
+
+async def next_order_number(connection):
+    return await next_number(connection, "orders")
 
 
 PENDING_NOTICE = {"channel": "none", "ok": False, "blocked": True}

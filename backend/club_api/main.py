@@ -21,6 +21,8 @@ from club_api.modules.checkout.orders import ROUTE_LIMITS as ORDER_LIMITS
 from club_api.modules.checkout.payments import ROUTE_LIMITS as PAYMENT_LIMITS
 from club_api.modules.checkout.payments import Payments
 from club_api.modules.checkout.store import Checkout
+from club_api.modules.donations.routes import ROUTE_LIMITS as DONATION_LIMITS
+from club_api.modules.donations.service import Donations
 from club_api.modules.events.routes import ROUTE_LIMITS as EVENT_LIMITS
 from club_api.modules.gamification.service import Gamification
 from club_api.modules.media.routes import ROUTE_LIMITS as MEDIA_LIMITS
@@ -74,6 +76,7 @@ def create_app(settings=None):
     app.state.started_at = time.monotonic()
     app.state.checkout = Checkout(app.state)
     app.state.payments = Payments(app.state)
+    app.state.donations = Donations(app.state)
     app.state.gamification = Gamification(app.state)
     app.state.push = Push(app.state)
     app.state.media = Media(app.state)
@@ -87,6 +90,7 @@ def create_app(settings=None):
             **CART_LIMITS,
             **ORDER_LIMITS,
             **PAYMENT_LIMITS,
+            **DONATION_LIMITS,
             **PUSH_LIMITS,
             **PROFILE_LIMITS,
             **COMMUNITY_LIMITS,
