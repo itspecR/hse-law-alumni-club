@@ -1,7 +1,7 @@
 from club_web.formatting import date, rub
 
 GROUPS = [
-    ("Работа клуба", ("overview", "orders", "promo-codes", "members", "subs", "support")),
+    ("Работа клуба", ("overview", "orders", "donations", "promo-codes", "members", "subs", "support")),
     (
         "Публикации",
         (
@@ -19,10 +19,12 @@ GROUPS = [
     ),
     ("Управление", ("analytics", "pages", "media", "audit")),
 ]
+FULL_ADMIN_SECTIONS = frozenset(("donations",))
 DESCRIPTIONS = {
     "overview": "Заявки, проверка выпускников и состояние сервисов клуба.",
     "analytics": "Участники, заявки и активность за выбранный период.",
     "orders": "Заявки на программы, мерч и подписки.",
+    "donations": "Пожертвования на развитие факультета: оплаты через ЮKassa и итог за период.",
     "promo-codes": "Скидки по коду для программ клуба: срок, лимиты и программы.",
     "members": "Профили выпускников, проверка статуса и возможности клуба.",
     "subs": "Доступ к подкастам и прослушивания выпусков.",
@@ -102,6 +104,12 @@ FILTER_KEYS = ("status", "origin")
 def status_values(section):
     kinds = [kind.split("|") for name, _, kind in FIELDS.get(section, []) if name == "status"]
     return STATUS_FILTERS.get(section) or (kinds[0] if kinds else [])
+
+
+def visible_groups(full_admin):
+    return [
+        (group, tuple(key for key in keys if full_admin or key not in FULL_ADMIN_SECTIONS)) for group, keys in GROUPS
+    ]
 
 
 def section_records(section, rows, names):

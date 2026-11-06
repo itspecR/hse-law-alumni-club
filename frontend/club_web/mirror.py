@@ -68,6 +68,7 @@ def snapshot(data):
         "/admin/dpo-sync": {"address": False, "enabled": False, "minute": 41, "run": None},
         "/admin/analytics": {"pulse": {}, "series": {}},
         "/admin/orders": [],
+        "/admin/donations": {"items": [], "total": 0},
         "/admin/members": data["alumni"],
         "/admin/point-programs": [
             {"id": row["id"], "title": row["title"], "catalog": "dpo"} for row in data["programs"]

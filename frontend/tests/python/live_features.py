@@ -183,7 +183,11 @@ def profile_tools(page, request, headers, image):
 
 
 def office_exports(office):
-    for path, filename in (("/admin/orders", "orders.csv"), ("/admin/analytics?range=7d", "analytics.csv")):
+    for path, filename in (
+        ("/admin/orders", "orders.csv"),
+        ("/admin/analytics?range=7d", "analytics.csv"),
+        ("/admin/donations?range=all", "donations.csv"),
+    ):
         office.goto(path)
         with office.expect_download() as downloaded:
             office.get_by_role("button", name="Скачать CSV", exact=True).click()
@@ -232,6 +236,7 @@ def section_walk(page, office):
                     "overview",
                     "analytics",
                     "orders",
+                    "donations",
                     "members",
                     "subs",
                     "programs",

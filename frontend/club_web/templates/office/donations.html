@@ -1,0 +1,41 @@
+{% set donations=records if records is mapping else {} %}
+{% set statuses=donations.statuses or {} %}
+{% set summary=donations.summary or {} %}
+{% set period=donations.range or query.get('range','') %}
+<form class="site-filters">
+<label>Поиск<input name="q" value="{{ query.get('q','') }}" placeholder="Номер, почта или имя">
+</label>
+<label>Статус<select aria-label="Статус" name="status">
+<option value="">Все</option>
+{% for value,title in statuses.items() %}
+<option value="{{ value }}" {% if query.get('status')==value %}selected{% endif %}>{{ title }}</option>
+{% endfor %}
+</select>
+</label>
+<label>Период<select aria-label="Период" name="range">
+{% for value,title in (donations.periods or {}).items() %}
+<option value="{{ value }}" {% if period==value %}selected{% endif %}>{{ title }}</option>
+{% endfor %}
+</select>
+</label>
+<button>Показать</button>
+</form>
+<div class="site-metrics">
+<article><strong>{{ summary.count or 0 }}</strong><span>Оплачено пожертвований за период</span></article>
+<article><strong>{{ (summary.amount or 0)|rub }}</strong><span>Получено за период</span></article>
+</div>
+<div class="office-toolbar"><p>Найдено: {{ donations.total or 0 }}</p><button data-download="/admin/donations/export.csv?{{ dict(q=query.get('q',''),status=query.get('status',''),range=period)|urlencode }}" data-filename="donations.csv">Скачать CSV</button></div>
+<div class="office-list">
+{% for donation in rows %}
+<article class="site-panel office-record">
+<div class="office-record-head">
+<h2>{{ donation.number }} · {{ donation.amount|rub }}</h2>
+<span class="office-status" data-status="{{ donation.status }}">{{ statuses.get(donation.status,donation.status) }}</span>
+</div>
+<p>{{ donation.name or 'Без имени' }} · {{ donation.email }}{% if donation.alumni_id %} · выпускник{% endif %}</p>
+<p class="office-meta">Создано {{ donation.created_at|date(true) }}{% if donation.paid_at %} · оплачено {{ donation.paid_at|date(true) }}{% endif %}{% if donation.payment_id %} · платеж {{ donation.payment_id }}{% endif %}</p>
+</article>
+{% else %}
+{{ empty('Пожертвований по выбранным условиям нет.') }}
+{% endfor %}
+</div>
