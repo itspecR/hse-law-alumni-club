@@ -2,6 +2,7 @@ import { prepareMini } from "./mini.js";
 import { prepareDiscovery } from "./discovery.js";
 import { prepareCatalog } from "./catalog.js";
 import { prepareHome } from "./home.js";
+import { prepareGive } from "./give.js";
 import { hideSkeleton, prepareSkeleton } from "./skeleton.js";
 
 const base = document.body.dataset.base || "/";
@@ -522,6 +523,7 @@ function setupPage() {
   prepareDiscovery(url, mirror);
   prepareCatalog(url, notice);
   prepareHome();
+  prepareGive({ request, solveCaptcha, safeLink, formError });
   alignOfficeNavigation();
   openCabinetSection();
   const recent = document.querySelector("[data-reading-title]");

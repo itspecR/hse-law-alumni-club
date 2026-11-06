@@ -8,7 +8,7 @@
 <meta name="description" content="Клуб выпускников факультета права НИУ ВШЭ. Программы клуба и ДПО, события, подкасты{{ ', новости и изменения в праве' if changes_enabled else ' и новости' }}.">
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="robots" content="{{ 'noindex,nofollow' if mirror or path.startswith(('/lk','/admin','/cart','/join','/reset','/confirm','/saved')) else 'index,follow' }}">
+<meta name="robots" content="{{ 'noindex,nofollow' if mirror or path.startswith(('/lk','/admin','/cart','/join','/reset','/confirm','/saved','/give/')) else 'index,follow' }}">
 <link rel="icon" href="{{ base }}favicon.ico">
 <link rel="manifest" href="{{ base }}manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}icon-180.png">
@@ -63,7 +63,7 @@
 <span class="club-header__lockup">Клуб выпускников<small>факультета права НИУ&nbsp;ВШЭ</small>
 </span>
 </a>
-<nav class="club-header__nav" aria-label="Разделы">
+<nav class="club-header__nav{% if nav_dense %} club-header__nav--dense{% endif %}" aria-label="Разделы">
 {% for href,label in nav %}
 <a href="{{ href }}" class="foc club-caps club-header__link" {% if path.startswith(href) %}aria-current="page"{% endif %}>{{ label }}</a>
 {% endfor %}
@@ -88,6 +88,7 @@
 </span>
 </a>
 </div>
+<a href="/give" class="foc club-header__give" aria-label="Поддержать факультет" {% if path=='/give' %}aria-current="page"{% endif %}>Поддержать</a>
 <div class="club-header__join">
 <a href="/join" class="foc club-header__cta" data-member-link>Вступить</a>
 <a href="/lk" class="foc club-header__login" data-guest-only>Войти</a>
@@ -103,6 +104,7 @@
 <a href="/saved">Сохраненное</a>
 <a href="/cart">Корзина</a>
 <button data-action="vision">Версия для слабовидящих</button>
+<a href="/give" class="club-menu__give">Поддержать факультет</a>
 <a href="/join" data-member-link>Вступить в клуб</a>
 <a href="/lk" data-guest-only>Войти</a>
 </nav>
@@ -164,6 +166,9 @@
 <div>
 <h2 class="club-caps">Клуб</h2>
 <ul>
+<li>
+<a href="/give">Поддержать факультет</a>
+</li>
 <li>
 <a href="https://t.me/AlumniLawHSE" target="_blank" rel="noopener noreferrer">@AlumniLawHSE</a>
 </li>

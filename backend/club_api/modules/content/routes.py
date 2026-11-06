@@ -56,6 +56,7 @@ async def sitemap(request: HttpRequest):
         ("/dpo", "0.9", "weekly", None),
         ("/news", "0.8", "weekly", None),
         ("/join", "0.8", "monthly", None),
+        ("/give", "0.8", "monthly", None),
         ("/podcasts", "0.7", "weekly", None),
         ("/merch", "0.7", "monthly", None),
         *[
