@@ -23,7 +23,7 @@ def fixtures(root):
     for name, records in data.items():
         for index, record in enumerate(records):
             record.setdefault("id", f"mirror-{name}-{index + 1}")
-            if name in ("programs", "products", "news", "events", "podcasts", "timeline_items"):
+            if name in ("programs", "products", "news", "events", "podcasts"):
                 record.setdefault("status", "published")
     return data
 
@@ -53,7 +53,6 @@ def snapshot(data):
             "subscribed": False,
         },
         "/pages/home": {"blocks": {}},
-        "/timeline": data["timeline_items"],
         "/me": profile,
         "/me/orders": [],
         "/me/classmates": [{**row, "friend_status": None} for row in data["alumni"][1:]],
@@ -94,7 +93,6 @@ def snapshot(data):
     }
     for name in ("programs", "products", "news", "events", "podcasts"):
         result["/admin/" + name] = data[name]
-    result["/admin/timeline"] = data["timeline_items"]
     for name in ("programs", "news"):
         for row in data[name]:
             result[f"/{name}/{row['slug']}"] = row

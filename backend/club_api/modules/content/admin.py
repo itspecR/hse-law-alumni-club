@@ -52,15 +52,6 @@ class NewsBody(Body):
         return web_url(value)
 
 
-class TimelineBody(Body):
-    year: str = Field(min_length=4, max_length=4)
-    title: str = Field(min_length=2)
-    text: str | None = None
-    metric: str | None = None
-    sort: int = None
-    status: Literal["draft", "published"] = "published"
-
-
 class Variant(Body):
     sku: str = Field(min_length=1)
     size: str = None
@@ -100,7 +91,7 @@ async def write_content(state, table, data, *, id=None, connection=None):
         data["slug"] = await unique_slug(state.store, table, data["title"], connection)
     if table == "news":
         data.setdefault("published_at", datetime.now(UTC))
-    if table in ("timeline_items", "podcasts") and data.get("sort") is None:
+    if table == "podcasts" and data.get("sort") is None:
         rows = await state.store.read(table, fields=("sort",), limit=-1, connection=connection)
         data["sort"] = max((row["sort"] or 0 for row in rows), default=0) + 1
     return await state.store.create(table, data, connection=connection)
@@ -232,14 +223,6 @@ urlpatterns += content_crud(
     sort=("-published_at",),
     fields=("id", "slug", "title", "excerpt", "body", "published_at", "status", "source_url", "cover", "origin"),
     subject="news",
-)
-urlpatterns += content_crud(
-    "/admin/timeline",
-    "timeline_items",
-    TimelineBody,
-    sort=("sort",),
-    fields=("id", "year", "title", "text", "metric", "sort", "status"),
-    subject="timeline",
 )
 urlpatterns.append(path("admin/programs", endpoint({"GET": dpo_programs}), name="admin_programs_collection"))
 urlpatterns += content_crud(

@@ -90,7 +90,6 @@ def chromium():
 def site():
     records = {
         "/pages/home": {"blocks": {}},
-        "/timeline": [],
         "/news": [NEWS],
         "/news/news-one": NEWS,
         "/programs": [PROGRAM],

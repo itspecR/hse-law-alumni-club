@@ -136,17 +136,6 @@ async def products(request: HttpRequest):
 
 
 @api_view
-async def timeline(request: HttpRequest):
-    return await request.services.store.read(
-        "timeline_items",
-        filters=PUBLISHED,
-        fields=("id", "year", "title", "text", "metric", "sort"),
-        sort=("sort",),
-        limit=-1,
-    )
-
-
-@api_view
 async def page(request: HttpRequest, slug: str):
     rows = await request.services.store.read(
         "pages",

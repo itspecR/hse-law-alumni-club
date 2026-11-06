@@ -73,7 +73,6 @@ routes = (
         path("portfolio/<str:slug>", endpoint({"GET": portfolio_routes.program})),
         path("portfolio/<str:slug>/applications", endpoint({"POST": portfolio_applications.apply})),
         path("portfolio/<str:slug>/quote", endpoint({"POST": portfolio_applications.quote})),
-        path("timeline", endpoint({"GET": content_routes.timeline})),
         path("pages/<str:slug>", endpoint({"GET": content_routes.page})),
         path(
             "cart",

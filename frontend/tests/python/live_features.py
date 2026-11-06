@@ -22,7 +22,6 @@ def content_forms(office, request, headers, name):
         "news": {"excerpt": "Краткое описание", "body": "Текст новости для проверки"},
         "events": {"starts_at": (datetime.now(UTC) + timedelta(days=2)).strftime("%Y-%m-%dT%H:%M"), "points": "0"},
         "podcasts": {"duration": "15 минут", "sort": "0"},
-        "timeline": {"year": "2026", "text": "Проверка истории клуба", "sort": "0"},
     }
     for section, fields in definitions.items():
         path = "/admin/" + section
@@ -245,7 +244,6 @@ def section_walk(page, office):
                     "news-sources",
                     "events",
                     "podcasts",
-                    "timeline",
                     "pages",
                     "media",
                     "audit",
