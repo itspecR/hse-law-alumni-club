@@ -28,6 +28,7 @@ from club_web.office import (
     filter_content,
     section_records,
     status_values,
+    visible_groups,
 )
 from club_web.pricing import discount_tiers, member_prices
 from club_web.search import search_groups
@@ -41,6 +42,7 @@ FULL_PROGRESS = 100
 GIVE_AMOUNTS = (100000, 300000, 500000, 1000000)
 GIVE_CHOSEN = 300000
 HEADER_ROOMY_LINKS = 6
+FORBIDDEN = 403
 PUBLIC_PAGES = {
     "/": ("home.html", "Клуб выпускников факультета права"),
     "/tg": ("mini.html", "Клуб выпускников"),
@@ -96,6 +98,7 @@ OFFICE_NAV = [
     ("overview", "Обзор"),
     ("analytics", "Аналитика"),
     ("orders", "Заявки"),
+    ("donations", "Пожертвования"),
     ("promo-codes", "Промокоды"),
     ("members", "Выпускники"),
     ("subs", "Подписки"),
@@ -118,6 +121,7 @@ OFFICE_ENDPOINTS = {
     "overview": "/admin/overview",
     "analytics": "/admin/analytics",
     "orders": "/admin/orders",
+    "donations": "/admin/donations",
     "promo-codes": "/admin/promo-codes",
     "members": "/admin/members",
     "subs": "/admin/podcast-subs",
@@ -255,6 +259,10 @@ def recent_changes():
     ]
 
 
+def office_denied(path, status):
+    return status == FORBIDDEN and path.startswith("/admin")
+
+
 def navigation():
     return [(href, label) for href, label in NAV if features.section_enabled(href)]
 
@@ -309,7 +317,8 @@ async def context(api, path, params, authorized=False):
         except ApiFailure as error:
             data[key] = default
             data["load_errors"][key] = error.status
-            data["errors"].append(error.message)
+            if not office_denied(path, error.status):
+                data["errors"].append(error.message)
             if error.status in (401, 403):
                 data["access_error"] = error.status
             if key == "item" and error.status >= 500:
@@ -513,6 +522,7 @@ async def context(api, path, params, authorized=False):
             await load("session", "/auth/admin-session", {})
             if data["session"]:
                 data["role"] = data["session"]["role"]
+                data["office_groups"] = visible_groups(data["role"] in FULL_ADMIN_ROLES)
                 if section == "support":
                     await load("bot", "/admin/bot-status", {})
                 if section == "support" and data["role"] not in FULL_ADMIN_ROLES:

@@ -115,6 +115,41 @@ PROFILE = {
     "activity": [{"month": "сен", "points": 60}],
 }
 GIVE_CONFIG = {"enabled": True, "min": 100, "max": 500000}
+DONATIONS_PAGE = {
+    "items": [
+        {
+            "number": "DON-2026-000007",
+            "created_at": "2026-11-05T10:00:00Z",
+            "amount": 300000,
+            "status": "succeeded",
+            "name": "Вымышленный Даритель",
+            "email": "donor@example.test",
+            "alumni_id": "alumni-1",
+            "payment_id": "synthetic-pay-7",
+            "paid_at": "2026-11-05T10:05:00Z",
+        },
+        {
+            "number": "DON-2026-000006",
+            "created_at": "2026-11-04T09:00:00Z",
+            "amount": 150000,
+            "status": "review",
+            "name": None,
+            "email": "-",
+            "alumni_id": None,
+            "payment_id": None,
+            "paid_at": None,
+        },
+    ],
+    "total": 2,
+    "page": 1,
+    "limit": 50,
+    "range": "30d",
+    "statuses": {"succeeded": "Оплачено", "review": "На проверке"},
+    "periods": {"7d": "7 дней", "30d": "30 дней", "all": "Все время"},
+    "summary": {"count": 1, "amount": 300000},
+}
+ADMIN = {"authorization": "Bearer admin-test"}
+EDITOR = {"authorization": "Bearer editor-test"}
 GIVE_CLOSED = "Прием пожертвований на&nbsp;сайте пока не&nbsp;подключен."
 ANALYTICS = {
     "pulse": {"joins": 2},
@@ -150,6 +185,8 @@ async def browser_client():
         path = request.url.path
         if path.startswith(("/me", "/auth/admin-session", "/admin")) and "authorization" not in request.headers:
             return httpx.Response(401, json={"error": "Войдите в кабинет"})
+        if path.startswith("/admin/donations") and request.headers.get("authorization") == EDITOR["authorization"]:
+            return httpx.Response(403, json={"error": "Нужен доступ администратора"})
         endpoints = {
             "/pages/home": {"blocks": {}},
             "/news": [NEWS],
@@ -184,6 +221,7 @@ async def browser_client():
             },
             "/support/config": {"enabled": True, "version": "test-version", "consent": "Тестовое согласие"},
             "/donations/config": GIVE_CONFIG,
+            "/admin/donations": DONATIONS_PAGE,
             "/admin/overview": {"alumni_count": 1},
             "/admin/system-health": {"checks": []},
             "/admin/analytics": ANALYTICS,
@@ -1253,3 +1291,30 @@ async def test_header_with_all_sections_switches_to_dense_layout(changes_section
 async def test_header_with_default_sections_keeps_roomy_layout(browser_client):
     page = (await browser_client.get("/news")).text
     assert '<nav class="club-header__nav" aria-label="Разделы">' in page
+
+
+def plain(text):
+    return text.replace("\xa0", " ").replace("\u202f", " ")
+
+
+async def test_full_admin_sees_donations_read_only_with_paid_total(browser_client):
+    page = plain((await browser_client.get("/views/admin/donations?status=review&q=don", headers=ADMIN)).text)
+    assert 'href="/admin/donations"' in page
+    assert (
+        "<h2>DON-2026-000007 · 3 000 ₽</h2>" in page
+        and '<span class="office-status" data-status="review">На проверке</span>' in page
+    )
+    assert "<p>Вымышленный Даритель · donor@example.test · выпускник</p>" in page and "<p>Без имени · -</p>" in page
+    assert "<strong>1</strong><span>Оплачено пожертвований за период</span>" in page
+    assert "<strong>3 000 ₽</strong><span>Получено за период</span>" in page
+    assert 'data-download="/admin/donations/export.csv?q=don&amp;status=review&amp;range=30d"' in page
+    assert '<option value="30d" selected>30 дней</option>' in page
+    assert 'data-api="/admin/donations' not in page
+
+
+async def test_editor_has_no_donations_section(browser_client):
+    orders = (await browser_client.get("/views/admin/orders", headers=EDITOR)).text
+    assert 'href="/admin/orders"' in orders and 'href="/admin/donations"' not in orders
+    donations = (await browser_client.get("/views/admin/donations", headers=EDITOR)).text
+    assert "Нужен доступ администратора" in donations and "DON-2026" not in donations
+    assert 'class="site-errors"' not in donations

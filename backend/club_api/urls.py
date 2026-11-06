@@ -9,6 +9,7 @@ import club_api.modules.checkout.orders as checkout_orders
 import club_api.modules.checkout.payments as checkout_payments
 import club_api.modules.content.admin as content_admin
 import club_api.modules.content.routes as content_routes
+import club_api.modules.donations.admin as donations_admin
 import club_api.modules.donations.routes as donations_routes
 import club_api.modules.events.routes as events_routes
 import club_api.modules.gamification.routes as gamification_routes
@@ -97,6 +98,8 @@ routes = (
         path("admin/orders/<str:id>/discount", endpoint({"PATCH": portfolio_discounts.set_discount})),
         path("admin/orders/<str:id>/cohort", endpoint({"PATCH": portfolio_transfers.move_order})),
         path("admin/orders/export.csv", endpoint({"GET": checkout_admin.export_orders})),
+        path("admin/donations", endpoint({"GET": donations_admin.donations})),
+        path("admin/donations/export.csv", endpoint({"GET": donations_admin.export_donations})),
         path("podcasts", endpoint({"GET": podcasts_routes.podcasts})),
         path("podcasts/<str:id>/audio", endpoint({"GET": podcasts_routes.audio})),
         path("podcasts/subscribe", endpoint({"POST": podcasts_routes.subscribe})),

@@ -54,6 +54,8 @@ def test_all_legacy_routes_are_present():
         for method, suffix in (("GET", ""), ("POST", ""), ("PATCH", "/{id}"), ("DELETE", "/{id}"))
     }
     office = {
+        ("GET", "/admin/donations"),
+        ("GET", "/admin/donations/export.csv"),
         ("PATCH", "/admin/orders/{id}/discount"),
         ("PATCH", "/admin/orders/{id}/cohort"),
         ("POST", "/admin/news-sources/refresh"),
@@ -74,7 +76,7 @@ def test_all_legacy_routes_are_present():
         ("GET", "/me/tg-link"),
         ("GET", "/me/export"),
     }
-    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 142
+    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 144
 
 
 def test_sentry_privacy():
