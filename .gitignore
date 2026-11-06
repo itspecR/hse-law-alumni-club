@@ -47,6 +47,7 @@ frontend/public/assets/catalog.js
 frontend/public/assets/home.js
 frontend/public/assets/give.js
 frontend/public/assets/course.js
+frontend/public/assets/program-editor.js
 frontend/public/assets/version.txt
 frontend/public/assets/boot.js
 frontend/public/assets/skeleton.js

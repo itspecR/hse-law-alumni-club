@@ -20,6 +20,16 @@ GROUPS = [
     ("Управление", ("analytics", "pages", "media", "audit")),
 ]
 FULL_ADMIN_SECTIONS = frozenset(("donations",))
+PORTFOLIO_BLOCKS = (
+    (
+        "program-main",
+        "Основное",
+        ("title", "direction", "trainer_ids", "format", "duration", "start", "capacity", "price", "document"),
+    ),
+    ("program-about", "Описание", ("description", "audience", "competencies", "communication")),
+    ("program-course", "Программа курса", ("modules",)),
+    ("program-publish", "Публикация", ("cover", "enrollment", "status")),
+)
 DESCRIPTIONS = {
     "overview": "Заявки, проверка выпускников и состояние сервисов клуба.",
     "analytics": "Участники, заявки и активность за выбранный период.",
@@ -104,6 +114,11 @@ FILTER_KEYS = ("status", "origin")
 def status_values(section):
     kinds = [kind.split("|") for name, _, kind in FIELDS.get(section, []) if name == "status"]
     return STATUS_FILTERS.get(section) or (kinds[0] if kinds else [])
+
+
+def portfolio_blocks():
+    fields = {field[0]: field for field in FIELDS["portfolio"]}
+    return [(anchor, title, [fields[name] for name in names]) for anchor, title, names in PORTFOLIO_BLOCKS]
 
 
 def visible_groups(full_admin):

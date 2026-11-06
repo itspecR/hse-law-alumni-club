@@ -4,6 +4,7 @@ import { prepareCatalog } from "./catalog.js";
 import { prepareHome } from "./home.js";
 import { prepareGive } from "./give.js";
 import { moduleAction, prepareCourse } from "./course.js";
+import { prepareProgramEditor } from "./program-editor.js";
 import { hideSkeleton, prepareSkeleton } from "./skeleton.js";
 
 const base = document.body.dataset.base || "/";
@@ -405,6 +406,10 @@ async function perform(target, body) {
       const link = element("a", "Оплатить через ЮKassa", { href: payment, class: "site-primary" });
       target.after(link);
       notice("Заявка " + result.number + " сохранена.");
+    } else if (target.dataset.openRecord && result.id) {
+      location.href = url(target.dataset.openRecord + encodeURIComponent(result.id));
+    } else if (target.dataset.next) {
+      location.href = url(target.dataset.next);
     } else if (target.dataset.success) {
       notice(target.dataset.success);
       target.reset();
@@ -522,6 +527,7 @@ function setupPage() {
   prepareHome();
   prepareGive({ request, solveCaptcha, safeLink, formError });
   prepareCourse();
+  prepareProgramEditor();
   alignOfficeNavigation();
   openCabinetSection();
   const recent = document.querySelector("[data-reading-title]");

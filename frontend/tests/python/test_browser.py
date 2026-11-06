@@ -163,6 +163,8 @@ def site():
                 return httpx.Response(200, json=PROMO_QUOTE | {"total": records.get("quote_total", total)})
             if path == "/donations":
                 return httpx.Response(200, json={"number": "DON-2026-000001", "payment_url": DONATION_PAYMENT})
+            if path == "/admin/portfolio" and request.method == "POST":
+                return httpx.Response(200, json={"ok": True, "id": "club-new", "slug": "club-new"})
             if path.endswith("/applications") and records.get("application_failure"):
                 return httpx.Response(503, json={"error": "Временно недоступно"})
             if path.endswith("/applications"):
@@ -2543,7 +2545,9 @@ def test_office_portfolio_form_sends_lists_trainers_and_limit(page, site, width)
     expect(row.get_by_role("button", name="Удалить", exact=True)).to_have_attribute(
         "data-confirm", "Удалить программу? Программу с заявками удалить нельзя, вместо этого переведите ее в архив."
     )
-    row.get_by_text("Редактировать", exact=True).click()
+    row.get_by_role("link", name="Открыть", exact=True).click()
+    expect(page).to_have_url(re.compile(r"/admin/portfolio\?id=club-1$"))
+    row = page.locator("[data-program-editor]")
     choices = row.get_by_role("group", name="Тренеры")
     expect(choices.get_by_label("Анна Вымышленная")).to_be_checked()
     choices.get_by_label("Борис Вымышленный · Черновик").uncheck()
@@ -2571,9 +2575,8 @@ def test_office_portfolio_form_edits_course_modules(page, site, width):
     site[1]["/admin/portfolio"] = [{**PORTFOLIO_PROGRAM, "modules": [module]}]
     page.set_viewport_size({"width": width, "height": 900})
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
-    page.goto("/admin/portfolio")
-    row = page.locator("article.office-record")
-    row.get_by_text("Редактировать", exact=True).click()
+    page.goto("/admin/portfolio?id=club-1")
+    row = page.locator("[data-program-editor]")
     editor = row.get_by_role("group", name="Программа курса")
     first = editor.locator("[data-module]").first
     toggle = first.get_by_role("button", name=re.compile("День 1"))
@@ -2612,13 +2615,14 @@ def test_office_portfolio_form_edits_course_modules(page, site, width):
 def test_office_portfolio_without_trainers_points_to_directory(page, site):
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
     page.goto("/admin/portfolio")
-    page.locator("details.office-create summary").click()
-    form = page.locator("details.office-create form")
+    page.get_by_role("link", name="Новая программа").click()
+    expect(page.get_by_role("heading", name="Новая программа", level=1)).to_be_visible()
+    form = page.locator("[data-program-editor] form")
     expect(form.get_by_role("link", name="«Тренеры»")).to_have_attribute("href", "/admin/trainers")
     form.get_by_label("Название", exact=True).fill("Новая программа клуба")
     form.get_by_label("Продолжительность", exact=True).fill("2 дня")
-    form.get_by_role("button", name="Создать", exact=True).click()
-    expect(page.locator("#toast")).to_be_visible()
+    form.get_by_role("button", name="Создать программу", exact=True).click()
+    expect(page).to_have_url(re.compile(r"/admin/portfolio\?id=club-new$"))
     write = site[2][-1]
     assert write["path"] == "/admin/portfolio" and write["method"] == "POST"
     assert "trainer_ids" not in write["body"] and write["body"]["capacity"] is None
@@ -3239,9 +3243,8 @@ def test_office_course_modules_reorder_and_count_hours(page, site):
     site[1]["/admin/trainers"] = TRAINERS
     site[1]["/admin/portfolio"] = [{**PORTFOLIO_PROGRAM, "modules": modules}]
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
-    page.goto("/admin/portfolio")
-    row = page.locator("article.office-record")
-    row.get_by_text("Редактировать", exact=True).click()
+    page.goto("/admin/portfolio?id=club-1")
+    row = page.locator("[data-program-editor]")
     editor = row.get_by_role("group", name="Программа курса")
     total = editor.locator("[data-modules-total]")
     expect(total).to_have_text("Модулей: 3 · часов: 2,5 · часы указаны не у всех модулей")
@@ -3265,3 +3268,47 @@ def test_office_course_modules_reorder_and_count_hours(page, site):
     write = site[2][-1]
     assert [module["title"] for module in write["body"]["modules"]] == ["Введение", "Итоги и рефлексия", "Практикум"]
     assert write["body"]["modules"][1]["hours"] == "1 ак. ч." and write["body"]["price"] == 1234567
+
+
+@pytest.mark.parametrize("width", [1440, 390])
+def test_office_program_editor_previews_card_and_marks_changes(page, site, width):
+    site[1]["/admin/trainers"] = TRAINERS
+    site[1]["/admin/portfolio"] = [PORTFOLIO_PROGRAM]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/portfolio?id=club-1")
+    editor = page.locator("[data-program-editor]")
+    preview = editor.locator("[data-program-preview]")
+    state = editor.locator("[data-program-state]")
+    expect(editor.get_by_role("navigation", name="Блоки программы").get_by_role("link")).to_have_text(
+        ["Основное", "Описание", "Программа курса", "Публикация"]
+    )
+    expect(preview.locator('[data-preview="title"]')).to_have_text("Переговоры для юристов")
+    expect(state).to_have_text("Изменений нет")
+    editor.get_by_label("Название", exact=True).fill("Переговоры для юристов компаний")
+    editor.get_by_label("Цена, ₽").fill("30000")
+    editor.get_by_label("Набор").select_option("nonactual")
+    expect(preview.locator('[data-preview="title"]')).to_have_text("Переговоры для юристов компаний")
+    expect(preview.locator('[data-preview="price"]')).to_have_text(re.compile(r"^30\s000\s₽$"))
+    expect(preview.locator('[data-preview="enrollment"]')).to_have_text("Набор закрыт")
+    expect(state).to_have_text("Есть несохраненные изменения")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    save = editor.get_by_role("button", name="Сохранить", exact=True)
+    expect(save).to_be_in_viewport()
+    save.click()
+    expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
+    write = site[2][-1]
+    assert write["path"] == "/admin/portfolio/club-1" and write["method"] == "PATCH"
+    assert write["body"]["title"] == "Переговоры для юристов компаний" and write["body"]["price"] == 3000000
+    assert write["body"]["enrollment"] == "nonactual"
+
+
+def test_office_program_editor_deletes_and_returns_to_list(page, site):
+    site[1]["/admin/portfolio"] = [PORTFOLIO_PROGRAM]
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/portfolio?id=club-1")
+    page.once("dialog", lambda dialog: dialog.accept())
+    page.get_by_role("button", name="Удалить программу", exact=True).click()
+    expect(page).to_have_url(re.compile(r"/admin/portfolio$"))
+    write = site[2][-1]
+    assert write["path"] == "/admin/portfolio/club-1" and write["method"] == "DELETE"

@@ -25,10 +25,10 @@
 <div class="office-account"><span class="office-account-mark" aria-hidden="true">ПУ</span><div><strong>Панель управления</strong><small>{{ 'Администратор' if role in ('admin','Administrator') else 'Редактор' }}</small></div><button data-action="logout-office" aria-label="Выйти">{{ icon('logout') }}</button></div>
 </aside>
 <main id="main" class="site-office-content">
-<div class="office-topbar"><nav aria-label="Путь к разделу"><a href="/admin">Панель управления</a><span aria-hidden="true">/</span><span>{{ title }}</span></nav><a href="/" class="office-site-link">На сайт {{ icon('arrow') }}</a></div>
-<header class="office-page-header">
-<div><h1>{{ title }}</h1><p>{{ office_descriptions.get(section,'') }}</p></div>
-<button data-action="refresh" class="office-refresh">{{ icon('refresh') }}Обновить</button>
+<div class="office-topbar"><nav aria-label="Путь к разделу"><a href="/admin">Панель управления</a><span aria-hidden="true">/</span>{% if office_parent %}<a href="/admin/{{ section }}">{{ office_parent }}</a><span aria-hidden="true">/</span>{% endif %}<span>{{ title }}</span></nav><a href="/" class="office-site-link">На сайт {{ icon('arrow') }}</a></div>
+<header class="office-page-header{{ ' office-page-header--record' if office_parent }}">
+<div><h1>{{ title }}</h1><p>{{ office_lede or office_descriptions.get(section,'') }}</p></div>
+{% if not office_parent %}<button data-action="refresh" class="office-refresh">{{ icon('refresh') }}Обновить</button>{% endif %}
 </header>
 {% if access_error==403 %}
 <div class="office-access" role="alert"><h2>Нужен доступ администратора</h2><p>Этот раздел доступен администратору клуба.</p><a href="/admin">К обзору панели</a></div>
