@@ -1155,7 +1155,7 @@ async def profile_page(profile):
 async def test_mailing_consent_page_names_operator_and_how_to_withdraw(browser_client):
     page = (await browser_client.get("/mailing-consent")).text
     assert "<h1>Согласие на получение рассылок</h1>" in page and "Редакция от 5 ноября 2026 года" in page
-    assert "других инициативах АНО «Клуб выпускников факультета права НИУ ВШЭ»*" in page
+    assert "других инициативах АНО «Клуб выпускников факультета Права НИУ ВШЭ»*" in page
     assert "до 5 (Пяти) рабочих дней" in page and "сняв отметку «Получать рассылки»" in page
     assert "НИУ ВШЭ*" not in page.replace("ВШЭ»*", "")
 

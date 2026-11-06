@@ -91,7 +91,7 @@ services:
       API_PORT: "3000"
       UPLOADS_PATH: /data/uploads
       CHECKOUT_DATABASE_URL: ${CHECKOUT_DATABASE_URL:-postgresql://${CHECKOUT_DB_USER:-club_api}:${CHECKOUT_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}}
-      SUPPORT_OPERATOR_NAME: "${SUPPORT_OPERATOR_NAME:-Автономная некоммерческая организация «Клуб выпускников факультета права НИУ ВШЭ»}"
+      SUPPORT_OPERATOR_NAME: "${SUPPORT_OPERATOR_NAME:-Автономная некоммерческая организация «Клуб выпускников факультета Права НИУ ВШЭ»}"
       SUPPORT_OPERATOR_ADDRESS: "${SUPPORT_OPERATOR_ADDRESS:-107061, г. Москва, ул. Большая Черкизовская, д. 3, к. 2, помещ. 17/1}"
       SUPPORT_OPERATOR_CONTACT: "${SUPPORT_OPERATOR_CONTACT:-Письменное обращение по юридическому адресу оператора}"
       SUPPORT_ENABLED: ${SUPPORT_ENABLED:-false}
