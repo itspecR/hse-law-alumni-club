@@ -75,8 +75,13 @@ def test_all_legacy_routes_are_present():
         ("POST", "/decay/run"),
         ("GET", "/me/tg-link"),
         ("GET", "/me/export"),
+        ("GET", "/timeline"),
+        ("GET", "/admin/timeline"),
+        ("POST", "/admin/timeline"),
+        ("PATCH", "/admin/timeline/{id}"),
+        ("DELETE", "/admin/timeline/{id}"),
     }
-    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 144
+    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 139
 
 
 def test_sentry_privacy():
