@@ -145,6 +145,7 @@ class MemoryConnection:
                 "DELETE FROM alumni_friends",
                 "DELETE FROM push_subs",
                 "UPDATE orders",
+                "UPDATE club_donations",
                 "UPDATE directus_users",
             )
         ):

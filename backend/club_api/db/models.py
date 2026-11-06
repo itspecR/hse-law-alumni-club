@@ -229,6 +229,25 @@ class EmailCodes(models.Model):
         constraints = [models.UniqueConstraint(fields=["user_id", "purpose"], name="club_email_codes_user_purpose")]
 
 
+class Donations(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, db_default=DatabaseUUID())
+    number = models.CharField(max_length=32, unique=True)
+    amount = models.BigIntegerField()
+    period = models.CharField(max_length=16, db_default="once")
+    email = models.CharField(max_length=254)
+    name = models.CharField(max_length=200, null=True)
+    alumni = models.ForeignKey("Alumnus", on_delete=models.SET_NULL, db_column="alumni_id", related_name="+", null=True)
+    status = models.CharField(max_length=16, db_default="new")
+    payment_id = models.CharField(max_length=64, null=True)
+    paid_at = models.DateTimeField(null=True)
+    consents = models.JSONField(null=True)
+    created_at = models.DateTimeField(db_default=Now())
+
+    class Meta:
+        db_table = "club_donations"
+        indexes = [models.Index(fields=["status", "created_at"], name="club_donations_status_created")]
+
+
 class CaptchaUses(models.Model):
     salt_hash = models.CharField(max_length=64, primary_key=True)
     expires_at = models.DateTimeField()

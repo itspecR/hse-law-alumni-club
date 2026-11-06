@@ -22,6 +22,13 @@ async def retention(state):
     )
     await state.database.execute(
         Query(
+            "UPDATE club_donations SET email='-',name=NULL WHERE created_at<now()-%s*interval '1 day' AND email<>'-'",
+            "UPDATE club_donations SET email='-',name=NULL WHERE created_at<DATE_SUB(now(),INTERVAL %s DAY) AND email<>'-'",
+        ),
+        (state.settings.ORDER_RETENTION_DAYS,),
+    )
+    await state.database.execute(
+        Query(
             "DELETE FROM audit_log WHERE created_at<now()-%s*interval '1 day'",
             "DELETE FROM audit_log WHERE created_at<DATE_SUB(now(),INTERVAL %s DAY)",
         ),

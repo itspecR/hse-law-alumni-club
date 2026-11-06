@@ -21,6 +21,8 @@ ROUTE_LIMITS = {"/orders/{number}/pay": 10, "/payments/yookassa/webhook": 60}
 SAFE_INTEGER_MAX = 9007199254740991
 PAYMENT_LOOKUP_PAGE_LIMIT = 20
 PAYMENT_LOOKUP_PAGE_SIZE = 100
+DONATION_KEY = "donation_number"
+AUDITED = ("review", "succeeded", "canceled")
 
 
 def secure_payment_url(value):
@@ -36,27 +38,25 @@ def secure_payment_url(value):
         return None
 
 
+def paid_kopecks(payment):
+    amount = payment.get("amount", {})
+    value = amount.get("value")
+    if amount.get("currency") != "RUB" or payment.get("paid") is not True:
+        return None
+    if not isinstance(value, str) or len(value) > 18 or not re.fullmatch("\\d+\\.\\d{2}", value, re.ASCII):
+        return None
+    kop = int(value.replace(".", ""))
+    return kop if kop <= SAFE_INTEGER_MAX else None
+
+
 def payment_outcome(order, payment):
     if order["payment_id"] and order["payment_id"] != payment["id"]:
         return "ignored"
     if order["payment_status"] == "succeeded":
         return "duplicate"
     if payment["status"] == "succeeded":
-        amount = payment.get("amount", {})
-        value = amount.get("value")
-        kop = (
-            int(value.replace(".", ""))
-            if isinstance(value, str) and len(value) <= 18 and re.fullmatch("\\d+\\.\\d{2}", value, re.ASCII)
-            else None
-        )
-        if (
-            amount.get("currency") != "RUB"
-            or payment.get("paid") is not True
-            or kop is None
-            or (kop > SAFE_INTEGER_MAX)
-            or (kop != order["total_estimate"])
-            or (order["status"] in ("canceled", "expired"))
-        ):
+        kop = paid_kopecks(payment)
+        if kop is None or kop != order["total_estimate"] or order["status"] in ("canceled", "expired"):
             return "review"
         return "succeeded"
     if (order["payment_status"] == "review" and order["payment_id"]) or order["status"] in ("canceled", "expired"):
@@ -173,20 +173,22 @@ class Payments:
             f"Заявка {number}: идентификатор платежа не сохранен. Проверьте платеж в ЮKassa, резерв сохранен до сверки."
         )
 
-    async def create(self, number, amount, description, email=None):
+    def payment_body(self, amount, description, return_path, metadata):
         if type(amount) is not int or not 0 < amount <= SAFE_INTEGER_MAX:
             raise ApiError(400, "Некорректная сумма оплаты.")
-        value = f"{amount // 100}.{amount % 100:02d}"
-        body = {
-            "amount": {"value": value, "currency": "RUB"},
+        return {
+            "amount": {"value": f"{amount // 100}.{amount % 100:02d}", "currency": "RUB"},
             "capture": True,
-            "confirmation": {
-                "type": "redirect",
-                "return_url": f"{self.state.settings.PUBLIC_URL}/cart?paid={quote(number)}",
-            },
+            "confirmation": {"type": "redirect", "return_url": self.state.settings.PUBLIC_URL + return_path},
             "description": description[:128],
-            "metadata": {"order_number": number},
+            "metadata": metadata,
         }
+
+    async def post(self, body, key):
+        return await self.provider("POST", "/payments", body=body, headers={"Idempotence-Key": digest(key)[:36]})
+
+    async def create(self, number, amount, description, email=None):
+        body = self.payment_body(amount, description, f"/cart?paid={quote(number)}", {"order_number": number})
         if email:
             body["receipt"] = {
                 "customer": {"email": email},
@@ -194,15 +196,18 @@ class Payments:
                     {
                         "description": description[:128],
                         "quantity": "1.00",
-                        "amount": {"value": value, "currency": "RUB"},
+                        "amount": body["amount"],
                         "vat_code": 1,
                         "payment_subject": "service",
                         "payment_mode": "full_payment",
                     }
                 ],
             }
-        return await self.provider(
-            "POST", "/payments", body=body, headers={"Idempotence-Key": digest("order:" + number)[:36]}
+        return await self.post(body, "order:" + number)
+
+    async def create_donation(self, number, amount, description, return_path):
+        return await self.post(
+            self.payment_body(amount, description, return_path, {DONATION_KEY: number}), "donation:" + number
         )
 
     async def extend(self, connection, alumni_id, months=12):
@@ -347,9 +352,20 @@ async def webhook(request: HttpRequest):
         payment = await state.payments.fetch(body["object"]["id"])
     except ApiError:
         return JsonResponse({"ok": False}, status=502, safe=False)
+    if payment.get("metadata", {}).get(DONATION_KEY):
+        result = await state.donations.settle(payment)
+        if result.get("donation") and result["outcome"] in AUDITED:
+            await audit(
+                request,
+                "donation." + result["outcome"],
+                actor="yookassa",
+                subject="donation:" + result["donation"]["number"],
+                detail={"payment_id": payment["id"]},
+            )
+        return {"ok": True}
     result = await state.payments.apply(payment)
     order, outcome = (result.get("order"), result["outcome"])
-    if order and outcome in ("review", "succeeded", "canceled"):
+    if order and outcome in AUDITED:
         await audit(
             request,
             "payment." + outcome,
