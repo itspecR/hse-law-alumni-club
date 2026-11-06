@@ -2540,14 +2540,14 @@ def test_office_portfolio_form_sends_lists_trainers_and_limit(page, site, width)
     page.set_viewport_size({"width": width, "height": 900})
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
     page.goto("/admin/portfolio")
-    row = page.locator("article.office-record")
-    expect(row.locator(".office-meta")).to_contain_text("Борис Вымышленный, Анна Вымышленная")
-    expect(row.get_by_role("button", name="Удалить", exact=True)).to_have_attribute(
-        "data-confirm", "Удалить программу? Программу с заявками удалить нельзя, вместо этого переведите ее в архив."
-    )
-    row.get_by_role("link", name="Открыть", exact=True).click()
+    card = page.locator("article.office-program")
+    expect(card.locator(".office-meta")).to_contain_text("Борис Вымышленный, Анна Вымышленная")
+    card.get_by_role("link", name="Открыть", exact=True).click()
     expect(page).to_have_url(re.compile(r"/admin/portfolio\?id=club-1$"))
     row = page.locator("[data-program-editor]")
+    expect(page.get_by_role("button", name="Удалить программу", exact=True)).to_have_attribute(
+        "data-confirm", "Удалить программу? Программу с заявками удалить нельзя, вместо этого переведите ее в архив."
+    )
     choices = row.get_by_role("group", name="Тренеры")
     expect(choices.get_by_label("Анна Вымышленная")).to_be_checked()
     choices.get_by_label("Борис Вымышленный · Черновик").uncheck()
@@ -3312,3 +3312,34 @@ def test_office_program_editor_deletes_and_returns_to_list(page, site):
     expect(page).to_have_url(re.compile(r"/admin/portfolio$"))
     write = site[2][-1]
     assert write["path"] == "/admin/portfolio/club-1" and write["method"] == "DELETE"
+
+
+@pytest.mark.parametrize("width", [1440, 390])
+def test_office_program_list_shows_cards_with_key_facts(page, site, width):
+    draft = {
+        **PORTFOLIO_PROGRAM,
+        "id": "club-2",
+        "slug": "club-2",
+        "title": "Медиация",
+        "status": "draft",
+        "price": 0,
+        "trainer_ids": [],
+    }
+    site[1]["/admin/trainers"] = TRAINERS
+    site[1]["/admin/portfolio"] = [{**PORTFOLIO_PROGRAM, "modules": [{"title": "День 1"}, {"title": "День 2"}]}, draft]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/portfolio")
+    cards = page.locator("article.office-program")
+    expect(cards).to_have_count(2)
+    published, unpublished = cards.nth(0), cards.nth(1)
+    expect(published.get_by_role("heading", level=2)).to_have_text("Переговоры для юристов")
+    expect(published.locator(".office-program__facts dd")).to_have_text(
+        ["Смешанный", "6 недель", re.compile(r"^45\s000\s₽$"), "2"]
+    )
+    expect(published.get_by_role("link", name="На сайте ↗")).to_have_attribute("href", "/portfolio/club-1")
+    expect(unpublished.locator(".office-program__facts dd").nth(2)).to_have_text("Стоимость уточняется")
+    expect(unpublished.get_by_role("link", name="На сайте ↗")).to_have_count(0)
+    expect(unpublished.locator(".office-meta")).to_have_text("Тренеры не выбраны")
+    expect(page.get_by_role("link", name="Новая программа")).to_have_attribute("href", "/admin/portfolio?id=new")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")

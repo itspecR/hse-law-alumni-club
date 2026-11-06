@@ -266,6 +266,7 @@ def recent_changes():
 
 def portfolio_editor(data, record_id):
     if not record_id:
+        data["office_template"] = "office/portfolio.html"
         return
     program = {} if record_id == NEW_RECORD else next((row for row in data["rows"] if row.get("id") == record_id), None)
     data.update(
