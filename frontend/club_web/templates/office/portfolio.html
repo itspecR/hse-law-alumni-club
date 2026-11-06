@@ -1,0 +1,25 @@
+{{ filters() }}
+<div class="office-toolbar"><p data-office-count>Показано: {{ rows|length }}{% if office_total is defined %} из {{ office_total }}{% endif %}</p><a class="site-primary office-program-new" href="/admin/portfolio?id=new">{{ icon('portfolio') }}Новая программа</a></div>
+<div class="office-programs">
+{% for program in rows %}
+{% set editor='/admin/portfolio?id='~program.id %}
+<article class="office-program" {% if mirror %}data-office-row="{{ {'title':program.title,'status':program.status|default(''),'direction':program.direction|default('')}|tojson|forceescape }}"{% endif %}>
+<a class="office-program__media" href="{{ editor }}" tabindex="-1" aria-hidden="true">
+{% if program.cover|media %}<img src="{{ program.cover|media }}" alt="" loading="lazy" decoding="async" width="560" height="320">{% else %}<span class="office-program__mark">{{ icon('portfolio') }}{% if program.direction %}<small>{{ program.direction }}</small>{% endif %}</span>{% endif %}
+</a>
+<div class="office-program__body">
+<div class="office-program__tags">{{ status(program.status) }}<span class="office-status" data-status="{{ 'active' if program.enrollment=='actual' else 'canceled' }}">{{ labels.get(program.enrollment,program.enrollment) }}</span></div>
+<h2><a href="{{ editor }}">{{ program.title }}</a></h2>
+<dl class="office-program__facts">
+<div><dt>Формат</dt><dd>{{ format_labels.get(program.format,program.format)|capitalize }}</dd></div>
+<div><dt>Длительность</dt><dd>{{ program.duration or 'Не указана' }}</dd></div>
+<div><dt>Цена</dt><dd>{{ program.price|price_or_pending }}</dd></div>
+<div><dt>Модулей</dt><dd>{{ (program.modules or [])|length }}</dd></div>
+</dl>
+<p class="office-meta">{% for id in program.trainer_ids or [] %}{{ '' if loop.first else ', ' }}{{ office_names.trainers.get(id,'') }}{% else %}Тренеры не выбраны{% endfor %}</p>
+<div class="office-program__actions"><a class="site-primary" href="{{ editor }}">Открыть</a>{% if program.status=='published' and program.slug %}<a href="/portfolio/{{ program.slug }}" target="_blank" rel="noopener noreferrer">На сайте ↗</a>{% endif %}</div>
+</div>
+</article>
+{% else %}{{ empty('По выбранным фильтрам программ нет.' if query.get('q') or query.get('status') else 'Программ пока нет.') }}{% endfor %}
+{% if mirror and rows %}<p class="site-empty" role="status" data-office-empty hidden>По выбранным фильтрам программ нет.</p>{% endif %}
+</div>

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import login,field,empty %}
 {% from 'office/forms.html' import content_form with context %}
-{% from 'office/components.html' import icon,status with context %}
+{% from 'office/components.html' import icon,status,filters with context %}
 {% block content %}
 {% if not session or access_error==401 %}
 <main id="main" class="site-container">{{ login(true) }}</main>

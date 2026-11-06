@@ -3,3 +3,6 @@
 {% macro status(value,payment=false) %}
 {% if value %}<span class="office-status" data-status="{{ value }}">{{ 'Ожидает оплаты' if payment and value=='pending' else 'Без платежа' if payment and value=='none' else labels.get(value,value) }}</span>{% endif %}
 {% endmacro %}
+{% macro filters() %}
+<form class="site-filters" method="get"><label>Поиск<input name="q" type="search" value="{{ query.get('q','') }}" placeholder="{{ 'Заголовок' if section=='news' else 'ФИО' if section=='trainers' else 'Код или заметка' if section=='promo-codes' else 'Программа' if section=='cohorts' else 'Название или направление' }}"></label><label>Статус<select name="status" aria-label="Статус"><option value="">Все</option>{% for value in office_statuses %}<option value="{{ value }}" {% if query.get('status')==value %}selected{% endif %}>{{ labels.get(value,value) }}</option>{% endfor %}</select></label>{% for key,title,values in office_filters %}<label>{{ title }}<select name="{{ key }}" aria-label="{{ title }}"><option value="">Все</option>{% for value in values %}<option value="{{ value }}" {% if query.get(key)==value %}selected{% endif %}>{{ labels.get(value,value) }}</option>{% endfor %}</select></label>{% endfor %}<button>Показать</button><a href="/admin/{{ section }}">Сбросить</a></form>
+{% endmacro %}
