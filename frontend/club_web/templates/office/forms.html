@@ -1,3 +1,4 @@
+{% from 'office/components.html' import icon with context %}
 {% macro choices(name,label,selected,source) %}
 <fieldset class="office-choices"><legend>{{ label }}</legend>
 {% for option in office_options.get(source) or [] %}
@@ -16,25 +17,33 @@
 </select></label>
 {% if not office_options.get(source) %}<p class="office-meta">{{ office_choices[source][1] }} Добавьте их в разделе <a href="/admin/{{ source }}">«{{ dict(office_nav)[source] }}»</a>.</p>{% endif %}
 {% endmacro %}
-{% macro module_row(module={}) %}
-<div class="office-module" data-module>
+{% macro module_row(module={},open=false) %}
+<div class="office-module{{ ' is-open' if open }}" data-module>
+<div class="office-module__head">
+<button type="button" class="office-module__toggle" data-action="module-toggle" aria-expanded="{{ 'true' if open else 'false' }}"><span class="office-module__number" aria-hidden="true"></span><span class="office-module__title" data-module-summary="title">{{ module.title or 'Новый модуль' }}</span><span class="office-module__meta" data-module-summary="meta">{{ [module.hours,module.format]|select|join(' · ') }}</span></button>
+<div class="office-module__tools">
+<button type="button" class="office-module__tool" data-action="module-up" aria-label="Выше">{{ icon('up') }}</button>
+<button type="button" class="office-module__tool" data-action="module-down" aria-label="Ниже">{{ icon('down') }}</button>
+</div>
+</div>
+<div class="office-module__body"{% if not open %} hidden{% endif %}>
 <label class="site-field office-module__wide">Тема<input data-module-field="title" value="{{ module.title or '' }}"></label>
-<label class="site-field">Часы<input data-module-field="hours" value="{{ module.hours or '' }}"></label>
+<label class="site-field">Часы<input data-module-field="hours" value="{{ module.hours or '' }}" placeholder="Например, 2 ак. ч."></label>
 <label class="site-field">Формат<input data-module-field="format" value="{{ module.format or '' }}"></label>
 <label class="site-field office-module__wide">Содержание, каждый пункт с новой строки<textarea data-module-field="points">{{ (module.points or [])|join('\n') }}</textarea></label>
 <button type="button" class="site-danger" data-action="module-remove">Удалить модуль</button>
 </div>
+</div>
 {% endmacro %}
 {% macro modules(name,label,items) %}
 <fieldset class="office-modules" data-modules="{{ name }}"><legend>{{ label }}</legend>
+<p class="office-modules__total" data-modules-total aria-live="polite"></p>
 {% for module in items %}{{ module_row(module) }}{% endfor %}
-<template>{{ module_row() }}</template>
+<template>{{ module_row(open=true) }}</template>
 <button type="button" data-action="module-add">Добавить модуль</button>
 </fieldset>
 {% endmacro %}
-{% macro content_form(record={}) %}
-<form data-api="/admin/{{ section }}{{ '/'+record.id if record.id else '' }}" data-method="{{ 'PATCH' if record.id else 'POST' }}" class="site-admin-form">
-{% for name,label,kind in office_fields.get(section,[]) %}
+{% macro field_control(name,label,kind,record) %}
 {% set value=(record.get('dates') or {}).get('start') if section in ('programs','portfolio') and name=='start' else record.get(name) %}
 {% set value=(office_defaults.get(section) or {}).get(name) if value is none and not record.id else value %}
 {% if kind in office_choices %}
@@ -65,11 +74,18 @@
 <small class="office-hint">Пустая строка начинает новый абзац. ## Подзаголовок · **жирный** · *курсив* · - пункт списка · [текст ссылки](https://адрес) · ![подпись](ID файла из «Медиа»)</small>
 {% elif kind in ('limit','optional') %}
 <input name="{{ name }}" type="number" min="{{ 1 if kind=='limit' else 0 }}" data-nullable value="{{ value if value is not none else '' }}">
+{% elif kind=='rubles' %}
+<input name="{{ name }}" type="number" min="0" step="0.01" inputmode="decimal" data-kopecks value="{{ value|rubles_input }}">
 {% else %}
 <input name="{{ name }}" type="{{ kind }}" value="{{ value if value is not none else '0' if name in ('price','stock','sort') else '60' if name=='points' else '' }}">
 {% endif %}
 </label>
 {% endif %}
+{% endmacro %}
+{% macro content_form(record={}) %}
+<form data-api="/admin/{{ section }}{{ '/'+record.id if record.id else '' }}" data-method="{{ 'PATCH' if record.id else 'POST' }}" class="site-admin-form">
+{% for name,label,kind in office_fields.get(section,[]) %}
+{{ field_control(name,label,kind,record) }}
 {% endfor %}
 <button class="site-primary">{{ 'Сохранить' if record.id else 'Создать' }}</button>
 <p role="alert" data-error hidden>

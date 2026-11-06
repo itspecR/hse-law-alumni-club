@@ -2576,6 +2576,11 @@ def test_office_portfolio_form_edits_course_modules(page, site, width):
     row.get_by_text("Редактировать", exact=True).click()
     editor = row.get_by_role("group", name="Программа курса")
     first = editor.locator("[data-module]").first
+    toggle = first.get_by_role("button", name=re.compile("День 1"))
+    expect(toggle).to_have_attribute("aria-expanded", "false")
+    expect(first.get_by_label("Тема")).to_be_hidden()
+    toggle.click()
+    expect(toggle).to_have_attribute("aria-expanded", "true")
     expect(first.get_by_label("Тема")).to_have_value(module["title"])
     expect(first.get_by_label("Содержание, каждый пункт с новой строки")).to_have_value("Лекция\nПрактикум")
     editor.get_by_role("button", name="Добавить модуль", exact=True).click()
@@ -3223,3 +3228,40 @@ def test_give_form_checks_amount_and_opens_payment(chromium, site, width):
     assert sent["consent_offer"] is True and sent["consent_pdn"] is True and sent["website"] == ""
     assert sent["captcha"]["number"] == 7 and "period" not in sent
     context.close()
+
+
+def test_office_course_modules_reorder_and_count_hours(page, site):
+    modules = [
+        {"title": "Введение", "points": [], "hours": "0,5 ак. ч.", "format": "Лекция"},
+        {"title": "Практикум", "points": ["Кейс"], "hours": "2 ак. ч.", "format": None},
+        {"title": "Итоги", "points": [], "hours": None, "format": "Обсуждение"},
+    ]
+    site[1]["/admin/trainers"] = TRAINERS
+    site[1]["/admin/portfolio"] = [{**PORTFOLIO_PROGRAM, "modules": modules}]
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/portfolio")
+    row = page.locator("article.office-record")
+    row.get_by_text("Редактировать", exact=True).click()
+    editor = row.get_by_role("group", name="Программа курса")
+    total = editor.locator("[data-modules-total]")
+    expect(total).to_have_text("Модулей: 3 · часов: 2,5 · часы указаны не у всех модулей")
+    titles = editor.locator(".office-module__title")
+    expect(titles).to_have_text(["Введение", "Практикум", "Итоги"])
+    expect(editor.get_by_role("button", name="Выше").first).to_be_disabled()
+    expect(editor.get_by_role("button", name="Ниже").last).to_be_disabled()
+    editor.locator("[data-module]").nth(2).get_by_role("button", name="Выше").click()
+    expect(titles).to_have_text(["Введение", "Итоги", "Практикум"])
+    expect(editor.locator("[data-module]").nth(1).get_by_role("button", name="Выше")).to_be_focused()
+    last = editor.locator("[data-module]").nth(1)
+    last.get_by_role("button", name=re.compile("Итоги")).click()
+    last.get_by_label("Часы").fill("1 ак. ч.")
+    last.get_by_label("Тема").fill("Итоги и рефлексия")
+    expect(last.locator(".office-module__title")).to_have_text("Итоги и рефлексия")
+    expect(last.locator(".office-module__meta")).to_have_text("1 ак. ч. · Обсуждение")
+    expect(total).to_have_text("Модулей: 3 · часов: 3,5")
+    row.get_by_label("Цена, ₽").fill("12345.67")
+    row.get_by_role("button", name="Сохранить", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
+    write = site[2][-1]
+    assert [module["title"] for module in write["body"]["modules"]] == ["Введение", "Итоги и рефлексия", "Практикум"]
+    assert write["body"]["modules"][1]["hours"] == "1 ак. ч." and write["body"]["price"] == 1234567

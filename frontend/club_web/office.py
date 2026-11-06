@@ -153,7 +153,7 @@ FIELDS = {
         ("duration", "Продолжительность", "text"),
         ("format", "Формат обучения", "online|offline|blended"),
         ("document", "Документ по окончании", "text"),
-        ("price", "Цена, копейки", "number"),
+        ("price", "Цена, ₽", "rubles"),
         ("start", "Начало", "text"),
         ("capacity", "Лимит мест", "limit"),
         ("enrollment", "Набор", "actual|nonactual"),

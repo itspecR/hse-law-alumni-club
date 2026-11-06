@@ -32,8 +32,16 @@ ORDER_STATUS_LABELS = {
 LEADING_SYMBOLS = re.compile(r"^[^\w«\"№(]+")
 
 
+KOPECKS_IN_RUBLE = 100
+
+
 def plain_title(value):
     return LEADING_SYMBOLS.sub("", value or "")
+
+
+def rubles_input(value):
+    rubles, kopecks = divmod(int(value or 0), KOPECKS_IN_RUBLE)
+    return f"{rubles}.{kopecks:02d}" if kopecks else str(rubles)
 
 
 def rub(value):

@@ -20,6 +20,7 @@ from club_web.formatting import (
     program_price,
     program_start,
     rub,
+    rubles_input,
     safe_url,
 )
 from club_web.icons import ICONS
@@ -47,6 +48,7 @@ def environment(**options):
     renderer = Environment(autoescape=True, **options)
     renderer.filters.update(
         rub=rub,
+        rubles_input=rubles_input,
         date=date,
         local_datetime=local_datetime,
         discount_label=discount_label,

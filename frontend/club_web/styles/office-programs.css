@@ -1,0 +1,27 @@
+.site-office .office-modules { counter-reset: module; }
+.office-modules__total { margin: 0 0 12px; font-size: 14px; color: var(--c-text-3); }
+.office-modules__total:empty { display: none; }
+.site-office .office-modules .office-module { display: block; padding: 0; counter-increment: module; }
+.office-module__head { display: flex; align-items: center; gap: 8px; }
+.site-office .office-module__toggle { flex: 1; display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 14px; min-width: 0; min-height: 56px; margin: 0; padding: 8px 0; border: 0; border-radius: 0; background: none; color: var(--c-text); font: inherit; font-size: 16px; text-align: left; cursor: pointer; }
+.office-module__number { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--lux-control); font-size: 13px; font-variant-numeric: tabular-nums; }
+.office-module__number::before { content: counter(module); }
+.office-module.is-open .office-module__number { background: var(--c-accent); color: var(--c-on-accent); }
+.office-module__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.office-module__meta { font-size: 13px; color: var(--c-text-3); white-space: nowrap; }
+.office-module__tools { display: flex; gap: 4px; }
+.site-office .office-module__tool { display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--c-text-2); }
+.site-office .office-module__tool:disabled { opacity: 0.3; cursor: default; }
+.site-office .office-modules .office-module__body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; padding: 4px 0 16px 46px; }
+.site-office .office-modules .office-module__body[hidden] { display: none; }
+.site-office .office-modules .office-module__body > button { justify-self: start; }
+
+@media (hover: hover) and (pointer: fine) {
+  .site-office .office-module__tool:not(:disabled):hover { background: var(--lux-hover); color: var(--c-text); }
+}
+
+@media (max-width: 700px) {
+  .site-office .office-modules .office-module__body { grid-template-columns: minmax(0, 1fr); padding-left: 0; }
+  .site-office .office-module__toggle { grid-template-columns: 32px minmax(0, 1fr); }
+  .office-module__meta { grid-column: 2; white-space: normal; }
+}
