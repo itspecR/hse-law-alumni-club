@@ -149,24 +149,21 @@ jobs:
         run: |
           uv sync --directory frontend --frozen
           uv run --directory frontend playwright install --with-deps chromium
-      - name: Build images and check real persistence in desktop and mobile browsers
-        run: bash scripts/tests/test-live.sh
+      - name: Build final application images
+        run: |
+          for service in api bootstrap web nginx; do
+            docker build --file "deploy/$service.Dockerfile" --build-arg "VCS_REF=$(git rev-parse HEAD)" --tag "club-ci-live-$service" .
+          done
       - name: Check final runtime image contents
         run: bash scripts/checks/check-runtime-images.sh club-ci-live-api club-ci-live-bootstrap club-ci-live-web
-      - name: Check Caddy and reachable Go vulnerabilities
-        run: docker build --file deploy/edge.Dockerfile --target edge-check --tag club-ci-edge-check .
-      - name: Check Caddy TLS and perimeter with final images
-        run: python3 scripts/tests/test-edge.py --edge-image club-ci-live-caddy --web-image club-ci-live-web --api-image club-ci-live-api
       - name: Check nginx TLS, request limits and proxy headers
-        run: |
-          docker build --file deploy/nginx.Dockerfile --build-arg "VCS_REF=$(git rev-parse HEAD)" --tag club-ci-live-nginx .
-          python3 scripts/tests/test-nginx.py --application-image club-ci-live-api --edge-image club-ci-live-nginx
+        run: python3 scripts/tests/test-nginx.py --application-image club-ci-live-api --edge-image club-ci-live-nginx
       - name: Scan application images and retain every severity
         run: |
           mkdir -m 0700 security-reports
           mkdir -m 0700 /tmp/club-image-raw
           status=0
-          for service in api bootstrap web caddy postgres nginx; do
+          for service in api bootstrap web nginx; do
             report="trivy-$service.json"
             if ! docker run --rm -v /var/run/docker.sock:/var/run/docker.sock:ro \
               -v /tmp/club-image-raw:/reports \
@@ -191,7 +188,7 @@ jobs:
           sudo systemctl stop mysql || true
           sudo DEBIAN_FRONTEND=noninteractive apt-get purge -y 'mysql-server*' 'mysql-client*' mysql-common
           sudo rm -rf /etc/mysql /var/lib/mysql
-      - name: Install, repeat and restore MariaDB on Ubuntu with local TLS
+      - name: Install, repeat and restore MariaDB on Ubuntu with local TLS and check desktop and mobile browsers
         run: CLUB_NATIVE_BROWSER=true bash scripts/tests/test-install.sh
 
   secrets:
