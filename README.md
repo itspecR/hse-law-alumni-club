@@ -452,8 +452,8 @@ sudo env ENV_FILE=/etc/club/compose.env bash scripts/preflight.sh
 sudo ./scripts/deploy.sh --current
 ```
 
-Ручной перенос прежних данных, сокет, права и проверка файлов описаны в
-[инструкции MariaDB](docs/operations/mariadb-migration.md).
+Сокет, права и файлы конфигурации описаны в
+[runbook](docs/operations/deploy-runbook.md#файлы-конфигурации-и-tls).
 
 ### Что делает deploy.sh
 
@@ -566,7 +566,7 @@ sudo rm /etc/club/alumni-password
 сертификат и ключ. Ключ доступен только root и GID 101 контейнера nginx.
 
 После обновления файлов сертификата пересоздайте nginx. Порядок, права файлов
-и проверка имени – в [инструкции MariaDB](docs/operations/mariadb-migration.md).
+и проверка имени – в [runbook](docs/operations/deploy-runbook.md#файлы-конфигурации-и-tls).
 
 ### Купленный сертификат
 
@@ -694,10 +694,6 @@ sudo env ENV_FILE=/etc/club-restore/compose.env bash scripts/deploy.sh --current
 все таблицы и файлы; рабочая база сохраняется. Внешние действия выключаются,
 письма остаются в Mailpit. Затем проверьте вход и пользовательские сценарии
 на `https://localhost:9543` с CA `/etc/club-restore/local-ca.crt`.
-
-До новых записей откат переноса – возврат прежнего PostgreSQL и прокси.
-После новых записей требуется отдельное сопоставление изменений; автоматического
-обратного импорта нет. Подробно – в [инструкции](docs/operations/mariadb-migration.md).
 
 ## Мониторинг и журналы
 

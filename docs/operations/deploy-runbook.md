@@ -46,6 +46,39 @@ env, `docker inspect` и вывод `compose config` не публикуются
 Повторный запуск мастера сохраняет конфигурацию, пароли и данные. Существующий
 каталог данных к новой установке автоматически не присоединяется.
 
+## Файлы конфигурации и TLS
+
+Мастер пишет файлы сам; вручную их меняют только по этому разделу. Все файлы
+хранятся вне checkout с правами `0600`. У API нет пароля оператора. В файле API
+задаются `APP_ENV=production`, `SEED_DEMO=false` и рабочие параметры SMTP и
+уведомлений. Подключение API имеет форму
+`mariadb://<роль-api>:<пароль>@localhost/<база>?unix_socket=/run/mysqld/mysqld.sock`;
+специальные символы имени и пароля кодируются для URL. MariaDB должна принимать TCP
+только на loopback, порт 3306 в firewall открывать не нужно.
+
+В файле оператора `DATABASE_URL` и `CHECKOUT_DATABASE_URL` указывают на аккаунт
+оператора, а `CHECKOUT_DB_USER`, `CHECKOUT_DB_HOST=localhost` и `CHECKOUT_DB_PASSWORD`
+описывают отдельный аккаунт API. Команда `configure-mariadb-role` заменяет права и
+пароль этого выделенного аккаунта; общий аккаунт другой системы для нее не подходит.
+
+| Параметр `compose.env` | Значение |
+|---|---|
+| `CLUB_RUNTIME_ENV`, `CLUB_OPERATOR_ENV` | Абсолютные пути к файлам API и оператора |
+| `CLUB_UPLOADS_DIR`, `CLUB_TRANSFER_DIR` | Каталоги файлов сайта и обмена, владелец UID 1000 |
+| `CLUB_TLS_DIR` | Каталог `fullchain.pem` и `privkey.pem` |
+| `CLUB_API_IMAGE`, `CLUB_WEB_IMAGE`, `CLUB_OPERATOR_IMAGE`, `CLUB_NGINX_IMAGE` | Образы одной ревизии |
+| `CLUB_BIND_ADDRESS`, `CLUB_HTTP_PORT`, `CLUB_HTTPS_PORT` | Адрес и порты nginx |
+| `CLUB_STATE_DIR`, `CLUB_BACKUP_DIR` | Состояние операций и каталог копий |
+
+nginx собирается через `deploy/nginx.Dockerfile` из закрепленного официального
+образа и запускается с UID/GID 101. Каталог TLS должен разрешать чтение этому GID,
+ключ – иметь владельца `root:101` и права `0640`. После замены файлов сертификата
+пересоздайте nginx. Купленный сертификат запрашивается, проверяется и заменяется
+командой `scripts/certificate.sh` ([README](../../README.md#купленный-сертификат)).
+nginx заменяет входящие заголовки адреса клиента; правила – в
+`deploy/nginx.conf.template` и
+[документации nginx](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_set_header).
+
 ## Порядок выпуска и права
 
 `scripts/deploy.sh` без аргумента получает `main` из GitHub и выкатывает его;

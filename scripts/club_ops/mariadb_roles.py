@@ -2,7 +2,7 @@ import re
 
 from django.db import connection
 
-from club_ops.database_transfer import model_tables
+from club_ops.database_tables import model_tables
 
 
 def runtime_grants(database, user, host):
