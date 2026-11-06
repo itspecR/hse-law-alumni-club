@@ -7,7 +7,7 @@ After=docker.service network-online.target
 Type=oneshot
 User=root
 WorkingDirectory=/opt/club
-Environment=ENV_FILE=/etc/club/runtime.env
+Environment=ENV_FILE=/etc/club/compose.env
 EnvironmentFile=-/etc/club/operations.env
 ExecStart=/bin/bash /opt/club/scripts/monitor.sh
 UMask=0077
