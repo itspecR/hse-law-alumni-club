@@ -71,6 +71,7 @@ COHORTS = [
     },
 ]
 COHORT_STARTS = {row["id"]: row["starts_on"] for row in COHORTS}
+DONATION_PAYMENT = "https://pay.example.test/checkout"
 
 
 def is_cart_change(response):
@@ -108,6 +109,7 @@ def site():
         "/cart": {"items": [], "subtotal": 0, "count": 0},
         "/auth/admin-session": {"role": "admin"},
         "/support/config": {"enabled": False},
+        "/donations/config": {"enabled": True, "min": 100, "max": 500000},
         "/admin/overview": {},
         "/admin/system-health": {"checks": []},
         "/admin/analytics": {"pulse": {}, "series": {}},
@@ -159,6 +161,8 @@ def site():
                     return httpx.Response(400, json={"error": "Промокод не найден."})
                 total = PORTFOLIO["price"] * body.get("participants", 1) * 85 // 100
                 return httpx.Response(200, json=PROMO_QUOTE | {"total": records.get("quote_total", total)})
+            if path == "/donations":
+                return httpx.Response(200, json={"number": "DON-2026-000001", "payment_url": DONATION_PAYMENT})
             if path.endswith("/applications") and records.get("application_failure"):
                 return httpx.Response(503, json={"error": "Временно недоступно"})
             if path.endswith("/applications"):
@@ -3184,3 +3188,38 @@ def test_portfolio_application_requires_both_consents(page, site):
     form.get_by_role("button", name="Отправить заявку", exact=True).click()
     expect(page.locator(".portfolio-receipt")).to_have_count(0)
     assert not any(write["path"].endswith("/applications") for write in site[2])
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_give_form_checks_amount_and_opens_payment(chromium, site, width):
+    context = chromium.new_context(base_url=site[0], viewport={"width": width, "height": 900})
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+    page = context.new_page()
+    page.route(
+        "https://pay.example.test/**",
+        lambda route: route.fulfill(body="<title>Оплата</title>", content_type="text/html"),
+    )
+    page.goto("/give")
+    form = page.locator("[data-give-form]")
+    expect(form.get_by_role("radio", name=re.compile("Каждый месяц"))).to_be_disabled()
+    form.get_by_role("radio", name=re.compile(r"^5\s000$")).check()
+    expect(form.locator("[data-give-label]")).to_have_text(re.compile(r"^5\s000 ₽$"))
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    other = form.get_by_label("Другая сумма, ₽")
+    other.fill("50")
+    form.get_by_label("Почта").fill("donor@example.test")
+    form.get_by_role("checkbox", name=re.compile("условия оферты")).check()
+    form.get_by_role("checkbox", name=re.compile("согласие на обработку")).check()
+    form.get_by_role("button", name=re.compile("^Пожертвовать")).click()
+    expect(form.get_by_role("alert")).to_have_text(re.compile(r"^Сумма пожертвования от 100 до 500\s000 ₽\.$"))
+    assert not [write for write in site[2] if write["path"] == "/donations"]
+    other.fill("2 500")
+    expect(form.locator("[data-give-label]")).to_have_text(re.compile(r"^2\s500 ₽$"))
+    expect(form.get_by_role("alert")).to_be_hidden()
+    form.get_by_role("button", name=re.compile("^Пожертвовать")).click()
+    page.wait_for_url(DONATION_PAYMENT)
+    [sent] = [write["body"] for write in site[2] if write["path"] == "/donations"]
+    assert (sent["amount"], sent["email"], sent["name"]) == (2500, "donor@example.test", "")
+    assert sent["consent_offer"] is True and sent["consent_pdn"] is True and sent["website"] == ""
+    assert sent["captcha"]["number"] == 7 and "period" not in sent
+    context.close()

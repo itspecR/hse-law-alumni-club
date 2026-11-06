@@ -114,6 +114,8 @@ PROFILE = {
     "achievements": [],
     "activity": [{"month": "сен", "points": 60}],
 }
+GIVE_CONFIG = {"enabled": True, "min": 100, "max": 500000}
+GIVE_CLOSED = "Прием пожертвований на&nbsp;сайте пока не&nbsp;подключен."
 ANALYTICS = {
     "pulse": {"joins": 2},
     "snapshot": {"alumni_count": 5, "alumni_verified": 4, "verified_ratio": 80},
@@ -181,6 +183,7 @@ async def browser_client():
                 "count": 2,
             },
             "/support/config": {"enabled": True, "version": "test-version", "consent": "Тестовое согласие"},
+            "/donations/config": GIVE_CONFIG,
             "/admin/overview": {"alumni_count": 1},
             "/admin/system-health": {"checks": []},
             "/admin/analytics": ANALYTICS,
@@ -1195,3 +1198,58 @@ def test_office_search_finds_promo_by_code_and_note():
     assert filter_content(rows, {"q": "spring"}) == rows[:1]
     assert filter_content(rows, {"q": "весенняя"}) == rows[:1]
     assert filter_content(rows, {"status": "disabled"}) == rows[1:]
+
+
+async def test_give_form_takes_bounds_from_server_and_waits_for_documents(browser_client):
+    page = (await browser_client.get("/give")).text
+    assert 'data-min="100" data-max="500000"' in page
+    assert "data-give-submit>" in page and GIVE_CLOSED not in page
+    assert 'value="monthly" disabled><span>Каждый месяц <small>Скоро</small>' in page
+    assert '<a href="/give/offer">' in page and '<a href="/give/consent">' in page
+    assert 'content="index,follow"' in page
+    for path in ("/give/offer", "/give/consent"):
+        document = (await browser_client.get(path)).text
+        assert "<p>Текст готовится.</p>" in document and 'content="noindex,nofollow"' in document
+
+
+@pytest.mark.parametrize(
+    ("status", "config", "closed"),
+    [(200, {"enabled": False}, True), (503, {"error": "Сервис временно недоступен"}, False)],
+)
+async def test_give_form_is_disabled_without_payments(status, config, closed):
+    async def upstream(request):
+        if request.url.path == "/donations/config":
+            return httpx.Response(status, json=config)
+        return httpx.Response(200, json=[])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            page = (await client.get("/give")).text
+    assert "data-give-submit disabled>" in page
+    assert (GIVE_CLOSED in page) is closed
+
+
+async def test_give_is_reachable_from_header_menu_footer_and_home(browser_client):
+    home = (await browser_client.get("/")).text
+    assert '<a href="/give" class="foc club-header__give" aria-label="Поддержать факультет"' in home
+    assert '<a href="/give" class="club-menu__give">Поддержать факультет</a>' in home
+    assert '<li>\n<a href="/give">Поддержать факультет</a>\n</li>' in home
+    assert '<a href="/give" class="foc lux-btn lux-btn--ghost">Поддержать факультет</a>' in home
+
+
+async def test_give_thanks_is_generic_and_hidden_from_search(browser_client):
+    page = (await browser_client.get("/give/thanks?d=DON-2026-000001")).text
+    assert "<h1" in page and "Спасибо!" in page and "DON-2026-000001" not in page
+    assert 'content="noindex,nofollow"' in page
+
+
+async def test_header_with_all_sections_switches_to_dense_layout(changes_section, browser_client):
+    page = (await browser_client.get("/news")).text
+    assert '<nav class="club-header__nav club-header__nav--dense" aria-label="Разделы">' in page
+
+
+async def test_header_with_default_sections_keeps_roomy_layout(browser_client):
+    page = (await browser_client.get("/news")).text
+    assert '<nav class="club-header__nav" aria-label="Разделы">' in page

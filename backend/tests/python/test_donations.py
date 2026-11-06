@@ -108,7 +108,7 @@ async def test_donation_starts_payment_without_receipt(database_app):
     assert re.fullmatch(r"DON-\d{4}-000001", number)
     assert sent["body"]["amount"] == {"value": "3000.00", "currency": "RUB"} and "receipt" not in sent["body"]
     assert sent["body"]["metadata"] == {"donation_number": number}
-    assert sent["body"]["confirmation"]["return_url"].endswith("/give/thanks?d=" + number)
+    assert sent["body"]["confirmation"]["return_url"].endswith("/give/thanks")
     assert sent["key"] and sent["body"]["description"] == "Пожертвование на развитие факультета права НИУ ВШЭ"
     row = await donation(app, number)
     assert (row["amount"], row["email"], row["name"]) == (300000, "donor@example.test", "Вымышленный Даритель")
@@ -204,3 +204,9 @@ async def test_deleted_profile_and_retention_forget_donor(database_app):
     rows = await app.state.database.rows("SELECT email,name,alumni_id,status FROM club_donations ORDER BY number")
     assert [(row["email"], row["name"], row["alumni_id"]) for row in rows] == [("-", None, None), ("-", None, None)]
     assert {row["status"] for row in rows} == {"succeeded"}
+
+
+async def test_sitemap_lists_give_page(database_app):
+    async with site(database_app) as client:
+        sitemap = (await client.get("/sitemap.xml")).text
+    assert "/give</loc>" in sitemap

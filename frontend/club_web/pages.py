@@ -38,6 +38,9 @@ ACHIEVEMENT_STRIP = 4
 FULL_ADMIN_ROLES = ("admin", "Administrator")
 POINT_PROGRAM_GROUPS = (("portfolio", "Программы клуба"), ("dpo", "Программы ДПО"))
 FULL_PROGRESS = 100
+GIVE_AMOUNTS = (100000, 300000, 500000, 1000000)
+GIVE_CHOSEN = 300000
+HEADER_ROOMY_LINKS = 6
 PUBLIC_PAGES = {
     "/": ("home.html", "Клуб выпускников факультета права"),
     "/tg": ("mini.html", "Клуб выпускников"),
@@ -60,6 +63,10 @@ PUBLIC_PAGES = {
     "/mailing-consent": ("legal/mailing-consent.html", "Согласие на получение рассылок"),
     "/confidential": ("legal/confidential.html", "Политика конфиденциальности"),
     "/requisites": ("legal/requisites.html", "Реквизиты"),
+    "/give": ("give.html", "Поддержать факультет"),
+    "/give/thanks": ("give-thanks.html", "Спасибо за поддержку"),
+    "/give/offer": ("legal/pending.html", "Оферта о пожертвовании"),
+    "/give/consent": ("legal/pending.html", "Согласие дарителя на обработку персональных данных"),
     "/support": ("support.html", "Поддержка клуба"),
     "/support/consent": ("legal/support.html", "Согласие на обработку данных"),
     "/portfolio-consent": ("legal/portfolio-consent.html", "Согласие на обработку персональных данных"),
@@ -258,12 +265,14 @@ def changes_items():
 
 async def context(api, path, params, authorized=False):
     template, title = select_page(path)
+    nav = navigation()
     data = {
         "template": template,
         "title": title,
         "path": path,
         "query": params,
-        "nav": navigation(),
+        "nav": nav,
+        "nav_dense": len(nav) > HEADER_ROOMY_LINKS,
         "changes_enabled": features.CHANGES_ENABLED,
         "live": live_view(path),
         "office_nav": OFFICE_NAV,
@@ -490,6 +499,9 @@ async def context(api, path, params, authorized=False):
     elif path == "/support":
         await load("support", "/support/config", {"enabled": False})
         data["faq"] = resource("faq-data.json")
+    elif path == "/give":
+        await load("donation", "/donations/config", {"enabled": False})
+        data.update(give_amounts=GIVE_AMOUNTS, give_chosen=GIVE_CHOSEN)
     elif path.startswith("/admin"):
         section = path.removeprefix("/admin/") if path != "/admin" else "overview"
         data["section"] = section

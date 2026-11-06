@@ -12,7 +12,7 @@ DONATION_TABLE = "club_donations"
 DONATION_PURPOSE = "на развитие факультета права НИУ ВШЭ"
 DONATION_DESCRIPTION = "Пожертвование " + DONATION_PURPOSE
 DONATION_CONSENTS = shared_data("legal-data.json")["donation_consents"]
-THANKS_PATH = "/give/thanks?d="
+THANKS_PATH = "/give/thanks"
 ONCE = "once"
 LOCKED_SQL = "SELECT * FROM club_donations WHERE number=%s FOR UPDATE"
 
@@ -66,7 +66,7 @@ class Donations:
 
     async def start_payment(self, donation):
         return await self.state.payments.create_donation(
-            donation["number"], donation["amount"], DONATION_DESCRIPTION, THANKS_PATH + donation["number"]
+            donation["number"], donation["amount"], DONATION_DESCRIPTION, THANKS_PATH
         )
 
     async def mark_failed(self, number):
