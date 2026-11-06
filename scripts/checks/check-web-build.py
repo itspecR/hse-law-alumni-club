@@ -4,7 +4,7 @@ from pathlib import Path
 
 def check(root):
     failures, count = [], 0
-    forbidden = ("club:mirror-podcast-demo", "mirror-alumni", "mirror-admin", "Локальный стенд · тестовые участники")
+    forbidden = ("Локальный стенд · тестовые участники",)
     for path in Path(root).rglob("*"):
         if not path.is_file():
             continue
@@ -12,8 +12,7 @@ def check(root):
         if (
             path.suffix in (".map", ".ts", ".tsx")
             or any(word in path.name for word in (".test.", ".spec."))
-            or path.name == "mirror.js"
-            or path.name.startswith((".env", "mirror-"))
+            or path.name.startswith(".env")
         ):
             failures.append(str(path))
         if path.suffix in (".html", ".js") and any(word in path.read_text() for word in forbidden):

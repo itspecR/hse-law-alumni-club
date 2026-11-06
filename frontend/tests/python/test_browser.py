@@ -1,15 +1,11 @@
-import asyncio
 import base64
-import functools
 import hashlib
 import json
 import re
 import socket
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import httpx
@@ -21,7 +17,6 @@ from test_pages import EPISODE, EVENT, NEWS, PORTFOLIO, PRODUCT, PROFILE, PROGRA
 from club_web.build import build_public
 from club_web.formatting import rub
 from club_web.main import create_app
-from club_web.mirror import export, fixtures
 from club_web.pages import OFFICE_NAV, PUBLIC_PAGES
 from club_web.views import PUBLIC
 
@@ -430,37 +425,13 @@ def test_dpo_finder_starts_and_shareable_comparison(page, site, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
 
 
-def test_dpo_mirror_picker_compare_and_stale_dates(chromium, mirror_site):
-    page = chromium.new_page(viewport={"width": 390, "height": 844})
-    errors = []
-    page.on("pageerror", lambda error: errors.append(str(error)))
-    page.goto(mirror_site + "dpo/?compare=invalid,invalid")
-    expect(page.locator("#program-compare")).to_be_hidden()
-    page.locator(".dpo-picker summary").click()
-    picker = page.locator("[data-dpo-picker]")
-    document = picker.locator("select[name='document'] option").nth(1).get_attribute("value")
-    picker.locator("select[name='document']").select_option(document)
-    picker.get_by_role("button").click()
-    visible = page.locator("[data-catalog-row]:visible")
-    assert visible.count() > 0
-    assert all(json.loads(row.get_attribute("data-catalog-row"))["document"] == document for row in visible.all())
-    picker.locator("select[name='direction']").select_option("Право")
-    picker.get_by_role("button").click()
-    expect(page.locator("[data-catalog-empty]")).to_be_visible()
-    picker.locator("select[name='direction']").select_option("")
-    picker.get_by_role("button").click()
-    visible.first.locator("[data-action='compare']").click()
-    page.reload()
-    expect(page.locator("[data-action='compare'][aria-pressed='true']")).to_have_count(1)
-    page.locator("[data-action='show-compare']").click()
-    expect(page.get_by_role("dialog", name="Сравнение программ")).to_contain_text(document)
-    page.keyboard.press("Escape")
+def test_dpo_shows_notice_when_every_start_has_passed(page, site):
+    site[1]["/programs"] = [{**PROGRAM, "dates": {"start": "24 октября 2099"}}]
     page.clock.install(time=datetime(2100, 1, 1))
-    page.reload()
+    page.goto("/dpo")
+    expect(page.locator("#main")).to_have_attribute("data-catalog-ready", "true")
     expect(page.locator("[data-program-start]:visible")).to_have_count(0)
     expect(page.locator("[data-starts-empty]")).to_be_visible()
-    assert not errors
-    page.close()
 
 
 def test_checkout_error_keeps_contacts_and_replay_key(page, site):
@@ -733,33 +704,13 @@ def test_signed_audio_link_is_renewed_once_without_autoplay(page, site):
     expect(page.get_by_role("button", name="Повторить загрузку")).to_be_visible()
 
 
-@pytest.fixture
-def mirror_site(tmp_path):
-    root = tmp_path / "club-preview"
-    data = fixtures(Path(__file__).resolve().parents[3])
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        executor.submit(lambda: asyncio.run(export(root, "/club-preview/", data))).result(timeout=30)
-
-    class Handler(SimpleHTTPRequestHandler):
-        def log_message(self, *args):
-            pass
-
-    server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Handler, directory=str(tmp_path)))
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    yield "http://127.0.0.1:" + str(server.server_port) + "/club-preview/"
-    server.shutdown()
-    thread.join(timeout=5)
-    server.server_close()
-
-
 @pytest.mark.parametrize("width", [1440, 390])
 def test_legal_pages_and_separate_form_consent(page, width):
     page.set_viewport_size({"width": width, "height": 900})
     for path in ("/terms", "/privacy", "/consent", "/confidential", "/requisites"):
         assert page.goto(path).status == 200
         expect(page.locator("main h1")).to_be_visible()
-        expect(page.locator("main")).to_contain_text("20 октября 2026 года")
+        expect(page.locator("main")).to_contain_text("6 ноября 2026 года")
         expect(page.get_by_role("navigation", name="Правовые документы")).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     assert page.goto("/mailing-consent").status == 200
@@ -786,147 +737,6 @@ def test_legal_pages_and_separate_form_consent(page, width):
     page.goto("/cart")
     expect(page.locator("input[name=consent_pdn]")).not_to_be_checked()
     expect(page.locator(".site-consent a").first).to_have_attribute("href", "/consent#order")
-
-
-@pytest.mark.parametrize("width", [1440, 390])
-def test_mirror_legal_links_keep_base_and_consent_anchor(chromium, mirror_site, width):
-    context = chromium.new_context(viewport={"width": width, "height": 900}, reduced_motion="reduce")
-    context.add_init_script("localStorage.setItem('club_cookie_consent','essential')")
-    page = context.new_page()
-    errors = []
-    page.on("pageerror", lambda error: errors.append(str(error)))
-    assert page.goto(mirror_site + "join/").status == 200
-    page.locator(".site-consent a").first.click()
-    expect(page).to_have_url(mirror_site + "consent/#registration")
-    expect(page.locator("#registration")).to_be_in_viewport()
-    page.get_by_role("navigation", name="Правовые документы").get_by_role(
-        "link", name="Пользовательское соглашение"
-    ).click()
-    expect(page).to_have_url(mirror_site + "terms/")
-    expect(page.locator("main")).to_contain_text("Демонстрационное зеркало")
-    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-    assert not errors
-    context.close()
-
-
-@pytest.mark.parametrize("width", [1440, 390, 360])
-def test_mirror_mobile_preview_navigation_and_exit(chromium, mirror_site, width):
-    context = chromium.new_context(viewport={"width": width, "height": 844}, reduced_motion="reduce")
-    context.add_init_script(
-        "localStorage.setItem('club_cookie_consent','essential'); Object.defineProperty(navigator,'serviceWorker',{value:undefined});"
-    )
-    page = context.new_page()
-    errors, telegram, writes = [], [], []
-    page.on("pageerror", lambda error: errors.append(str(error)))
-    page.on("request", lambda request: telegram.append(request.url) if "telegram.org" in request.url else None)
-    page.on("request", lambda request: writes.append(request.url) if request.method not in ("GET", "HEAD") else None)
-    page.goto(mirror_site)
-    page.get_by_role("navigation", name="Демоверсия").get_by_role("link", name="Мобильный просмотр", exact=True).click()
-    expect(page).to_have_url(mirror_site + "tg/?pwa=1")
-    expect(page.locator("html")).to_have_class(re.compile("pwa-shell"))
-    expect(page.locator("[data-mini-preview]")).to_have_text("Мобильный просмотр")
-    assert page.locator("#site-stage").bounding_box()["width"] == min(width, 430)
-    for label, path in (("ДПО", "dpo"), ("Новости", "news"), ("Мерч", "merch"), ("Кабинет", "lk"), ("Клуб", "tg")):
-        page.get_by_role("navigation", name="Основные разделы").get_by_role("link", name=label, exact=True).click()
-        expect(page).to_have_url(re.compile(re.escape(mirror_site + path) + r"/?$"))
-        expect(page.locator("#main")).to_be_visible()
-        expect(page.locator("html")).to_have_class(re.compile("pwa-shell"))
-        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), path
-    page.get_by_role("navigation", name="Демоверсия").get_by_role("link", name="Панель управления").click()
-    expect(page.locator(".office-page-header")).to_be_visible()
-    expect(page.locator("html")).not_to_have_class(re.compile("pwa-shell|telegram-mini"))
-    assert page.locator(".site-office").bounding_box()["width"] == width
-    page.get_by_role("link", name="На сайт", exact=True).click()
-    expect(page).to_have_url(mirror_site)
-    page.wait_for_load_state("load")
-    page.reload()
-    expect(page.locator("html")).to_have_class(re.compile("pwa-shell"))
-    page.get_by_role("navigation", name="Демоверсия").get_by_role("link", name="Обычный сайт").click()
-    expect(page).to_have_url(mirror_site + "?site=1")
-    expect(page.locator("html")).not_to_have_class(re.compile("pwa-shell|telegram-mini"))
-    expect(page.locator(".lux-hero")).to_be_visible()
-    page.get_by_role("navigation", name="Демоверсия").get_by_role("link", name="Панель управления").click()
-    expect(page.locator(".office-page-header")).to_be_visible()
-    assert (
-        page.locator(".office-brand-row").bounding_box()["y"] >= page.locator(".site-notice").bounding_box()["height"]
-    )
-    if width <= 900:
-        page.get_by_role("button", name="Разделы панели", exact=True).click()
-    expect(page.get_by_role("button", name="Выйти", exact=True)).to_be_in_viewport()
-    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
-    assert not errors and not telegram and not writes
-    context.close()
-
-
-@pytest.mark.parametrize("width", [1440, 390])
-def test_mirror_office_sections_have_no_loading_errors(chromium, mirror_site, width):
-    context = chromium.new_context(viewport={"width": width, "height": 1000})
-    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
-    page = context.new_page()
-    for key, _ in OFFICE_NAV:
-        path = "admin/" if key == "overview" else "admin/" + key + "/"
-        assert page.goto(mirror_site + path).status == 200
-        expect(page.locator(".office-page-header")).to_be_visible()
-        expect(page.locator(".site-errors")).to_have_count(0)
-        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), path
-    expect(page.locator("#main")).to_contain_text("Статистика обращений доступна в рабочей панели управления")
-    context.close()
-
-
-def test_mirror_preserves_filters_cart_calendar_and_subscription(chromium, mirror_site):
-    context = chromium.new_context(viewport={"width": 390, "height": 1000})
-    context.add_init_script(
-        "Object.defineProperty(navigator,'serviceWorker',{value:undefined}); localStorage.setItem('club_cookie_consent','essential');"
-    )
-    page = context.new_page()
-    errors, writes = [], []
-    page.on("pageerror", lambda error: errors.append(str(error)))
-    page.on("request", lambda request: writes.append(request.url) if request.method not in ("GET", "HEAD") else None)
-    page.route("https://telegram.org/**", lambda route: route.abort())
-    page.goto(mirror_site + "dpo/")
-    page.get_by_role("searchbox", name="Поиск", exact=True).fill("несуществующая программа")
-    page.get_by_role("button", name="Показать", exact=True).click()
-    expect(page.locator("[data-catalog-row]:visible")).to_have_count(0)
-    page.get_by_role("searchbox", name="Поиск", exact=True).fill("")
-    page.get_by_role("button", name="Показать", exact=True).click()
-    page.goto(mirror_site + "merch/hoodie-faculty/")
-    page.get_by_label("Размер и цвет").select_option("hoodie-graphite-M")
-    page.get_by_role("button", name="В корзину", exact=True).click()
-    expect(page.locator("[data-cart-count]").first).to_have_text("1")
-    page.goto(mirror_site + "cart/")
-    expect(page.locator("[data-mirror-cart] article")).to_have_count(1)
-    page.reload()
-    expect(page.locator("[data-mirror-cart] article")).to_have_count(1)
-    page.get_by_role("button", name="Удалить", exact=True).click()
-    expect(page.locator("[data-mirror-cart]")).to_contain_text("В корзине пока ничего нет")
-    page.goto(mirror_site + "events/?month=2024-02")
-    expect(page.locator(".site-calendar h2")).to_contain_text("2024")
-    assert page.locator(".site-calendar-grid > div > span").count() == 29
-    page.get_by_role("link", name="Следующий месяц", exact=True).click()
-    expect(page.locator(".site-calendar h2")).to_contain_text("март")
-    page.goto(mirror_site + "podcasts/mirror-pod-volos/")
-    expect(page.locator(".site-player")).not_to_be_visible()
-    page.get_by_role("button", name="Проверить как подписчик", exact=True).click()
-    expect(page.locator(".site-player")).to_be_visible()
-    expect(page.locator("audio source")).to_have_attribute("type", "audio/mpeg")
-    assert page.locator("audio").evaluate("audio => audio.paused")
-    page.get_by_role("button", name="Выключить деморежим подписчика", exact=True).click()
-    expect(page.locator(".site-player")).not_to_be_visible()
-    page.goto(mirror_site + "admin/programs/")
-    page.get_by_role("searchbox", name="Поиск", exact=True).fill("Цифровое право для бизнеса")
-    page.locator("form.site-filters").get_by_label("Статус", exact=True).select_option("published")
-    page.get_by_role("button", name="Показать", exact=True).click()
-    expect(page.locator("[data-office-row]:visible")).to_have_count(1)
-    page.get_by_role("button", name="Обновить", exact=True).click()
-    expect(page.locator("[data-office-count]")).to_contain_text("Показано: 1 из")
-    page.reload()
-    expect(page.locator("[data-office-row]:visible")).to_have_count(1)
-    page.get_by_role("searchbox", name="Поиск", exact=True).fill("Несуществующая программа")
-    page.get_by_role("button", name="Показать", exact=True).click()
-    expect(page.locator("[data-office-empty]")).to_be_visible()
-    assert not errors and not writes
-    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
-    context.close()
 
 
 def test_service_worker_does_not_cache_private_pages_or_api(chromium, site):
@@ -1242,39 +1052,6 @@ def test_changes_filters_reader_back_and_copy_fallback(changes_section, page, wi
     expect(page.locator('[data-change-open="' + target + '"]')).to_be_focused()
 
 
-def test_mirror_changes_search_reading_and_dialog_are_independent(changes_section, chromium, mirror_site):
-    context = chromium.new_context(viewport={"width": 1440, "height": 1000})
-    context.add_init_script("localStorage.setItem('club_cookie_consent','essential')")
-    page = context.new_page()
-    errors = []
-    page.on("pageerror", lambda error: errors.append(str(error)))
-    page.goto(mirror_site + "changes/?view=all")
-    expect(page.locator("[data-change-row]:visible")).to_have_count(20)
-    page.get_by_role("link", name="Поиск", exact=True).first.click()
-    dialog = page.locator("#search-dialog")
-    dialog.get_by_role("searchbox").fill("коллекторов")
-    expect(dialog.locator("[data-search-results]")).to_contain_text("Готовится / изменяется")
-    dialog.get_by_role("button", name="Закрыть поиск").click()
-    page.get_by_role("button", name="Показать", exact=True).click()
-    expect(page.locator("[data-change-row]:visible")).to_have_count(20)
-    page.locator("[data-change-row]:visible").first.get_by_role("button", name="Сохранить", exact=True).click()
-    expect(page.locator("[data-change-row]:visible")).to_have_count(20)
-    page.locator("[data-change-row]:visible").first.get_by_role(
-        "button", name="Отметить прочитанным", exact=True
-    ).click()
-    read = page.locator("[data-change-row]:visible").first.get_attribute("data-reading-path")
-    page.get_by_role("checkbox", name="Только непрочитанные в этом браузере").check()
-    expect(page.locator('[data-reading-path="' + read + '"]')).not_to_be_visible()
-    expect(page.locator("[data-change-row]:visible")).to_have_count(20)
-    page.get_by_role("searchbox", name="Название, номер или ключевые слова").fill("коллекторов")
-    page.get_by_role("button", name="Показать", exact=True).click()
-    expect(page.locator("[data-changes-count]")).to_have_text("Найдено: 0")
-    page.get_by_role("checkbox", name="Только непрочитанные в этом браузере").uncheck()
-    expect(page.locator("[data-change-row]:visible")).to_have_count(1)
-    assert not errors
-    context.close()
-
-
 def test_changes_reader_navigation_preserves_list_return(changes_section, page):
     open_changes(page, "/changes?view=all")
     open_change(page, page.locator("[data-change-open]").first)
@@ -1293,21 +1070,6 @@ def test_changes_return_focuses_item_opened_before_scripts(changes_section, page
     expect(page.locator(".changes-page--reading[data-prepared]")).to_be_attached()
     page.get_by_role("link", name="← Все материалы", exact=True).click()
     expect(page.locator('[data-change-open="' + identifier + '"]')).to_be_focused()
-
-
-def test_mirror_reader_back_restores_focus(changes_section, chromium, mirror_site):
-    context = chromium.new_context(viewport={"width": 1440, "height": 1000})
-    context.add_init_script("localStorage.setItem('club_cookie_consent','essential')")
-    page = context.new_page()
-    page.goto(mirror_site + "changes/?view=all&sort=oldest")
-    link = page.locator("[data-change-open]:visible").first
-    identifier = link.get_attribute("data-change-open")
-    link.click()
-    page.get_by_role("link", name="← Все материалы", exact=True).click()
-    expect(page.locator('[data-change-open="' + identifier + '"]')).to_be_focused()
-    page.evaluate("document.dispatchEvent(new CustomEvent('club-reading-updated', {detail:{read:[]}}))")
-    expect(page.locator('[data-change-open="' + identifier + '"]')).to_be_focused()
-    context.close()
 
 
 @pytest.mark.parametrize("width", [390, 1440])

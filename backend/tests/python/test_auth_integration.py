@@ -133,7 +133,7 @@ async def test_registration_confirmation_and_secret_projection(database_app):
         consents = await app.state.database.rows(
             "SELECT consent_version,consent_at FROM alumni WHERE user_id=%s", (user["id"],)
         )
-        assert consents[0]["consent_version"] == "2026-10-20"
+        assert consents[0]["consent_version"] == "2026-11-06"
         assert consents[0]["consent_at"]
         previous = await app.state.database.rows(
             "SELECT consent_version FROM alumni WHERE id=%s", (previous_alumni_id,)

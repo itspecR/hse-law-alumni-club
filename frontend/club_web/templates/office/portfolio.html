@@ -3,7 +3,7 @@
 <div class="office-programs">
 {% for program in rows %}
 {% set editor='/admin/portfolio?id='~program.id %}
-<article class="office-program" {% if mirror %}data-office-row="{{ {'title':program.title,'status':program.status|default(''),'direction':program.direction|default('')}|tojson|forceescape }}"{% endif %}>
+<article class="office-program">
 <a class="office-program__media" href="{{ editor }}" tabindex="-1" aria-hidden="true">
 {% if program.cover|media %}<img src="{{ program.cover|media }}" alt="" loading="lazy" decoding="async" width="560" height="320">{% else %}<span class="office-program__mark">{{ icon('portfolio') }}{% if program.direction %}<small>{{ program.direction }}</small>{% endif %}</span>{% endif %}
 </a>
@@ -21,5 +21,5 @@
 </div>
 </article>
 {% else %}{{ empty('По выбранным фильтрам программ нет.' if query.get('q') or query.get('status') else 'Программ пока нет.') }}{% endfor %}
-{% if mirror and rows %}<p class="site-empty" role="status" data-office-empty hidden>По выбранным фильтрам программ нет.</p>{% endif %}
+
 </div>

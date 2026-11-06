@@ -37,14 +37,13 @@ def check(mode):
             assert not any(
                 part in ("tests", "__pycache__", ".venv", "browser", "styles", "node_modules") for part in path.parts
             ), str(path)
-            assert not path.name.startswith((".env", "mirror-", "._")), str(path)
+            assert not path.name.startswith((".env", "._")), str(path)
     if mode == "api":
         assert not (root / "club_ops").exists()
         assert not list((root / "club_api").rglob("*catalog*.json"))
         assert not list((root / "club_api").rglob("*demo*.json"))
     if mode == "web":
-        assert not (root / "club_web/public/assets/mirror.js").exists()
-        for file in ("build.pyc", "mirror.pyc", "sync_changes.pyc"):
+        for file in ("build.pyc", "sync_changes.pyc"):
             assert not (root / "club_web" / file).exists(), file
         assert (root / "club_web/templates/base.html").is_file()
         assert (root / "club_web/public/assets/site.js").is_file()

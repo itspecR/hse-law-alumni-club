@@ -54,7 +54,7 @@ def built_assets(destination, version):
     return files
 
 
-def build_public(destination, *, mirror=False):
+def build_public(destination):
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=True)
     source = ROOT.parent / "public"
@@ -64,8 +64,6 @@ def build_public(destination, *, mirror=False):
         shutil.copytree(source, destination, dirs_exist_ok=True)
     assets = destination / "assets"
     assets.mkdir(exist_ok=True)
-    if not mirror:
-        (assets / "mirror.js").unlink(missing_ok=True)
     styles = ROOT / "styles"
     files = [
         styles / "tokens.css",
@@ -81,12 +79,7 @@ def build_public(destination, *, mirror=False):
         "\n".join(responsive_css(path.read_text(encoding="utf-8")) for path in files), encoding="utf-8"
     )
     for browser_file in (ROOT / "browser").glob("*.js"):
-        if (
-            browser_file.name.startswith(".")
-            or browser_file.name == "service-worker.js"
-            or browser_file.name == "mirror.js"
-            and not mirror
-        ):
+        if browser_file.name.startswith(".") or browser_file.name == "service-worker.js":
             continue
         shutil.copyfile(browser_file, assets / browser_file.name)
     version = compute_version(destination)

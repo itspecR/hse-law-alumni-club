@@ -43,10 +43,6 @@ export function prepareMini(path, url) {
   } catch {}
   if (document.documentElement.classList.contains("pwa-shell")) {
     document.querySelectorAll("[data-mini-preview]").forEach(node => { node.textContent = "Мобильный просмотр"; });
-    document.querySelectorAll("[data-mobile-preview]").forEach(node => {
-      node.textContent = "Обычный сайт";
-      node.href = url("?site=1");
-    });
   }
   if (!preview && !window.Telegram?.WebApp?.initData) return;
   document.documentElement.classList.add("telegram-mini");

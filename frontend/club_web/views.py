@@ -104,7 +104,7 @@ async def render_page(request, path, *, fragment):
         return JsonResponse({"error": "Сессия завершилась. Войдите снова."}, status=401)
     if data.get("redirect"):
         return HttpResponseRedirect(data["redirect"])
-    data.update(request=request, fragment=fragment, base="/", mirror=False, asset_version=published_version(PUBLIC))
+    data.update(request=request, fragment=fragment, base="/", asset_version=published_version(PUBLIC))
     data["offline_reading"] = can_save_page(
         "/" + path, request.GET, data, fragment=fragment, authorized="authorization" in supplied
     )

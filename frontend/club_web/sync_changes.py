@@ -11,7 +11,6 @@ import httpx
 from club_web.changes import CHANNEL, parse_changes, source_url, valid_instant
 
 FEED = f"https://t.me/s/{CHANNEL}"
-PUBLISHED = "https://bogolubov-creator.github.io/club-pravo-hse-mirror/data/changes.json"
 MAX_BYTES = 2_000_000
 MAX_PAGES = 10
 IGNORED = {"script", "style", "iframe", "object", "svg"}
@@ -192,7 +191,7 @@ def parse_feed(html):
 
 
 async def fetch_text(url):
-    if url != PUBLISHED and not re.fullmatch(r"https://t\.me/s/LegisDigest(?:\?before=[1-9]\d{0,11})?", url):
+    if not re.fullmatch(r"https://t\.me/s/LegisDigest(?:\?before=[1-9]\d{0,11})?", url):
         raise ValueError("unexpected_fetch_url")
     async with httpx.AsyncClient(timeout=25, follow_redirects=False) as client:
         async with client.stream("GET", url) as response:
@@ -255,11 +254,8 @@ async def synchronize(previous, now, get=fetch_text):
 async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument("--previous-published", action="store_true")
     args = parser.parse_args()
-    previous = parse_changes(
-        json.loads(await fetch_text(PUBLISHED) if args.previous_published else args.output.read_text(encoding="utf-8"))
-    )
+    previous = parse_changes(json.loads(args.output.read_text(encoding="utf-8")))
     result = await synchronize(previous, datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z"))
     temporary = args.output.with_suffix(".json.tmp")
     temporary.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

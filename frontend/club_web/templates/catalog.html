@@ -64,7 +64,7 @@
 <p role="status">Найдено: {{ items|length }}</p>
 <div class="site-catalog">
 {% for item in items %}
-<article class="site-catalog-card" data-reveal data-catalog-row='{{ {"title":item.title,"direction":item.direction or "","format":item.format or "","enrollment":item.enrollment or "","category":item.category or "","price":item.price,"document":item.document or ""}|tojson }}'>
+<article class="site-catalog-card" data-reveal data-catalog-row>
 {% set image = item.cover if kind=='dpo' else (item.images or [])|first %}
 {% set href = item.source_url|safe_url if kind=='dpo' else '/'+kind+'/'+item.slug %}
 {% set outside = ' target="_blank" rel="noopener noreferrer"' if kind=='dpo' else '' %}

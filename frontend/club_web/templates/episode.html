@@ -7,9 +7,9 @@
 <h1>{{ item.title }}</h1>
 <p>{{ item.description or '' }}</p>
 </header>
-{% if item.audio_url|safe_url or mirror %}
-<section class="site-player" data-episode="{{ item.id }}" {% if mirror and not item.is_free %}data-mirror-paid hidden{% endif %}>
-<audio controls preload="none"><source src="{{ item.audio_url|safe_url }}" {% if mirror %}data-mirror-audio="{{ item.demo_audio_url|safe_url }}" type="audio/mpeg"{% endif %}>
+{% if item.audio_url|safe_url %}
+<section class="site-player" data-episode="{{ item.id }}">
+<audio controls preload="none"><source src="{{ item.audio_url|safe_url }}">
 </audio>
 <div class="site-actions">
 <button data-action="audio-back">−15 секунд</button>
@@ -32,7 +32,7 @@
 <a href="/lk?next=/podcasts%23podcast-subscription">Войти</a>
 </div>
 {% endif %}
-{% if mirror and not item.is_free %}<div data-mirror-locked><p>В демоверсии подписка не оформляется и оплата не проводится.</p><button data-mirror-subscription>Проверить как подписчик</button></div>{% endif %}
+
 {% if item.video_url %}
 <button data-action="video" data-video="{{ item.video_url|safe_url }}">Смотреть видео на RuTube</button>
 {% endif %}{{ save(path,item.title,'podcasts') }}</main>

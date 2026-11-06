@@ -74,10 +74,8 @@ pre{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}
 #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);padding:14px 20px;z-index:1000;background:var(--c-bg-inverse);color:var(--c-text-inverse);border-radius:var(--r-md)}
 #site-dialog{max-width:900px;width:calc(100% - 32px);max-height:90dvh;border:1px solid var(--c-line-control);border-radius:var(--r-lg);padding:24px}
 #site-dialog::backdrop{background:rgb(0 0 0/.55)}
-.site-notice,.offline-notice{padding:12px 20px;background:var(--c-bg-sunken);text-align:center}
+.offline-notice{padding:12px 20px;background:var(--c-bg-sunken);text-align:center}
 .offline-notice button{margin:8px 0 0 12px;min-height:44px}
-.site-notice nav{display:flex;justify-content:center;flex-wrap:wrap;gap:0 16px;font-size:14px}
-.site-notice nav a{display:inline-flex;align-items:center;min-height:44px}
 .legal h2{margin-top:32px}
 .legal ul,.legal ol{padding-left:24px}
 @media(max-width:1000px){.site-catalog{grid-template-columns:repeat(2,minmax(0,1fr))}.site-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}

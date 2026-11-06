@@ -9,7 +9,7 @@
 <section class="site-panel" id="podcast-subscription">
 <h2>Подписка на год</h2>
 <p>{{ domain.limits.podcast_year_price|rub }} · 12 месяцев</p>
-{% if mirror %}<p>В демоверсии подписка не оформляется и оплата не проводится.</p><button data-mirror-subscription>Проверить как подписчик</button>{% elif podcasts.subscribed %}
+{% if podcasts.subscribed %}
 <p role="status">Подписка активна до {{ podcasts.sub_until|date }}.</p>
 <p>Продление добавит 12 месяцев к текущему сроку подписки.</p>
 <button class="site-primary" data-api="/podcasts/subscribe" data-member-action>Продлить на год</button>

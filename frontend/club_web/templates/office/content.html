@@ -11,7 +11,7 @@
 </div>
 <div class="office-list">
 {% for record in rows %}
-<article class="site-panel office-record" {% if mirror %}data-office-row="{{ {'title':record.title or record.fio or record.code,'status':record.status|default(''),'direction':record.direction|default(''),'category':record.category|default(''),'year':record.year|default('')}|tojson|forceescape }}"{% endif %}>
+<article class="site-panel office-record">
 <div class="office-record-head">
 <h2>{{ record.title or record.fio or record.code }}</h2>
 {{ status(record.status) }}
@@ -28,7 +28,7 @@
 </div>
 </article>
 {% else %}{{ empty('По выбранным фильтрам записей нет.' if query.get('q') or query.get('status') else 'Записей пока нет.') }}{% endfor %}
-{% if mirror and rows %}<p class="site-empty" role="status" data-office-empty hidden>По выбранным фильтрам записей нет.</p>{% endif %}
+
 </div>
 {% if roster %}
 <section class="site-panel"><h2>Участники события</h2>

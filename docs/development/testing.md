@@ -158,8 +158,7 @@ bash scripts/checks/check-runtime-images.sh API_IMAGE BOOTSTRAP_IMAGE WEB_IMAGE
 
 Собственные Python-пакеты поставляются как `.pyc` и необходимые JSON; web
 добавляет Jinja2-шаблоны и публичные CSS, JavaScript, изображения и шрифты.
-API не содержит каталога bootstrap и демозаписей. Web не содержит экспортёра
-зеркала, его данных и браузерного помощника. Сторонние библиотеки и их лицензии
+API не содержит каталога bootstrap и демозаписей. Сторонние библиотеки и их лицензии
 сохраняются. Node, npm, pnpm, uv, pip, pytest и линтеры в runtime отсутствуют.
 UID приложения – 1000.
 
