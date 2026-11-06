@@ -1,0 +1,48 @@
+{% from 'office/forms.html' import field_control with context %}
+{% if program is none %}
+<div class="site-panel office-program-missing">{{ empty('Программа не найдена: возможно, ее удалили.') }}<a class="site-primary" href="/admin/portfolio">К списку программ</a></div>
+{% else %}
+<div class="program-editor" data-program-editor>
+<nav class="program-editor__nav" aria-label="Блоки программы">
+{% for anchor,heading,fields in office_blocks %}<a href="#{{ anchor }}" data-block-link>{{ heading }}</a>{% endfor %}
+</nav>
+<form id="program-form" class="program-editor__layout" data-api="/admin/portfolio{{ '/'~program.id if program.id }}" data-method="{{ 'PATCH' if program.id else 'POST' }}"{% if not program.id %} data-open-record="/admin/portfolio?id="{% endif %}>
+<div class="program-editor__blocks">
+{% for anchor,heading,fields in office_blocks %}
+<section class="program-editor__block" id="{{ anchor }}" aria-labelledby="{{ anchor }}-title">
+<h2 id="{{ anchor }}-title">{{ heading }}</h2>
+<div class="program-editor__fields">
+{% for name,label,kind in fields %}{{ field_control(name,label,kind,program) }}{% endfor %}
+</div>
+</section>
+{% endfor %}
+</div>
+<aside class="program-editor__side" aria-label="Карточка и сохранение">
+<p class="program-editor__caption">Карточка на сайте</p>
+<article class="program-card office-program-preview" data-program-preview aria-hidden="true">
+<div class="office-program-preview__media">{% if program.cover|media %}<img src="{{ program.cover|media }}" alt="" width="560" height="320">{% else %}<span class="office-program__mark">{{ icon('portfolio') }}</span>{% endif %}</div>
+<div class="office-program-preview__body">
+<p class="program-status{{ ' program-status--open' if program.enrollment!='nonactual' }}" data-preview="enrollment">{{ labels.get(program.enrollment or 'actual') }}</p>
+<span class="club-caps" data-preview="direction">{{ program.direction or '' }}</span>
+<h3 data-preview="title" data-empty="Название программы">{{ program.title or 'Название программы' }}</h3>
+<p class="office-meta" data-preview="facts">{{ [format_labels.get(program.format,program.format)|capitalize if program.format,program.duration]|select|join(' · ') }}</p>
+<p class="site-price" data-preview="price" data-pending="{{ price_pending }}">{{ program.price|price_or_pending }}</p>
+</div>
+</article>
+<div class="program-editor__save">
+<p class="program-editor__state" data-program-state aria-live="polite">{{ 'Изменений нет' if program.id else 'Программа еще не создана' }}</p>
+<button class="site-primary">{{ 'Сохранить' if program.id else 'Создать программу' }}</button>
+<p role="alert" data-error hidden></p>
+</div>
+{% if program.status=='published' and program.slug %}<a class="program-editor__site" href="/portfolio/{{ program.slug }}" target="_blank" rel="noopener noreferrer">Открыть на сайте ↗</a>{% endif %}
+</aside>
+</form>
+{% if program.id %}
+<section class="site-panel program-editor__danger" aria-labelledby="program-danger-title">
+<h2 id="program-danger-title">Удаление программы</h2>
+<p>Программу с заявками удалить нельзя: переведите ее в архив в блоке «Публикация».</p>
+<button class="site-danger" data-api="/admin/portfolio/{{ program.id }}" data-method="DELETE" data-next="/admin/portfolio" data-confirm="Удалить программу? Программу с заявками удалить нельзя, вместо этого переведите ее в архив.">Удалить программу</button>
+</section>
+{% endif %}
+</div>
+{% endif %}

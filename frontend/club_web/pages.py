@@ -26,6 +26,7 @@ from club_web.office import (
     choice_sources,
     cohort_options,
     filter_content,
+    portfolio_blocks,
     section_records,
     status_values,
     visible_groups,
@@ -43,6 +44,10 @@ GIVE_AMOUNTS = (100000, 300000, 500000, 1000000)
 GIVE_CHOSEN = 300000
 HEADER_ROOMY_LINKS = 6
 FORBIDDEN = 403
+NEW_RECORD = "new"
+PROGRAM_EDITOR_LEDE = (
+    "Карточка программы показывает, как она будет выглядеть на сайте. Изменения появятся на сайте после сохранения."
+)
 PUBLIC_PAGES = {
     "/": ("home.html", "Клуб выпускников факультета права"),
     "/tg": ("mini.html", "Клуб выпускников"),
@@ -257,6 +262,20 @@ def recent_changes():
     return select_changes(snapshot["items"], {"view": "digest" if snapshot["mode"] == "channel" else "all"})[
         :HOME_CHANGES
     ]
+
+
+def portfolio_editor(data, record_id):
+    if not record_id:
+        return
+    program = {} if record_id == NEW_RECORD else next((row for row in data["rows"] if row.get("id") == record_id), None)
+    data.update(
+        office_template="office/portfolio-editor.html",
+        office_parent=dict(OFFICE_NAV)["portfolio"],
+        office_lede=PROGRAM_EDITOR_LEDE,
+        office_blocks=portfolio_blocks(),
+        program=program,
+        title=(program or {}).get("title") or ("Новая программа" if program == {} else "Программа не найдена"),
+    )
 
 
 def office_denied(path, status):
@@ -553,6 +572,8 @@ async def context(api, path, params, authorized=False):
                 if params.get("id") and section == "members" and data["role"] in FULL_ADMIN_ROLES:
                     await load("point_history", "/admin/members/" + quote(params["id"], safe="") + "/points", {})
                 data["rows"] = section_records(section, page_items(data.get("records")), data["office_names"])
+                if section == "portfolio":
+                    portfolio_editor(data, params.get("id"))
                 if section in FIELDS:
                     data["office_total"] = len(data["rows"])
                     data["rows"] = filter_content(data["rows"], params)

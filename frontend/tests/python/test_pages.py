@@ -223,6 +223,7 @@ async def browser_client():
             "/support/config": {"enabled": True, "version": "test-version", "consent": "Тестовое согласие"},
             "/donations/config": GIVE_CONFIG,
             "/admin/donations": DONATIONS_PAGE,
+            "/admin/portfolio": [PORTFOLIO],
             "/admin/overview": {"alumni_count": 1},
             "/admin/system-health": {"checks": []},
             "/admin/analytics": ANALYTICS,
@@ -1330,3 +1331,22 @@ def test_rubles_input_keeps_exact_kopecks():
         "1234567.89",
         "0.05",
     ]
+
+
+async def test_program_editor_pages_for_existing_new_and_missing_program(browser_client):
+    existing = (await browser_client.get("/views/admin/portfolio?id=club-1", headers=ADMIN)).text
+    assert 'data-api="/admin/portfolio/club-1" data-method="PATCH"' in existing
+    assert '<a href="/admin/portfolio">Портфель программ</a>' in existing and "office-page-header--record" in existing
+    assert 'data-action="refresh"' not in existing.split('id="main"', 1)[1].split("</header>", 1)[0]
+    assert 'data-method="DELETE" data-next="/admin/portfolio"' in existing
+    assert [
+        block in existing
+        for block in ('id="program-main"', 'id="program-about"', 'id="program-course"', 'id="program-publish"')
+    ] == [True] * 4
+    created = (await browser_client.get("/views/admin/portfolio?id=new", headers=ADMIN)).text
+    assert 'data-method="POST" data-open-record="/admin/portfolio?id="' in created
+    assert ">Создать программу</button>" in created and "Удаление программы" not in created
+    missing = (await browser_client.get("/views/admin/portfolio?id=unknown", headers=ADMIN)).text
+    assert "Программа не найдена: возможно, ее удалили." in missing and "data-program-editor" not in missing
+    listing = (await browser_client.get("/views/admin/portfolio", headers=ADMIN)).text
+    assert 'href="/admin/portfolio?id=new">' in listing and 'href="/admin/portfolio?id=club-1">Открыть</a>' in listing
