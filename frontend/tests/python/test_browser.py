@@ -946,18 +946,24 @@ def test_service_worker_does_not_cache_private_pages_or_api(chromium, site):
     context.close()
 
 
+SAVED_OFFLINE_PAGE = """async path => {
+    const keys = (await caches.keys()).filter(key => key.endsWith('-pages'));
+    for (const key of keys) {
+        const response = await (await caches.open(key)).match(new URL(path, location.origin));
+        if (response?.headers.get('X-Club-Saved-At')) return true;
+    }
+    return false;
+}"""
+OFFLINE_SAVE_POLLS = 100
+OFFLINE_SAVE_POLL_MS = 100
+
+
 def wait_for_offline_page(page, path):
-    page.wait_for_function(
-        """async path => {
-            const keys = (await caches.keys()).filter(key => key.endsWith('-pages'));
-            for (const key of keys) {
-                const response = await (await caches.open(key)).match(new URL(path, location.origin));
-                if (response?.headers.get('X-Club-Saved-At')) return true;
-            }
-            return false;
-        }""",
-        arg=path,
-    )
+    for _ in range(OFFLINE_SAVE_POLLS):
+        if page.evaluate(SAVED_OFFLINE_PAGE, path):
+            return
+        page.wait_for_timeout(OFFLINE_SAVE_POLL_MS)
+    raise AssertionError("Нет офлайн-копии " + path)
 
 
 @pytest.mark.parametrize("width", [390, 1440])
