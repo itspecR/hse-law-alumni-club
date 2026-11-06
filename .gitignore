@@ -8,8 +8,6 @@ dist/
 .DS_Store
 .pnpm-store/
 frontend/dist/
-caddy_data/
-caddy_config/
 design-export/
 .superdesign/
 .impeccable/

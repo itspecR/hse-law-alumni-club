@@ -12,7 +12,6 @@
 | [Структура проекта](development/repository-structure.md) | Каталоги, предметные модули и правила размещения файлов |
 | [Контекст](development/context.md) | Короткий порядок знакомства с кодом и решениями |
 | [Выбор CMS](decisions/cms-options.md) | Решение владельца и исследование от 29 сентября 2026 года |
-| [Сборка Caddy](decisions/caddy-dependencies.md) | Актуальные Go-модули, официальные backport-правки и проверки TLS |
 | [Переход на Django](decisions/django-migration.md) | Python, совместимость API и данных, обновление и откат |
 | [Конфигурация](development/configuration.md) | Переменные, секреты и этапы применения |
 | [Безопасность](development/security.md) | Реализованные ограничения и границы проверки |
@@ -28,7 +27,6 @@
 | [Запуск на домене](operations/launch.md) | Домен, VPS, купленный сертификат, Яндекс 360 и проверки первого запуска |
 | [Runbook Ubuntu](operations/deploy-runbook.md) | Установка, обновление, копирование, восстановление и мониторинг |
 | [Перенос в MariaDB](operations/mariadb-migration.md) | Django ORM, импорт, отдельный контур nginx и порядок отката |
-| [Изолированная Ubuntu-репетиция](operations/ubuntu-vm-rehearsal.md) | Подготовка VM и проверка без внешних операций |
 | [Ресурсы и нагрузка](operations/capacity.md) | Измерения, объёмы и допущения планирования |
 | [Персональные данные](product/152fz-compliance.md) | Технические механизмы и проверки владельца перед запуском |
 

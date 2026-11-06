@@ -14,7 +14,6 @@ from mariadb_common import (
     Context,
     certificate_current,
     output,
-    read_env,
     record,
     revision,
     sql,
@@ -166,9 +165,7 @@ def deploy(context):
 
 def main():
     parser = argparse.ArgumentParser(description="Обслуживание MariaDB/nginx")
-    parser.add_argument(
-        "command", choices=("detect", "preflight", "monitor", "deploy", "backup", "prepare-restore", "restore")
-    )
+    parser.add_argument("command", choices=("preflight", "monitor", "deploy", "backup", "prepare-restore", "restore"))
     parser.add_argument("--snapshot", type=pathlib.Path)
     parser.add_argument("--target-env", type=pathlib.Path)
     parser.add_argument("--config-dir", type=pathlib.Path)
@@ -178,8 +175,6 @@ def main():
     os.umask(0o077)
     try:
         path = os.environ.get("ENV_FILE", "")
-        if args.command == "detect":
-            return 0 if path and read_env(path).get("CLUB_STACK") == "mariadb" else 1
         if os.geteuid() != 0:
             raise ValueError("Запустите обслуживание через sudo")
         context = Context(path)

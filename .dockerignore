@@ -20,16 +20,10 @@
 !deploy/api.Dockerfile
 !deploy/bootstrap.Dockerfile
 !deploy/web.Dockerfile
-!deploy/edge.Dockerfile
-!deploy/postgres.Dockerfile
 !deploy/nginx.Dockerfile
-!deploy/caddy/
-!deploy/caddy/**
 **/*.test.*
 **/__tests__/**
 **/tests/**
-!deploy/caddy/tests/
-!deploy/caddy/tests/**
 **/.env*
 **/*.pem
 **/*.key

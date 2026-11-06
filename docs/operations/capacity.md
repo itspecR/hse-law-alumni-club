@@ -5,8 +5,7 @@
 и повторный deploy – на `f649a3d2d248c1492e0feba79470edca829035a8`.
 Версии источника и цели переноса указаны в разделе восстановления.
 Команды установки, обновления и восстановления описаны в
-[runbook](deploy-runbook.md), устройство VM – в
-[Ubuntu-репетиции](ubuntu-vm-rehearsal.md), состояние проверок – в
+[runbook](deploy-runbook.md), состояние проверок – в
 [project-state.md](project-state.md).
 
 ## Что измерено

@@ -12,7 +12,6 @@ updates:
 
   - package-ecosystem: docker
     directories:
-      - "/"
       - "/deploy"
     schedule:
       interval: daily
@@ -20,18 +19,6 @@ updates:
       timezone: Europe/Moscow
     commit-message:
       prefix: "chore(docker)"
-
-  - package-ecosystem: gomod
-    directory: "/deploy/caddy"
-    schedule:
-      interval: daily
-      time: "06:00"
-      timezone: Europe/Moscow
-    open-pull-requests-limit: 3
-    allow:
-      - dependency-type: direct
-    commit-message:
-      prefix: "chore(edge)"
 
   - package-ecosystem: uv
     directories: ["/backend", "/frontend", "/scripts"]
