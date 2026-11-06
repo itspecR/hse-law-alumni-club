@@ -121,6 +121,12 @@ async def test_bcrypt_sha256_settings_and_failure():
     assert not await verify_password("plaintext", "plaintext")
 
 
+@pytest.mark.asyncio
+async def test_argon2_hash_is_no_longer_accepted():
+    argon2 = "$argon2id$v=19$m=65536,p=1,t=3$BYDIDml/fyYTrmElgyiOKw$ggVfFB3RKgSkEsAuWT0KnFXgnB/kjUgHZJh1aldpCeA"
+    assert not await verify_password(argon2, "synthetic-cross-runtime")
+
+
 def test_production_config_requires_separate_secrets_and_delivery():
     invalid = settings(
         APP_ENV="production", ADMIN_AUTH_SECRET="synthetic-session-secret-for-tests-only", SEED_DEMO="true"

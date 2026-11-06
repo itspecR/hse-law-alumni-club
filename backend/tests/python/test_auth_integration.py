@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from club_api.modules.auth.codes import CONFIRM_PURPOSE, RESET_PURPOSE
-from club_api.modules.auth.passwords import hash_password, verify_password
+from club_api.modules.auth.passwords import hash_password
 
 
 async def fixture(app, role="alumni", *, status="active", provider="default", tfa=None, ids=None):
@@ -93,11 +93,10 @@ async def test_current_office_role_and_revocation_survive_new_service(database_a
 
 
 @pytest.mark.asyncio
-async def test_legacy_node_hash_and_jwt_compatibility(database_app):
+async def test_legacy_jwt_compatibility(database_app):
     app = database_app
     legacy = json.loads(Path(__file__).with_name("legacy-auth.json").read_text())
     await fixture(app, ids=(str(uuid4()), legacy["user"], legacy["alumni"]))
-    assert await verify_password(legacy["hash"], "synthetic-cross-runtime")
     payload = app.state.auth.decode(legacy["token"])
     assert payload["sub"] == legacy["user"] and payload["alumni_id"] == legacy["alumni"]
     from request_helpers import request_from_scope as Request

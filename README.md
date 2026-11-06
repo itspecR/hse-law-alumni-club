@@ -197,7 +197,7 @@ CI проверяет обе базы, браузерные сценарии н�
 | Gunicorn | 26.2.0 | ASGI-сервер API и сайта; Uvicorn используется только в тестах web |
 | Jinja2 | 3.1.6 | Серверные HTML-шаблоны сайта, кабинета и офиса |
 | mysqlclient / Psycopg | 2.3.0 / 3.3.6 | MariaDB и совместимость с прежней PostgreSQL на время перехода |
-| bcrypt / Argon2 / PyJWT | 5.0.0 / 25.1.0 / 2.15.1 | BCryptSHA256 для новых паролей, прежние PHC-хеши и JWT-сессии |
+| bcrypt / PyJWT | 5.0.0 / 2.15.1 | BCryptSHA256 для паролей и JWT-сессии |
 | Pillow | 13.0.0 | Проверка медиа и аватары 256×256; multipart принимает Django |
 | HTTPX / Beautiful Soup | 0.28.1 / 4.15.0 | Проверяемые внешние запросы и разбор HTML |
 | aiosmtplib / pywebpush | 5.1.3 / 2.5.0 | SMTP и Web Push |

@@ -1,10 +1,6 @@
 import asyncio
 
-from argon2 import PasswordHasher, Type
-from argon2.exceptions import Argon2Error
 from django.contrib.auth.hashers import BCryptSHA256PasswordHasher
-
-LEGACY_HASHER = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=1, hash_len=32, salt_len=16, type=Type.ID)
 
 
 class ClubPasswordHasher(BCryptSHA256PasswordHasher):
@@ -37,30 +33,12 @@ async def password_work(function, *args, **kwargs):
 
 
 async def verify_password(encoded, password):
-    if isinstance(encoded, str) and encoded.startswith("bcrypt_sha256$"):
-        try:
-            if not 4 <= int(encoded.split("$")[3]) <= 15:
-                return False
-            async with password_slots():
-                return await password_work(HASHER.verify, password, encoded)
-        except ValueError, TypeError, IndexError:
-            return False
-    if not isinstance(encoded, str) or not encoded.startswith(("$argon2id$", "$argon2i$", "$argon2d$")):
+    if not isinstance(encoded, str) or not encoded.startswith("bcrypt_sha256$"):
         return False
     try:
-        parts = encoded.split("$")
-        index = 3 if len(parts) > 3 and parts[2].startswith("v=") else 2
-        items = parts[index].split(",")
-        parameters = dict(item.split("=", 1) for item in items)
-        if (
-            len(items) != 3
-            or set(parameters) != {"m", "t", "p"}
-            or any(not value.isascii() or not value.isdigit() for value in parameters.values())
-        ):
+        if not 4 <= int(encoded.split("$")[3]) <= 15:
             return False
-        parts[index] = ",".join(f"{key}={parameters[key]}" for key in ("m", "t", "p"))
-        encoded = "$".join(parts)
         async with password_slots():
-            return await password_work(LEGACY_HASHER.verify, encoded, password)
-    except Argon2Error, ValueError, IndexError:
+            return await password_work(HASHER.verify, password, encoded)
+    except ValueError, TypeError, IndexError:
         return False
