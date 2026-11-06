@@ -18,6 +18,7 @@ from club_web.formatting import (
     program_price,
     program_start,
     rub,
+    rubles_input,
     safe_url,
 )
 from club_web.icons import ICONS
@@ -1318,3 +1319,14 @@ async def test_editor_has_no_donations_section(browser_client):
     donations = (await browser_client.get("/views/admin/donations", headers=EDITOR)).text
     assert "Нужен доступ администратора" in donations and "DON-2026" not in donations
     assert 'class="site-errors"' not in donations
+
+
+def test_rubles_input_keeps_exact_kopecks():
+    assert [rubles_input(value) for value in (None, 0, 4500000, 1234567, 123456789, 5)] == [
+        "0",
+        "0",
+        "45000",
+        "12345.67",
+        "1234567.89",
+        "0.05",
+    ]

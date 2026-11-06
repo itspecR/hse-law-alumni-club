@@ -3,6 +3,7 @@ import { prepareDiscovery } from "./discovery.js";
 import { prepareCatalog } from "./catalog.js";
 import { prepareHome } from "./home.js";
 import { prepareGive } from "./give.js";
+import { moduleAction, prepareCourse } from "./course.js";
 import { hideSkeleton, prepareSkeleton } from "./skeleton.js";
 
 const base = document.body.dataset.base || "/";
@@ -10,6 +11,7 @@ const mirror = document.body.dataset.mirror === "true";
 const memberKey = "club_token";
 const officeKey = "club_admin_token";
 const readingKey = "club-reading-v1";
+const KOPECKS = 100;
 const notNotifiedText = "Заявка сохранена, но мы не получили уведомление. Сообщите номер заявки в поддержку.";
 let pendingCart = 0;
 let pendingCheckout = false;
@@ -157,6 +159,7 @@ function formBody(form) {
       if (!value) { if (input.hasAttribute("data-nullable")) body[input.name] = null; continue; }
       value = Number(value);
       if (!Number.isFinite(value)) throw new Error("Введите число.");
+      if (input.hasAttribute("data-kopecks")) value = Math.round(value * KOPECKS);
     } else if (input.hasAttribute("data-lines")) {
       value = value.split("\n").map(line => line.trim()).filter(Boolean);
     } else if (input.hasAttribute("data-json")) {
@@ -181,12 +184,6 @@ function moduleBody(row) {
   const module = { title: value("title"), points: value("points").split("\n").map(line => line.trim()).filter(Boolean), hours: value("hours") || null, format: value("format") || null };
   if (!module.title && (module.points.length || module.hours || module.format)) throw new Error("Укажите тему каждого модуля.");
   return module;
-}
-
-function addModule(button) {
-  const row = button.closest("[data-modules]").querySelector("template").content.firstElementChild.cloneNode(true);
-  button.before(row);
-  row.querySelector("input").focus();
 }
 
 function formError(form, message) {
@@ -524,6 +521,7 @@ function setupPage() {
   prepareCatalog(url, notice);
   prepareHome();
   prepareGive({ request, solveCaptcha, safeLink, formError });
+  prepareCourse();
   alignOfficeNavigation();
   openCabinetSection();
   const recent = document.querySelector("[data-reading-title]");
@@ -651,8 +649,7 @@ document.addEventListener("click", async event => {
     if (target.dataset.api) { await perform(target, target.dataset.method === "GET" || target.dataset.method === "DELETE" ? undefined : target.dataset.body ? JSON.parse(target.dataset.body) : {}); return; }
     const action = target.dataset.action;
     if (action === "refresh") await refresh();
-    else if (action === "module-add") addModule(target);
-    else if (action === "module-remove") target.closest("[data-module]").remove();
+    else if (action.startsWith("module-")) moduleAction(target, action);
     else if (action === "quote") await quotePromo(target);
     else if (action === "office-menu") {
       const open = target.getAttribute("aria-expanded") !== "true";
