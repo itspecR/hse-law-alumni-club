@@ -67,7 +67,7 @@ async def database_command(command, values):
         if command == "database-fingerprints":
             import json
 
-            from club_ops.database_transfer import fingerprint, model_tables, table_rows
+            from club_ops.database_tables import fingerprint, model_tables, table_rows
 
             def fingerprints():
                 return {name: fingerprint(table_rows(model)) for name, model in model_tables().items()}
@@ -142,22 +142,7 @@ async def setup_webhook(values):
 
 async def main(args):
     values = dict(os.environ)
-    if args.command in ("export-postgres", "import-postgres"):
-        from club_api.asgi import initialize_django
-        from club_ops.database_transfer import export_snapshot, import_snapshot
-
-        os.environ["CHECKOUT_DATABASE_URL"] = (
-            ""
-            if args.command == "export-postgres"
-            else values.get("DATABASE_URL", values.get("CHECKOUT_DATABASE_URL", ""))
-        )
-        initialize_django()
-        if args.command == "export-postgres":
-            tables = await asyncio.to_thread(export_snapshot, args.snapshot, values.get("SOURCE_DATABASE_URL", ""))
-        else:
-            tables = (await asyncio.to_thread(import_snapshot, args.snapshot))["tables"]
-        print(f"{args.command}: таблиц {len(tables)}, записей {sum(table['rows'] for table in tables.values())}")
-    elif args.command in (
+    if args.command in (
         "bootstrap",
         "manage-staff",
         "admin-code",
@@ -202,8 +187,6 @@ def run():
     ):
         sub.add_parser(name)
     sub.add_parser("import-podcasts").add_argument("manifest")
-    for name in ("export-postgres", "import-postgres"):
-        sub.add_parser(name).add_argument("snapshot")
     args = parser.parse_args()
     logging.basicConfig(level=logging.WARNING, format="%(message)s")
     try:

@@ -15,7 +15,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "club_api.django_settings")
 import django
 django.setup()
 from django.core.management import call_command
-from club_ops.database_transfer import model_tables
+from club_ops.database_tables import model_tables
 from club_ops.mariadb_roles import configure_runtime_role
 call_command("migrate", interactive=False)
 if any(model.objects.exists() for model in model_tables().values()):

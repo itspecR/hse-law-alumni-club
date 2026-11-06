@@ -18,7 +18,7 @@
   Полная карта – `docs/development/repository-structure.md`.
 - Сайт работает на нативной MariaDB Ubuntu, Django и nginx через
   `deploy/compose.mariadb.yml`. Установщик и обслуживание описаны в
-  `docs/operations/mariadb-migration.md`.
+  `docs/operations/deploy-runbook.md`.
   Directus исключён по решению владельца; основание – `docs/decisions/cms-options.md`.
   Источник операционных команд и порядка отката – `docs/operations/deploy-runbook.md`.
 - Порт API не публикуется на хосте: входящие запросы и проверка IP проходят
