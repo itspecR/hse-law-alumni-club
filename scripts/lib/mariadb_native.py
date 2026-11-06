@@ -165,9 +165,7 @@ def deploy(context):
 
 def main():
     parser = argparse.ArgumentParser(description="Обслуживание MariaDB/nginx")
-    parser.add_argument(
-        "command", choices=("preflight", "monitor", "deploy", "backup", "prepare-restore", "restore")
-    )
+    parser.add_argument("command", choices=("preflight", "monitor", "deploy", "backup", "prepare-restore", "restore"))
     parser.add_argument("--snapshot", type=pathlib.Path)
     parser.add_argument("--target-env", type=pathlib.Path)
     parser.add_argument("--config-dir", type=pathlib.Path)
