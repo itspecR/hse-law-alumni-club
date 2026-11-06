@@ -50,8 +50,6 @@ jobs:
       - name: Validate operator commands and deployment configuration
         run: |
           while IFS= read -r -d '' script; do bash -n "$script"; done < <(find scripts -type d -name .venv -prune -o -type f -name '*.sh' -print0)
-          python3 scripts/tests/test-ops.py
-          python3 scripts/tests/test-install.py
           python3 scripts/tests/test-mariadb-ops.py
           python3 scripts/tests/test-image-builds.py
           sudo python3 scripts/tests/test-deploy-entrypoint.py
@@ -62,8 +60,6 @@ jobs:
           uv run --directory backend python ../scripts/tests/test-measure-load.py
           uv run --directory frontend python ../scripts/tests/test-comments.py
           uv run --directory frontend python ../scripts/tests/test-text-style.py
-          docker compose --env-file .env.example config --quiet
-          docker compose --env-file .env.example config --format json | python3 scripts/checks/check-compose.py
       - name: Build and check native web files
         run: |
           uv run --directory frontend python -m club_web.build --output /tmp/club-native-web
@@ -172,7 +168,7 @@ jobs:
               status=1
               continue
             fi
-            if ! python3 scripts/checks/check-image-audit.py "/tmp/club-image-raw/$report" --image "club-ci-live-$service" --output "security-reports/$report"; then status=1; fi
+            if ! python3 scripts/checks/check-image-audit.py "/tmp/club-image-raw/$report" --output "security-reports/$report"; then status=1; fi
           done
           exit "$status"
       - name: Save image evidence for this commit

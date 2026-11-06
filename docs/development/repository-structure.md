@@ -78,16 +78,13 @@ URLconf. Обработчики получают `HttpRequest`, явно про�
 
 ## Сборка и обслуживание
 
-В `deploy` собраны Docker-файлы API, bootstrap, Caddy/web и PostgreSQL,
-конфигурация Caddy, Compose override изолированного стенда и systemd units.
-Новые установки используют `compose.mariadb.yml`; корневой `docker-compose.yml`
-сохраняет PostgreSQL/Caddy для переноса и отката. `mariadb_common.py` проверяет
+В `deploy` собраны Docker-файлы API, bootstrap, web и nginx, шаблон nginx,
+`compose.mariadb.yml` и systemd units. `mariadb_common.py` проверяет
 контур, `mariadb_install.py` создаёт конфигурацию, `mariadb_backup.py` обслуживает
 копии, `mariadb_native.py` запускает проверяемое обновление.
 
 В корне `scripts` остаются команды оператора: `install.sh`, `setup-ubuntu.sh`, `preflight.sh`,
-`deploy.sh`, `backup.sh`, `restore.sh`, `monitor.sh`, `migrate.sh` и
-`apply-indexes.sh`. Вспомогательные shell/Python-функции находятся в `lib`,
+`deploy.sh`, `backup.sh`, `restore.sh` и `monitor.sh`. Вспомогательные shell/Python-функции находятся в `lib`,
 проверки артефактов – в `checks`, измерения – в `diagnostics`, нативный bootstrap,
 управление сотрудниками и импорты – в `club_ops`.
 

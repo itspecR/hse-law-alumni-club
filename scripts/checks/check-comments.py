@@ -60,15 +60,12 @@ def main():
     checked, failures = 0, []
     for name in paths:
         path = ROOT / name
-        if not path.is_file() or path.suffix not in (".py", ".js", ".mjs", ".css", ".html", ".sh", ".sql", ".go"):
+        if not path.is_file() or path.suffix not in (".py", ".js", ".mjs", ".css", ".html", ".sh", ".sql"):
             continue
         code = path.read_text(encoding="utf-8")
-        if path.suffix in (".sh", ".sql", ".go"):
-            owned = code
-            if name == "deploy/caddy/main.go":
-                owned = "\n".join(code.splitlines()[13:])
-            marker = r"^\s*#[^!]" if path.suffix == ".sh" else r"^\s*--|/\*" if path.suffix == ".sql" else r"^\s*//|/\*"
-            found = ["Комментарий"] if re.search(marker, owned, re.MULTILINE) else []
+        if path.suffix in (".sh", ".sql"):
+            marker = r"^\s*#[^!]" if path.suffix == ".sh" else r"^\s*--|/\*"
+            found = ["Комментарий"] if re.search(marker, code, re.MULTILINE) else []
         else:
             found = (
                 python_failures(code)

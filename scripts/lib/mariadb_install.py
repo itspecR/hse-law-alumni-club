@@ -283,7 +283,7 @@ def install(config, local, public=None):
                 "1",
                 contour,
             )
-        values = HELPERS["configuration"](True)
+        values = HELPERS["configuration"]()
         bind, https, http = LISTENERS[mode]
         names = ["localhost"]
         certificate = key = None

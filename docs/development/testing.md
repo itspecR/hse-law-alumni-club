@@ -26,8 +26,7 @@ uv run --directory backend pytest -q
 uv run --directory frontend pytest -q
 uv run --directory frontend python ../scripts/tests/test-comments.py
 uv run --directory backend python ../scripts/tests/test-measure-load.py
-python3 scripts/tests/test-ops.py
-python3 scripts/tests/test-install.py
+python3 scripts/tests/test-mariadb-ops.py
 ```
 
 Без тестовой БД SQL-сценарии пропускаются. Пропуск не означает успешной проверки

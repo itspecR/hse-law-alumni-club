@@ -16,14 +16,13 @@
   Docker-файлы собраны в `deploy`. В `scripts` остаются команды оператора;
   помощники, проверки и диагностика выделены в `lib`, `checks`, `diagnostics`.
   Полная карта – `docs/development/repository-structure.md`.
-- Новые установки используют нативную MariaDB Ubuntu, Django и nginx через
+- Сайт работает на нативной MariaDB Ubuntu, Django и nginx через
   `deploy/compose.mariadb.yml`. Установщик и обслуживание описаны в
-  `docs/operations/mariadb-migration.md`. Существующие установки версии 1
-  сохраняют PostgreSQL/Caddy; автоматическая смена базы запрещена.
+  `docs/operations/mariadb-migration.md`.
   Directus исключён по решению владельца; основание – `docs/decisions/cms-options.md`.
   Источник операционных команд и порядка отката – `docs/operations/deploy-runbook.md`.
 - Порт API не публикуется на хосте: входящие запросы и проверка IP проходят
-  через Caddy или nginx выбранного контура. Не добавляй `ports` для API без пересмотра границы доверия.
+  через nginx. Не добавляй `ports` для API без пересмотра границы доверия.
 - Для интерфейса соблюдай решения `DESIGN.md`. Не перезаписывай его генератором.
 - В собственном коде не добавляй комментарии и поясняющие docstring. Настройки
   инструментов задавай в конфигурации. Обязательные лицензии стороннего кода
@@ -46,9 +45,7 @@
   Перед масштабированием устрани эту зависимость.
 - Сборка и локальный тест не доказывают работу домена, TLS, почты, Telegram,
   оплаты и восстановления копии на целевом сервере.
-- Сервис `migrate` применяет SQL-миграции и индексы до нативного bootstrap и API.
-  `scripts/apply-indexes.sh` нужен для ручного восстановления схемы.
-  В MariaDB применяются миграции `backend/club_api/db/migrations` командой оператора `migrate`.
+- В MariaDB применяются миграции `backend/club_api/db/migrations` командой оператора `migrate`.
   `/api/ready` проверяет выбранную базу и обязательные таблицы приложения.
 - Совместимые имена `directus_users`, `directus_roles`, `directus_files` и тома
   `directus_uploads` сохраняют существующие UUID, хеши и ссылки; это не работающая CMS.
@@ -91,15 +88,13 @@ uv export --directory backend --frozen --no-dev --no-emit-project --format requi
 uv run --directory backend --frozen pip-audit -r /tmp/club-requirements.txt --no-deps --disable-pip
 bash scripts/checks/audit-dependencies.sh security-reports
 uv run --directory frontend python ../scripts/tests/test-security-inventory.py
-docker compose --env-file .env.example config --quiet
 bash scripts/tests/test-integration.sh
 ```
 
 Для mysqlclient нужны заголовки Connector/C и pkg-config. Для MariaDB выполните
 `scripts/tests/test-mariadb-integration.sh` с `CLUB_TEST_DATABASE_URL` отдельной
 локальной пустой базы `django_migration_test`. Тесты очищают её таблицы; рабочую
-базу использовать запрещено. Прежнюю PostgreSQL и uploads при переносе сохраняйте
-до проверки нового контура и восстановления копии.
+базу использовать запрещено.
 
 Для изменённых shell-скриптов дополнительно используй `bash -n`. Для видимых
 изменений проверь сценарий в браузере на десктопе и телефоне. Результаты CI

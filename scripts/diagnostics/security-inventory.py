@@ -11,7 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TIMEOUT = 30
-ROLES = {"api", "web", "operator", "nginx", "caddy", "postgres"}
+ROLES = {"api", "web", "operator", "nginx"}
 PYTHON_PACKAGES = """import importlib.metadata,json,platform
 print(json.dumps({'python':platform.python_version(),'packages':sorted(
     [{'name':d.metadata['Name'],'version':d.version} for d in importlib.metadata.distributions()],
@@ -58,8 +58,8 @@ def source_inventory(root=ROOT):
         for line in path.read_text().splitlines():
             if line.startswith("FROM "):
                 images.append({"file": str(path.relative_to(root)), "from": line.removeprefix("FROM ")})
-    for name in ("deploy/caddy/go.mod", "deploy/caddy/go.sum", "deploy/nginx.conf.template"):
-        hashes[name] = hashlib.sha256((root / name).read_bytes()).hexdigest()
+    template = "deploy/nginx.conf.template"
+    hashes[template] = hashlib.sha256((root / template).read_bytes()).hexdigest()
     return {"python_projects": projects, "docker_build_stages": images, "sha256": hashes}
 
 
@@ -75,7 +75,7 @@ def container_inventory(role, identifier, run=command):
     metadata["os_packages"] = run([*prefix, "apk", "info", "-v"]).splitlines()
     if role in {"api", "web", "operator"}:
         metadata.update(json.loads(run([*prefix, "python", "-c", PYTHON_PACKAGES])))
-    elif role == "nginx":
+    else:
         version = run([*prefix, "nginx", "-v"], stderr=True)
         match = re.search(r"nginx/(\d+\.\d+\.\d+)", version)
         if not match:
@@ -83,10 +83,6 @@ def container_inventory(role, identifier, run=command):
         metadata["nginx"] = match[1]
         flags = run([*prefix, "nginx", "-V"], stderr=True)
         metadata["compiled_modules"] = re.findall(r"--with-[a-zA-Z0-9_]+(?:=dynamic)?", flags)
-    else:
-        executable = "caddy" if role == "caddy" else "postgres"
-        argument = "version" if role == "caddy" else "--version"
-        metadata[role] = run([*prefix, executable, argument])
     return metadata
 
 
@@ -123,7 +119,7 @@ def main():
             or not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", identifier)
             or role in selected
         ):
-            parser.error("Нужна уникальная роль api/web/operator/nginx/caddy/postgres и имя либо ID контейнера")
+            parser.error("Нужна уникальная роль api/web/operator/nginx и имя либо ID контейнера")
         selected[role] = identifier
     report = {
         "schema_version": 1,

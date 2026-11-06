@@ -1,8 +1,8 @@
 # Конфигурация и секреты
 
 Источники настроек: [.env.example](../../.env.example),
-[config.py](../../backend/club_api/core/config.py), [Compose](../../docker-compose.yml),
-[Dockerfile web](../../deploy/web.Dockerfile), [Caddy](../../deploy/edge.Dockerfile) и
+[config.py](../../backend/club_api/core/config.py), [Compose](../../deploy/compose.mariadb.yml),
+[Dockerfile web](../../deploy/web.Dockerfile), [nginx](../../deploy/nginx.Dockerfile) и
 операционные скрипты. Рабочее состояние конкретного контура – в
 [project-state.md](../operations/project-state.md), процедуры – в [deploy-runbook.md](../operations/deploy-runbook.md).
 
@@ -20,7 +20,7 @@
 символов, требующих дополнительного экранирования.
 
 Compose подставляет переменные env только туда, где они перечислены в
-`docker-compose.yml`. Само добавление новой строки в файл не передаёт её API.
+`deploy/compose.mariadb.yml`. Само добавление новой строки в файл не передаёт её API.
 Переменная окружения процесса, запускающего Compose, имеет приоритет над env-файлом;
 оператор должен избегать случайного наследования настроек другого стенда.
 
