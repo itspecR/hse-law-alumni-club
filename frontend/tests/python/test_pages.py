@@ -1373,6 +1373,114 @@ async def test_only_awaiting_transfer_has_received_button():
     ) in page
 
 
+PAY_TOKEN = "A" * 43
+PAYMENT = {
+    "number": "ALU-2026-000042",
+    "program": "Переговоры",
+    "paid": False,
+    "transfer": {
+        "amount": 13500000,
+        "purpose": "Оплата участия в программе «Переговоры», заявка ALU-2026-000042",
+        "payee": [
+            {"label": "Получатель", "value": "АНО «Вымышленный клуб»"},
+            {"label": "Расчетный счет", "value": "40703810000000000006"},
+        ],
+        "qr_svg": "data:image/svg+xml;charset=utf-8,%3Csvg%3E%3C%2Fsvg%3E",
+        "qr_png": "data:image/png;base64,iVBORw0KGgo=",
+    },
+}
+PROGRAM_ORDER = {
+    "id": "11111111-1111-1111-1111-111111111111",
+    "number": "ALU-2026-000042",
+    "type": "portfolio",
+    "contact_fio": "Вымышленный Заявитель",
+    "contact_email": "applicant@example.test",
+    "contact_phone": "+70000000000",
+    "status": "new",
+    "payment_status": None,
+    "subtotal": 13500000,
+    "total_estimate": 13500000,
+    "member_discount": 0,
+    "participants": 3,
+    "items_json": [{"title": "Переговоры", "qty": 3}],
+}
+
+
+async def rendered(path, routes, headers=None):
+    async def upstream(request):
+        status, body = routes.get(request.url.path, (200, []))
+        return httpx.Response(status, json=body)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            return await client.get(path, headers=headers or {})
+
+
+async def test_payment_page_shows_qr_and_requisites_and_stays_private():
+    response = await rendered("/pay/" + PAY_TOKEN, {"/transfers/" + PAY_TOKEN: (200, PAYMENT)})
+    page = plain(response.text)
+    assert response.status_code == 200 and response.headers["cache-control"] == "no-store"
+    assert "x-club-offline" not in response.headers and 'content="noindex,nofollow"' in page
+    assert "Заявка ALU-2026-000042 на&nbsp;программу «Переговоры»." in page
+    assert '<h2 class="give-transfer__title" id="pay-state">Переведите 135 000 ₽</h2>' in page
+    assert f'src="{PAYMENT["transfer"]["qr_svg"]}"' in page
+    assert 'href="data:image/png;base64,iVBORw0KGgo=" download="ALU-2026-000042.png">Сохранить QR-код</a>' in page
+    assert "<dt>Расчетный счет</dt><dd>40703810000000000006</dd>" in page
+    assert f"<dt>Назначение платежа</dt><dd>{PAYMENT['transfer']['purpose']}</dd>" in page
+
+
+@pytest.mark.parametrize(
+    ("reply", "status", "heading"),
+    [
+        ((200, {"number": "ALU-2026-000042", "program": "Переговоры", "paid": True}), 200, "Оплата получена"),
+        ((404, {"error": "Ссылка на оплату не найдена или устарела."}), 404, "Ссылка не&nbsp;действует"),
+        ((410, {"error": "Заявка закрыта."}), 410, "Заявка закрыта"),
+        ((500, {"error": "Сбой"}), 503, "Не&nbsp;удалось загрузить данные для оплаты"),
+    ],
+)
+async def test_payment_page_states(reply, status, heading):
+    response = await rendered("/pay/" + PAY_TOKEN, {"/transfers/" + PAY_TOKEN: reply})
+    page = plain(response.text)
+    assert response.status_code == status and f'id="pay-state">{heading}</h2>' in page
+    assert "Сохранить QR-код" not in page and 'class="site-errors"' not in page
+
+
+@pytest.mark.parametrize(
+    ("order", "role", "send", "receive"),
+    [
+        (PROGRAM_ORDER, "admin", "Отправить реквизиты", False),
+        (
+            {**PROGRAM_ORDER, "payment_status": "awaiting", "transfer_sent_at": "2026-11-08T10:00:00Z"},
+            "admin",
+            "Отправить реквизиты повторно",
+            True,
+        ),
+        (
+            {**PROGRAM_ORDER, "payment_status": "awaiting", "transfer_sent_at": "2026-11-08T10:00:00Z"},
+            "editor",
+            "Отправить реквизиты повторно",
+            False,
+        ),
+        ({**PROGRAM_ORDER, "total_estimate": 0}, "admin", None, False),
+        ({**PROGRAM_ORDER, "payment_status": "succeeded"}, "admin", None, False),
+        ({**PROGRAM_ORDER, "status": "canceled"}, "admin", None, False),
+        ({**PROGRAM_ORDER, "type": "merch"}, "admin", None, False),
+    ],
+)
+async def test_order_payment_buttons_follow_state_and_role(order, role, send, receive):
+    routes = {"/auth/admin-session": (200, {"role": role}), "/admin/orders": (200, {"items": [order], "total": 1})}
+    page = plain((await rendered("/views/admin/orders", routes, ADMIN if role == "admin" else EDITOR)).text)
+    sends = re.findall(r'data-api="/admin/orders/[^"]+/transfer" data-confirm="[^"]+">([^<]+)</button>', page)
+    assert sends == ([send] if send else [])
+    assert ('data-api="/admin/orders/' + order["id"] + '/transfer-received"' in page) is receive
+    if receive:
+        assert 'data-confirm="Оплата 135 000 ₽ по заявке ALU-2026-000042 поступила на счет клуба?' in page
+    if order.get("transfer_sent_at"):
+        assert "реквизиты отправлены" in page
+
+
 async def test_editor_has_no_donations_section(browser_client):
     orders = (await browser_client.get("/views/admin/orders", headers=EDITOR)).text
     assert 'href="/admin/orders"' in orders and 'href="/admin/donations"' not in orders

@@ -272,6 +272,7 @@ LABELS = {
     "in_progress": "В работе",
     "expired": "Истек срок резерва",
     "succeeded": "Оплачено",
+    "awaiting": "Ожидает перевода",
     "pending": "На проверке",
     "waiting_for_capture": "Ожидает подтверждения",
     "review": "Требует сверки",
