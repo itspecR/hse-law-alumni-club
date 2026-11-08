@@ -24,6 +24,8 @@ from club_api.modules.checkout.store import Checkout
 from club_api.modules.donations.routes import ROUTE_LIMITS as DONATION_LIMITS
 from club_api.modules.donations.service import Donations
 from club_api.modules.events.routes import ROUTE_LIMITS as EVENT_LIMITS
+from club_api.modules.fiscal.bifit import Bifit
+from club_api.modules.fiscal.queue import FiscalQueue
 from club_api.modules.gamification.service import Gamification
 from club_api.modules.media.routes import ROUTE_LIMITS as MEDIA_LIMITS
 from club_api.modules.media.service import Media
@@ -57,6 +59,7 @@ def create_app(settings=None):
                 await database.execute("DELETE FROM club_auth_revocations WHERE expires_at <= now()")
             async with httpx.AsyncClient(timeout=10, follow_redirects=False, trust_env=False) as client:
                 app.state.client = client
+                app.state.bifit = Bifit(settings, client)
                 app.state.notifications = Notifications(settings, database, client)
                 await app.state.jobs.start()
                 try:
@@ -77,6 +80,7 @@ def create_app(settings=None):
     app.state.checkout = Checkout(app.state)
     app.state.payments = Payments(app.state)
     app.state.donations = Donations(app.state)
+    app.state.fiscal = FiscalQueue(app.state)
     app.state.gamification = Gamification(app.state)
     app.state.push = Push(app.state)
     app.state.media = Media(app.state)

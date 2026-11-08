@@ -213,6 +213,33 @@ class MailOutbox(models.Model):
         ]
 
 
+class FiscalReceipts(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    order = models.ForeignKey("Orders", on_delete=models.SET_NULL, db_column="order_id", related_name="+", null=True)
+    kind = models.CharField(max_length=16, db_default="sale")
+    idempotency_key = models.CharField(max_length=36, unique=True)
+    request = models.JSONField()
+    status = models.CharField(max_length=16, db_default="pending")
+    document_id = models.CharField(max_length=20, null=True)
+    attempts = models.IntegerField(db_default=0)
+    next_attempt_at = models.DateTimeField(db_default=Now())
+    last_error = models.TextField(null=True)
+    fiscal = models.JSONField(null=True)
+    created_at = models.DateTimeField(db_default=Now())
+    updated_at = models.DateTimeField(db_default=Now())
+
+    class Meta:
+        db_table = "club_fiscal_receipts"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(status__in=["pending", "registered", "success", "failed"]),
+                name="club_fiscal_receipts_status_check",
+            ),
+            models.CheckConstraint(condition=models.Q(kind__in=["sale"]), name="club_fiscal_receipts_kind_check"),
+        ]
+        indexes = [models.Index(fields=["status", "next_attempt_at"], name="club_fiscal_receipts_due_idx")]
+
+
 class EmailCodes(models.Model):
     id = models.BigAutoField(primary_key=True)
     user_id = models.UUIDField()
