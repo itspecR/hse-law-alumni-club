@@ -88,7 +88,6 @@ uv export --directory backend --frozen --no-dev --no-emit-project --format requi
 uv run --directory backend --frozen pip-audit -r /tmp/club-requirements.txt --no-deps --disable-pip
 bash scripts/checks/audit-dependencies.sh security-reports
 uv run --directory frontend python ../scripts/tests/test-security-inventory.py
-bash scripts/tests/test-integration.sh
 ```
 
 Для mysqlclient нужны заголовки Connector/C и pkg-config. Для MariaDB выполните

@@ -95,8 +95,7 @@ BCryptSHA256-хеши через Django и bcrypt только на сервер
 | Владелец БД | Миграции, bootstrap и операторское управление сотрудниками; его credentials не передаются API |
 | `club_settings` | `site` с whitelist и полный приватный legacy-архив; у runtime нет доступа к этой таблице |
 
-Источники SQL-прав: [MariaDB](../../scripts/club_ops/mariadb_roles.py) и
-[PostgreSQL](../../backend/sql/runtime-role.sql). Оператор MariaDB имеет DDL/grants
+Источник SQL-прав: [MariaDB](../../scripts/club_ops/mariadb_roles.py). Оператор MariaDB имеет DDL/grants
 своей БД и глобальное CREATE USER; read-only mount сокета не ограничивает SQL-права.
 Разрешения столбцов не заменяют разграничение строк: runtime обслуживает всех
 участников, читает нужные auth-хеши и может обновлять разрешённые столбцы. Защиту
