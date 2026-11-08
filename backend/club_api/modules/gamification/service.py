@@ -1,17 +1,15 @@
 import logging
 from collections import Counter
 
-from club_api.db.queries import Query, acquire_lock
+from club_api.db.queries import acquire_lock
 from club_api.domain import ACHIEVEMENTS, DOMAIN, LEVELS, compute_level
 
 logger = logging.getLogger("club.points")
 EVENT_UNDO = "event_undo"
 REVOCABLE_TYPES = ("events_attended",)
-EVENT_ENTRIES = Query(
-    "SELECT COALESCE(sum(delta),0)::int AS net, count(*) FILTER (WHERE reason=%s)::int AS undos "
-    "FROM points_ledger WHERE alumni_id=%s AND ref=%s AND reason IN (%s,%s)",
+EVENT_ENTRIES = (
     "SELECT CAST(COALESCE(sum(delta),0) AS SIGNED) AS net, CAST(COALESCE(sum(reason=%s),0) AS SIGNED) AS undos "
-    "FROM points_ledger WHERE alumni_id=%s AND ref=%s AND reason IN (%s,%s)",
+    "FROM points_ledger WHERE alumni_id=%s AND ref=%s AND reason IN (%s,%s)"
 )
 
 
@@ -47,10 +45,7 @@ class Gamification:
 
     async def recompute(self, connection, alumni_id):
         cursor = await connection.execute(
-            Query(
-                "SELECT COALESCE(sum(delta),0)::int AS points FROM points_ledger WHERE alumni_id=%s",
-                "SELECT CAST(COALESCE(sum(delta),0) AS SIGNED) AS points FROM points_ledger WHERE alumni_id=%s",
-            ),
+            "SELECT CAST(COALESCE(sum(delta),0) AS SIGNED) AS points FROM points_ledger WHERE alumni_id=%s",
             (alumni_id,),
         )
         points = (await cursor.fetchone())["points"]

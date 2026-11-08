@@ -1,7 +1,6 @@
 import logging
 from datetime import UTC, datetime, timedelta
 
-from club_api.db.queries import Query
 from club_api.modules.checkout.store import digest
 from club_api.resources import shared_data
 
@@ -48,26 +47,17 @@ async def faq_stats(state, since=None):
     since = since or datetime.now(UTC) - timedelta(days=30)
     try:
         groups = await state.database.rows(
-            Query(
-                "SELECT kind,count(*)::int AS count FROM club_faq_events WHERE created_at>=%s GROUP BY kind",
-                "SELECT kind,count(*) AS count FROM club_faq_events WHERE created_at>=%s GROUP BY kind",
-            ),
+            "SELECT kind,count(*) AS count FROM club_faq_events WHERE created_at>=%s GROUP BY kind",
             (since,),
         )
         counts = {row["kind"]: row["count"] for row in groups}
         result["gap_hits"], result["none_hits"] = counts.get("gap", 0), counts.get("none", 0)
         result["by_gap"] = await state.database.rows(
-            Query(
-                "SELECT COALESCE(gap_id,'(без id)') AS gap_id,count(*)::int AS count FROM club_faq_events WHERE kind='gap' AND created_at>=%s GROUP BY 1 ORDER BY count DESC LIMIT 20",
-                "SELECT COALESCE(gap_id,'(без id)') AS gap_id,count(*) AS count FROM club_faq_events WHERE kind='gap' AND created_at>=%s GROUP BY 1 ORDER BY count DESC LIMIT 20",
-            ),
+            "SELECT COALESCE(gap_id,'(без id)') AS gap_id,count(*) AS count FROM club_faq_events WHERE kind='gap' AND created_at>=%s GROUP BY 1 ORDER BY count DESC LIMIT 20",
             (since,),
         )
         result["by_channel"] = await state.database.rows(
-            Query(
-                "SELECT channel,count(*)::int AS count FROM club_faq_events WHERE created_at>=%s GROUP BY channel ORDER BY count DESC",
-                "SELECT channel,count(*) AS count FROM club_faq_events WHERE created_at>=%s GROUP BY channel ORDER BY count DESC",
-            ),
+            "SELECT channel,count(*) AS count FROM club_faq_events WHERE created_at>=%s GROUP BY channel ORDER BY count DESC",
             (since,),
         )
     except Exception:

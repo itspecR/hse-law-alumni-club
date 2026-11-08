@@ -5,7 +5,7 @@ import logging
 from club_api.core.errors import ApiError
 from club_api.core.models import parse_date
 from club_api.core.outgoing import IMAGE, Pacer, get_bytes, get_html, image_name
-from club_api.db.queries import Query, acquire_lock, release_lock
+from club_api.db.queries import acquire_lock, release_lock
 from club_api.modules.checkout.store import digest
 from club_api.modules.content.admin import write_content
 from club_api.modules.media.service import MAX_IMAGE_BYTES
@@ -140,13 +140,10 @@ async def publish(state, source, item, article):
 
 async def remember(target, source, item, state, news_id, published_at):
     await target.execute(
-        Query(
-            "INSERT INTO club_news_inbox(id,source_url,sources,title,state,news_id,published_at) "
-            "VALUES(%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(source_url) DO UPDATE SET state=EXCLUDED.state,"
-            "news_id=EXCLUDED.news_id,title=EXCLUDED.title,published_at=EXCLUDED.published_at",
+        (
             "INSERT INTO club_news_inbox(id,source_url,sources,title,state,news_id,published_at) "
             "VALUES(%s,%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE state=VALUES(state),"
-            "news_id=VALUES(news_id),title=VALUES(title),published_at=VALUES(published_at)",
+            "news_id=VALUES(news_id),title=VALUES(title),published_at=VALUES(published_at)"
         ),
         (digest(item["source_url"]), item["source_url"], [source], item["title"], state, news_id, published_at),
     )
@@ -154,11 +151,9 @@ async def remember(target, source, item, state, news_id, published_at):
 
 async def record_success(state, source, found, added):
     await state.database.execute(
-        Query(
-            "INSERT INTO club_news_source_runs(source,found,added) VALUES(%s,%s,%s) ON CONFLICT(source) DO UPDATE "
-            "SET checked_at=now(),found=EXCLUDED.found,added=EXCLUDED.added,error=NULL,failures=0",
+        (
             "INSERT INTO club_news_source_runs(source,found,added) VALUES(%s,%s,%s) ON DUPLICATE KEY UPDATE "
-            "checked_at=now(),found=VALUES(found),added=VALUES(added),error=NULL,failures=0",
+            "checked_at=now(),found=VALUES(found),added=VALUES(added),error=NULL,failures=0"
         ),
         (source, found, added),
     )
@@ -166,11 +161,9 @@ async def record_success(state, source, found, added):
 
 async def record_failure(state, source, reason):
     await state.database.execute(
-        Query(
-            "INSERT INTO club_news_source_runs(source,error,failures) VALUES(%s,%s,1) ON CONFLICT(source) DO UPDATE "
-            "SET checked_at=now(),error=EXCLUDED.error,failures=club_news_source_runs.failures+1",
+        (
             "INSERT INTO club_news_source_runs(source,error,failures) VALUES(%s,%s,1) ON DUPLICATE KEY UPDATE "
-            "checked_at=now(),error=VALUES(error),failures=failures+1",
+            "checked_at=now(),error=VALUES(error),failures=failures+1"
         ),
         (source, reason),
     )

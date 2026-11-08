@@ -9,7 +9,6 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 from club_api.core.errors import ApiError
 from club_api.core.models import guid, query_page
 from club_api.core.views import api_view, parse_body
-from club_api.db.queries import Query
 from club_api.db.store import normalize
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin, require_full_admin
@@ -219,10 +218,7 @@ async def bot_status(request: HttpRequest):
     open_count = None
     if state.database.pool:
         rows = await state.database.rows(
-            Query(
-                "SELECT count(*)::int AS count FROM club_support_tickets WHERE expires_at>now() AND status='open'",
-                "SELECT count(*) AS count FROM club_support_tickets WHERE expires_at>now() AND status='open'",
-            )
+            "SELECT count(*) AS count FROM club_support_tickets WHERE expires_at>now() AND status='open'"
         )
         open_count = rows[0]["count"]
     cfg = support_config(state.settings)

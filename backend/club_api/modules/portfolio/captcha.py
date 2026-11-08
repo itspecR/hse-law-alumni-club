@@ -9,7 +9,6 @@ from pydantic import Field
 
 from club_api.core.errors import ApiError
 from club_api.core.views import api_view
-from club_api.db.queries import Query
 from club_api.modules.auth.routes import Body
 
 CAPTCHA_MAX_NUMBER = 50000
@@ -18,10 +17,7 @@ CAPTCHA_ALGORITHM = "SHA-256"
 SALT_PATTERN = r"^[0-9a-f]{32}\.[0-9]{10}$"
 DIGEST_PATTERN = r"^[0-9a-f]{64}$"
 RETRY_MESSAGE = "Не удалось отправить заявку. Обновите страницу и попробуйте еще раз."
-USE_SQL = Query(
-    "INSERT INTO club_captcha_uses(salt_hash,expires_at) VALUES(%s,%s) ON CONFLICT(salt_hash) DO NOTHING",
-    "INSERT IGNORE INTO club_captcha_uses(salt_hash,expires_at) VALUES(%s,%s)",
-)
+USE_SQL = "INSERT IGNORE INTO club_captcha_uses(salt_hash,expires_at) VALUES(%s,%s)"
 EXPIRED_SQL = "DELETE FROM club_captcha_uses WHERE expires_at<%s"
 
 

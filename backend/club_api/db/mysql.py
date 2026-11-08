@@ -103,7 +103,7 @@ class Connection:
 
     def query(self, query, params):
         with self.connection.cursor() as cursor:
-            cursor.execute(getattr(query, "mariadb", query), tuple(map(parameter, params)))
+            cursor.execute(query, tuple(map(parameter, params)))
             rows = (
                 [record([column[0] for column in cursor.description], row) for row in cursor.fetchall()]
                 if cursor.description

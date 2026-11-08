@@ -6,7 +6,6 @@ from django.http import HttpRequest
 from pydantic import Field
 
 from club_api.core.views import api_view, parse_body
-from club_api.db.queries import Query
 from club_api.modules.auth.routes import Body
 
 logger = logging.getLogger("club.analytics")
@@ -45,10 +44,7 @@ async def pageview(request: HttpRequest):
     if path and state.database.pool:
         try:
             await state.database.execute(
-                Query(
-                    "INSERT INTO club_page_views(day,path,hits) VALUES(%s,%s,1) ON CONFLICT(day,path) DO UPDATE SET hits=club_page_views.hits+1",
-                    "INSERT INTO club_page_views(day,path,hits) VALUES(%s,%s,1) ON DUPLICATE KEY UPDATE hits=club_page_views.hits+1",
-                ),
+                "INSERT INTO club_page_views(day,path,hits) VALUES(%s,%s,1) ON DUPLICATE KEY UPDATE hits=club_page_views.hits+1",
                 (datetime.now(UTC).date(), path),
             )
         except Exception:
@@ -63,25 +59,16 @@ async def pageview_stats(state, since):
     day = since.date()
     try:
         rows = await state.database.rows(
-            Query(
-                "SELECT COALESCE(sum(hits),0)::int AS hits FROM club_page_views WHERE day>=%s",
-                "SELECT CAST(COALESCE(sum(hits),0) AS SIGNED) AS hits FROM club_page_views WHERE day>=%s",
-            ),
+            "SELECT CAST(COALESCE(sum(hits),0) AS SIGNED) AS hits FROM club_page_views WHERE day>=%s",
             (day,),
         )
         result["hits"] = rows[0]["hits"]
         result["by_day"] = await state.database.rows(
-            Query(
-                "SELECT day::text AS day,sum(hits)::int AS count FROM club_page_views WHERE day>=%s GROUP BY day ORDER BY day",
-                "SELECT CAST(day AS CHAR(36)) AS day,CAST(sum(hits) AS SIGNED) AS count FROM club_page_views WHERE day>=%s GROUP BY day ORDER BY day",
-            ),
+            "SELECT CAST(day AS CHAR(36)) AS day,CAST(sum(hits) AS SIGNED) AS count FROM club_page_views WHERE day>=%s GROUP BY day ORDER BY day",
             (day,),
         )
         result["paths_top"] = await state.database.rows(
-            Query(
-                "SELECT path,sum(hits)::int AS count FROM club_page_views WHERE day>=%s GROUP BY path ORDER BY count DESC LIMIT 12",
-                "SELECT path,CAST(sum(hits) AS SIGNED) AS count FROM club_page_views WHERE day>=%s GROUP BY path ORDER BY count DESC LIMIT 12",
-            ),
+            "SELECT path,CAST(sum(hits) AS SIGNED) AS count FROM club_page_views WHERE day>=%s GROUP BY path ORDER BY count DESC LIMIT 12",
             (day,),
         )
     except Exception:

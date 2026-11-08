@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from club_api.db.operator import is_operator
-from club_api.db.queries import Query, acquire_lock
+from club_api.db.queries import acquire_lock
 from club_api.modules.auth.codes import ADMIN_PURPOSE, issue_code
 from club_api.modules.auth.passwords import hash_password
 from club_ops.bootstrap import OperatorError, email
@@ -35,10 +35,7 @@ async def manage_staff(connection, *, action, address, role, password):
         await acquire_lock(connection, "auth-email:" + address)
         rows = await (
             await connection.execute(
-                Query(
-                    "SELECT u.id,r.name AS role,u.status,u.provider,u.tfa_secret FROM directus_users u LEFT JOIN directus_roles r ON r.id=u.role WHERE lower(u.email)=%s LIMIT 2 FOR UPDATE OF u",
-                    "SELECT u.id,r.name AS role,u.status,u.provider,u.tfa_secret FROM directus_users u LEFT JOIN directus_roles r ON r.id=u.role WHERE lower(u.email)=%s LIMIT 2 FOR UPDATE",
-                ),
+                "SELECT u.id,r.name AS role,u.status,u.provider,u.tfa_secret FROM directus_users u LEFT JOIN directus_roles r ON r.id=u.role WHERE lower(u.email)=%s LIMIT 2 FOR UPDATE",
                 (address,),
             )
         ).fetchall()
@@ -49,10 +46,7 @@ async def manage_staff(connection, *, action, address, role, password):
                 raise OperatorError("Аккаунт уже существует; создание не меняет пароль или роль")
             roles = await (
                 await connection.execute(
-                    Query(
-                        "SELECT id FROM directus_roles WHERE name=ANY(%s::text[]) LIMIT 2",
-                        "SELECT id FROM directus_roles WHERE name IN (SELECT value FROM JSON_TABLE(%s,'$[*]' COLUMNS(value VARCHAR(255) PATH '$')) names) LIMIT 2",
-                    ),
+                    "SELECT id FROM directus_roles WHERE name IN (SELECT value FROM JSON_TABLE(%s,'$[*]' COLUMNS(value VARCHAR(255) PATH '$')) names) LIMIT 2",
                     (["admin", "Administrator"] if role == "admin" else ["editor"],),
                 )
             ).fetchall()
@@ -74,10 +68,7 @@ async def manage_staff(connection, *, action, address, role, password):
                 "UPDATE directus_users SET password=%s WHERE id=%s", (await hash_password(password), user["id"])
             )
             await connection.execute(
-                Query(
-                    "INSERT INTO club_staff_sessions(user_id,token_version) VALUES(%s,1) ON CONFLICT(user_id) DO UPDATE SET token_version=club_staff_sessions.token_version+1",
-                    "INSERT INTO club_staff_sessions(user_id,token_version) VALUES(%s,1) ON DUPLICATE KEY UPDATE token_version=club_staff_sessions.token_version+1",
-                ),
+                "INSERT INTO club_staff_sessions(user_id,token_version) VALUES(%s,1) ON DUPLICATE KEY UPDATE token_version=club_staff_sessions.token_version+1",
                 (user["id"],),
             )
     return "created" if action == "create" else "password-reset"

@@ -8,7 +8,6 @@ from pydantic import Field, field_validator
 from club_api.core.errors import ApiError
 from club_api.core.models import club_moment, guid, partial, unique_slug, web_url
 from club_api.core.views import api_view, endpoint, parse_body
-from club_api.db.queries import Query
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin
 from club_api.modules.catalog.scope import DPO_PROGRAMS
@@ -120,10 +119,7 @@ async def product_reservations(connection, id):
         raise ApiError(404, "Товар не найден.")
     active = await (
         await connection.execute(
-            Query(
-                "SELECT c.order_id FROM club_checkout_commits c JOIN orders o ON o.id=c.order_id WHERE c.released=false AND o.status NOT IN ('done','canceled','expired') AND EXISTS(SELECT 1 FROM jsonb_array_elements(c.reservations::jsonb) r WHERE r->>'id'=%s) LIMIT 1",
-                "SELECT c.order_id FROM club_checkout_commits c JOIN orders o ON o.id=c.order_id WHERE c.released=false AND o.status NOT IN ('done','canceled','expired') AND JSON_CONTAINS(c.reservations,JSON_OBJECT('id',%s)) LIMIT 1",
-            ),
+            "SELECT c.order_id FROM club_checkout_commits c JOIN orders o ON o.id=c.order_id WHERE c.released=false AND o.status NOT IN ('done','canceled','expired') AND JSON_CONTAINS(c.reservations,JSON_OBJECT('id',%s)) LIMIT 1",
             (id,),
         )
     ).fetchone()

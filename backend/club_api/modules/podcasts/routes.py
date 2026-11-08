@@ -14,7 +14,7 @@ from pydantic import Field, field_validator
 from club_api.core.errors import ApiError
 from club_api.core.models import guid, parse_date, sub_active
 from club_api.core.views import api_view
-from club_api.db.queries import Query, acquire_lock
+from club_api.db.queries import acquire_lock
 from club_api.domain import DOMAIN
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin
@@ -69,10 +69,7 @@ async def record_play(state, id, holder):
             await acquire_lock(connection, "play:" + id + ":" + holder)
             alumni_id = None if holder == "free" else guid(holder)
             cursor = await connection.execute(
-                Query(
-                    "SELECT id FROM podcast_plays WHERE podcast_id=%s AND alumni_id IS NOT DISTINCT FROM %s::uuid AND created_at>now()-interval '6 hours' LIMIT 1",
-                    "SELECT id FROM podcast_plays WHERE podcast_id=%s AND alumni_id <=> %s AND created_at>now()-INTERVAL 6 HOUR LIMIT 1",
-                ),
+                "SELECT id FROM podcast_plays WHERE podcast_id=%s AND alumni_id <=> %s AND created_at>now()-INTERVAL 6 HOUR LIMIT 1",
                 (id, alumni_id),
             )
             if not await cursor.fetchone():

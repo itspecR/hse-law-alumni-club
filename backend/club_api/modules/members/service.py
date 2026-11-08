@@ -1,7 +1,7 @@
 import logging
 
 from club_api.core.errors import ApiError
-from club_api.db.queries import Query, acquire_lock
+from club_api.db.queries import acquire_lock
 from club_api.modules.auth.codes import forget_codes
 from club_api.modules.notifications.mail import EMAIL_CONFIRMATION_KIND, mail_user_lock
 
@@ -11,10 +11,7 @@ DELETED_NAME = "Удаленный участник"
 
 async def alumni_email(state, id):
     rows = await state.database.rows(
-        Query(
-            "SELECT u.email,a.contacts_json->>'email' AS contact_email FROM alumni a LEFT JOIN directus_users u ON u.id=a.user_id WHERE a.id=%s",
-            "SELECT u.email,JSON_UNQUOTE(JSON_EXTRACT(a.contacts_json,'$.email')) AS contact_email FROM alumni a LEFT JOIN directus_users u ON u.id=a.user_id WHERE a.id=%s",
-        ),
+        "SELECT u.email,JSON_UNQUOTE(JSON_EXTRACT(a.contacts_json,'$.email')) AS contact_email FROM alumni a LEFT JOIN directus_users u ON u.id=a.user_id WHERE a.id=%s",
         (id,),
     )
     return (rows[0]["email"] or rows[0]["contact_email"]) if rows else None
@@ -31,10 +28,7 @@ async def anonymize(state, alumni_id):
             await acquire_lock(connection, mail_user_lock(user_id))
             user = await (
                 await connection.execute(
-                    Query(
-                        "SELECT u.email,r.name AS role_name FROM directus_users u LEFT JOIN directus_roles r ON r.id=u.role WHERE u.id=%s FOR UPDATE OF u",
-                        "SELECT u.email,r.name AS role_name FROM directus_users u LEFT JOIN directus_roles r ON r.id=u.role WHERE u.id=%s FOR UPDATE",
-                    ),
+                    "SELECT u.email,r.name AS role_name FROM directus_users u LEFT JOIN directus_roles r ON r.id=u.role WHERE u.id=%s FOR UPDATE",
                     (user_id,),
                 )
             ).fetchone()

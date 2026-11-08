@@ -4,7 +4,7 @@ from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from club_api.core.errors import ApiError
-from club_api.db.queries import Query, acquire_lock
+from club_api.db.queries import acquire_lock
 from club_api.domain import effective_discount
 from club_api.modules.checkout.cart import locked_cart
 from club_api.modules.portfolio.seats import require_free_seats
@@ -19,17 +19,11 @@ def digest(value):
 NUMBER_SEQUENCES = {
     "orders": (
         "ALU",
-        Query(
-            "SELECT COALESCE(MAX(CAST(split_part(number,'-',3) AS integer)),0)+1 AS seq FROM orders WHERE number ~ %s",
-            "SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(number,'-',-1) AS integer)),0)+1 AS seq FROM orders WHERE number REGEXP %s",
-        ),
+        "SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(number,'-',-1) AS integer)),0)+1 AS seq FROM orders WHERE number REGEXP %s",
     ),
     "club_donations": (
         "DON",
-        Query(
-            "SELECT COALESCE(MAX(CAST(split_part(number,'-',3) AS integer)),0)+1 AS seq FROM club_donations WHERE number ~ %s",
-            "SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(number,'-',-1) AS integer)),0)+1 AS seq FROM club_donations WHERE number REGEXP %s",
-        ),
+        "SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(number,'-',-1) AS integer)),0)+1 AS seq FROM club_donations WHERE number REGEXP %s",
     ),
 }
 
@@ -95,10 +89,7 @@ class Checkout:
                 raise ApiError(409, "Корзина изменилась. Обновите ее перед оформлением.")
             if base["alumni_id"]:
                 cursor = await connection.execute(
-                    Query(
-                        "SELECT verification_status,points_cached,personal_discount FROM alumni WHERE id=%s FOR SHARE",
-                        "SELECT verification_status,points_cached,personal_discount FROM alumni WHERE id=%s LOCK IN SHARE MODE",
-                    ),
+                    "SELECT verification_status,points_cached,personal_discount FROM alumni WHERE id=%s LOCK IN SHARE MODE",
                     (base["alumni_id"],),
                 )
                 alumni = await cursor.fetchone()
@@ -147,10 +138,7 @@ class Checkout:
                 reservations.append({"id": str(product["id"]), "sku": item.get("variant_sku"), "qty": item["qty"]})
             number = await self.record_order(connection, key, request_hash, base, reservations)
             await connection.execute(
-                Query(
-                    "UPDATE carts SET items_json='[]'::json,updated_at=now() WHERE id=%s",
-                    "UPDATE carts SET items_json='[]',updated_at=now() WHERE id=%s",
-                ),
+                "UPDATE carts SET items_json='[]',updated_at=now() WHERE id=%s",
                 (cart_id,),
             )
             return {"number": number, "replay": None}
@@ -235,10 +223,7 @@ class Checkout:
         count, after = 0, None
         while True:
             rows = await self.state.database.rows(
-                Query(
-                    "SELECT o.id,o.number,o.created_at,o.payment_id,o.payment_status FROM orders o JOIN club_checkout_commits c ON c.order_id=o.id WHERE o.status='new' AND (o.payment_status IS NULL OR o.payment_status IN ('','none','canceled','pending','waiting_for_capture') OR (o.payment_status='review' AND o.payment_id IS NULL)) AND c.released=false AND jsonb_array_length(c.reservations)>0 AND o.created_at < %s AND (CAST(%s AS uuid) IS NULL OR o.id>CAST(%s AS uuid)) ORDER BY o.id LIMIT %s",
-                    "SELECT o.id,o.number,o.created_at,o.payment_id,o.payment_status FROM orders o JOIN club_checkout_commits c ON c.order_id=o.id WHERE o.status='new' AND (o.payment_status IS NULL OR o.payment_status IN ('','none','canceled','pending','waiting_for_capture') OR (o.payment_status='review' AND o.payment_id IS NULL)) AND c.released=false AND JSON_LENGTH(c.reservations)>0 AND o.created_at < %s AND (%s IS NULL OR o.id>%s) ORDER BY o.id LIMIT %s",
-                ),
+                "SELECT o.id,o.number,o.created_at,o.payment_id,o.payment_status FROM orders o JOIN club_checkout_commits c ON c.order_id=o.id WHERE o.status='new' AND (o.payment_status IS NULL OR o.payment_status IN ('','none','canceled','pending','waiting_for_capture') OR (o.payment_status='review' AND o.payment_id IS NULL)) AND c.released=false AND JSON_LENGTH(c.reservations)>0 AND o.created_at < %s AND (%s IS NULL OR o.id>%s) ORDER BY o.id LIMIT %s",
                 (cutoff, after, after, RESERVATION_BATCH_SIZE),
             )
             if not rows:

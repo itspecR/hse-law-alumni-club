@@ -9,7 +9,7 @@ from django.http import HttpRequest
 
 from club_api.core.errors import ApiError
 from club_api.core.security import LoginAttempts
-from club_api.db.queries import Query, acquire_lock
+from club_api.db.queries import acquire_lock
 from club_api.db.store import Store
 from club_api.modules.auth.codes import ADMIN_PURPOSE, CONFIRM_PURPOSE, RESET_PURPOSE, accept_code, issue_code
 from club_api.modules.auth.passwords import hash_password, verify_password
@@ -266,10 +266,7 @@ class AuthService:
 
     async def revoke_admin(self, jti):
         await self.database.execute(
-            Query(
-                "INSERT INTO club_auth_revocations(token_key,expires_at) VALUES(%s,now() + interval '12 hours') ON CONFLICT(token_key) DO UPDATE SET expires_at=EXCLUDED.expires_at",
-                "INSERT INTO club_auth_revocations(token_key,expires_at) VALUES(%s,now() + INTERVAL 12 HOUR) ON DUPLICATE KEY UPDATE expires_at=VALUES(expires_at)",
-            ),
+            "INSERT INTO club_auth_revocations(token_key,expires_at) VALUES(%s,now() + INTERVAL 12 HOUR) ON DUPLICATE KEY UPDATE expires_at=VALUES(expires_at)",
             ("admin:" + jti,),
         )
 

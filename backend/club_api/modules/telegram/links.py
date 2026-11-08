@@ -1,6 +1,6 @@
 import re
 
-from club_api.db.queries import Query, acquire_lock
+from club_api.db.queries import acquire_lock
 from club_api.modules.checkout.store import digest
 
 
@@ -14,10 +14,7 @@ async def consume_link(database, code, telegram_id):
     async with database.transaction() as connection:
         await acquire_lock(connection, "telegram-link")
         cursor = await connection.execute(
-            Query(
-                "SELECT a.id,a.fio,a.telegram_id FROM club_telegram_links l JOIN alumni a ON a.id=l.alumni_id WHERE l.token_hash=%s AND l.expires_at > now() AND a.verification_status='verified' FOR UPDATE OF l,a",
-                "SELECT a.id,a.fio,a.telegram_id FROM club_telegram_links l JOIN alumni a ON a.id=l.alumni_id WHERE l.token_hash=%s AND l.expires_at > now() AND a.verification_status='verified' FOR UPDATE",
-            ),
+            "SELECT a.id,a.fio,a.telegram_id FROM club_telegram_links l JOIN alumni a ON a.id=l.alumni_id WHERE l.token_hash=%s AND l.expires_at > now() AND a.verification_status='verified' FOR UPDATE",
             (digest(code),),
         )
         owner = await cursor.fetchone()

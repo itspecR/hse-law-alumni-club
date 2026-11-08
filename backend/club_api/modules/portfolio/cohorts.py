@@ -3,7 +3,6 @@ from typing import Literal
 from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
-from club_api.db.queries import Query
 from club_api.modules.auth.routes import Body
 from club_api.modules.catalog.scope import PORTFOLIO_PROGRAMS
 from club_api.modules.checkout.payments import SAFE_INTEGER_MAX
@@ -17,10 +16,7 @@ from club_api.modules.portfolio.seats import COHORT_SEATS, SEATED_STATUSES
 OPEN_ENROLLMENT = "actual"
 COHORT_FIELDS = ("id", "program_id", "starts_on", "price", "capacity", "enrollment", "created_at")
 PUBLIC_FIELDS = ("id", "program_id", "starts_on", "price", "capacity")
-SHARE_SQL = Query(
-    "SELECT id FROM program_cohorts WHERE id=%s FOR SHARE",
-    "SELECT id FROM program_cohorts WHERE id=%s LOCK IN SHARE MODE",
-)
+SHARE_SQL = "SELECT id FROM program_cohorts WHERE id=%s LOCK IN SHARE MODE"
 CLOSED_MESSAGE = "Набор в этот поток закрыт. Обновите страницу и выберите другой поток."
 
 
