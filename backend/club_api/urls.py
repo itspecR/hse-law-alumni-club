@@ -113,7 +113,6 @@ routes = (
         path("admin/news-sources/settings", endpoint({"PATCH": news_routes.settings})),
         path("admin/news-sources/<str:id>", endpoint({"PATCH": news_routes.patch})),
         path("support/config", endpoint({"GET": support_routes.config})),
-        path("support/faq-event", endpoint({"POST": support_routes.faq_event})),
         path("support/ask", endpoint({"POST": support_routes.ask})),
         path("support", endpoint({"POST": support_routes.create_ticket})),
         path("support/<str:id>", endpoint({"GET": support_routes.ticket, "DELETE": support_routes.delete_ticket})),

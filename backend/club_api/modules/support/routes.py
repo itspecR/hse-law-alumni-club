@@ -13,11 +13,10 @@ from club_api.db.store import normalize
 from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin, require_full_admin
 from club_api.modules.checkout.store import digest
-from club_api.modules.support.service import FAQ, faq_stats, log_faq, support_config
+from club_api.modules.support.service import FAQ, faq_stats, support_config
 from club_api.observability.audit import audit
 
 ROUTE_LIMITS = {
-    ("POST", "/support/faq-event"): 30,
     ("POST", "/support/ask"): 30,
     ("POST", "/support"): (3, 600),
     ("GET", "/support/{id}"): 30,
@@ -71,12 +70,6 @@ class ReplyBody(MessageBody):
         return self
 
 
-class FaqBody(Body):
-    kind: Literal["gap", "none"]
-    gapId: str = Field(default=None, min_length=1, max_length=64)
-    channel: Literal["site", "telegram"] = "site"
-
-
 class QuestionBody(StrictBody):
     question: str = Field(min_length=2, max_length=500)
 
@@ -95,13 +88,6 @@ def addition(text, author):
 @api_view
 async def config(request: HttpRequest):
     return support_config(request.services.settings)
-
-
-@api_view(body=FaqBody)
-async def faq_event(request: HttpRequest):
-    body = parse_body(request, FaqBody)
-    await log_faq(request.services, kind=body.kind, gap_id=body.gapId, channel=body.channel)
-    return {"ok": True}
 
 
 @api_view(body=QuestionBody)

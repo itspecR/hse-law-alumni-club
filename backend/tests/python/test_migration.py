@@ -81,8 +81,9 @@ def test_all_legacy_routes_are_present():
         ("POST", "/admin/timeline"),
         ("PATCH", "/admin/timeline/{id}"),
         ("DELETE", "/admin/timeline/{id}"),
+        ("POST", "/support/faq-event"),
     }
-    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 143
+    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 142
 
 
 def test_sentry_privacy():

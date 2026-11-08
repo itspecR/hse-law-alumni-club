@@ -5,8 +5,10 @@ import re
 import time
 from urllib.parse import parse_qsl
 
+INIT_DATA_MAX_AGE = 60 * 60
 
-def validate_init_data(data, token, *, max_age=86400, now=None):
+
+def validate_init_data(data, token, *, max_age=INIT_DATA_MAX_AGE, now=None):
     fields = parse_qsl(data, keep_blank_values=True)
     if len({key for key, _ in fields}) != len(fields):
         return None

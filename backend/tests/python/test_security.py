@@ -26,7 +26,7 @@ from club_api.main import create_app
 from club_api.modules.auth import passwords
 from club_api.modules.auth.passwords import hash_password, verify_password
 from club_api.modules.auth.routes import RegisterBody
-from club_api.modules.telegram.signature import validate_init_data
+from club_api.modules.telegram.signature import INIT_DATA_MAX_AGE, validate_init_data
 
 
 def settings(**kwargs):
@@ -245,7 +245,9 @@ def test_telegram_signed_data_and_freshness():
     assert validate_init_data(data, "synthetic-telegram-token") == {"id": 12345}
     assert validate_init_data(data + "&user={}", "synthetic-telegram-token") is None
     assert validate_init_data(data, "wrong-token") is None
-    assert validate_init_data(data, "synthetic-telegram-token", now=issued + 86401) is None
+    assert validate_init_data(data, "synthetic-telegram-token", now=issued + INIT_DATA_MAX_AGE) == {"id": 12345}
+    assert validate_init_data(data, "synthetic-telegram-token", now=issued + INIT_DATA_MAX_AGE + 1) is None
+    assert INIT_DATA_MAX_AGE == 3600
     assert validate_init_data(data, "synthetic-telegram-token", now=issued - 61) is None
 
 
