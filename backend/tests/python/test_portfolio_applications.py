@@ -209,6 +209,24 @@ async def test_club_application_cannot_be_paid_online(database_app, mails):
     assert error.value.status == 400
 
 
+async def test_organization_text_stays_out_of_applicant_mail(database_app, mails, monkeypatch):
+    app = database_app
+    notices = []
+
+    async def notice(number, summary, total, discount):
+        notices.append(summary)
+        return {"channel": "email", "ok": True, "blocked": False}
+
+    monkeypatch.setattr(app.state.notifications, "order_notice", notice)
+    item = await program(app)
+    async with client_for(app) as client:
+        receipt = (await apply(client, item["slug"], GROUP)).json()
+    letter = next(mail["text"] for mail in mails if mail["to"] == GROUP["contact_email"])
+    assert f"Ваша заявка {receipt['number']} принята." in letter and "участников: 3" in letter
+    assert GROUP["organization"] not in letter
+    assert notices == [f"Переговоры · участников: 3 · {GROUP['organization']}"]
+
+
 async def test_office_sees_and_exports_club_application(database_app, mails):
     app = database_app
     item = await program(app)
