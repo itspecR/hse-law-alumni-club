@@ -10,6 +10,9 @@ from club_api.db.store import Store
 from club_api.domain import ACHIEVEMENT_FLAGS, DOMAIN
 from club_api.modules.auth.passwords import hash_password
 
+SITE_TITLE = "Клуб выпускников факультета права НИУ ВШЭ"
+SITE_DESCRIPTION = "Клуб выпускников факультета права НИУ ВШЭ: программы ДПО, мерч, подкасты и кабинет участника."
+SITE_LANGUAGE = "ru-RU"
 HOME_HERO = {
     "badge": "Клуб выпускников факультета права",
     "title_pre": "Свои люди",
@@ -136,34 +139,21 @@ async def seed_missing(connection, store, table, key, rows):
     return created
 
 
-async def ensure_site(connection, public_url):
-    rows = await (
-        await connection.execute(
-            'SELECT value FROM club_settings WHERE "key" LIKE \'legacy_directus:%%\' ORDER BY "key" LIMIT 1'
-        )
-    ).fetchall()
-    old = rows[0]["value"] if rows else {}
-
-    def existing(field, default=None):
-        value = old.get(field)
-        return value if isinstance(value, str) and value.strip() else default
-
-    site = {
-        "title": existing("project_name")
-        if existing("project_name") not in (None, "Directus")
-        else "Клуб выпускников факультета права НИУ ВШЭ",
-        "description": existing(
-            "project_descriptor",
-            "Клуб выпускников факультета права НИУ ВШЭ: программы ДПО, мерч, подкасты и кабинет участника.",
-        ),
-        "url": existing("project_url", public_url),
-        "language": existing("default_language", "ru-RU"),
-        "logo": existing("project_logo"),
-        "favicon": existing("public_favicon"),
+def site_settings(public_url):
+    return {
+        "title": SITE_TITLE,
+        "description": SITE_DESCRIPTION,
+        "url": public_url,
+        "language": SITE_LANGUAGE,
+        "logo": None,
+        "favicon": None,
     }
+
+
+async def ensure_site(connection, public_url):
     await connection.execute(
         "INSERT INTO club_settings(`key`,value) VALUES('site',%s) ON DUPLICATE KEY UPDATE `key`=`key`",
-        (site,),
+        (site_settings(public_url),),
     )
 
 
