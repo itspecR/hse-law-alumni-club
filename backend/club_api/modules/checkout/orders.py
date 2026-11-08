@@ -7,6 +7,7 @@ from django.http import HttpRequest, JsonResponse
 from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
+from club_api.core.names import PersonName
 from club_api.core.views import api_view, parse_body
 from club_api.domain import effective_discount, order_totals, rubles
 from club_api.modules.auth.routes import Body, EmailBody, RegisterBody
@@ -25,7 +26,7 @@ ROUTE_LIMITS = {"/orders": 6}
 
 
 class OrderBody(Body):
-    contact_fio: str = Field(min_length=2, max_length=200)
+    contact_fio: PersonName
     contact_phone: str = Field(min_length=5, max_length=40)
     contact_email: str = Field(max_length=200)
     fulfillment: Literal["pickup", "delivery"]

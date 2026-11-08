@@ -4,6 +4,7 @@ from django.http import HttpRequest
 from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
+from club_api.core.names import OptionalPersonName
 from club_api.core.views import api_view, parse_body
 from club_api.modules.auth.routes import EmailBody, RegisterBody
 from club_api.modules.checkout.payments import secure_payment_url
@@ -22,7 +23,7 @@ METHOD_DISABLED = "Этот способ оплаты пока не подклю
 class DonationBody(EmailBody):
     amount: int = Field(ge=DONATION_MIN_RUB, le=DONATION_MAX_RUB)
     method: Literal[CARD, TRANSFER] = CARD
-    name: str = Field(default="", max_length=200)
+    name: OptionalPersonName = ""
     consent_offer: Literal[True]
     consent_pdn: Literal[True]
     captcha: CaptchaBody | None = None

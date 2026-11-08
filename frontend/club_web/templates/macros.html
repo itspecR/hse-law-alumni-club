@@ -6,6 +6,9 @@
 {% endif %}
 </label>
 {% endmacro %}
+{% macro name_field(name,label,value='',required=true) %}
+<label class="site-field">{{ label }}<input name="{{ name }}" type="text" value="{{ value or '' }}" {% if required %}required{% endif %} autocomplete="name" minlength="2" maxlength="{{ domain.limits.person_name_max }}" pattern="[\p{L}\-'’. ]+" title="Буквы, пробел, дефис, апостроф и точка после инициала"></label>
+{% endmacro %}
 {% macro code_field() %}
 <label class="site-field">Код из письма<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label>
 {% endmacro %}

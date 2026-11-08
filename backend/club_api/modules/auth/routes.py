@@ -5,6 +5,7 @@ from django.http import HttpRequest
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from club_api.core.errors import ApiError
+from club_api.core.names import PersonName
 from club_api.core.security import client_ip
 from club_api.core.views import api_view, parse_body
 from club_api.domain import MAX_INTERESTS
@@ -63,7 +64,7 @@ class LoginBody(EmailBody):
 
 
 class RegisterBody(EmailBody):
-    fio: str = Field(min_length=2, max_length=200)
+    fio: PersonName
     password: str = Field(min_length=PASSWORD_MIN_LENGTH, max_length=PASSWORD_MAX_LENGTH)
     cohort: str = Field(pattern="^(19|20)\\d{2}$")
     edu_level: Literal["бакалавриат", "магистратура", "специалитет", "аспирантура"]

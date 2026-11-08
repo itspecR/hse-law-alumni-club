@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import save,field,course_modules,icon,program_status,program_facts %}
+{% from 'macros.html' import name_field with context %}
 {% block content %}
 {% set cohorts = item|program_cohorts %}
 {% set price = item|program_price %}
@@ -84,7 +85,7 @@
 {% if item.seats_left==0 and not cohorts %}<p role="status">Мест нет. Заявку можно оставить, мы свяжемся с вами, если место освободится.</p>{% endif %}
 <p>Платить на сайте не нужно. Мы свяжемся с вами, чтобы согласовать договор и оплату.</p>
 <form data-api="/portfolio/{{ item.slug }}/applications" data-application>
-{{ field('contact_fio','ФИО') }}{{ field('contact_phone','Телефон',type='tel') }}{{ field('contact_email','Почта',type='email') }}
+{{ name_field('contact_fio','ФИО') }}{{ field('contact_phone','Телефон',type='tel') }}{{ field('contact_email','Почта',type='email') }}
 {% if cohorts %}
 <fieldset class="portfolio-cohorts">
 <legend>Поток</legend>

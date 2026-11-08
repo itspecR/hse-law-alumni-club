@@ -33,6 +33,7 @@ from club_web.pages import (
     level_progress,
     ordered_achievements,
     point_program_groups,
+    resource,
 )
 from club_web.views import PUBLIC
 
@@ -1517,3 +1518,15 @@ async def test_program_editor_pages_for_existing_new_and_missing_program(browser
     assert "Программа не найдена: возможно, ее удалили." in missing and "data-program-editor" not in missing
     listing = (await browser_client.get("/views/admin/portfolio", headers=ADMIN)).text
     assert 'href="/admin/portfolio?id=new">' in listing and 'href="/admin/portfolio?id=club-1">Открыть</a>' in listing
+
+
+async def test_name_fields_hint_allowed_characters(browser_client):
+    limit = resource("domain-data.json")["limits"]["person_name_max"]
+    join = (await browser_client.get("/join")).text
+    give = (await browser_client.get("/give")).text
+    profile = await profile_page(PROFILE)
+    for page, name, required in ((join, "fio", True), (give, "name", False), (profile, "fio", True)):
+        field = re.search(rf'<input name="{name}" type="text"[^>]*>', page)[0]
+        assert f'maxlength="{limit}"' in field and 'minlength="2"' in field and 'autocomplete="name"' in field
+        assert 'pattern="[\\p{L}\\-\'’. ]+"' in field
+        assert ("required" in field) is required
