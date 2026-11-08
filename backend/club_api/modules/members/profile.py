@@ -5,6 +5,7 @@ from typing import Annotated, Literal
 from django.http import HttpRequest
 from pydantic import Field, field_validator
 
+from club_api.core.names import PersonName
 from club_api.core.views import api_view, parse_body
 from club_api.domain import MAX_INTERESTS, achievement_progress, level_info
 from club_api.modules.auth.routes import Body
@@ -32,7 +33,7 @@ def last_six_months(ledger, now=None):
 
 
 class ProfileBody(Body):
-    fio: str = Field(default=None, min_length=2, max_length=200)
+    fio: PersonName = None
     contacts: dict[Annotated[str, Field(max_length=40)], Annotated[str, Field(max_length=200)]] = None
     interests: list[Annotated[str, Field(max_length=80)]] = Field(default=None, max_length=30)
     mailing_consent: bool = None

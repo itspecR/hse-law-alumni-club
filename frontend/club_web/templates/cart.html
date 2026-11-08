@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import field,consent,empty %}
+{% from 'macros.html' import name_field with context %}
 {% block content %}
 <main id="main" class="site-container cart-page">
 <header class="site-masthead">
@@ -34,7 +35,7 @@
 <h2>Оформить заявку</h2>
 <p class="site-price">{{ (cart.estimated_total if cart.estimated_total is defined else cart.subtotal)|rub }}</p>
 <p>Итоговая сумма считается при оформлении заявки. Скидка выпускника на мерч не распространяется.</p>
-<form data-api="/orders" data-checkout>{{ field('contact_fio','ФИО') }}{{ field('contact_phone','Телефон',type='tel') }}{{ field('contact_email','Почта',type='email') }}{% if cart['items']|selectattr('type','equalto','merch')|list %}
+<form data-api="/orders" data-checkout>{{ name_field('contact_fio','ФИО') }}{{ field('contact_phone','Телефон',type='tel') }}{{ field('contact_email','Почта',type='email') }}{% if cart['items']|selectattr('type','equalto','merch')|list %}
 <label class="site-field">Получение<select name="fulfillment">
 <option value="pickup">Самовывоз</option>
 <option value="delivery">Доставка</option>

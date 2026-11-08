@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import field,icon %}
+{% from 'macros.html' import name_field with context %}
 {% block content %}
 <main id="main" class="lux-home lux-give">
 <section class="give-hero" aria-labelledby="give-title">
@@ -46,7 +47,7 @@
 {% else %}
 <input type="hidden" name="method" value="{{ give_method }}">
 {% endif %}
-{{ field('name','Имя, необязательно',required=false) }}
+{{ name_field('name','Имя, необязательно',required=false) }}
 {{ field('email','Почта',type='email') }}
 <p class="give-hint">На&nbsp;почту придет подтверждение с&nbsp;суммой и&nbsp;номером пожертвования.</p>
 <label class="site-consent"><input type="checkbox" name="consent_offer" required><span>Принимаю <a href="/give/offer">условия оферты о&nbsp;пожертвовании</a></span></label>

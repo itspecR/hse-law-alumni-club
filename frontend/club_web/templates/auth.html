@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import field,consent,code_field,mailing_field %}
+{% from 'macros.html' import name_field with context %}
 {% block content %}
 <main id="main" class="club-auth {{ 'club-auth--split' if path=='/join' else '' }}">
 {% if path=='/join' %}
@@ -21,7 +22,7 @@
 <h1>{{ title }}</h1>
 {% if path=='/join' %}
 <p>Заполните анкету. Когда мы подтвердим ваш статус, откроется кабинет со скидкой выпускника.</p>
-<form data-api="/auth/register" data-registration>{{ field('fio','ФИО') }}{{ field('email','Почта',type='email') }}{{ field('cohort','Год выпуска') }}<label class="site-field">Уровень образования<select name="edu_level">
+<form data-api="/auth/register" data-registration>{{ name_field('fio','ФИО') }}{{ field('email','Почта',type='email') }}{{ field('cohort','Год выпуска') }}<label class="site-field">Уровень образования<select name="edu_level">
 {% for level in ['бакалавриат','магистратура','специалитет','аспирантура'] %}
 <option>{{ level }}</option>
 {% endfor %}
