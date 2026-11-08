@@ -160,6 +160,8 @@ html.lux .profile-page { max-width: 720px; }
 html.lux .profile-page .site-masthead { padding-bottom: 24px; }
 html.lux .profile-page form { display: grid; gap: 16px; margin-bottom: 8px; }
 html.lux .profile-page form > button { justify-self: start; }
+html.lux .profile-page input[readonly] { color: var(--c-text-2); cursor: default; }
+html.lux .profile-page .profile-fio-note { margin: -8px 0 0; font-size: 13px; line-height: 1.4; color: var(--c-text-3); }
 html.lux .profile-page section { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--c-line); }
 html.lux .profile-page section > h2 { margin: 0 0 12px; }
 html.lux .profile-page section > p { color: var(--c-text-3); }

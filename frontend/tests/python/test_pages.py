@@ -1535,9 +1535,16 @@ async def test_name_fields_hint_allowed_characters(browser_client):
     limit = resource("domain-data.json")["limits"]["person_name_max"]
     join = (await browser_client.get("/join")).text
     give = (await browser_client.get("/give")).text
-    profile = await profile_page(PROFILE)
-    for page, name, required in ((join, "fio", True), (give, "name", False), (profile, "fio", True)):
+    for page, name, required in ((join, "fio", True), (give, "name", False)):
         field = re.search(rf'<input name="{name}" type="text"[^>]*>', page)[0]
         assert f'maxlength="{limit}"' in field and 'minlength="2"' in field and 'autocomplete="name"' in field
         assert 'pattern="[\\p{L}\\-\'’. ]+"' in field
         assert ("required" in field) is required
+
+
+async def test_verified_profile_shows_name_read_only_with_support_link():
+    alumni = {**PROFILE["alumni"], "verification_status": "verified", "fio": "Анна Вымышленная"}
+    page = await profile_page({**PROFILE, "alumni": alumni})
+    field = re.search(r'<input type="text" value="Анна Вымышленная"[^>]*>', page)[0]
+    assert "readonly" in field and "name=" not in field
+    assert '<a href="/support">напишите в поддержку</a>' in page

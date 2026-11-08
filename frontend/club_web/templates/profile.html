@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import login,field,mailing_field %}
-{% from 'macros.html' import name_field with context %}
 {% block content %}
 <main id="main" class="site-article profile-page">
 {% if not me or access_error %}{{ login(next=query.get('next','')) }}{% else %}
@@ -19,7 +18,7 @@
 </p>
 </form>
 {% if me.alumni.verification_status=='verified' %}
-<form data-api="/me/profile" data-method="PATCH">{{ name_field('fio','ФИО',me.alumni.fio) }}{{ field('contacts.email','Почта',me.alumni.contacts.get('email',''),type='email',required=false) }}{{ field('contacts.phone','Телефон',me.alumni.contacts.get('phone',''),type='tel',required=false) }}{{ field('contacts.telegram','Telegram',me.alumni.contacts.get('telegram',''),required=false) }}<fieldset data-max-interests="{{ domain.limits.max_interests }}">
+<form data-api="/me/profile" data-method="PATCH"><label class="site-field">ФИО<input type="text" value="{{ me.alumni.fio }}" readonly aria-describedby="profile-fio-note"></label><p class="profile-fio-note" id="profile-fio-note">ФИО меняет офис клуба. Если нужно исправить, <a href="/support">напишите в поддержку</a>.</p>{{ field('contacts.email','Почта',me.alumni.contacts.get('email',''),type='email',required=false) }}{{ field('contacts.phone','Телефон',me.alumni.contacts.get('phone',''),type='tel',required=false) }}{{ field('contacts.telegram','Telegram',me.alumni.contacts.get('telegram',''),required=false) }}<fieldset data-max-interests="{{ domain.limits.max_interests }}">
 <legend>Интересы в праве</legend>
 {% for interest in domain.legal_interests %}
 <label class="site-checkbox">

@@ -289,16 +289,17 @@ def test_live_system(name, width, height):
         member = next(member for member in members if member["email"] == email)
         member_verification(office, member["id"])
         member_points_discount(office, request, headers, auth(previous_token), member["id"])
-        updated_name = person + " Проверен"
+        changed = request.patch("/api/me/profile", headers=auth(previous_token), data={"fio": person + " Проверен"})
+        assert changed.status == 409
         page.goto("/lk/profile")
-        page.get_by_label("ФИО", exact=True).fill(updated_name)
+        expect(page.get_by_label("ФИО", exact=True)).not_to_be_editable()
         with page.expect_response(
             lambda response: response.url.endswith("/api/me/profile") and response.request.method == "PATCH"
         ) as updated:
             page.get_by_role("button", name="Сохранить профиль", exact=True).click()
         result(updated.value)
         page.reload()
-        expect(page.get_by_label("ФИО", exact=True)).to_have_value(updated_name)
+        expect(page.get_by_label("ФИО", exact=True)).to_have_value(person)
         profile_tools(page, request, auth(previous_token), IMAGE)
         support_conversation(page, office, request, headers, name)
         product = result(
@@ -322,7 +323,7 @@ def test_live_system(name, width, height):
             page.get_by_role("button", name="В корзину", exact=True).click()
         result(added.value)
         page.goto("/cart")
-        page.get_by_label("ФИО", exact=True).fill(updated_name)
+        page.get_by_label("ФИО", exact=True).fill(person)
         page.get_by_label("Телефон", exact=True).fill("+7 000 000-00-00")
         page.get_by_label("Почта", exact=True).fill(email)
         page.locator("input[name=consent_pdn]").check()
@@ -421,7 +422,7 @@ def test_live_system(name, width, height):
             "previousToken": previous_token,
             "revokedAdmin": admin_token,
             "order": order["number"],
-            "name": updated_name,
+            "name": person,
             "product": product["slug"],
             "event": event["id"],
         }
