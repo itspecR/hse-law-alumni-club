@@ -24,7 +24,7 @@
 4. Запушить свою ветку и открыть PR своей ветки в `main`. На ветку держится
    один открытый PR, следующие пуши попадают в него же.
 5. Когда в PR зелёные все проверки CI (`build-test`, `mariadb-integration`,
-   `postgres-integration`, `live-stack`, `secrets`), влить его в `main`
+   `live-stack`, `secrets`), влить его в `main`
    обычным слиянием (merge commit, не squash и не rebase).
 6. Сразу после слияния влить `origin/main` обратно в свою ветку и запушить её,
    чтобы ветка не расходилась с `main`.

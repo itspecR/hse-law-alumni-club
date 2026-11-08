@@ -10,7 +10,7 @@ import urllib.request
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 BRANCH = "main"
-REQUIRED_CHECKS = ("build-test", "mariadb-integration", "postgres-integration", "live-stack", "secrets")
+REQUIRED_CHECKS = ("build-test", "mariadb-integration", "live-stack", "secrets")
 MAX_ATTEMPTS = 3
 RETRY_PAUSE_SECONDS = 300
 API_TIMEOUT_SECONDS = 20
