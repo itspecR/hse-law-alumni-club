@@ -47,7 +47,7 @@ def configuration():
             continue
         key, raw = line.split('=', 1)
         values[key] = ' '.join(shlex.split(raw, comments=True))
-    for key in ('POSTGRES_PASSWORD', 'CHECKOUT_DB_PASSWORD', 'AUTH_SECRET',
+    for key in ('CHECKOUT_DB_PASSWORD', 'AUTH_SECRET',
                 'ADMIN_AUTH_SECRET', 'ADMIN_PASSWORD', 'BACKUP_ENCRYPTION_KEY'):
         values[key] = secrets.token_hex(32)
     values.update(APP_ENV='production', SEED_DEMO='false', CHECKOUT_DATABASE_URL='',
@@ -59,7 +59,6 @@ def configuration():
                 'VAPID_PRIVATE_KEY', 'SENTRY_DSN', 'BACKUP_OFFSITE_REMOTE', 'CORS_ORIGINS'):
         values[key] = ''
     values.update(ADMIN_EMAIL='admin@club.test', PUBLIC_URL='https://localhost:9443',
-                  WEB_DOMAIN='localhost', ADMIN_DOMAIN='admin.localhost', ACME_EMAIL='qa@club.test',
                   SMTP_HOST='mailpit', SMTP_PORT='1025', SMTP_FROM='club@club.test',
                   SMTP_USER='', SMTP_PASS='', OFFICE_EMAIL='office@club.test',
                   JOBS_ENABLED='false', DPO_SYNC_ENABLED='false', NEWS_SYNC_ENABLED='false')

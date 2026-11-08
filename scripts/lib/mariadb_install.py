@@ -329,11 +329,8 @@ def install(config, local, public=None):
                 "BACKUP_ENCRYPTION_KEY",
                 "BACKUP_OFFSITE_REMOTE",
                 "BACKUP_KEEP_DAYS",
-                "WEB_DOMAIN",
-                "ADMIN_DOMAIN",
-                "ACME_EMAIL",
             )
-            and not name.startswith(("POSTGRES_", "CHECKOUT_DB_", "TEST_"))
+            and not name.startswith(("CHECKOUT_DB_", "TEST_"))
         }
         runtime["CHECKOUT_DATABASE_URL"] = connection_url(api, values["CHECKOUT_DB_PASSWORD"], database)
         operator_values = {
