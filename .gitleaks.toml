@@ -7,3 +7,7 @@ condition = "AND"
 paths = ['''backend/tests/python/legacy-auth\.json$''']
 regexTarget = "secret"
 regexes = ['''^eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJzdWIiOiI1YjY2Y2Q0MS0zNDQwLTQyMzgtYTM2NC1kZGQxOTVmZDcwYTEiLCJhbHVtbmlfaWQiOiI1YjY2Y2Q0MS0zNDQwLTQyMzgtYTM2NC1kZGQxOTVmZDcwYTIiLCJ2ZXIiOjAsImV4cCI6NDA3MDkwODgwMH0\.m\-617wjncpvMcXkbOVuNd5gonP1t9zwz5WCffmXvzLk$''']
+
+[[allowlists]]
+description = "Синтетические значения из теста настроек прежней Node-реализации; файл удален, остался только в истории"
+paths = ['''^apps/api/src/env\.test\.ts$''']
