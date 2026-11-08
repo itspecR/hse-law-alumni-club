@@ -192,15 +192,21 @@ def application_receipt(choice, number, base, notified=PENDING_NOTICE):
     }
 
 
-def summary(base, starts_on=None):
+def applicant_summary(base, starts_on=None):
     text = base["items_json"][0]["title"] + (f" · поток с {display_date(starts_on)}" if starts_on else "")
-    text += f" · участников: {base['participants']}"
+    return text + f" · участников: {base['participants']}"
+
+
+def summary(base, starts_on=None):
+    text = applicant_summary(base, starts_on)
     return text + (f" · {base['organization']}" if base["organization"] else "")
 
 
 async def notify(state, number, base, starts_on):
-    text = summary(base, starts_on)
-    notified = await state.notifications.order_notice(number, text, base["total_estimate"], base["member_discount"])
+    text = applicant_summary(base, starts_on)
+    notified = await state.notifications.order_notice(
+        number, summary(base, starts_on), base["total_estimate"], base["member_discount"]
+    )
     await state.notifications.mail_applicant(
         base["contact_email"],
         club_subject(f"Заявка {number} принята"),
