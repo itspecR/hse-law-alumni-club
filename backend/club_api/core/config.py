@@ -6,8 +6,28 @@ from urllib.parse import urlsplit
 from pydantic import Field, SecretStr, ValidationError, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from club_api.core import requisites
+
 BIFIT_TEST_HOST = "fp-test.bifit.com"
 BIFIT_HOSTS = frozenset(("fp.bifit.com", BIFIT_TEST_HOST))
+PAYEE_FIELDS = (
+    "PAYEE_NAME",
+    "PAYEE_INN",
+    "PAYEE_KPP",
+    "PAYEE_BANK",
+    "PAYEE_BIC",
+    "PAYEE_ACCOUNT",
+    "PAYEE_CORRESPONDENT_ACCOUNT",
+)
+PAYEE_CODE_CHECKS = {
+    "PAYEE_INN": requisites.valid_inn,
+    "PAYEE_KPP": requisites.valid_kpp,
+    "PAYEE_BIC": requisites.valid_bic,
+}
+PAYEE_ACCOUNT_CHECKS = {
+    "PAYEE_ACCOUNT": requisites.valid_account,
+    "PAYEE_CORRESPONDENT_ACCOUNT": requisites.valid_correspondent_account,
+}
 
 
 class Settings(BaseSettings):
@@ -51,6 +71,13 @@ class Settings(BaseSettings):
     YOOKASSA_SECRET_KEY: SecretStr = SecretStr("")
     BIFIT_API_URL: str = ""
     BIFIT_CONNECTOR_TOKEN: SecretStr = SecretStr("")
+    PAYEE_NAME: str = ""
+    PAYEE_INN: str = ""
+    PAYEE_KPP: str = ""
+    PAYEE_BANK: str = ""
+    PAYEE_BIC: str = ""
+    PAYEE_ACCOUNT: str = ""
+    PAYEE_CORRESPONDENT_ACCOUNT: str = ""
     PUBLIC_URL: str = "http://localhost"
     VAPID_PUBLIC_KEY: str = ""
     VAPID_PRIVATE_KEY: SecretStr = SecretStr("")
@@ -78,6 +105,30 @@ class Settings(BaseSettings):
             raise ValueError("BIFIT_API_URL должен быть адресом фискального процессинга БИФИТ")
         return value
 
+    @field_validator("PAYEE_NAME", "PAYEE_BANK")
+    @classmethod
+    def payee_text(cls, value, info):
+        value = requisites.normalized_text(value)
+        if value and not requisites.valid_text(value):
+            raise ValueError("Некорректный " + str(info.field_name))
+        return value
+
+    @field_validator(*PAYEE_CODE_CHECKS)
+    @classmethod
+    def payee_code(cls, value, info):
+        value = value.strip()
+        if value and not PAYEE_CODE_CHECKS[str(info.field_name)](value):
+            raise ValueError("Некорректный " + str(info.field_name))
+        return value
+
+    @field_validator(*PAYEE_ACCOUNT_CHECKS)
+    @classmethod
+    def payee_account(cls, value, info):
+        value = value.strip()
+        if value and not PAYEE_ACCOUNT_CHECKS[str(info.field_name)](info.data.get("PAYEE_BIC", ""), value):
+            raise ValueError("Счет " + str(info.field_name) + " не сходится с PAYEE_BIC")
+        return value
+
     @field_validator("OFFICE_EMAIL", "MAIL_REPLY_TO")
     @classmethod
     def mail_address(cls, value, info):
@@ -88,6 +139,9 @@ class Settings(BaseSettings):
 
     def secret(self, name: str) -> str:
         return getattr(self, name).get_secret_value()
+
+    def payee(self) -> dict[str, str]:
+        return {name: getattr(self, name) for name in PAYEE_FIELDS}
 
     def production_errors(self) -> list[str]:
         if self.APP_ENV != "production":
@@ -137,6 +191,9 @@ class Settings(BaseSettings):
             errors.append("BIFIT_API_URL и BIFIT_CONNECTOR_TOKEN задаются вместе")
         if urlsplit(self.BIFIT_API_URL).hostname == BIFIT_TEST_HOST:
             errors.append("В production нужен боевой адрес БИФИТ, а не тестовый")
+        payee = self.payee().values()
+        if any(payee) and not all(payee):
+            errors.append("Реквизиты PAYEE_* задаются все вместе или все пустые")
         return errors
 
 
