@@ -5,7 +5,7 @@ from uuid import uuid4
 import httpx
 import pytest
 from pydantic import SecretStr
-from test_checkout_integration import contact, fill, product
+from test_checkout_integration import contact, fill, place, product
 from test_community_integration import account
 
 from club_api.core.errors import ApiError
@@ -42,7 +42,7 @@ async def test_completed_order_cannot_restore_consumed_stock(database_app):
     row, session = await product(app, stock=1), str(uuid4())
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
         await fill(client, row, session)
-        response = await client.post("/orders", headers={"x-cart-session": session}, json=contact())
+        response = await place(client, headers={"x-cart-session": session}, json=contact())
         assert response.status_code == 200
     order = (await app.state.store.read("orders", limit=1))[0]
     assert await app.state.checkout.change_status(order["id"], "done")
@@ -67,7 +67,7 @@ async def test_money_above_signed_int32_round_trips_checkout(database_app):
         row = await app.state.store.one("products", created.json()["id"])
         assert row["price"] == amount
         await fill(client, row, session, 2)
-        response = await client.post("/orders", headers={"x-cart-session": session}, json=contact())
+        response = await place(client, headers={"x-cart-session": session}, json=contact())
         assert response.status_code == 200, response.text
         assert response.json()["subtotal"] == amount * 2 and response.json()["total_estimate"] == amount * 2
 
@@ -87,11 +87,9 @@ async def test_failed_guest_payment_releases_after_ttl_and_late_success_requires
     headers = {"x-cart-session": session, "idempotency-key": key}
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
         await fill(client, row, session)
-        result = await client.post("/orders", headers=headers, json=contact())
+        result = await place(client, headers=headers, json=contact())
         assert result.status_code == 200 and "payment_url" not in result.json()
-        assert (await client.post("/orders", headers=headers, json=contact())).json()["number"] == result.json()[
-            "number"
-        ]
+        assert (await place(client, headers=headers, json=contact())).json()["number"] == result.json()["number"]
     order = (await state.store.read("orders", limit=1))[0]
     assert order["payment_status"] is None and order["payment_id"] is None
     await state.store.update("orders", {"created_at": datetime.now(UTC) - timedelta(hours=2)}, id=order["id"])
@@ -239,7 +237,7 @@ async def test_merch_order_grants_first_order_without_adding_points(database_app
     row, session = await product(app, stock=2), str(uuid4())
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
         await fill(client, row, session)
-        response = await client.post("/orders", headers={**headers, "x-cart-session": session}, json=contact())
+        response = await place(client, headers={**headers, "x-cart-session": session}, json=contact())
         assert response.status_code == 200
         grants = await app.state.store.read("alumni_achievements", filters={"alumni_id": {"_eq": alumni_id}})
         assert [row["achievement_id"] for row in grants] == [achievement["id"]]
@@ -264,14 +262,10 @@ async def test_dpo_is_not_sold_and_guest_orders_do_not_grant_first_order(databas
             "/cart", headers={"x-cart-session": session}, json={"type": "dpo", "ref_id": program["slug"]}
         )
         assert added.status_code == 400
-        assert (
-            await client.post("/orders", headers={**headers, "x-cart-session": session}, json=contact())
-        ).status_code == 400
+        assert (await place(client, headers={**headers, "x-cart-session": session}, json=contact())).status_code == 400
         guest_session = str(uuid4())
         await fill(client, row, guest_session)
-        assert (
-            await client.post("/orders", headers={"x-cart-session": guest_session}, json=contact())
-        ).status_code == 200
+        assert (await place(client, headers={"x-cart-session": guest_session}, json=contact())).status_code == 200
         profile = (await client.get("/me", headers=headers)).json()
         assert not next(item for item in profile["achievements"] if item["key"] == "first_order")["earned"]
     assert not await app.state.store.read("alumni_achievements", filters={"alumni_id": {"_eq": alumni_id}})

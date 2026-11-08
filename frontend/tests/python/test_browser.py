@@ -469,6 +469,7 @@ def test_checkout_error_keeps_contacts_and_replay_key(page, site):
     expect(page.get_by_role("heading", name="Заявка отправлена")).to_be_visible()
     orders = [write for write in site[2] if write["path"] == "/orders"]
     assert len(orders) == 2 and orders[0]["headers"]["idempotency-key"] == orders[1]["headers"]["idempotency-key"]
+    assert all(order["body"]["captcha"]["number"] == 7 for order in orders)
 
 
 @pytest.mark.parametrize("width", [1440, 390])

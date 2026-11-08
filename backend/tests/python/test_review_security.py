@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 import httpx
 import pytest
 from pydantic import SecretStr
-from test_checkout_integration import contact, fill, product
+from test_checkout_integration import contact, fill, place, product
 from test_community_integration import account
 
 from club_api.core.errors import ApiError
@@ -37,7 +37,7 @@ async def reserved_order(app, monkeypatch, *, variant=False):
             assert reply.status_code == 200
         else:
             await fill(client, row, session)
-        reply = await client.post("/orders", headers={"x-cart-session": session}, json=contact())
+        reply = await place(client, headers={"x-cart-session": session}, json=contact())
         assert reply.status_code == 200
     order = (await state.store.read("orders", limit=1))[0]
     saved = await state.store.one("products", row["id"])
