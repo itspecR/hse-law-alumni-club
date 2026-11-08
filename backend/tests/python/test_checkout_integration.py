@@ -3,10 +3,12 @@ from uuid import uuid4
 
 import httpx
 import pytest
+from test_portfolio_applications import solved_captcha
 
 from club_api.core.errors import ApiError
 from club_api.modules.checkout.payments import payment_outcome
 from club_api.modules.notifications.mail import CLUB_NAME
+from club_api.modules.portfolio.captcha import RETRY_MESSAGE
 
 
 def contact():
@@ -17,6 +19,10 @@ def contact():
         "fulfillment": "pickup",
         "consent_pdn": True,
     }
+
+
+async def place(client, *, headers, json):
+    return await client.post("/orders", headers=headers, json={**json, "captcha": await solved_captcha(client)})
 
 
 async def product(app, stock=10):
@@ -44,7 +50,7 @@ async def test_checkout_replay_stock_and_single_release(database_app):
     headers = {"x-cart-session": session, "idempotency-key": key}
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
         await fill(client, row, session, 2)
-        replies = await asyncio.gather(*(client.post("/orders", headers=headers, json=contact()) for _ in range(2)))
+        replies = await asyncio.gather(*(place(client, headers=headers, json=contact()) for _ in range(2)))
         assert all(reply.status_code == 200 for reply in replies)
         assert replies[0].json()["number"] == replies[1].json()["number"]
         assert replies[0].json()["total_estimate"] == 10000
@@ -53,7 +59,7 @@ async def test_checkout_replay_stock_and_single_release(database_app):
         assert len(orders) == 1
         assert (await client.get("/cart", headers=headers)).json()["items"] == []
         changed = {**contact(), "comment": "Другой запрос"}
-        assert (await client.post("/orders", headers=headers, json=changed)).status_code == 409
+        assert (await place(client, headers=headers, json=changed)).status_code == 409
         assert await app.state.checkout.change_status(orders[0]["id"], "canceled")
         assert not await app.state.checkout.change_status(orders[0]["id"], "canceled")
         assert (await app.state.store.one("products", row["id"]))["stock"] == 10
@@ -70,7 +76,7 @@ async def test_two_carts_cannot_oversell_last_stock(database_app):
         for session in sessions:
             await fill(client, row, session)
         responses = await asyncio.gather(
-            *(client.post("/orders", headers={"x-cart-session": session}, json=contact()) for session in sessions)
+            *(place(client, headers={"x-cart-session": session}, json=contact()) for session in sessions)
         )
         assert sorted(response.status_code for response in responses) == [200, 409]
         assert (await app.state.store.one("products", row["id"]))["stock"] == 0
@@ -192,3 +198,21 @@ def test_mismatched_payment_requires_review(value, paid, currency):
         )
         == "review"
     )
+
+
+async def test_order_needs_a_fresh_captcha(database_app):
+    app = database_app
+    row = await product(app)
+    session = str(uuid4())
+    headers = {"x-cart-session": session}
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        await fill(client, row, session)
+        missing = await client.post("/orders", headers=headers, json=contact())
+        captcha = await solved_captcha(client)
+        first = await client.post("/orders", headers=headers, json={**contact(), "captcha": captcha})
+        await fill(client, row, session)
+        reused = await client.post("/orders", headers=headers, json={**contact(), "captcha": captcha})
+    assert (missing.status_code, missing.json()["error"]) == (400, RETRY_MESSAGE)
+    assert first.status_code == 200, first.text
+    assert (reused.status_code, reused.json()["error"]) == (400, RETRY_MESSAGE)
+    assert len(await app.state.store.read("orders", limit=-1)) == 1

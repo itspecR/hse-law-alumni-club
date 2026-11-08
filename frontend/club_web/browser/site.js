@@ -339,6 +339,7 @@ async function perform(target, body) {
       const id = stored(key) || crypto.randomUUID();
       store(key, id);
       headers = { "idempotency-key": id };
+      body = { ...body, captcha: await solveCaptcha() };
     }
     if (application) {
       const key = "club_application:" + path;

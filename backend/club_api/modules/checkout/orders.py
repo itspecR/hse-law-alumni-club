@@ -17,7 +17,7 @@ from club_api.modules.checkout.cart import cart_session, load_cart
 from club_api.modules.checkout.payments import SAFE_INTEGER_MAX, secure_payment_url
 from club_api.modules.checkout.store import digest
 from club_api.modules.notifications.mail import club_subject
-from club_api.modules.portfolio.captcha import RETRY_MESSAGE
+from club_api.modules.portfolio.captcha import RETRY_MESSAGE, CaptchaBody, require_captcha
 from club_api.modules.portfolio.cohorts import with_starts
 from club_api.observability.audit import audit
 
@@ -34,6 +34,7 @@ class OrderBody(Body):
     comment: str | None = Field(default=None, max_length=2000)
     consent_pdn: Literal[True]
     website: str = Field(default="", max_length=0)
+    captcha: CaptchaBody | None = None
 
     @field_validator("contact_email")
     @classmethod
@@ -67,10 +68,16 @@ async def create_order(request: HttpRequest):
             raise ApiError(400, RETRY_MESSAGE) from error
     key = digest(session + ":" + (supplied_key or str(uuid4())))
     request_hash = digest(
-        json_string({"body": body.model_dump(exclude_unset=True), "alumni": alumni["id"] if alumni else None})
+        json_string(
+            {
+                "body": body.model_dump(exclude_unset=True, exclude={"captcha"}),
+                "alumni": alumni["id"] if alumni else None,
+            }
+        )
     )
     if previous := (await state.checkout.replay(key, request_hash)):
         return previous
+    await require_captcha(state, body.captcha)
     cart = await load_cart(state.store, session)
     if not cart or not cart["items"]:
         raise ApiError(400, "Корзина пуста.")
