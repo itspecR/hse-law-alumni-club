@@ -33,6 +33,16 @@
 .give-status { margin: 12px 0 0; font-size: 14px; text-align: center; color: var(--c-accent-text); }
 .give-status:empty { display: none; }
 .give-status[hidden] { display: none; }
+.give-transfer { display: grid; justify-items: center; gap: 16px; text-align: center; }
+.give-transfer[hidden] { display: none; }
+.give-transfer__title { margin: 0; font: 600 22px/1.25 var(--f-body); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; text-wrap: balance; }
+.give-transfer__qr { display: block; width: min(240px, 100%); height: auto; aspect-ratio: 1; border-radius: 12px; background: #fff; }
+.give-transfer .give-hint { margin: 0; }
+.give-transfer__save { min-height: 44px; }
+.give-requisites { display: grid; gap: 2px; width: 100%; margin: 4px 0 0; text-align: left; font-size: 14px; line-height: 1.4; }
+.give-requisites dt { color: var(--c-text-3); }
+.give-requisites dd { margin: 0 0 10px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; user-select: all; color: var(--c-text); }
+.give-requisites dd:last-child { margin-bottom: 0; }
 
 .give-thanks { padding-block: clamp(72px, 10cqi, 144px); }
 .give-thanks__mark { display: block; width: 64px; height: 64px; margin: 0 auto 32px; border-radius: 14px; }
