@@ -57,6 +57,14 @@ def test_archive_rejects_invalid_record(change):
         parse_changes(raw)
 
 
+@pytest.mark.parametrize("kind", [None, "law", {}, []])
+def test_rejects_unknown_entry_type(kind):
+    raw = copy.deepcopy(resource("changes.json"))
+    raw["items"][0]["entryType"] = kind
+    with pytest.raises(ValueError, match="Неизвестный тип записи"):
+        parse_changes(raw)
+
+
 def test_archive_combined_filters():
     data = parse_changes(archive())
     found = select_changes(data["items"], {"q": "237-ФЗ", "from": "2026-07-04", "to": "2026-07-04"})
