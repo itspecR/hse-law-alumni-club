@@ -87,6 +87,7 @@ async def test_donations_export_follows_filters_and_is_audited(database_app):
     assert [row[0] for row in rows] == ["DON-2026-000003", "DON-2026-000002"]
     assert rows[0][2:7] == ["3000,00", "Оплачено", "Анна Вымышленная", "anna@example.test", ""]
     assert rows[1][3] == "На проверке" and rows[1][8] == ""
+    assert header[9] == "Способ" and rows[0][9] == "Картой"
     [event] = await app.state.database.rows("SELECT detail FROM audit_log WHERE event='donations.export'")
     detail = event["detail"]
     assert (json.loads(detail) if isinstance(detail, str) else detail) == {"count": 2, "range": "30d"}

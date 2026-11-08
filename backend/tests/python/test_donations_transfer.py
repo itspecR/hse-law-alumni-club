@@ -1,7 +1,10 @@
 import base64
+from uuid import uuid4
 
 import pytest
+from test_community_integration import account
 from test_donations import BODY, donate, donation, enable, letters, site
+from test_donations_admin import client as admin_client
 from test_requisites import PAYEE
 
 from club_api.domain import rubles
@@ -79,3 +82,54 @@ async def test_unknown_method_is_rejected(database_app, monkeypatch):
         reply = await donate(client, {**BODY, "method": "cash"})
     assert reply.status_code == 400
     assert await app.state.database.rows("SELECT id FROM club_donations") == []
+
+
+async def awaiting_transfer(app, monkeypatch):
+    enable_transfer(app, monkeypatch)
+    async with site(app) as client:
+        reply = await donate(client, TRANSFER_BODY)
+    assert reply.status_code == 200, reply.text
+    return reply.json()["number"]
+
+
+async def test_admin_marks_transfer_received_once_and_donor_is_thanked(database_app, monkeypatch):
+    app = database_app
+    sent = letters(app, monkeypatch)
+    number = await awaiting_transfer(app, monkeypatch)
+    _, headers = await account(app, "admin")
+    async with admin_client(app) as http:
+        first = await http.post(f"/admin/donations/{number}/received", headers=headers)
+        second = await http.post(f"/admin/donations/{number}/received", headers=headers)
+        listed = await http.get("/admin/donations?range=all", headers=headers)
+    assert first.status_code == 200 and second.status_code == 409
+    assert second.json()["error"] == "Это пожертвование не ждет перевода."
+    row = await donation(app, number)
+    assert (row["status"], row["method"]) == ("succeeded", "transfer") and row["paid_at"] is not None
+    thanks = [mail for mail in sent if mail["to"] == "donor@example.test" and mail["subject"].startswith("Спасибо")]
+    received = [mail for mail in sent if mail["to"] == "club@example.test" and "получено" in mail["text"]]
+    assert len(thanks) == 1 and number in thanks[0]["text"] and len(received) == 1
+    [item] = listed.json()["items"]
+    assert (item["number"], item["method"], item["status"]) == (number, "transfer", "succeeded")
+    events = await app.state.database.rows(
+        "SELECT event FROM audit_log WHERE subject=%s ORDER BY created_at", ("donation:" + number,)
+    )
+    assert sorted(row["event"] for row in events) == ["donation.created", "donation.transfer_received"]
+
+
+async def test_only_awaiting_transfer_can_be_received_by_full_admin(database_app, monkeypatch):
+    app = database_app
+    number = await awaiting_transfer(app, monkeypatch)
+    await app.state.database.execute(
+        "INSERT INTO club_donations(id,number,amount,email,status,payment_id) VALUES(%s,%s,%s,%s,%s,%s)",
+        (str(uuid4()), "DON-2026-000777", 100000, "card@example.test", "pending", "synthetic-pay"),
+    )
+    _, editor = await account(app, "editor")
+    _, admin = await account(app, "admin")
+    async with admin_client(app) as http:
+        anonymous = await http.post(f"/admin/donations/{number}/received")
+        forbidden = await http.post(f"/admin/donations/{number}/received", headers=editor)
+        card = await http.post("/admin/donations/DON-2026-000777/received", headers=admin)
+        missing = await http.post("/admin/donations/DON-2026-999999/received", headers=admin)
+    assert (anonymous.status_code, forbidden.status_code, card.status_code, missing.status_code) == (401, 403, 409, 404)
+    assert (await donation(app, number))["status"] == "awaiting"
+    assert (await donation(app, "DON-2026-000777"))["status"] == "pending"

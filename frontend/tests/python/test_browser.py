@@ -1691,6 +1691,45 @@ def test_member_point_history_fits_and_closes(page, site, width):
 
 
 @pytest.mark.parametrize("width", [390, 1440])
+def test_office_marks_awaiting_transfer_received_after_confirmation(page, site, width):
+    awaiting = {
+        "number": "DON-2026-000008",
+        "created_at": "2026-11-05T10:00:00Z",
+        "amount": 300000,
+        "status": "awaiting",
+        "method": "transfer",
+        "name": "Вымышленный Даритель",
+        "email": "donor@example.test",
+        "alumni_id": None,
+        "payment_id": None,
+        "paid_at": None,
+    }
+    site[1]["/admin/donations"] = {
+        "items": [awaiting],
+        "total": 1,
+        "range": "30d",
+        "statuses": {"awaiting": "Ожидает перевода"},
+        "periods": {"30d": "30 дней"},
+        "summary": {"count": 0, "amount": 0},
+    }
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/donations")
+    record = page.locator("article.office-record").filter(has_text="DON-2026-000008")
+    expect(record).to_contain_text("перевод по реквизитам")
+    dialogs = []
+    page.on("dialog", lambda dialog: (dialogs.append(dialog.message), dialog.accept()))
+    with page.expect_response(lambda response: response.url.endswith("/api/admin/donations/DON-2026-000008/received")):
+        record.get_by_role("button", name="Перевод получен", exact=True).click()
+    assert len(dialogs) == 1 and dialogs[0].startswith("Перевод 3")
+    assert dialogs[0].endswith(
+        "по пожертвованию DON-2026-000008 поступил на счет клуба? Дарителю уйдет письмо с благодарностью."
+    )
+    assert any(row["path"] == "/admin/donations/DON-2026-000008/received" for row in site[2])
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
 def test_event_roster_undoes_attendance_after_confirmation(page, site, width):
     site[1]["/admin/events"] = [{**EVENT, "id": "event-1"}]
     site[1]["/admin/events/event-1/rsvps"] = [

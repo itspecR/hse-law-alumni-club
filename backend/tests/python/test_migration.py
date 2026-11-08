@@ -53,6 +53,7 @@ def test_all_legacy_routes_are_present():
     office = {
         ("GET", "/admin/donations"),
         ("GET", "/admin/donations/export.csv"),
+        ("POST", "/admin/donations/{number}/received"),
         ("PATCH", "/admin/orders/{id}/discount"),
         ("PATCH", "/admin/orders/{id}/cohort"),
         ("POST", "/admin/news-sources/refresh"),
@@ -78,7 +79,7 @@ def test_all_legacy_routes_are_present():
         ("PATCH", "/admin/timeline/{id}"),
         ("DELETE", "/admin/timeline/{id}"),
     }
-    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 139
+    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 140
 
 
 def test_sentry_privacy():

@@ -99,6 +99,7 @@ routes = (
         path("admin/orders/export.csv", endpoint({"GET": checkout_admin.export_orders})),
         path("admin/donations", endpoint({"GET": donations_admin.donations})),
         path("admin/donations/export.csv", endpoint({"GET": donations_admin.export_donations})),
+        path("admin/donations/<str:number>/received", endpoint({"POST": donations_admin.receive_transfer})),
         path("podcasts", endpoint({"GET": podcasts_routes.podcasts})),
         path("podcasts/<str:id>/audio", endpoint({"GET": podcasts_routes.audio})),
         path("podcasts/subscribe", endpoint({"POST": podcasts_routes.subscribe})),
