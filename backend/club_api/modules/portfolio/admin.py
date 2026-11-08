@@ -3,9 +3,8 @@ from uuid import UUID
 
 from pydantic import Field, field_validator
 
+from club_api.core.schemas import SAFE_INTEGER_MAX, Body
 from club_api.domain import PORTFOLIO_CATALOG
-from club_api.modules.auth.routes import Body
-from club_api.modules.checkout.payments import SAFE_INTEGER_MAX
 from club_api.modules.content.admin import content_crud
 from club_api.modules.portfolio.orders import PROGRAM_USE
 from club_api.modules.portfolio.relations import PROGRAM_TRAINERS, require_existing

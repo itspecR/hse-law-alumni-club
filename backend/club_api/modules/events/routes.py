@@ -18,9 +18,9 @@ from club_api.core.models import (
     query_page,
     web_url,
 )
+from club_api.core.schemas import Body
 from club_api.core.views import api_view, defer, parse_body
 from club_api.db.queries import acquire_lock
-from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin
 from club_api.modules.catalog.scope import PUBLISHED_DPO
 from club_api.modules.events.notifications import announce

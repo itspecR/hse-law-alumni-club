@@ -3,9 +3,9 @@ from pydantic import Field
 
 from club_api.core.errors import ApiError
 from club_api.core.models import guid
+from club_api.core.schemas import Body
 from club_api.core.views import api_view, defer, parse_body
 from club_api.domain import applied_discount, order_totals
-from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin
 from club_api.modules.notifications.mail import club_subject
 from club_api.modules.portfolio.orders import CONTACT_LINE, estimate_line, locked_order, reachable, require_open

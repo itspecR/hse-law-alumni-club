@@ -5,7 +5,7 @@ import pytest
 from test_requisites import PAYEE, settings
 
 from club_api.core.errors import ApiError
-from club_api.modules.checkout.payments import SAFE_INTEGER_MAX
+from club_api.core.schemas import SAFE_INTEGER_MAX
 from club_api.modules.transfer.qr import PURPOSE_MAX, Transfer
 
 EXPECTED = (

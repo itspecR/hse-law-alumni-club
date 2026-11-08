@@ -2,10 +2,11 @@ import re
 from typing import Literal
 
 from django.http import HttpRequest
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
 from club_api.core.names import PersonName
+from club_api.core.schemas import Body
 from club_api.core.security import client_ip
 from club_api.core.views import api_view, parse_body
 from club_api.domain import MAX_INTERESTS
@@ -39,10 +40,6 @@ ROUTE_LIMITS = {
     "/auth/forgot": 3,
     "/auth/reset": 5,
 }
-
-
-class Body(BaseModel):
-    model_config = ConfigDict(strict=True, extra="ignore")
 
 
 class EmailBody(Body):

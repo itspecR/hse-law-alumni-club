@@ -7,9 +7,9 @@ from zoneinfo import ZoneInfo
 from django.http import HttpRequest, HttpResponse
 
 from club_api.core.models import count, guid, parse_date, query_choice, query_page, query_search
+from club_api.core.schemas import Body
 from club_api.core.views import api_view, defer, parse_body
 from club_api.domain import PORTFOLIO_CATALOG, applied_discount
-from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin, require_full_admin
 from club_api.modules.notifications.mail import CLUB_NAME, club_subject
 from club_api.modules.portfolio.cohorts import with_starts

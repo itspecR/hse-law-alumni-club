@@ -5,9 +5,9 @@ from typing import Literal
 from django.http import HttpRequest
 
 from club_api.core.errors import ApiError
+from club_api.core.schemas import Body
 from club_api.core.views import api_view, parse_body
 from club_api.db.store import normalize
-from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin
 from club_api.modules.news.importer import SYNC_LOCK, sync_news
 from club_api.modules.news.schedule import INTERVALS, news_settings, next_check, save_settings

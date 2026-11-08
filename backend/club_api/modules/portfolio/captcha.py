@@ -8,8 +8,8 @@ from django.http import HttpRequest
 from pydantic import Field
 
 from club_api.core.errors import ApiError
+from club_api.core.schemas import Body
 from club_api.core.views import api_view
-from club_api.modules.auth.routes import Body
 
 CAPTCHA_MAX_NUMBER = 50000
 CAPTCHA_TTL_SECONDS = 600

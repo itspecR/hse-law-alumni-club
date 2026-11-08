@@ -5,8 +5,8 @@ from datetime import UTC, datetime
 from django.http import HttpRequest
 from pydantic import Field
 
+from club_api.core.schemas import Body
 from club_api.core.views import api_view, parse_body
-from club_api.modules.auth.routes import Body
 
 logger = logging.getLogger("club.analytics")
 ROUTE_LIMITS = {("POST", "/analytics/pageview"): 60}

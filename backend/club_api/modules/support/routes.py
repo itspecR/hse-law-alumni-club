@@ -8,9 +8,9 @@ from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from club_api.core.errors import ApiError
 from club_api.core.models import guid, query_page
+from club_api.core.schemas import Body
 from club_api.core.views import api_view, parse_body
 from club_api.db.store import normalize
-from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin, require_full_admin
 from club_api.modules.checkout.store import digest
 from club_api.modules.support.service import FAQ, faq_stats, support_config

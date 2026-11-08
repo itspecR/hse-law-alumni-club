@@ -11,9 +11,9 @@ from py_vapid import Vapid
 from pydantic import Field, field_validator
 from pywebpush import WebPushException, webpush_async
 
+from club_api.core.schemas import Body
 from club_api.core.views import api_view, parse_body
 from club_api.db.queries import acquire_lock
-from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_alumni
 from club_api.modules.gamification.routes import verified_alumni
 from club_api.observability.audit import audit

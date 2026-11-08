@@ -7,10 +7,10 @@ from django.http import HttpRequest
 from pydantic import Field
 
 from club_api.core.errors import ApiError
+from club_api.core.schemas import Body
 from club_api.core.views import api_view, parse_body
 from club_api.db.queries import acquire_lock
 from club_api.domain import MAX_CART_LINES, MAX_LINE_QTY, effective_discount, order_totals, same_line, summarize_cart
-from club_api.modules.auth.routes import Body
 from club_api.modules.catalog.lookup import lookup_catalog
 
 ROUTE_LIMITS = {("POST", "/cart"): 40}

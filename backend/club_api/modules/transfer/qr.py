@@ -2,8 +2,8 @@ import segno
 
 from club_api.core.errors import ApiError
 from club_api.core.requisites import FORBIDDEN, normalized_text
+from club_api.core.schemas import SAFE_INTEGER_MAX
 from club_api.domain import rubles
-from club_api.modules.checkout.payments import SAFE_INTEGER_MAX
 
 HEADER = "ST00012"
 ENCODING = "utf-8"
