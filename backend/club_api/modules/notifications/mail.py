@@ -5,7 +5,7 @@ from urllib.parse import urlsplit
 
 import aiosmtplib
 
-from club_api.db.queries import Query, acquire_lock
+from club_api.db.queries import acquire_lock
 from club_api.domain import rubles
 
 logger = logging.getLogger("club.mail")
@@ -160,10 +160,7 @@ class Notifications:
             )
             return "failed"
         await connection.execute(
-            Query(
-                "UPDATE club_mail_outbox SET attempts=%s,next_attempt_at=now() + (%s * interval '1 minute'),last_error=%s WHERE id=%s",
-                "UPDATE club_mail_outbox SET attempts=%s,next_attempt_at=now() + INTERVAL %s MINUTE,last_error=%s WHERE id=%s",
-            ),
+            "UPDATE club_mail_outbox SET attempts=%s,next_attempt_at=now() + INTERVAL %s MINUTE,last_error=%s WHERE id=%s",
             (attempts, min(60, 5 * attempts), "smtp_fail" if self.mail_enabled else "smtp_missing", row["id"]),
         )
         return "skipped"

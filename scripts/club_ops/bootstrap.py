@@ -5,7 +5,7 @@ from importlib.resources import files
 from uuid import uuid4
 
 from club_api.db.operator import is_operator
-from club_api.db.queries import Query, acquire_lock
+from club_api.db.queries import acquire_lock
 from club_api.db.store import Store
 from club_api.domain import ACHIEVEMENT_FLAGS, DOMAIN
 from club_api.modules.auth.passwords import hash_password
@@ -90,10 +90,7 @@ class BootstrapConfig:
 async def ensure_role(connection, name, aliases=()):
     rows = await (
         await connection.execute(
-            Query(
-                "SELECT id FROM directus_roles WHERE name=ANY(%s::text[]) ORDER BY name",
-                "SELECT id FROM directus_roles WHERE name IN (SELECT value FROM JSON_TABLE(%s,'$[*]' COLUMNS(value VARCHAR(255) PATH '$')) names) ORDER BY name",
-            ),
+            "SELECT id FROM directus_roles WHERE name IN (SELECT value FROM JSON_TABLE(%s,'$[*]' COLUMNS(value VARCHAR(255) PATH '$')) names) ORDER BY name",
             ([name, *aliases],),
         )
     ).fetchall()
@@ -165,10 +162,7 @@ async def ensure_site(connection, public_url):
         "favicon": existing("public_favicon"),
     }
     await connection.execute(
-        Query(
-            'INSERT INTO club_settings("key",value) VALUES(\'site\',%s) ON CONFLICT("key") DO NOTHING',
-            "INSERT INTO club_settings(`key`,value) VALUES('site',%s) ON DUPLICATE KEY UPDATE `key`=`key`",
-        ),
+        "INSERT INTO club_settings(`key`,value) VALUES('site',%s) ON DUPLICATE KEY UPDATE `key`=`key`",
         (site,),
     )
 

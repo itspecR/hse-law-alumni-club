@@ -2,7 +2,6 @@ from collections import Counter
 from datetime import UTC, datetime, timedelta
 
 from club_api.core.models import count, group_count
-from club_api.db.queries import Query
 from club_api.db.store import normalize
 from club_api.domain import DOMAIN
 from club_api.modules.analytics.pageviews import pageview_stats
@@ -91,33 +90,21 @@ def top_programs(orders):
 
 async def support_stats(state, since):
     open_rows = await state.database.rows(
-        Query(
-            "SELECT count(*)::int AS count FROM club_support_tickets WHERE expires_at>now() AND status='open'",
-            "SELECT count(*) AS count FROM club_support_tickets WHERE expires_at>now() AND status='open'",
-        )
+        "SELECT count(*) AS count FROM club_support_tickets WHERE expires_at>now() AND status='open'"
     )
     created = await state.database.rows(
-        Query(
-            "SELECT count(*)::int AS count FROM club_support_tickets WHERE expires_at>now() AND created_at>=%s",
-            "SELECT count(*) AS count FROM club_support_tickets WHERE expires_at>now() AND created_at>=%s",
-        ),
+        "SELECT count(*) AS count FROM club_support_tickets WHERE expires_at>now() AND created_at>=%s",
         (since,),
     )
     return {
         "open": open_rows[0]["count"],
         "created_in_range": created[0]["count"],
         "by_status": await state.database.rows(
-            Query(
-                "SELECT status,count(*)::int AS count FROM club_support_tickets WHERE expires_at>now() AND created_at>=%s GROUP BY status ORDER BY count DESC",
-                "SELECT status,count(*) AS count FROM club_support_tickets WHERE expires_at>now() AND created_at>=%s GROUP BY status ORDER BY count DESC",
-            ),
+            "SELECT status,count(*) AS count FROM club_support_tickets WHERE expires_at>now() AND created_at>=%s GROUP BY status ORDER BY count DESC",
             (since,),
         ),
         "by_topic": await state.database.rows(
-            Query(
-                "SELECT COALESCE(topic,'(без темы)') AS topic,count(*)::int AS count FROM club_support_tickets WHERE expires_at>now() AND created_at>=%s GROUP BY 1 ORDER BY count DESC LIMIT 12",
-                "SELECT COALESCE(topic,'(без темы)') AS topic,count(*) AS count FROM club_support_tickets WHERE expires_at>now() AND created_at>=%s GROUP BY 1 ORDER BY count DESC LIMIT 12",
-            ),
+            "SELECT COALESCE(topic,'(без темы)') AS topic,count(*) AS count FROM club_support_tickets WHERE expires_at>now() AND created_at>=%s GROUP BY 1 ORDER BY count DESC LIMIT 12",
             (since,),
         ),
     }

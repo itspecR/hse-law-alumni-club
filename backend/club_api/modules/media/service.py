@@ -16,7 +16,6 @@ from PIL import Image, ImageOps
 
 from club_api.core.errors import ApiError
 from club_api.core.models import guid
-from club_api.db.queries import Query
 from club_api.db.store import MEDIA_FIELDS, normalize
 
 THUMBNAIL_WORKERS = 1
@@ -182,13 +181,7 @@ class Media:
             "SELECT f.* FROM directus_files f WHERE " + where + " ORDER BY f.created_on DESC,f.id LIMIT %s OFFSET %s",
             (pattern, pattern, limit, (page - 1) * limit),
         )
-        count_sql = (
-            Query(
-                "SELECT count(*)::int AS count FROM directus_files f WHERE ",
-                "SELECT count(*) AS count FROM directus_files f WHERE ",
-            )
-            + where
-        )
+        count_sql = "SELECT count(*) AS count FROM directus_files f WHERE " + where
         total = await self.state.database.rows(count_sql, (pattern, pattern))
         return {
             "items": [
@@ -265,10 +258,7 @@ class Media:
                 return
             shared = await (
                 await connection.execute(
-                    Query(
-                        "SELECT id FROM directus_files WHERE storage=%s AND filename_disk=%s AND id<>%s FOR SHARE",
-                        "SELECT id FROM directus_files WHERE storage=%s AND filename_disk=%s AND id<>%s LOCK IN SHARE MODE",
-                    ),
+                    "SELECT id FROM directus_files WHERE storage=%s AND filename_disk=%s AND id<>%s LOCK IN SHARE MODE",
                     (file["storage"], file["filename_disk"], id),
                 )
             ).fetchone()

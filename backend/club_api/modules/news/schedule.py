@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 
 from club_api.core.models import CLUB_TIMEZONE
-from club_api.db.queries import Query
 from club_api.modules.news.importer import sync_news
 
 INTERVALS = (1, 3, 6, 12, 24)
@@ -21,11 +20,9 @@ async def news_settings(state):
 
 async def save_settings(state, enabled, interval):
     await state.database.execute(
-        Query(
-            "INSERT INTO club_news_settings(id,enabled,interval_hours) VALUES(%s,%s,%s) ON CONFLICT(id) DO UPDATE "
-            "SET enabled=EXCLUDED.enabled,interval_hours=EXCLUDED.interval_hours,updated_at=now()",
+        (
             "INSERT INTO club_news_settings(id,enabled,interval_hours) VALUES(%s,%s,%s) ON DUPLICATE KEY UPDATE "
-            "enabled=VALUES(enabled),interval_hours=VALUES(interval_hours),updated_at=now()",
+            "enabled=VALUES(enabled),interval_hours=VALUES(interval_hours),updated_at=now()"
         ),
         (SETTINGS_ID, enabled, interval),
     )

@@ -14,7 +14,7 @@ from club_api.core.errors import ApiError
 from club_api.core.models import RESERVED_SLUGS, slugify
 from club_api.core.outgoing import HTTPS_PORT, IMAGE, Pacer, get_bytes, get_json, image_name
 from club_api.core.views import api_view
-from club_api.db.queries import Query, acquire_lock, release_lock
+from club_api.db.queries import acquire_lock, release_lock
 from club_api.domain import DPO_CATALOG
 from club_api.modules.auth.service import require_admin
 from club_api.modules.catalog.scope import DPO_PROGRAMS
@@ -327,13 +327,10 @@ def alert(reason):
 
 async def record_success(state, result):
     await state.database.execute(
-        Query(
-            "INSERT INTO club_dpo_sync(id,found,created,updated,archived) VALUES(1,%s,%s,%s,%s) "
-            "ON CONFLICT(id) DO UPDATE SET checked_at=now(),found=EXCLUDED.found,created=EXCLUDED.created,"
-            "updated=EXCLUDED.updated,archived=EXCLUDED.archived,error=NULL,failures=0",
+        (
             "INSERT INTO club_dpo_sync(id,found,created,updated,archived) VALUES(1,%s,%s,%s,%s) "
             "ON DUPLICATE KEY UPDATE checked_at=now(),found=VALUES(found),created=VALUES(created),"
-            "updated=VALUES(updated),archived=VALUES(archived),error=NULL,failures=0",
+            "updated=VALUES(updated),archived=VALUES(archived),error=NULL,failures=0"
         ),
         (result["found"], result["created"], result["updated"], result["archived"]),
     )
@@ -341,11 +338,9 @@ async def record_success(state, result):
 
 async def record_failure(state, reason):
     await state.database.execute(
-        Query(
-            "INSERT INTO club_dpo_sync(id,error,failures) VALUES(1,%s,1) ON CONFLICT(id) DO UPDATE "
-            "SET checked_at=now(),error=EXCLUDED.error,failures=club_dpo_sync.failures+1",
+        (
             "INSERT INTO club_dpo_sync(id,error,failures) VALUES(1,%s,1) ON DUPLICATE KEY UPDATE "
-            "checked_at=now(),error=VALUES(error),failures=failures+1",
+            "checked_at=now(),error=VALUES(error),failures=failures+1"
         ),
         (reason,),
     )
