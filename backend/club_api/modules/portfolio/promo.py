@@ -4,8 +4,8 @@ from typing import Literal
 from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
+from club_api.core.schemas import Body
 from club_api.db.store import normalize
-from club_api.modules.auth.routes import Body
 from club_api.modules.catalog.scope import PORTFOLIO_PROGRAMS
 from club_api.modules.content.admin import content_crud
 from club_api.modules.portfolio.admin import canonical_ids

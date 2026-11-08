@@ -3,8 +3,8 @@ from pydantic import Field
 
 from club_api.core.errors import ApiError
 from club_api.core.models import count, query_choice
+from club_api.core.schemas import Body
 from club_api.core.views import api_view, defer, parse_body
-from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin, require_full_admin
 from club_api.modules.checkout.admin import csv_response
 from club_api.modules.office.analytics import analytics, analytics_rows, overview

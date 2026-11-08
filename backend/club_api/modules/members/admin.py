@@ -7,9 +7,9 @@ from pydantic import Field
 
 from club_api.core.errors import ApiError
 from club_api.core.models import count, group_count, guid, query_choice, query_page, query_search, sub_active
+from club_api.core.schemas import Body
 from club_api.core.views import api_view, defer, parse_body
 from club_api.domain import DOMAIN
-from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin, require_full_admin
 from club_api.modules.members.service import alumni_email, anonymize
 from club_api.modules.notifications.mail import CLUB_NAME, club_subject

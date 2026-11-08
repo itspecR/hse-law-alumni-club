@@ -7,9 +7,9 @@ from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
 from club_api.core.names import PersonName
+from club_api.core.schemas import Body
 from club_api.core.views import api_view, parse_body
 from club_api.domain import MAX_INTERESTS, achievement_progress, level_info
-from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_alumni
 from club_api.modules.gamification.routes import verified_alumni
 from club_api.modules.members.mailing import mailing_consent

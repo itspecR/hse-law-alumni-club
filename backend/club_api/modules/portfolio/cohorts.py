@@ -3,9 +3,8 @@ from typing import Literal
 from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
-from club_api.modules.auth.routes import Body
+from club_api.core.schemas import SAFE_INTEGER_MAX, Body
 from club_api.modules.catalog.scope import PORTFOLIO_PROGRAMS
-from club_api.modules.checkout.payments import SAFE_INTEGER_MAX
 from club_api.modules.content.admin import content_crud
 from club_api.modules.portfolio.admin import MAX_CAPACITY, canonical_ids
 from club_api.modules.portfolio.dates import iso_date, moscow_today

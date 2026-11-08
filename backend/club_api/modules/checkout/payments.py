@@ -7,6 +7,7 @@ from django.http import HttpRequest, JsonResponse
 
 from club_api.core.errors import ApiError
 from club_api.core.models import parse_date
+from club_api.core.schemas import SAFE_INTEGER_MAX
 from club_api.core.security import client_ip, trust_proxy, yookassa_ip
 from club_api.core.views import api_view, json_body
 from club_api.db.store import normalize
@@ -18,7 +19,6 @@ from club_api.observability.audit import audit
 
 logger = logging.getLogger("club.payments")
 ROUTE_LIMITS = {"/orders/{number}/pay": 10, "/payments/yookassa/webhook": 60}
-SAFE_INTEGER_MAX = 9007199254740991
 PAYMENT_LOOKUP_PAGE_LIMIT = 20
 PAYMENT_LOOKUP_PAGE_SIZE = 100
 DONATION_KEY = "donation_number"

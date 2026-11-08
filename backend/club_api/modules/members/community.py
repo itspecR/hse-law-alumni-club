@@ -5,11 +5,11 @@ from uuid import UUID
 from django.http import HttpRequest
 
 from club_api.core.errors import ApiError
+from club_api.core.schemas import Body
 from club_api.core.views import api_view, parse_body, parse_uuid
 from club_api.db.queries import acquire_lock
 from club_api.db.store import normalize
 from club_api.domain import compute_level
-from club_api.modules.auth.routes import Body
 from club_api.modules.gamification.routes import verified_alumni
 from club_api.observability.audit import audit
 

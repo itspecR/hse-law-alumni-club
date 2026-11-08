@@ -9,9 +9,10 @@ from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
 from club_api.core.names import PersonName
+from club_api.core.schemas import Body
 from club_api.core.views import api_view, parse_body
 from club_api.domain import PORTFOLIO_CATALOG, order_totals
-from club_api.modules.auth.routes import Body, EmailBody, RegisterBody
+from club_api.modules.auth.routes import EmailBody, RegisterBody
 from club_api.modules.catalog.scope import PUBLISHED_PORTFOLIO
 from club_api.modules.checkout.store import PENDING_NOTICE, digest
 from club_api.modules.notifications.mail import club_subject

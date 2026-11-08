@@ -13,10 +13,10 @@ from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
 from club_api.core.models import guid, parse_date, sub_active
+from club_api.core.schemas import Body
 from club_api.core.views import api_view
 from club_api.db.queries import acquire_lock
 from club_api.domain import DOMAIN
-from club_api.modules.auth.routes import Body
 from club_api.modules.auth.service import require_admin
 from club_api.modules.checkout.cart import locked_cart
 from club_api.modules.checkout.payments import secure_payment_url

@@ -4,9 +4,9 @@ from django.http import HttpRequest
 from pydantic import Field
 
 from club_api.core.errors import ApiError
+from club_api.core.schemas import Body
 from club_api.core.security import constant_equal
 from club_api.core.views import api_view, defer, parse_body
-from club_api.modules.auth.routes import Body
 
 ROUTE_LIMITS = {("POST", "/telegram/webhook"): 120}
 SafeId = Annotated[int, Field(ge=-9007199254740991, le=9007199254740991)]

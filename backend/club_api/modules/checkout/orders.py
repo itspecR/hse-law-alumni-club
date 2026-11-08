@@ -8,13 +8,14 @@ from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
 from club_api.core.names import PersonName
+from club_api.core.schemas import SAFE_INTEGER_MAX, Body
 from club_api.core.views import api_view, parse_body
 from club_api.domain import effective_discount, order_totals, rubles
-from club_api.modules.auth.routes import Body, EmailBody, RegisterBody
+from club_api.modules.auth.routes import EmailBody, RegisterBody
 from club_api.modules.auth.service import require_alumni
 from club_api.modules.catalog.lookup import lookup_catalog
 from club_api.modules.checkout.cart import cart_session, load_cart
-from club_api.modules.checkout.payments import SAFE_INTEGER_MAX, secure_payment_url
+from club_api.modules.checkout.payments import secure_payment_url
 from club_api.modules.checkout.store import digest
 from club_api.modules.notifications.mail import club_subject
 from club_api.modules.portfolio.captcha import RETRY_MESSAGE, CaptchaBody, require_captcha
