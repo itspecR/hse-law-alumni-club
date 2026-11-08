@@ -57,6 +57,7 @@ ORDER_FIELDS = (
     "office_reason",
     "program_id",
     "cohort_id",
+    "transfer_sent_at",
 )
 
 
@@ -94,7 +95,7 @@ async def orders(request: HttpRequest):
     page, limit = query_page(request)
     status = query_choice(request, "status", STATUS_LABELS)
     payment = query_choice(
-        request, "payment", ("succeeded", "pending", "canceled", "none", "review", "waiting_for_capture")
+        request, "payment", ("succeeded", "pending", "awaiting", "canceled", "none", "review", "waiting_for_capture")
     )
     search, filters = (query_search(request), [])
     if status:

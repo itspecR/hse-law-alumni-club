@@ -2,6 +2,7 @@ import segno
 
 from club_api.core.errors import ApiError
 from club_api.core.requisites import FORBIDDEN, normalized_text
+from club_api.domain import rubles
 from club_api.modules.checkout.payments import SAFE_INTEGER_MAX
 
 HEADER = "ST00012"
@@ -39,6 +40,12 @@ def clean_purpose(text):
     if not purpose or len(purpose) > PURPOSE_MAX:
         raise ValueError(f"Назначение платежа должно быть от 1 до {PURPOSE_MAX} знаков")
     return purpose
+
+
+def requisites_text(transfer):
+    lines = [f"{item['label']}: {item['value']}" for item in transfer["payee"]]
+    lines += [f"Сумма: {rubles(transfer['amount'])}", f"Назначение платежа: {transfer['purpose']}"]
+    return "\n".join(lines)
 
 
 class Transfer:

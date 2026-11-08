@@ -290,6 +290,22 @@ class Payments:
         return await self.apply({**payment, "metadata": {**payment.get("metadata", {}), "order_number": number}})
 
 
+def paid_text(order):
+    text = f"Здравствуйте, {order['contact_fio']}!\n\nОплата по заявке {order['number']} на сумму {rubles(order['total_estimate'])} прошла успешно."
+    return text + (
+        "\nПодписка на подкаст клуба действует 12 месяцев."
+        if order["type"] == "podcast"
+        else "\nЗаявка передана в работу."
+    )
+
+
+async def mail_paid(state, order):
+    if order["contact_email"] and order["contact_email"] != "-":
+        await state.notifications.mail_applicant(
+            order["contact_email"], club_subject(f"Оплата по заявке {order['number']} получена"), paid_text(order)
+        )
+
+
 @api_view
 async def payment_config(request: HttpRequest):
     return {"enabled": request.services.payments.enabled}
@@ -373,14 +389,6 @@ async def webhook(request: HttpRequest):
             subject="order:" + order["number"],
             detail={"payment_id": payment["id"]},
         )
-    if order and outcome == "succeeded" and order["contact_email"] and (order["contact_email"] != "-"):
-        text = f"Здравствуйте, {order['contact_fio']}!\n\nОплата по заявке {order['number']} на сумму {rubles(order['total_estimate'])} прошла успешно."
-        text += (
-            "\nПодписка на подкаст клуба действует 12 месяцев."
-            if order["type"] == "podcast"
-            else "\nЗаявка передана в работу."
-        )
-        await state.notifications.mail_applicant(
-            order["contact_email"], club_subject(f"Оплата по заявке {order['number']} получена"), text
-        )
+    if order and outcome == "succeeded":
+        await mail_paid(state, order)
     return {"ok": True}

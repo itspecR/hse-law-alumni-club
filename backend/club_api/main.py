@@ -38,6 +38,8 @@ from club_api.modules.notifications.push import Push
 from club_api.modules.office.routes import ROUTE_LIMITS as OFFICE_LIMITS
 from club_api.modules.podcasts.routes import ROUTE_LIMITS as PODCAST_LIMITS
 from club_api.modules.portfolio.applications import ROUTE_LIMITS as PORTFOLIO_LIMITS
+from club_api.modules.portfolio.payment import ROUTE_LIMITS as PROGRAM_PAYMENT_LIMITS
+from club_api.modules.portfolio.payment import ProgramPayments
 from club_api.modules.support.routes import ROUTE_LIMITS as SUPPORT_LIMITS
 from club_api.modules.telegram.bot import Telegram
 from club_api.modules.telegram.routes import ROUTE_LIMITS as TELEGRAM_LIMITS
@@ -81,6 +83,7 @@ def create_app(settings=None):
     app.state.checkout = Checkout(app.state)
     app.state.payments = Payments(app.state)
     app.state.transfer = Transfer(settings)
+    app.state.program_payments = ProgramPayments(app.state)
     app.state.donations = Donations(app.state)
     app.state.fiscal = FiscalQueue(app.state)
     app.state.gamification = Gamification(app.state)
@@ -105,6 +108,7 @@ def create_app(settings=None):
             **SUPPORT_LIMITS,
             **PODCAST_LIMITS,
             **PORTFOLIO_LIMITS,
+            **PROGRAM_PAYMENT_LIMITS,
             **OFFICE_LIMITS,
             **ANALYTICS_LIMITS,
             **SYNC_LIMITS,

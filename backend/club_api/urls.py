@@ -26,6 +26,7 @@ import club_api.modules.portfolio.applications as portfolio_applications
 import club_api.modules.portfolio.captcha as portfolio_captcha
 import club_api.modules.portfolio.cohorts as portfolio_cohorts
 import club_api.modules.portfolio.discounts as portfolio_discounts
+import club_api.modules.portfolio.payment as portfolio_payment
 import club_api.modules.portfolio.promo as portfolio_promo
 import club_api.modules.portfolio.routes as portfolio_routes
 import club_api.modules.portfolio.transfers as portfolio_transfers
@@ -72,6 +73,7 @@ routes = (
         path("portfolio/challenge", endpoint({"GET": portfolio_captcha.challenge})),
         path("portfolio/<str:slug>", endpoint({"GET": portfolio_routes.program})),
         path("portfolio/<str:slug>/applications", endpoint({"POST": portfolio_applications.apply})),
+        path("transfers/<str:token>", endpoint({"GET": portfolio_payment.payment_page})),
         path("portfolio/<str:slug>/quote", endpoint({"POST": portfolio_applications.quote})),
         path("pages/<str:slug>", endpoint({"GET": content_routes.page})),
         path(
@@ -96,6 +98,8 @@ routes = (
         path("admin/orders/<str:id>", endpoint({"PATCH": checkout_admin.patch_order})),
         path("admin/orders/<str:id>/discount", endpoint({"PATCH": portfolio_discounts.set_discount})),
         path("admin/orders/<str:id>/cohort", endpoint({"PATCH": portfolio_transfers.move_order})),
+        path("admin/orders/<str:id>/transfer", endpoint({"POST": portfolio_payment.send_requisites})),
+        path("admin/orders/<str:id>/transfer-received", endpoint({"POST": portfolio_payment.receive_payment})),
         path("admin/orders/export.csv", endpoint({"GET": checkout_admin.export_orders})),
         path("admin/donations", endpoint({"GET": donations_admin.donations})),
         path("admin/donations/export.csv", endpoint({"GET": donations_admin.export_donations})),
