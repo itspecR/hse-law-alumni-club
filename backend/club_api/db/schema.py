@@ -193,16 +193,3 @@ DATA_COLUMNS = {
     "timeline_items": ("id", "year", "title", "text", "metric", "sort", "status"),
     "trainers": ("id", "fio", "photo", "bio", "status", "created_at"),
 }
-
-JSON_COLUMNS = {
-    "achievements": ("rule_json",),
-    "alumni": ("contacts_json", "interests_json"),
-    "audit_log": ("detail",),
-    "block_hero": ("marquee",),
-    "carts": ("items_json",),
-    "club_donations": ("consents",),
-    "orders": ("items_json", "consents"),
-    "products": ("images", "variants_json"),
-    "programs": ("dates", "modules", "teachers", "audience", "results", "advantages", "competencies", "communication"),
-    "push_subs": ("keys",),
-}

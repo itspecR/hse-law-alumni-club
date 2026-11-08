@@ -19,6 +19,13 @@ MEDIA_FIELDS = {
     "trainers": ("photo", "bio"),
 }
 MEDIA_LINK = re.compile(r"/(?:api/media|assets)/([0-9a-f-]{36})", re.I)
+MAX_FILTER_DEPTH = 12
+MAX_FILTER_PARTS = 1000
+MAX_FILTER_VALUES = 20000
+COMPARISONS = frozenset(("_eq", "_neq", "_gt", "_gte", "_lt", "_lte"))
+NULL_CHECKS = frozenset(("_null", "_nnull"))
+MEMBERSHIP = frozenset(("_in", "_nin"))
+PATTERNS = frozenset(("_icontains", "_contains", "_starts_with"))
 
 
 def invalid():
@@ -31,10 +38,9 @@ def columns(table):
     return DATA_COLUMNS[table]
 
 
-def field(table, name):
+def check_field(table, name):
     if name not in columns(table):
         raise invalid()
-    return f'"{name}"'
 
 
 def normalize(value):
@@ -51,72 +57,49 @@ def normalize(value):
     return value
 
 
-def predicate(table, filters, params, depth=0):
+def scalar(value):
+    return not isinstance(value, dict | list)
+
+
+def valid_value(operator, value):
+    if operator in COMPARISONS:
+        return scalar(value)
+    if operator in NULL_CHECKS:
+        return isinstance(value, bool)
+    if operator in MEMBERSHIP:
+        return isinstance(value, list) and len(value) <= MAX_FILTER_VALUES and all(map(scalar, value))
+    if operator in PATTERNS:
+        return isinstance(value, str)
+    return False
+
+
+def check_filters(table, filters, depth=0):
     columns(table)
     if filters is None:
-        return "TRUE"
-    if not isinstance(filters, dict) or depth > 12:
+        return
+    if not isinstance(filters, dict) or depth > MAX_FILTER_DEPTH:
         raise invalid()
-    clauses = []
     for name, condition in filters.items():
         if name in ("_and", "_or"):
-            if not isinstance(condition, list) or len(condition) > 1000:
+            if not isinstance(condition, list) or len(condition) > MAX_FILTER_PARTS:
                 raise invalid()
-            parts = [predicate(table, part, params, depth + 1) for part in condition]
-            clauses.append(
-                (" AND " if name == "_and" else " OR ").join(f"({part})" for part in parts)
-                or ("TRUE" if name == "_and" else "FALSE")
-            )
+            for part in condition:
+                check_filters(table, part, depth + 1)
             continue
-        column = field(table, name)
-        if not isinstance(condition, dict):
+        check_field(table, name)
+        if not isinstance(condition, dict) or not all(valid_value(op, value) for op, value in condition.items()):
             raise invalid()
-        for operator, value in condition.items():
-            comparisons = {"_eq": "=", "_neq": "<>", "_gt": ">", "_gte": ">=", "_lt": "<", "_lte": "<="}
-            if operator in comparisons:
-                if isinstance(value, dict | list):
-                    raise invalid()
-                if value is None and operator in ("_eq", "_neq"):
-                    clauses.append(f"{column} IS {'NOT ' if operator == '_neq' else ''}NULL")
-                else:
-                    clauses.append(f"{column} {comparisons[operator]} %s")
-                    params.append(value)
-            elif operator in ("_null", "_nnull"):
-                if not isinstance(value, bool):
-                    raise invalid()
-                clauses.append(f"{column} IS {'NOT ' if (operator == '_nnull') == value else ''}NULL")
-            elif operator in ("_in", "_nin"):
-                if not isinstance(value, list) or len(value) > 20000 or any(isinstance(v, dict | list) for v in value):
-                    raise invalid()
-                if not value:
-                    clauses.append("FALSE" if operator == "_in" else "TRUE")
-                else:
-                    clauses.append(
-                        f"{column} {'NOT ' if operator == '_nin' else ''}IN ({','.join(['%s'] * len(value))})"
-                    )
-                    params.extend(value)
-            elif operator in ("_icontains", "_contains", "_starts_with"):
-                if not isinstance(value, str):
-                    raise invalid()
-                escaped = re.sub(r"[\\%_]", lambda match: "\\" + match[0], value)
-                params.append(("" if operator == "_starts_with" else "%") + escaped + "%")
-                clauses.append(f"{column} {'ILIKE' if operator == '_icontains' else 'LIKE'} %s")
-            else:
-                raise invalid()
-    return " AND ".join(f"({clause})" for clause in clauses) or "TRUE"
 
 
-def selection(table, fields=None):
-    allowed = columns(table)
-    fields = ["*"] if fields is None else fields
+def check_fields(table, fields=None):
+    columns(table)
+    if fields is None:
+        return
     if not fields:
         raise invalid()
-    names = []
     for name in fields:
-        if table == "pages" and name in BLOCK_FIELDS:
-            continue
-        names.extend([field(table, value) for value in allowed] if name == "*" else [field(table, name)])
-    return ",".join(dict.fromkeys(names)) or field(table, "id")
+        if name != "*" and not (table == "pages" and name in BLOCK_FIELDS):
+            check_field(table, name)
 
 
 def media_ids(value):
@@ -165,7 +148,7 @@ def attributes(model):
 
 
 def condition(table, filters):
-    predicate(table, filters, [])
+    check_filters(table, filters)
     mapping = attributes(model_for(table))
     result = Q()
     for name, operators in (filters or {}).items():
@@ -210,7 +193,7 @@ def condition(table, filters):
 
 
 def records(table, query, fields=None):
-    selection(table, fields)
+    check_fields(table, fields)
     mapping = attributes(model_for(table))
     names = (
         list(mapping.keys())
@@ -249,10 +232,10 @@ class Store:
         self.database = database
 
     async def read(self, table, *, filters=None, fields=None, sort=(), limit=100, offset=0, page=None, connection=None):
-        selection(table, fields)
-        predicate(table, filters, [])
+        check_fields(table, fields)
+        check_filters(table, filters)
         for name in sort:
-            field(table, name.removeprefix("-"))
+            check_field(table, name.removeprefix("-"))
         if page is not None:
             offset = (page - 1) * (0 if limit == -1 else limit)
         if type(limit) is not int or limit < -1 or type(offset) is not int or offset < 0:
@@ -311,7 +294,7 @@ class Store:
         if table.startswith("directus_") or not isinstance(data, dict):
             raise invalid()
         for key in data:
-            field(table, key)
+            check_field(table, key)
         if connection is None:
             async with self.database.transaction() as conn:
                 return await self.create(table, data, connection=conn)
@@ -332,8 +315,8 @@ class Store:
         if id is None and (not isinstance(filters, dict) or not filters):
             raise invalid()
         for key in data:
-            field(table, key)
-        predicate(table, {"id": {"_eq": id}} if id is not None else filters, [])
+            check_field(table, key)
+        check_filters(table, {"id": {"_eq": id}} if id is not None else filters)
         if connection is None:
             async with self.database.transaction() as conn:
                 return await self.update(table, data, id=id, filters=filters, connection=conn)
@@ -359,7 +342,7 @@ class Store:
         columns(table)
         if table.startswith("directus_") or (id is None and (not isinstance(filters, dict) or not filters)):
             raise invalid()
-        predicate(table, {"id": {"_eq": id}} if id is not None else filters, [])
+        check_filters(table, {"id": {"_eq": id}} if id is not None else filters)
         if connection is None:
             async with self.database.transaction() as conn:
                 return await self.delete(table, id=id, filters=filters, connection=conn)
@@ -372,9 +355,9 @@ class Store:
         )
 
     async def aggregate(self, table, *, filters=None, group=(), sum_field=None):
-        predicate(table, filters, [])
+        check_filters(table, filters)
         for name in (*group, *((sum_field,) if sum_field else ())):
-            field(table, name)
+            check_field(table, name)
 
         def aggregate_rows():
             model = model_for(table)

@@ -7,7 +7,7 @@ POSTGRES_ONLY = re.compile(
     r"::(?:int|text|uuid|jsonb|date|numeric|bigint)\b"
     r"|ON CONFLICT|FOR UPDATE OF|FOR SHARE\b|DISTINCT ON"
     r"|\bpg_[a-z]|\bjsonb\b|\bto_jsonb\b|\bjson_build_object\b|\bgen_random_uuid\b"
-    r"|interval '|\bstrpos\(|=\s*ANY\("
+    r"|interval '|\bstrpos\(|=\s*ANY\(|\bILIKE\b"
     r"|\bpsycopg\b|\bJsonb\b|\bQuery\("
 )
 

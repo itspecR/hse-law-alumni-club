@@ -12,7 +12,15 @@ from request_helpers import request_from_scope as Request
 
 from club_api.core.config import Settings
 from club_api.core.security import LoginAttempts, client_ip, trust_proxy, yookassa_ip
-from club_api.db.store import Store, field, predicate, selection
+from club_api.db.store import (
+    MAX_FILTER_DEPTH,
+    MAX_FILTER_PARTS,
+    MAX_FILTER_VALUES,
+    Store,
+    check_field,
+    check_filters,
+    columns,
+)
 from club_api.main import create_app
 from club_api.modules.auth.passwords import hash_password, verify_password
 from club_api.modules.auth.routes import RegisterBody
@@ -81,10 +89,10 @@ def test_login_account_and_ip_counters_independent():
 )
 def test_secret_columns_rejected(name):
     with pytest.raises(ValueError):
-        field("directus_users", name)
+        check_field("directus_users", name)
     with pytest.raises(ValueError):
-        predicate("directus_users", {name: {"_eq": "x"}}, [])
-    assert "password" not in selection("directus_users")
+        check_filters("directus_users", {name: {"_eq": "x"}})
+    assert name not in columns("directus_users")
 
 
 @pytest.mark.asyncio
@@ -104,11 +112,50 @@ async def test_unknown_tables_and_staff_mutations_rejected():
             await store.delete(table, id="x")
 
 
-def test_filter_values_are_parameters_and_like_escaped():
-    params = []
-    sql = predicate("programs", {"title": {"_icontains": "Robert'); DROP TABLE programs; --%_"}}, params)
-    assert "DROP" not in sql
-    assert params == ["%Robert'); DROP TABLE programs; --\\%\\_%"]
+def nested(depth):
+    filters = {"title": {"_eq": "x"}}
+    for _ in range(depth):
+        filters = {"_and": [filters]}
+    return filters
+
+
+@pytest.mark.parametrize(
+    "filters",
+    (
+        None,
+        {"title": {"_icontains": "Robert'); DROP TABLE programs; --%_"}},
+        {"title": {"_eq": None, "_neq": "x", "_gte": 1}},
+        {"_or": [{"title": {"_null": True}}, {"slug": {"_in": ["a", None], "_nin": []}}]},
+        {"_and": []},
+        {"title": {"_in": ["x"] * MAX_FILTER_VALUES}},
+        {"_or": [{}] * MAX_FILTER_PARTS},
+        nested(MAX_FILTER_DEPTH),
+    ),
+)
+def test_filter_shapes_within_limits_are_accepted(filters):
+    check_filters("programs", filters)
+
+
+@pytest.mark.parametrize(
+    "filters",
+    (
+        [],
+        {"title": "x"},
+        {"title": {"_eq": ["x"]}},
+        {"title": {"_null": "yes"}},
+        {"title": {"_in": "x"}},
+        {"title": {"_in": [["x"]]}},
+        {"title": {"_in": ["x"] * (MAX_FILTER_VALUES + 1)}},
+        {"title": {"_contains": 1}},
+        {"title": {"_regex": ".*"}},
+        {"_or": {"title": {"_eq": "x"}}},
+        {"_or": [{}] * (MAX_FILTER_PARTS + 1)},
+        nested(MAX_FILTER_DEPTH + 1),
+    ),
+)
+def test_filter_shapes_beyond_rules_are_rejected(filters):
+    with pytest.raises(ValueError):
+        check_filters("programs", filters)
 
 
 @pytest.mark.asyncio
