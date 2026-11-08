@@ -6,6 +6,9 @@ from urllib.parse import urlsplit
 from pydantic import Field, SecretStr, ValidationError, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+BIFIT_TEST_HOST = "fp-test.bifit.com"
+BIFIT_HOSTS = frozenset(("fp.bifit.com", BIFIT_TEST_HOST))
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(case_sensitive=True, extra="ignore", env_file=None)
@@ -46,6 +49,8 @@ class Settings(BaseSettings):
     SMTP_FROM: str = ""
     YOOKASSA_SHOP_ID: str = ""
     YOOKASSA_SECRET_KEY: SecretStr = SecretStr("")
+    BIFIT_API_URL: str = ""
+    BIFIT_CONNECTOR_TOKEN: SecretStr = SecretStr("")
     PUBLIC_URL: str = "http://localhost"
     VAPID_PUBLIC_KEY: str = ""
     VAPID_PRIVATE_KEY: SecretStr = SecretStr("")
@@ -56,6 +61,22 @@ class Settings(BaseSettings):
     RESERVE_TTL_HOURS: int = Field(default=72, ge=0, le=720)
     MAIL_OUTBOX_MAX_ATTEMPTS: int = Field(default=8, ge=1, le=50)
     RATE_LIMIT_MAX: int = Field(default=1000, gt=0)
+
+    @field_validator("BIFIT_API_URL")
+    @classmethod
+    def bifit_url(cls, value):
+        value = value.strip().rstrip("/")
+        if not value:
+            return value
+        try:
+            url = urlsplit(value)
+            valid = url.scheme == "https" and url.hostname in BIFIT_HOSTS and url.port is None
+            valid = valid and not url.username and not url.password and not url.query and not url.fragment
+        except ValueError:
+            valid = False
+        if not valid:
+            raise ValueError("BIFIT_API_URL должен быть адресом фискального процессинга БИФИТ")
+        return value
 
     @field_validator("OFFICE_EMAIL", "MAIL_REPLY_TO")
     @classmethod
@@ -112,6 +133,10 @@ class Settings(BaseSettings):
             errors.append("Оба ключа VAPID должны быть заданы вместе")
         if self.SEED_DEMO == "true":
             errors.append("SEED_DEMO=true запрещён в production")
+        if bool(self.BIFIT_API_URL) != bool(self.secret("BIFIT_CONNECTOR_TOKEN")):
+            errors.append("BIFIT_API_URL и BIFIT_CONNECTOR_TOKEN задаются вместе")
+        if urlsplit(self.BIFIT_API_URL).hostname == BIFIT_TEST_HOST:
+            errors.append("В production нужен боевой адрес БИФИТ, а не тестовый")
         return errors
 
 
