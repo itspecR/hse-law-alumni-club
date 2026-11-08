@@ -126,7 +126,7 @@ MariaDB работает вне Compose, эти лимиты к ней не от
 | Блоки страниц | `pages`, `pages_blocks`, `block_hero`, `block_cta` | Раскрытие только известных типов блоков, порядок sort; не универсальный CMS query engine |
 | Пользователи | `directus_users`, `directus_roles`; [service.py](../../backend/club_api/modules/auth/service.py) | UUID пользователей, актуальные status и роль, нет выдачи секретных полей |
 | Пароли | Серверный пакет `club_api.modules.auth.passwords` | BCryptSHA256 создает и проверяет хеш; браузер пакет не импортирует |
-| Настройки | `club_settings` | `site` - публичный whitelist; ключи `legacy_directus:<id>` из прежней установки читает только bootstrap при создании `site`. Аккаунт API не читает всю таблицу |
+| Настройки | `club_settings` | `site` - публичный whitelist, его создает bootstrap. У аккаунта API нет доступа к таблице |
 | Файлы | `directus_files` и `/var/lib/club/uploads`, путь в API `/data/uploads` | Сохранение UUID и байтов, проверка загрузки, нет общей открытой директории |
 | Заявки и склад | `orders`, `club_checkout_*`, каталог; checkout-store | Цена пересчитывается сервером; резерв и запись атомарны |
 | Оплата и подписка | orders и alumni; payment-store | Проверка провайдера, связанного ID, суммы и валюты; транзакция и идемпотентность |

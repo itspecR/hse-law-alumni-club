@@ -26,8 +26,8 @@
   Studio; [ADR](../decisions/cms-options.md) фиксирует согласованный отказ от Directus.
 - UUID, хеши и данные в совместимых таблицах `directus_users`, `directus_roles`,
   `directus_files`, каталог загрузок, пользовательские изменения и существующий дизайн.
-- Миграции Django и повторяемый bootstrap; закрытые настройки прежней установки не
-  становятся публичным API. Сотрудниками управляет оператор от аккаунта оператора MariaDB.
+- Миграции Django и повторяемый bootstrap. Сотрудниками управляет оператор от
+  аккаунта оператора MariaDB.
 
 Маршруты определяет [pages.py](../../frontend/club_web/pages.py), страницы находятся в
 `frontend/club_web/templates`, общая оболочка – в `templates/base.html`. Мобильная версия

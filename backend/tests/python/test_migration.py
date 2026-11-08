@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 
 import httpx
 import pytest
-from club_ops.bootstrap import BootstrapConfig, OperatorError, bootstrap
+from club_ops.bootstrap import BootstrapConfig, OperatorError, bootstrap, site_settings
 from club_ops.staff import manage_staff
 from pydantic import SecretStr
 from test_community_integration import account
@@ -122,6 +122,20 @@ async def test_argon_cancel_holds_memory_slot(monkeypatch):
     with pytest.raises(asyncio.CancelledError):
         await task
     slots.release()
+
+
+async def test_bootstrap_creates_site_defaults_and_ignores_legacy_settings(database_app):
+    config = BootstrapConfig(
+        "production", False, "bootstrap@example.test", "synthetic-bootstrap-password", "https://club.example.test"
+    )
+    async with database_app.state.database.connection() as connection:
+        await connection.execute(
+            "INSERT INTO club_settings(`key`,value) VALUES('legacy_directus:1',%s)",
+            ({"project_name": "Прежнее название", "project_url": "https://old.example.test"},),
+        )
+        await bootstrap(connection, config)
+        row = await (await connection.execute("SELECT value FROM club_settings WHERE `key`='site'")).fetchone()
+    assert row["value"] == site_settings("https://club.example.test")
 
 
 async def test_bootstrap_preserves_accounts_settings_and_empty_home(database_app):
