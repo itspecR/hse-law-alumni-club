@@ -65,6 +65,8 @@ def test_forwarded_ip_uses_nearest_hop():
         ("185.71.76.32", False),
         ("::ffff:77.75.156.11", True),
         ("77.75.156.12", False),
+        ("2a02:5180::1", True),
+        ("2a02:5181::1", False),
         ("999.1.2.3", False),
     ],
 )
