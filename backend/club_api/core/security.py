@@ -55,15 +55,23 @@ def constant_equal(supplied, expected):
 
 class LoginAttempts:
     WINDOW_SECONDS = 15 * 60
+    ACCOUNT_LIMIT, ACCOUNT_LOCK_SECONDS = 10, 15 * 60
+    ADDRESS_LIMIT, ADDRESS_LOCK_SECONDS = 30, 30 * 60
 
     def __init__(self, clock=time.monotonic):
         self.clock = clock
-        self.email = {}
+        self.account = {}
         self.ip = {}
+
+    def counters(self, email, ip):
+        return (
+            (self.account, (email.lower(), ip), self.ACCOUNT_LIMIT, self.ACCOUNT_LOCK_SECONDS),
+            (self.ip, ip, self.ADDRESS_LIMIT, self.ADDRESS_LOCK_SECONDS),
+        )
 
     def cleanup(self):
         now = self.clock()
-        for entries in (self.email, self.ip):
+        for entries in (self.account, self.ip):
             for key, (_, first, until) in list(entries.items()):
                 if until < now and now - first > self.WINDOW_SECONDS:
                     del entries[key]
@@ -71,13 +79,11 @@ class LoginAttempts:
     def locked(self, email, ip):
         self.cleanup()
         now = self.clock()
-        return any(
-            entries.get(key, (0, 0, 0))[2] > now for entries, key in ((self.email, email.lower()), (self.ip, ip))
-        )
+        return any(entries.get(key, (0, 0, 0))[2] > now for entries, key, _, _ in self.counters(email, ip))
 
     def fail(self, email, ip):
         now = self.clock()
-        for entries, key, maximum, duration in ((self.email, email.lower(), 10, 900), (self.ip, ip, 30, 1800)):
+        for entries, key, maximum, duration in self.counters(email, ip):
             fails, first, until = entries.get(key, (0, now, 0))
             if now - first > self.WINDOW_SECONDS:
                 fails, first, until = 0, now, 0
@@ -85,8 +91,7 @@ class LoginAttempts:
             entries[key] = fails, first, now + duration if fails >= maximum else until
 
     def success(self, email, ip):
-        self.email.pop(email.lower(), None)
-        self.ip.pop(ip, None)
+        self.account.pop((email.lower(), ip), None)
 
 
 class RateLimits:

@@ -3,6 +3,7 @@ import hmac
 import json
 import logging
 import time
+from types import SimpleNamespace
 from urllib.parse import urlencode
 
 import httpx
@@ -22,6 +23,7 @@ from club_api.db.store import (
     columns,
 )
 from club_api.main import create_app
+from club_api.modules.auth import passwords
 from club_api.modules.auth.passwords import hash_password, verify_password
 from club_api.modules.auth.routes import RegisterBody
 from club_api.modules.telegram.signature import validate_init_data
@@ -70,18 +72,41 @@ def test_payment_sender_networks(address, allowed):
     assert yookassa_ip(address) is allowed
 
 
-def test_login_account_and_ip_counters_independent():
+OWNER_IP, ATTACKER_IP = "203.0.113.2", "203.0.113.1"
+
+
+def test_account_lock_holds_only_for_the_failing_address():
     now = [1000]
     attempts = LoginAttempts(clock=lambda: now[0])
-    for _ in range(10):
-        attempts.fail("member@example.test", "203.0.113.1")
-    assert attempts.locked("MEMBER@example.test", "203.0.113.2")
-    assert not attempts.locked("other@example.test", "203.0.113.1")
-    for index in range(20):
-        attempts.fail(f"member{index}@example.test", "203.0.113.1")
-    assert attempts.locked("unrelated@example.test", "203.0.113.1")
-    now[0] += 1801
-    assert not attempts.locked("member@example.test", "203.0.113.1")
+    for _ in range(LoginAttempts.ACCOUNT_LIMIT):
+        attempts.fail("member@example.test", ATTACKER_IP)
+    assert attempts.locked("MEMBER@example.test", ATTACKER_IP)
+    assert not attempts.locked("member@example.test", OWNER_IP)
+    assert not attempts.locked("other@example.test", ATTACKER_IP)
+    for index in range(LoginAttempts.ADDRESS_LIMIT - LoginAttempts.ACCOUNT_LIMIT):
+        attempts.fail(f"member{index}@example.test", ATTACKER_IP)
+    assert attempts.locked("unrelated@example.test", ATTACKER_IP)
+    assert not attempts.locked("unrelated@example.test", OWNER_IP)
+    now[0] += LoginAttempts.ADDRESS_LOCK_SECONDS + 1
+    assert not attempts.locked("member@example.test", ATTACKER_IP)
+
+
+def test_own_login_does_not_reset_address_failures():
+    attempts = LoginAttempts(clock=lambda: 1000)
+    for index in range(LoginAttempts.ADDRESS_LIMIT - 1):
+        attempts.fail(f"member{index}@example.test", ATTACKER_IP)
+    attempts.success("own@example.test", ATTACKER_IP)
+    attempts.fail("member@example.test", ATTACKER_IP)
+    assert attempts.locked("own@example.test", ATTACKER_IP)
+
+
+def test_successful_login_clears_only_its_own_account_counter():
+    attempts = LoginAttempts(clock=lambda: 1000)
+    for _ in range(LoginAttempts.ACCOUNT_LIMIT - 1):
+        attempts.fail("member@example.test", OWNER_IP)
+    attempts.success("member@example.test", OWNER_IP)
+    attempts.fail("member@example.test", OWNER_IP)
+    assert not attempts.locked("member@example.test", OWNER_IP)
 
 
 @pytest.mark.parametrize(
@@ -166,6 +191,16 @@ async def test_bcrypt_sha256_settings_and_failure():
     assert not await verify_password(hashed, "incorrect")
     assert not await verify_password("$argon2id$broken", "incorrect")
     assert not await verify_password("plaintext", "plaintext")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("encoded", [None, "plaintext", "bcrypt_sha256$$2b$99$synthetic", "bcrypt_sha256$"])
+async def test_unusable_hash_still_costs_one_check(monkeypatch, encoded):
+    checks = []
+    monkeypatch.setattr(passwords, "decoy", lambda: "synthetic-decoy")
+    monkeypatch.setattr(passwords, "HASHER", SimpleNamespace(verify=lambda _password, value: checks.append(value)))
+    assert not await verify_password(encoded, "synthetic")
+    assert checks == ["synthetic-decoy"]
 
 
 @pytest.mark.asyncio
