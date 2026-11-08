@@ -6,12 +6,9 @@ from types import SimpleNamespace
 from urllib.parse import urlsplit
 
 import httpx
-import psycopg
 import pytest
 from club_ops.bootstrap import BootstrapConfig, OperatorError, bootstrap
 from club_ops.staff import manage_staff
-from psycopg import AsyncConnection
-from psycopg.rows import dict_row
 from pydantic import SecretStr
 from test_community_integration import account
 
@@ -238,49 +235,29 @@ async def test_telegram_secret_and_updates(database_app, monkeypatch):
 async def test_runtime_sql_role_cannot_change_roles_or_read_settings(database_app):
     app = database_app
     url = urlsplit(app.state.settings.secret("CHECKOUT_DATABASE_URL"))
-    if app.state.database.vendor == "mysql":
-        from django.db import DatabaseError
+    from django.db import DatabaseError
 
-        from club_api.db.pool import Database
+    from club_api.db.mysql import Database
 
-        database = Database(
-            Settings(
-                AUTH_SECRET="synthetic-session-secret-for-tests-only",
-                CHECKOUT_DATABASE_URL=f"mariadb://club_api:synthetic-restricted-mariadb-test-only@{url.hostname}:{url.port}{url.path}",
-            )
+    database = Database(
+        Settings(
+            AUTH_SECRET="synthetic-session-secret-for-tests-only",
+            CHECKOUT_DATABASE_URL=f"mariadb://club_api:synthetic-restricted-mariadb-test-only@{url.hostname}:{url.port}{url.path}",
         )
-        async with database.connection() as connection:
-            for query in (
-                "SELECT value FROM club_settings",
-                "UPDATE directus_users SET role=NULL",
-                "SELECT token FROM directus_users",
-                "UPDATE directus_roles SET name='admin'",
-            ):
-                with pytest.raises(DatabaseError):
-                    await connection.execute(query)
-            assert (
-                await (await connection.execute("SELECT id,email,password,role FROM directus_users")).fetchall() == []
-            )
-        return
-    async with await AsyncConnection.connect(
-        f"postgres://club_api:restricted-test-only@{url.hostname}:{url.port}{url.path}",
-        row_factory=dict_row,
-        autocommit=True,
-    ) as connection:
+    )
+    async with database.connection() as connection:
         for query in (
             "SELECT value FROM club_settings",
             "UPDATE directus_users SET role=NULL",
             "SELECT token FROM directus_users",
             "UPDATE directus_roles SET name='admin'",
         ):
-            with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            with pytest.raises(DatabaseError):
                 await connection.execute(query)
         assert await (await connection.execute("SELECT id,email,password,role FROM directus_users")).fetchall() == []
 
 
 async def test_product_with_reservation_cannot_be_deleted_or_replace_stock(database_app):
-    from psycopg.types.json import Jsonb
-
     app = database_app
     _, headers = await account(app, "admin")
     product = await app.state.store.create(
@@ -289,7 +266,7 @@ async def test_product_with_reservation_cannot_be_deleted_or_replace_stock(datab
     order = await app.state.store.create("orders", {"number": "ALU-2026-000001", "type": "merch", "status": "new"})
     await app.state.database.execute(
         "INSERT INTO club_checkout_commits(key_hash,request_hash,order_id,reservations,receipt) VALUES('synthetic-key','synthetic-request',%s,%s,'{}')",
-        (order["id"], Jsonb([{"id": product["id"], "sku": None, "qty": 1}])),
+        (order["id"], [{"id": product["id"], "sku": None, "qty": 1}]),
     )
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://localhost") as client:
         for method, body in (("DELETE", None), ("PATCH", {"stock": 100}), ("PATCH", {"variants_json": []})):

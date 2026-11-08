@@ -138,7 +138,7 @@ flowchart TB
 | API | Django | `api:3000`, один экземпляр | Через Caddy | БД и uploads | `/health` – процесс; `/ready` – PostgreSQL и схема |
 | База | PostgreSQL 16 | `postgres:5432` | Порта хоста нет | `pgdata` | `pg_isready`, затем `/ready` API |
 | Миграции | psql и shell | Одноразовый `migrate` | Нет входящего порта | Схема, индексы, права `club_api` | Завершение с кодом `0` |
-| Bootstrap | Python и Psycopg | Одноразовый `bootstrap` | Нет входящего порта | Отсутствующие роли, администратор, справочники, home | Завершение с кодом `0` |
+| Bootstrap | Python и Django ORM | Одноразовый `bootstrap` | Нет входящего порта | Отсутствующие роли, администратор, справочники, home | Завершение с кодом `0` |
 | Операции | Bash/Python, Docker CLI, systemd | Ubuntu host | Исходящий HTTPS, Docker socket | `/var/backups/club`, `/var/lib/club-ops` | Exit status, journal, успешная копия |
 
 Порядок: `postgres healthy → migrate completed → bootstrap completed → API`.
@@ -277,7 +277,7 @@ API и команды оператора используют Python 3.14.8 и �
 | Компонент | Совместимость |
 |---|---|
 | Python / Django / Uvicorn | Django 6.1.2 через ASGI; URLconf, HttpRequest и HTTP-ответы; один процесс API |
-| Psycopg 3 | Async pool, параметризованные значения, прежняя схема PostgreSQL 16 |
+| mysqlclient | Подключение к MariaDB через Django, параметризованные значения |
 | Pydantic 2 | Строгие запросы; PATCH различает пропущенное поле и null |
 | bcrypt / PyJWT | Хеши BCryptSHA256 и JWT; роль и поколение читаются из БД |
 | Pillow | Аватар PNG 256×256, ограничение пикселей и памяти, удаление метаданных |
@@ -311,8 +311,7 @@ Soup Sieve 3.0.2 требует Python 3.11.5. Ветка 3 меняет сло�
 
 nginx 1.30.6 соответствует последнему выпуску ветки stable;
 ветка mainline обновляется отдельно. Предварительные выпуски Python не
-используются. Новая основная версия PostgreSQL требует переноса данных и
-не включается обычным обновлением зависимостей.
+используются.
 
 Результаты сборки, тестов и репетиции каждой правки
 фиксируются в журнале состояния. Устаревшая версия не доказывает конкретную

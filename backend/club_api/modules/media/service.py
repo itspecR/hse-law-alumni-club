@@ -13,7 +13,6 @@ from uuid import uuid4
 
 from django.http import HttpResponse, StreamingHttpResponse
 from PIL import Image, ImageOps
-from psycopg.types.json import Jsonb
 
 from club_api.core.errors import ApiError
 from club_api.core.models import guid
@@ -104,6 +103,10 @@ def parse_range(value, size):
     return False if start >= size or start > end else (start, end)
 
 
+def mentions(fields):
+    return " OR ".join(f'''LOCATE(%s,COALESCE(CAST("{field}" AS CHAR),''))>0''' for field in fields)
+
+
 def render_thumbnail(data):
     if sniff_media(data[:512]) not in IMAGE_TYPES:
         raise ApiError(415, "Не удалось прочитать изображение.")
@@ -165,9 +168,7 @@ class Media:
             if table == "alumni":
                 continue
             fields = [name for name in MEDIA_FIELDS[table] if name != "audio_url"]
-            condition = " OR ".join(f'''strpos(COALESCE("{field}"::text,''),%s)>0''' for field in fields)
-            if self.state.database.vendor == "mysql":
-                condition = " OR ".join(f'''LOCATE(%s,COALESCE(CAST("{field}" AS CHAR),''))>0''' for field in fields)
+            condition = mentions(fields)
             status = "status IN ('published','done')" if table == "events" else "status='published'"
             query = f'''SELECT id FROM "{table}" WHERE {status} AND ({condition}) LIMIT 1'''
             if await self.state.database.rows(query, [id] * len(fields)):
@@ -176,9 +177,7 @@ class Media:
 
     async def list(self, page, limit, search):
         pattern = "%" + re.sub("[\\\\%_]", lambda match: "\\" + match[0], search) + "%"
-        where = "NOT EXISTS(SELECT 1 FROM alumni a WHERE a.avatar=f.id::text) AND COALESCE(f.metadata->>'club_upload_kind','')<>'avatar' AND (COALESCE(f.title,'') ILIKE %s OR f.filename_download ILIKE %s)"
-        if self.state.database.vendor == "mysql":
-            where = "NOT EXISTS(SELECT 1 FROM alumni a WHERE a.avatar=CAST(f.id AS CHAR(36))) AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(f.metadata,'$.club_upload_kind')),'')<>'avatar' AND (LOWER(COALESCE(f.title,'')) LIKE LOWER(%s) OR LOWER(f.filename_download) LIKE LOWER(%s))"
+        where = "NOT EXISTS(SELECT 1 FROM alumni a WHERE a.avatar=CAST(f.id AS CHAR(36))) AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(f.metadata,'$.club_upload_kind')),'')<>'avatar' AND (LOWER(COALESCE(f.title,'')) LIKE LOWER(%s) OR LOWER(f.filename_download) LIKE LOWER(%s))"
         rows = await self.state.database.rows(
             "SELECT f.* FROM directus_files f WHERE " + where + " ORDER BY f.created_on DESC,f.id LIMIT %s OFFSET %s",
             (pattern, pattern, limit, (page - 1) * limit),
@@ -245,7 +244,7 @@ class Media:
             )
             rows = await self.state.database.rows(
                 "INSERT INTO directus_files(id,storage,filename_disk,filename_download,title,type,uploaded_by,uploaded_on,filesize,metadata) VALUES(%s,'local',%s,%s,%s,%s,%s,now(),%s,%s) RETURNING *",
-                (id, disk_name, download, download, detected, uploaded_by, size, Jsonb({"club_upload_kind": kind})),
+                (id, disk_name, download, download, detected, uploaded_by, size, {"club_upload_kind": kind}),
             )
             return normalize(rows[0])
         except BaseException:
@@ -258,11 +257,7 @@ class Media:
     async def delete(self, id):
         id, path = (guid(id), None)
         async with self.state.database.transaction() as connection:
-            tables = ",".join(f'"{table}"' for table in sorted(MEDIA_FIELDS))
-            if self.state.database.vendor == "mysql":
-                await connection.lock("media.references")
-            else:
-                await connection.execute(f"LOCK TABLE {tables} IN SHARE MODE")
+            await connection.lock("media.references")
             file = await (
                 await connection.execute("SELECT * FROM directus_files WHERE id=%s FOR UPDATE", (id,))
             ).fetchone()
@@ -280,12 +275,7 @@ class Media:
             if shared:
                 raise ApiError(409, "Файл связан с другой записью медиатеки.")
             for table, fields in sorted(MEDIA_FIELDS.items()):
-                condition = " OR ".join(f'''strpos(COALESCE("{field}"::text,''),%s)>0''' for field in fields)
-                if self.state.database.vendor == "mysql":
-                    condition = " OR ".join(
-                        f'''LOCATE(%s,COALESCE(CAST("{field}" AS CHAR),''))>0''' for field in fields
-                    )
-                query = f'SELECT id FROM "{table}" WHERE {condition} LIMIT 1'
+                query = f'SELECT id FROM "{table}" WHERE {mentions(fields)} LIMIT 1'
                 if await (await connection.execute(query, [id] * len(fields))).fetchone():
                     raise ApiError(409, "Файл используется. Сначала уберите его из материалов или профиля.")
             if file["storage"] != "local":

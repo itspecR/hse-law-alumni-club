@@ -2,11 +2,11 @@ import re
 from datetime import UTC, date, datetime
 from uuid import UUID
 
-from psycopg.types.json import Jsonb
+from django.apps import apps
+from django.db.models import Count, Field, Lookup, Q, Sum
 
 from club_api.core.errors import ApiError
-from club_api.db.pool import Database
-from club_api.db.schema import DATA_COLUMNS, JSON_COLUMNS
+from club_api.db.schema import DATA_COLUMNS
 
 BLOCK_FIELDS = frozenset(("blocks.collection", "blocks.sort", "blocks.item:block_hero.*", "blocks.item:block_cta.*"))
 MEDIA_FIELDS = {
@@ -140,87 +140,165 @@ def media_ids(value):
     return result
 
 
-async def assert_media_references(connection, table, data):
+@Field.register_lookup
+class InsensitiveContains(Lookup):
+    lookup_name = "club_icontains"
+
+    def as_sql(self, compiler, connection):
+        lhs, params = self.process_lhs(compiler, connection)
+        value = "%" + connection.ops.prep_for_like_query(self.rhs.lower()) + "%"
+        return f"LOWER({lhs}) LIKE %s", [*params, value]
+
+
+def model_for(table):
+    columns(table)
+    if table not in apps.all_models["club_data"]:
+        for model in apps.get_app_config("club_data").get_models():
+            if model._meta.db_table == table:
+                return model
+        raise invalid()
+    return apps.all_models["club_data"][table]
+
+
+def attributes(model):
+    return {item.column: item.attname for item in model._meta.local_fields if item.column}
+
+
+def condition(table, filters):
+    predicate(table, filters, [])
+    mapping = attributes(model_for(table))
+    result = Q()
+    for name, operators in (filters or {}).items():
+        if name in ("_and", "_or"):
+            parts = [condition(table, part) for part in operators]
+            part = Q() if name == "_and" else Q(pk__in=[])
+            for value in parts:
+                part = part & value if name == "_and" else part | value
+            result &= part
+            continue
+        name = mapping[name]
+        for operator, value in operators.items():
+            lookup = {
+                "_eq": "exact",
+                "_gt": "gt",
+                "_gte": "gte",
+                "_lt": "lt",
+                "_lte": "lte",
+                "_in": "in",
+                "_contains": "contains",
+                "_icontains": "club_icontains",
+                "_starts_with": "startswith",
+            }
+            if operator == "_neq":
+                part = (
+                    Q(**{name + "__isnull": False})
+                    if value is None
+                    else ~Q(**{name: value}) & Q(**{name + "__isnull": False})
+                )
+            elif operator in ("_null", "_nnull"):
+                part = Q(**{name + "__isnull": value if operator == "_null" else not value})
+            elif operator == "_nin":
+                part = (
+                    Q(pk__in=[])
+                    if None in value
+                    else ~Q(**{name + "__in": value}) & (Q(**{name + "__isnull": False}) if value else Q())
+                )
+            else:
+                part = Q(**{name + "__" + lookup[operator]: value})
+            result &= part
+    return result
+
+
+def records(table, query, fields=None):
+    selection(table, fields)
+    mapping = attributes(model_for(table))
+    names = (
+        list(mapping.keys())
+        if fields is None or "*" in fields
+        else [name for name in fields if name not in BLOCK_FIELDS]
+    )
+    names = [name for name in names if name in DATA_COLUMNS[table]] or ["id"]
+    return [{name: row[mapping[name]] for name in names} for row in query.values(*(mapping[name] for name in names))]
+
+
+async def media_references(connection, table, data):
     ids = set()
     for name in MEDIA_FIELDS.get(table, ()):
         ids.update(media_ids(data.get(name)))
     if not ids:
         return
-    await connection.execute(f'LOCK TABLE "{table}" IN ROW EXCLUSIVE MODE')
-    cursor = await connection.execute(
-        "SELECT f.id,f.metadata->>'club_upload_kind' AS upload_kind,"
-        "EXISTS(SELECT 1 FROM alumni a WHERE a.avatar=f.id::text) AS is_avatar "
-        "FROM directus_files f WHERE f.id=ANY(%s::uuid[]) ORDER BY f.id FOR SHARE OF f",
-        (sorted(ids),),
-    )
-    rows = await cursor.fetchall()
-    if len(rows) != len(ids):
-        raise ApiError(400, "Один из файлов удален. Выберите файл заново.")
-    if table != "alumni" and any(row["upload_kind"] == "avatar" or row["is_avatar"] for row in rows):
-        raise ApiError(
-            400, "Фотографию профиля нельзя использовать в материалах. Загрузите отдельный файл в медиатеку."
-        )
+    await connection.lock("media.references")
+
+    def check():
+        model = apps.get_model("club_data", "MediaFile")
+        files = list(model.objects.filter(pk__in=sorted(ids)).order_by("pk").select_for_update())
+        if len(files) != len(ids):
+            raise ApiError(400, "Один из файлов удален. Выберите файл заново.")
+        if table != "alumni":
+            avatars = set(model_for("alumni").objects.filter(avatar__in=ids).values_list("avatar", flat=True))
+            if avatars or any((item.metadata or {}).get("club_upload_kind") == "avatar" for item in files):
+                raise ApiError(
+                    400, "Фотографию профиля нельзя использовать в материалах. Загрузите отдельный файл в медиатеку."
+                )
+
+    await connection.run(check)
 
 
 class Store:
-    def __new__(cls, database):
-        if cls is Store and getattr(database, "vendor", None) == "mysql":
-            from club_api.db.orm_store import ORMStore
-
-            return super().__new__(ORMStore)
-        return super().__new__(cls)
-
-    def __init__(self, database: Database):
+    def __init__(self, database):
         self.database = database
 
     async def read(self, table, *, filters=None, fields=None, sort=(), limit=100, offset=0, page=None, connection=None):
-        columns(table)
+        selection(table, fields)
+        predicate(table, filters, [])
+        for name in sort:
+            field(table, name.removeprefix("-"))
         if page is not None:
             offset = (page - 1) * (0 if limit == -1 else limit)
         if type(limit) is not int or limit < -1 or type(offset) is not int or offset < 0:
             raise invalid()
-        blocks = table == "pages" and fields and any(name in BLOCK_FIELDS for name in fields)
-        hidden_id = blocks and not any(name in ("id", "*") for name in fields)
-        projection = [*fields, "id"] if hidden_id else fields
-        params = []
-        where = predicate(table, filters, params)
-        query = f'SELECT {selection(table, projection)} FROM "{table}" WHERE {where}'
-        if sort:
-            query += " ORDER BY " + ",".join(
-                field(table, name.removeprefix("-")) + (" DESC" if name.startswith("-") else " ASC") for name in sort
-            )
-        if limit != -1:
-            query += " LIMIT %s"
-            params.append(limit)
-        if offset:
-            query += " OFFSET %s"
-            params.append(offset)
         if connection is None:
             async with self.database.connection() as conn:
                 return await self.read(
                     table, filters=filters, fields=fields, sort=sort, limit=limit, offset=offset, connection=conn
                 )
-        cursor = await connection.execute(query, params)
-        rows = await cursor.fetchall()
-        if blocks and rows:
-            cursor = await connection.execute(
-                "SELECT b.pages_id,b.collection,b.sort,CASE b.collection WHEN 'block_hero' THEN to_jsonb(h) "
-                "WHEN 'block_cta' THEN to_jsonb(c) END AS item FROM pages_blocks b "
-                "LEFT JOIN block_hero h ON b.collection='block_hero' AND b.item=h.id::text "
-                "LEFT JOIN block_cta c ON b.collection='block_cta' AND b.item=c.id::text "
-                "WHERE b.pages_id=ANY(%s::uuid[]) ORDER BY b.sort,b.id",
-                ([row["id"] for row in rows],),
-            )
-            children = await cursor.fetchall()
-            for row in rows:
-                row["blocks"] = [
-                    {k: v for k, v in child.items() if k != "pages_id"}
-                    for child in children
-                    if child["pages_id"] == row["id"]
-                ]
-                if hidden_id:
-                    del row["id"]
-        return normalize(rows)
+
+        def read_rows():
+            model = model_for(table)
+            mapping = attributes(model)
+            query = model.objects.filter(condition(table, filters))
+            if sort:
+                query = query.order_by(
+                    *(("-" if name.startswith("-") else "") + mapping[name.removeprefix("-")] for name in sort)
+                )
+            query = query[offset:] if limit == -1 else query[offset : offset + limit]
+            blocks = table == "pages" and fields and any(name in BLOCK_FIELDS for name in fields)
+            hidden_id = blocks and not any(name in ("id", "*") for name in fields)
+            rows = records(table, query, [*fields, "id"] if hidden_id else fields)
+            if blocks and rows:
+                children = list(
+                    model_for("pages_blocks")
+                    .objects.filter(pages_id__in=[row["id"] for row in rows])
+                    .order_by("sort", "pk")
+                )
+                for row in rows:
+                    row["blocks"] = []
+                    for child in children:
+                        if child.pages_id != row["id"]:
+                            continue
+                        item = (
+                            records(child.collection, model_for(child.collection).objects.filter(pk=child.item))
+                            if child.collection in ("block_hero", "block_cta")
+                            else []
+                        )
+                        row["blocks"].append(
+                            {"collection": child.collection, "sort": child.sort, "item": item[0] if item else None}
+                        )
+                    if hidden_id:
+                        del row["id"]
+            return normalize(rows)
+
+        return await connection.run(read_rows)
 
     async def one(self, table, id, *, fields=None, connection=None):
         rows = await self.read(table, filters={"id": {"_eq": id}}, fields=fields, limit=1, connection=connection)
@@ -232,18 +310,20 @@ class Store:
         columns(table)
         if table.startswith("directus_") or not isinstance(data, dict):
             raise invalid()
-        names = [field(table, key) for key in data]
-        values = [
-            Jsonb(value) if key in JSON_COLUMNS.get(table, ()) and value is not None else value
-            for key, value in data.items()
-        ]
+        for key in data:
+            field(table, key)
         if connection is None:
             async with self.database.transaction() as conn:
                 return await self.create(table, data, connection=conn)
-        await assert_media_references(connection, table, data)
-        insert = f"({','.join(names)}) VALUES ({','.join(['%s'] * len(names))})" if names else "DEFAULT VALUES"
-        cursor = await connection.execute(f'INSERT INTO "{table}" {insert} RETURNING {selection(table)}', values)
-        return normalize(await cursor.fetchone())
+        await media_references(connection, table, data)
+
+        def create_row():
+            model = model_for(table)
+            mapping = attributes(model)
+            obj = model.objects.create(**{mapping[key]: value for key, value in data.items()})
+            return normalize(records(table, model.objects.filter(pk=obj.pk))[0])
+
+        return await connection.run(create_row)
 
     async def update(self, table, data, *, id=None, filters=None, connection=None):
         columns(table)
@@ -251,49 +331,72 @@ class Store:
             raise invalid()
         if id is None and (not isinstance(filters, dict) or not filters):
             raise invalid()
-        assignments = ",".join(f"{field(table, key)}=%s" for key in data)
-        params = [
-            Jsonb(value) if key in JSON_COLUMNS.get(table, ()) and value is not None else value
-            for key, value in data.items()
-        ]
-        where = predicate(table, {"id": {"_eq": id}} if id is not None else filters, params)
+        for key in data:
+            field(table, key)
+        predicate(table, {"id": {"_eq": id}} if id is not None else filters, [])
         if connection is None:
             async with self.database.transaction() as conn:
                 return await self.update(table, data, id=id, filters=filters, connection=conn)
         if not data:
             return await self.one(table, id, connection=connection) if id is not None else []
-        await assert_media_references(connection, table, data)
-        query = f'UPDATE "{table}" SET {assignments} WHERE {where} RETURNING {selection(table)}'
-        cursor = await connection.execute(query, params)
-        rows = normalize(await cursor.fetchall())
-        if id is not None and not rows:
-            raise ApiError(404, "Запись не найдена.")
-        return rows[0] if id is not None else rows
+        await media_references(connection, table, data)
+
+        def update_rows():
+            model = model_for(table)
+            mapping = attributes(model)
+            query = model.objects.filter(condition(table, {"id": {"_eq": id}} if id is not None else filters))
+            ids = list(query.select_for_update().values_list("pk", flat=True))
+            query = model.objects.filter(pk__in=ids)
+            query.update(**{mapping[key]: value for key, value in data.items()})
+            rows = normalize(records(table, query))
+            if id is not None and not rows:
+                raise ApiError(404, "Запись не найдена.")
+            return rows[0] if id is not None else rows
+
+        return await connection.run(update_rows)
 
     async def delete(self, table, *, id=None, filters=None, connection=None):
         columns(table)
-        if table.startswith("directus_"):
+        if table.startswith("directus_") or (id is None and (not isinstance(filters, dict) or not filters)):
             raise invalid()
-        if id is None and (not isinstance(filters, dict) or not filters):
-            raise invalid()
-        params = []
-        where = predicate(table, {"id": {"_eq": id}} if id is not None else filters, params)
+        predicate(table, {"id": {"_eq": id}} if id is not None else filters, [])
         if connection is None:
             async with self.database.transaction() as conn:
                 return await self.delete(table, id=id, filters=filters, connection=conn)
-        await connection.execute(f'DELETE FROM "{table}" WHERE {where}', params)
+        await connection.run(
+            lambda: (
+                model_for(table)
+                .objects.filter(condition(table, {"id": {"_eq": id}} if id is not None else filters))
+                .delete()
+            )
+        )
 
     async def aggregate(self, table, *, filters=None, group=(), sum_field=None):
-        columns(table)
-        params = []
-        group_columns = [field(table, name) for name in group]
-        if sum_field:
-            expression = f'json_build_object(%s::text,SUM({field(table, sum_field)})::text) AS "sum"'
-            params.append(sum_field)
-        else:
-            expression = 'COUNT(*)::text AS "count"'
-        where = predicate(table, filters, params)
-        query = f'SELECT {",".join([*group_columns, expression])} FROM "{table}" WHERE {where}'
-        if group_columns:
-            query += " GROUP BY " + ",".join(group_columns)
-        return normalize(await self.database.rows(query, params))
+        predicate(table, filters, [])
+        for name in (*group, *((sum_field,) if sum_field else ())):
+            field(table, name)
+
+        def aggregate_rows():
+            model = model_for(table)
+            mapping = attributes(model)
+            query = model.objects.filter(condition(table, filters))
+            aggregate = Sum(mapping[sum_field]) if sum_field else Count("pk")
+            key = "sum" if sum_field else "count"
+            if group:
+                rows = list(query.values(*(mapping[name] for name in group)).annotate(result=aggregate))
+            else:
+                rows = [query.aggregate(result=aggregate)]
+            return normalize(
+                [
+                    {
+                        **{name: row[mapping[name]] for name in group},
+                        key: {sum_field: str(row["result"]) if row["result"] is not None else None}
+                        if sum_field
+                        else str(row["result"]),
+                    }
+                    for row in rows
+                ]
+            )
+
+        async with self.database.connection() as connection:
+            return await connection.run(aggregate_rows)

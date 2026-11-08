@@ -3,7 +3,6 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import httpx
-import pytest
 from club_ops.bootstrap import BootstrapConfig, bootstrap
 from club_ops.database_tables import model_tables
 from django.db import models
@@ -32,8 +31,6 @@ def model_foreign_keys():
 
 async def test_runtime_role_serves_crud_without_operator_permissions(database_app):
     app = database_app
-    if app.state.database.vendor != "mysql":
-        pytest.skip("Проверка прав MariaDB выполняется в отдельном сценарии")
     async with app.state.database.connection() as connection:
         await bootstrap(
             connection,
@@ -75,16 +72,12 @@ async def test_runtime_role_serves_crud_without_operator_permissions(database_ap
 
 
 async def test_each_foreign_key_has_one_database_delete_rule(database_app):
-    if database_app.state.database.vendor != "mysql":
-        pytest.skip("Действия внешних ключей задают миграции MariaDB")
     rows = await database_app.state.database.rows(FOREIGN_KEYS_SQL)
     actual = sorted((row["table_name"], row["column_name"], row["rule"]) for row in rows)
     assert actual == model_foreign_keys()
 
 
 async def test_unicode_case_search_and_literal_wildcards(database_app):
-    if database_app.state.database.vendor != "mysql":
-        pytest.skip("Сравнения MariaDB проверяются в отдельном сценарии")
     store = database_app.state.store
     await store.create("news", {"slug": "unicode", "title": "ПРАВО 50%_КЛУБ"})
     assert len(await store.read("news", filters={"title": {"_icontains": "право"}})) == 1
@@ -129,8 +122,6 @@ async def test_operator_cli_runs_with_django_async_dispatch(database_app):
     import subprocess
     import sys
 
-    if database_app.state.database.vendor != "mysql":
-        pytest.skip("Команда оператора предназначена для MariaDB")
     from club_api.db.models import Alumnus
 
     async with database_app.state.database.connection() as connection:

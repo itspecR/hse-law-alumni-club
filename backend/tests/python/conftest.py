@@ -26,17 +26,12 @@ async def database_app(tmp_path, django_db_blocker):
     with django_db_blocker.unblock():
         async with app.lifespan(app):
             yield app
-            if app.state.database.vendor == "mysql":
-                from django.apps import apps
+            from django.apps import apps
 
-                async with app.state.database.connection() as connection:
-                    await connection.execute("SET FOREIGN_KEY_CHECKS=0")
-                    try:
-                        for model in apps.get_app_config("club_data").get_models():
-                            await connection.execute(f"TRUNCATE TABLE `{model._meta.db_table}`")
-                    finally:
-                        await connection.execute("SET FOREIGN_KEY_CHECKS=1")
-            else:
-                await app.state.database.execute(
-                    "TRUNCATE directus_roles,directus_users,directus_files,alumni,programs,program_cohorts,program_trainers,trainers,promo_codes,promo_code_programs,club_captcha_uses,products,news,orders,carts,events,podcasts,podcast_plays,timeline_items,pages,points_ledger,levels,point_rules,achievements,club_settings,club_support_tickets,club_faq_events,club_auth_revocations,club_email_codes,club_mail_outbox,club_checkout_commits,club_news_inbox,club_news_source_runs,club_news_settings,club_dpo_sync,audit_log CASCADE"
-                )
+            async with app.state.database.connection() as connection:
+                await connection.execute("SET FOREIGN_KEY_CHECKS=0")
+                try:
+                    for model in apps.get_app_config("club_data").get_models():
+                        await connection.execute(f"TRUNCATE TABLE `{model._meta.db_table}`")
+                finally:
+                    await connection.execute("SET FOREIGN_KEY_CHECKS=1")

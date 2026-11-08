@@ -3,7 +3,6 @@ import logging
 from functools import wraps
 from uuid import UUID
 
-import psycopg
 from django.core.exceptions import SuspiciousOperation
 from django.db import DatabaseError
 from django.http import HttpResponseBase, JsonResponse
@@ -12,6 +11,8 @@ from pydantic import ValidationError
 from club_api.core.errors import ApiError
 
 logger = logging.getLogger("club.api")
+DUPLICATE_ENTRY = 1062
+FOREIGN_KEY_ERRORS = (1451, 1452)
 
 
 def json_body(request):
@@ -70,13 +71,13 @@ def api_view(function=None, *, body=None, permission=None):
         except SuspiciousOperation:
             request.background_tasks.clear()
             return JsonResponse({"error": "Некорректный запрос."}, status=400)
-        except (psycopg.Error, DatabaseError) as error:
+        except DatabaseError as error:
             request.background_tasks.clear()
-            code = getattr(error, "sqlstate", None) or (error.args[0] if error.args else "connection")
+            code = error.args[0] if error.args else "connection"
             logger.error("Ошибка запроса к базе данных: %s", code)
-            if code in ("23505", "23503", 1062, 1451, 1452):
+            if code in (DUPLICATE_ENTRY, *FOREIGN_KEY_ERRORS):
                 message = (
-                    "Такая запись уже существует." if code in ("23505", 1062) else "Запись связана с другими данными."
+                    "Такая запись уже существует." if code == DUPLICATE_ENTRY else "Запись связана с другими данными."
                 )
                 return JsonResponse({"error": message}, status=409)
             from club_api.observability.errors import capture

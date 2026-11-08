@@ -5,8 +5,6 @@ from django.db import models
 
 def apply_actions(apps, schema_editor):
     connection = schema_editor.connection
-    if connection.vendor != "mysql":
-        return
     quote = schema_editor.quote_name
     for model in apps.get_app_config("club_data").get_models():
         table = model._meta.db_table

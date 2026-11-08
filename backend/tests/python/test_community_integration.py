@@ -5,7 +5,6 @@ from uuid import uuid4
 
 import httpx
 from PIL import Image
-from psycopg.types.json import Jsonb
 
 from club_api.modules.auth.passwords import hash_password
 from club_api.modules.support.routes import addition
@@ -120,7 +119,7 @@ async def test_support_idempotency_access_consent_and_message_limit(database_app
         ).status_code == 400
         await app.state.database.execute(
             "UPDATE club_support_tickets SET messages=%s WHERE id=%s",
-            (Jsonb(addition("Сообщение до лимита", "visitor").obj * 50), id),
+            (addition("Сообщение до лимита", "visitor") * 50, id),
         )
         assert (
             await client.post(f"/support/{id}/messages", headers=headers, json={"message": "За лимитом"})

@@ -4,7 +4,6 @@ from datetime import UTC, datetime
 from typing import Literal
 
 from django.http import HttpRequest
-from psycopg.types.json import Jsonb
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from club_api.core.errors import ApiError
@@ -91,7 +90,7 @@ def support_key(request):
 
 
 def addition(text, author):
-    return Jsonb([{"author": author, "text": text, "at": normalize(datetime.now(UTC))}])
+    return [{"author": author, "text": text, "at": normalize(datetime.now(UTC))}]
 
 
 @api_view
@@ -126,29 +125,11 @@ async def create_ticket(request: HttpRequest):
     request_hash = digest(
         json.dumps([body.topic, body.message, body.consentVersion], ensure_ascii=False, separators=(",", ":"))
     )
-    if state.database.vendor == "mysql":
-        from club_api.modules.support.storage import create_ticket as store_ticket
+    from club_api.modules.support.storage import create_ticket as store_ticket
 
-        rows = await store_ticket(
-            state.database, body, cfg, digest(body.key), request_hash, addition(body.message, "visitor").obj
-        )
-    else:
-        rows = await state.database.rows(
-            Query(
-                "INSERT INTO club_support_tickets(id,key_hash,request_hash,topic,messages,consent_version,consent_text,expires_at) VALUES(%s,%s,%s,%s,%s,%s,%s,now()+%s*interval '1 day') ON CONFLICT(id) DO NOTHING RETURNING id",
-                "INSERT INTO club_support_tickets(id,key_hash,request_hash,topic,messages,consent_version,consent_text,expires_at) VALUES(%s,%s,%s,%s,%s,%s,%s,now()+INTERVAL %s DAY) ON CONFLICT(id) DO NOTHING RETURNING id",
-            ),
-            (
-                body.id,
-                digest(body.key),
-                request_hash,
-                body.topic,
-                addition(body.message, "visitor"),
-                cfg["version"],
-                cfg["consent"],
-                cfg["retentionDays"],
-            ),
-        )
+    rows = await store_ticket(
+        state.database, body, cfg, digest(body.key), request_hash, addition(body.message, "visitor")
+    )
     if not rows:
         prior = await state.database.rows(
             "SELECT id FROM club_support_tickets WHERE id=%s AND key_hash=%s AND request_hash=%s AND expires_at>now()",
@@ -174,24 +155,15 @@ async def ticket(request: HttpRequest, id: str):
 async def message(request: HttpRequest, id: str):
     body = parse_body(request, MessageBody)
     state = request.services
-    if state.database.vendor == "mysql":
-        from club_api.modules.support.storage import change_ticket
+    from club_api.modules.support.storage import change_ticket
 
-        rows = await change_ticket(
-            state.database,
-            guid(id),
-            key_hash=support_key(request),
-            messages=addition(body.message, "visitor").obj,
-            days=state.settings.SUPPORT_RETENTION_DAYS,
-        )
-    else:
-        rows = await state.database.rows(
-            Query(
-                "UPDATE club_support_tickets SET messages=messages||%s::jsonb,status='open',updated_at=now(),expires_at=now()+%s*interval '1 day' WHERE id=%s AND key_hash=%s AND expires_at>now() AND status<>'closed' AND jsonb_array_length(messages)<50 RETURNING id",
-                "UPDATE club_support_tickets SET messages=messages||%s::jsonb,status='open',updated_at=now(),expires_at=now()+INTERVAL %s DAY WHERE id=%s AND key_hash=%s AND expires_at>now() AND status<>'closed' AND JSON_LENGTH(messages)<50 RETURNING id",
-            ),
-            (addition(body.message, "visitor"), state.settings.SUPPORT_RETENTION_DAYS, guid(id), support_key(request)),
-        )
+    rows = await change_ticket(
+        state.database,
+        guid(id),
+        key_hash=support_key(request),
+        messages=addition(body.message, "visitor"),
+        days=state.settings.SUPPORT_RETENTION_DAYS,
+    )
     if not rows:
         raise ApiError(409, "Обращение закрыто или в нем уже максимум сообщений.")
     return {"ok": True}
@@ -199,15 +171,9 @@ async def message(request: HttpRequest, id: str):
 
 @api_view
 async def delete_ticket(request: HttpRequest, id: str):
-    if request.services.database.vendor == "mysql":
-        from club_api.modules.support.storage import change_ticket
+    from club_api.modules.support.storage import change_ticket
 
-        rows = await change_ticket(request.services.database, guid(id), key_hash=support_key(request), delete=True)
-    else:
-        rows = await request.services.database.rows(
-            "DELETE FROM club_support_tickets WHERE id=%s AND key_hash=%s RETURNING id",
-            (guid(id), support_key(request)),
-        )
+    rows = await change_ticket(request.services.database, guid(id), key_hash=support_key(request), delete=True)
     if not rows:
         raise ApiError(404, "Обращение не найдено.")
     return {"ok": True}
@@ -230,27 +196,15 @@ async def answer_ticket(request: HttpRequest, id: str):
     admin = await require_full_admin(request)
     body = parse_body(request, ReplyBody)
     state = request.services
-    if state.database.vendor == "mysql":
-        from club_api.modules.support.storage import change_ticket
+    from club_api.modules.support.storage import change_ticket
 
-        rows = await change_ticket(
-            state.database,
-            guid(id),
-            messages=addition(body.message, "support").obj if body.message else [],
-            status=body.status,
-            days=state.settings.SUPPORT_RETENTION_DAYS,
-        )
-    else:
-        rows = await state.database.rows(
-            "UPDATE club_support_tickets SET messages=messages||%s::jsonb,status=%s,updated_at=now(),expires_at=now()+%s*interval '1 day' WHERE id=%s AND expires_at>now() AND (%s OR jsonb_array_length(messages)<50) RETURNING id",
-            (
-                addition(body.message, "support") if body.message else Jsonb([]),
-                body.status,
-                state.settings.SUPPORT_RETENTION_DAYS,
-                guid(id),
-                not bool(body.message),
-            ),
-        )
+    rows = await change_ticket(
+        state.database,
+        guid(id),
+        messages=addition(body.message, "support") if body.message else [],
+        status=body.status,
+        days=state.settings.SUPPORT_RETENTION_DAYS,
+    )
     if not rows:
         raise ApiError(404, "Обращение недоступно.")
     await audit(request, "support.update", actor="admin:" + admin["userId"], subject=id, detail={"status": body.status})

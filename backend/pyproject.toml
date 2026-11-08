@@ -5,8 +5,6 @@ description = "API Клуба выпускников факультета пра
 requires-python = ">=3.14,<3.15"
 dependencies = [
   "pydantic-settings==2.15.0",
-  "psycopg[binary]==3.3.6",
-  "psycopg-pool==3.3.3",
   "PyJWT==2.15.1",
   "httpx==0.28.1",
   "pillow==13.0.0",

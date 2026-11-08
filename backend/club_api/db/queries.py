@@ -12,18 +12,8 @@ class Query(str):
 
 
 async def acquire_lock(connection, key, *, wait=5):
-    if getattr(connection, "vendor", None) == "mysql":
-        return await connection.lock(key, wait=wait)
-    if wait == 0:
-        cursor = await connection.execute(
-            "SELECT pg_try_advisory_lock(hashtextextended(%s,0)) AS acquired", (str(key),)
-        )
-        return (await cursor.fetchone())["acquired"]
-    await connection.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))", (str(key),))
-    return True
+    return await connection.lock(key, wait=wait)
 
 
 async def release_lock(connection, key):
-    if getattr(connection, "vendor", None) == "mysql":
-        return await connection.unlock(key)
-    await connection.execute("SELECT pg_advisory_unlock(hashtextextended(%s,0))", (str(key),))
+    return await connection.unlock(key)

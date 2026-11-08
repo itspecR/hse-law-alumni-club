@@ -20,7 +20,6 @@ class Cursor:
 
 
 class MemoryDatabase:
-    vendor = "mysql"
     pool = True
 
     def __init__(self):
@@ -67,8 +66,6 @@ class MemoryDatabase:
 
 
 class MemoryConnection:
-    vendor = "mysql"
-
     def __init__(self, database):
         self.database = database
         self.held = []

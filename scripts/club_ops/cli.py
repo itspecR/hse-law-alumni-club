@@ -8,8 +8,6 @@ from contextlib import asynccontextmanager
 from urllib.parse import urlsplit
 
 import httpx
-from psycopg import AsyncConnection
-from psycopg.rows import dict_row
 
 from club_api.modules.auth.codes import ADMIN_PURPOSE, ttl_minutes
 from club_ops.alumni import create_alumni
@@ -22,22 +20,18 @@ from club_ops.staff import manage_staff, staff_code
 
 @asynccontextmanager
 async def operator_connection(values):
-    url = values.get("DATABASE_URL", "")
-    if url.startswith(("mariadb://", "mysql://")):
-        from club_api.asgi import initialize_django
-        from club_api.core.config import Settings
-        from club_api.db.pool import Database
+    from club_api.asgi import initialize_django
+    from club_api.core.config import Settings
+    from club_api.db.mysql import Database
 
-        os.environ["CHECKOUT_DATABASE_URL"] = url
-        initialize_django()
-        database = Database(
-            Settings(AUTH_SECRET=values.get("AUTH_SECRET") or secrets.token_urlsafe(48), CHECKOUT_DATABASE_URL=url)
-        )
-        async with database.connection() as connection:
-            yield connection
-    else:
-        async with await AsyncConnection.connect(url, row_factory=dict_row, connect_timeout=10) as connection:
-            yield connection
+    url = values.get("DATABASE_URL", "")
+    os.environ["CHECKOUT_DATABASE_URL"] = url
+    initialize_django()
+    database = Database(
+        Settings(AUTH_SECRET=values.get("AUTH_SECRET") or secrets.token_urlsafe(48), CHECKOUT_DATABASE_URL=url)
+    )
+    async with database.connection() as connection:
+        yield connection
 
 
 PASSWORD_INPUTS = {"manage-staff": "STAFF_PASSWORD", "create-alumni": "ALUMNI_PASSWORD"}
@@ -49,16 +43,12 @@ async def database_command(command, values):
         values[secret] = sys.stdin.read(102).removesuffix("\n").removesuffix("\r")
     async with operator_connection(values) as connection:
         if command == "migrate":
-            if getattr(connection, "vendor", None) != "mysql":
-                raise OperatorError("Миграции Django здесь применяются только к новой MariaDB")
             from django.core.management import call_command
 
             await connection.run(call_command, "check", databases=["default"])
             await connection.run(call_command, "migrate", interactive=False)
             return
         if command == "configure-mariadb-role":
-            if getattr(connection, "vendor", None) != "mysql":
-                raise OperatorError("Команда предназначена для MariaDB")
             from club_ops.mariadb_roles import configure_runtime_role
 
             await connection.run(configure_runtime_role, values)

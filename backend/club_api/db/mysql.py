@@ -11,6 +11,7 @@ from django.db import ConnectionHandler, connections
 from club_api.core.errors import ApiError
 from club_api.db.config import database_config
 
+MAX_CONNECTIONS = 6
 JSON_FIELDS = frozenset(
     {
         "rule_json",
@@ -48,8 +49,6 @@ def parameter(value):
         return str(value)
     if isinstance(value, datetime) and value.tzinfo:
         return value.astimezone(UTC).replace(tzinfo=None)
-    if type(value).__module__ == "psycopg.types.json":
-        return json.dumps(value.obj, ensure_ascii=False, separators=(",", ":"))
     if isinstance(value, list | dict):
         return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
     return value
@@ -81,8 +80,6 @@ class Cursor:
 
 
 class Connection:
-    vendor = "mysql"
-
     def __init__(self, config):
         self.config = config
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="club-database")
@@ -151,22 +148,24 @@ class Connection:
         self.executor.shutdown(wait=True)
 
 
-class MariaDatabase:
-    vendor = "mysql"
-
+class Database:
     def __init__(self, settings):
-        self.config = database_config(settings.secret("CHECKOUT_DATABASE_URL"))
-        self.pool = True
-        self.slots = asyncio.Semaphore(6)
+        url = settings.secret("CHECKOUT_DATABASE_URL")
+        self.config = database_config(url)
+        self.pool = bool(url)
+        self.slots = asyncio.Semaphore(MAX_CONNECTIONS)
 
     async def open(self):
-        await self.rows("SELECT 1 AS ready")
+        if self.pool:
+            await self.rows("SELECT 1 AS ready")
 
     async def close(self):
         pass
 
     @asynccontextmanager
     async def connection(self):
+        if not self.pool:
+            raise ApiError(503, "Транзакционное оформление не настроено.")
         async with self.slots:
             connection = Connection(self.config)
             try:

@@ -139,7 +139,7 @@ def test_production_config_requires_separate_secrets_and_delivery():
     valid = settings(
         APP_ENV="production",
         ADMIN_AUTH_SECRET="synthetic-independent-office-secret-for-tests",
-        CHECKOUT_DATABASE_URL="postgresql://api:test@postgres/club",
+        CHECKOUT_DATABASE_URL="mariadb://api:test@mariadb/club",
         PUBLIC_URL="https://club.test",
         SMTP_HOST="smtp.test",
         SMTP_FROM="office@club.test",
