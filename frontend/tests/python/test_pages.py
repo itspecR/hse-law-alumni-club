@@ -350,7 +350,7 @@ async def test_member_fragment_and_cart(browser_client):
 async def test_editor_does_not_receive_full_admin_controls(browser_client):
     response = await browser_client.get("/views/admin/members", headers={"authorization": "Bearer editor-test"})
     assert response.status_code == 200
-    assert "Обезличить" not in response.text
+    assert "Обезличить" not in response.text and 'name="fio"' not in response.text
     assert 'href="/admin/support"' in response.text
     response = await browser_client.get("/views/admin/support", headers={"authorization": "Bearer editor-test"})
     assert "Переписку поддержки обрабатывает администратор" in response.text
@@ -932,6 +932,8 @@ async def test_office_member_point_history_shows_reasons_and_closes():
     assert "Начисление клуба</span><span></span><strong>+30</strong>" in page
     assert "Списание за неактивность</span><span></span><strong>-10</strong>" in page
     assert '<a href="/admin/members?id=member-1">История баллов</a>' in plain and "office-history" not in plain
+    assert "<summary>Исправить ФИО</summary>" in plain
+    assert 'name="fio" value="Вымышленный Выпускник" required' in plain
 
 
 async def test_office_dpo_section_is_read_only_with_sync_status():

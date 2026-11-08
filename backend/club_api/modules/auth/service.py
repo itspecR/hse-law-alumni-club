@@ -21,6 +21,7 @@ ALUMNI_ROLE = "alumni"
 STAFF_ROLES = frozenset(("admin", "Administrator", "editor"))
 FULL_ROLES = frozenset(("admin", "Administrator"))
 LOGIN_STATUSES = frozenset(("active", "unverified"))
+USER_NAME_MAX = 50
 DUPLICATE_ACCOUNT = "Аккаунт с этой почтой уже есть. Войдите или восстановите пароль."
 PDN_POLICY_VERSION = shared_data("legal-data.json")["version"]
 PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH = 8, 100
@@ -76,7 +77,7 @@ def public_user(user):
 
 def alumni_names(fio):
     first, _, rest = fio.strip().partition(" ")
-    return first, rest.strip() or "-"
+    return first[:USER_NAME_MAX], rest.strip()[:USER_NAME_MAX] or "-"
 
 
 def alumni_profile(*, fio, cohort, edu_level, edu_program, interests=(), referred_by=None, mailing=False):
