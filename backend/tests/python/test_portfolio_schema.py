@@ -6,7 +6,7 @@ from django.apps import apps
 from django.db import IntegrityError
 from test_community_integration import account, png
 
-from club_api.db.schema import DATA_COLUMNS, JSON_COLUMNS
+from club_api.db.schema import DATA_COLUMNS
 
 
 def model_columns():
@@ -32,8 +32,6 @@ def test_data_columns_exist_in_models():
     columns = model_columns()
     for table, names in DATA_COLUMNS.items():
         assert set(names) <= columns[table], table
-    for table, names in JSON_COLUMNS.items():
-        assert set(names) <= set(DATA_COLUMNS[table]), table
 
 
 async def test_dpo_programs_are_read_only_in_office(database_app):

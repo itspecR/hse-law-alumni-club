@@ -8,7 +8,7 @@ from django.db import DatabaseError
 from test_community_integration import account
 
 from club_api.core.errors import ApiError
-from club_api.db.store import Store, condition, model_for, predicate, selection
+from club_api.db.store import Store, check_fields, check_filters, condition, model_for
 
 PAYLOADS = (
     "' OR '1'='1",
@@ -44,8 +44,8 @@ async def test_unapproved_table_rejected_before_any_database_access(table):
         with pytest.raises(ValueError):
             await operation()
     for operation in (
-        lambda: predicate(table, None, []),
-        lambda: selection(table),
+        lambda: check_filters(table, None),
+        lambda: check_fields(table),
         lambda: model_for(table),
     ):
         with pytest.raises(ValueError):
