@@ -527,7 +527,7 @@ async def context(api, path, params, authorized=False):
         await load("support", "/support/config", {"enabled": False})
         data["faq"] = resource("faq-data.json")
     elif path == "/give":
-        await load("donation", "/donations/config", {"enabled": False})
+        await load("donation", "/donations/config", {"enabled": False, "card": False, "transfer": False})
         data.update(give_amounts=GIVE_AMOUNTS, give_chosen=GIVE_CHOSEN)
     elif path.startswith("/admin"):
         section = path.removeprefix("/admin/") if path != "/admin" else "overview"

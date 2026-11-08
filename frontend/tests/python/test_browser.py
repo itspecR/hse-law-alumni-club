@@ -67,6 +67,23 @@ COHORTS = [
 ]
 COHORT_STARTS = {row["id"]: row["starts_on"] for row in COHORTS}
 DONATION_PAYMENT = "https://pay.example.test/checkout"
+QR_SVG = "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%201%201%27%3E%3Crect%20width%3D%271%27%20height%3D%271%27%2F%3E%3C%2Fsvg%3E"
+QR_PNG = (
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAAAAAA6fptVAAAACklEQVR4nGNgAAAAAgABSK+kcQAAAABJRU5ErkJggg=="
+)
+TRANSFER_REPLY = {
+    "number": "DON-2026-000002",
+    "transfer": {
+        "amount": 300000,
+        "purpose": "Пожертвование DON-2026-000002 на развитие факультета права НИУ ВШЭ",
+        "payee": [
+            {"label": "Получатель", "value": "АНО «Вымышленный клуб»"},
+            {"label": "Расчетный счет", "value": "40703810000000000006"},
+        ],
+        "qr_svg": QR_SVG,
+        "qr_png": QR_PNG,
+    },
+}
 
 
 def is_cart_change(response):
@@ -103,7 +120,7 @@ def site():
         "/cart": {"items": [], "subtotal": 0, "count": 0},
         "/auth/admin-session": {"role": "admin"},
         "/support/config": {"enabled": False},
-        "/donations/config": {"enabled": True, "min": 100, "max": 500000},
+        "/donations/config": {"enabled": True, "card": True, "transfer": False, "min": 100, "max": 500000},
         "/admin/overview": {},
         "/admin/system-health": {"checks": []},
         "/admin/analytics": {"pulse": {}, "series": {}},
@@ -156,7 +173,8 @@ def site():
                 total = PORTFOLIO["price"] * body.get("participants", 1) * 85 // 100
                 return httpx.Response(200, json=PROMO_QUOTE | {"total": records.get("quote_total", total)})
             if path == "/donations":
-                return httpx.Response(200, json={"number": "DON-2026-000001", "payment_url": DONATION_PAYMENT})
+                reply = {"number": "DON-2026-000001", "payment_url": DONATION_PAYMENT}
+                return httpx.Response(200, json=records.get("donation_reply", reply))
             if path == "/admin/portfolio" and request.method == "POST":
                 return httpx.Response(200, json={"ok": True, "id": "club-new", "slug": "club-new"})
             if path.endswith("/applications") and records.get("application_failure"):
@@ -2994,7 +3012,66 @@ def test_give_form_checks_amount_and_opens_payment(chromium, site, width):
     [sent] = [write["body"] for write in site[2] if write["path"] == "/donations"]
     assert (sent["amount"], sent["email"], sent["name"]) == (2500, "donor@example.test", "")
     assert sent["consent_offer"] is True and sent["consent_pdn"] is True and sent["website"] == ""
-    assert sent["captcha"]["number"] == 7 and "period" not in sent
+    assert sent["captcha"]["number"] == 7 and "period" not in sent and sent["method"] == "card"
+    context.close()
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_give_transfer_shows_qr_requisites_and_saves_code(chromium, site, width):
+    site[1]["/donations/config"] = {"enabled": True, "card": True, "transfer": True, "min": 100, "max": 500000}
+    site[1]["donation_reply"] = TRANSFER_REPLY
+    context = chromium.new_context(base_url=site[0], viewport={"width": width, "height": 900})
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+    page = context.new_page()
+    page.goto("/give")
+    form = page.locator("[data-give-form]")
+    expect(form.locator('[data-give-hint="card"]')).to_be_visible()
+    form.get_by_role("radio", name="По QR-коду").check()
+    expect(form.locator('[data-give-hint="transfer"]')).to_be_visible()
+    expect(form.locator('[data-give-hint="card"]')).to_be_hidden()
+    form.get_by_label("Почта").fill("donor@example.test")
+    form.get_by_role("checkbox", name=re.compile("условия оферты")).check()
+    form.get_by_role("checkbox", name=re.compile("согласие на обработку")).check()
+    form.get_by_role("button", name=re.compile("^Пожертвовать")).click()
+    block = page.locator("[data-give-transfer]")
+    expect(block).to_be_focused()
+    expect(form).to_be_hidden()
+    expect(block.get_by_role("heading", name=re.compile(r"^Переведите 3\s000 ₽$"))).to_be_visible()
+    expect(block.get_by_role("img", name="QR-код для перевода пожертвования")).to_have_attribute("src", QR_SVG)
+    save = block.get_by_role("link", name="Сохранить QR-код")
+    expect(save).to_have_attribute("href", QR_PNG)
+    expect(save).to_have_attribute("download", "DON-2026-000002.png")
+    expect(block.locator("dt")).to_have_text(["Получатель", "Расчетный счет", "Сумма", "Назначение платежа"])
+    expect(block.locator("dd").nth(1)).to_have_text("40703810000000000006")
+    expect(block.locator("dd").last).to_have_text(TRANSFER_REPLY["transfer"]["purpose"])
+    expect(block.locator("[data-transfer-number]")).to_have_text("DON-2026-000002")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    [sent] = [write["body"] for write in site[2] if write["path"] == "/donations"]
+    assert (sent["method"], sent["amount"]) == ("transfer", 3000)
+    context.close()
+
+
+def test_give_transfer_rejects_reply_without_data_image(chromium, site):
+    site[1]["/donations/config"] = {"enabled": True, "card": False, "transfer": True, "min": 100, "max": 500000}
+    site[1]["donation_reply"] = {
+        "number": "DON-2026-000003",
+        "transfer": {**TRANSFER_REPLY["transfer"], "qr_svg": "https://evil.example.test/qr.svg"},
+    }
+    context = chromium.new_context(base_url=site[0], viewport={"width": 390, "height": 900})
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+    page = context.new_page()
+    page.goto("/give")
+    form = page.locator("[data-give-form]")
+    expect(form.get_by_role("radio", name="По QR-коду")).to_have_count(0)
+    expect(form.locator('[data-give-hint="transfer"]')).to_be_visible()
+    form.get_by_label("Почта").fill("donor@example.test")
+    form.get_by_role("checkbox", name=re.compile("условия оферты")).check()
+    form.get_by_role("checkbox", name=re.compile("согласие на обработку")).check()
+    form.get_by_role("button", name=re.compile("^Пожертвовать")).click()
+    expect(form.get_by_role("alert")).to_have_text("Не удалось получить реквизиты для перевода. Попробуйте позже.")
+    expect(page.locator("[data-give-transfer]")).to_be_hidden()
+    [sent] = [write["body"] for write in site[2] if write["path"] == "/donations"]
+    assert sent["method"] == "transfer"
     context.close()
 
 

@@ -115,7 +115,7 @@ PROFILE = {
     "achievements": [],
     "activity": [{"month": "сен", "points": 60}],
 }
-GIVE_CONFIG = {"enabled": True, "min": 100, "max": 500000}
+GIVE_CONFIG = {"enabled": True, "card": True, "transfer": False, "min": 100, "max": 500000}
 DONATIONS_PAGE = {
     "items": [
         {
@@ -1252,11 +1252,7 @@ async def test_give_form_takes_bounds_from_server_and_waits_for_documents(browse
         assert "<p>Текст готовится.</p>" in document and 'content="noindex,nofollow"' in document
 
 
-@pytest.mark.parametrize(
-    ("status", "config", "closed"),
-    [(200, {"enabled": False}, True), (503, {"error": "Сервис временно недоступен"}, False)],
-)
-async def test_give_form_is_disabled_without_payments(status, config, closed):
+async def give_page(status, config):
     async def upstream(request):
         if request.url.path == "/donations/config":
             return httpx.Response(status, json=config)
@@ -1266,9 +1262,33 @@ async def test_give_form_is_disabled_without_payments(status, config, closed):
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
         ) as client:
-            page = (await client.get("/give")).text
+            return (await client.get("/give")).text
+
+
+@pytest.mark.parametrize(
+    ("status", "config", "closed"),
+    [(200, {"enabled": False}, True), (503, {"error": "Сервис временно недоступен"}, False)],
+)
+async def test_give_form_is_disabled_without_payments(status, config, closed):
+    page = await give_page(status, config)
     assert "data-give-submit disabled>" in page
     assert (GIVE_CLOSED in page) is closed
+
+
+@pytest.mark.parametrize(
+    ("card", "transfer", "choice", "method"),
+    [(True, False, False, "card"), (False, True, False, "transfer"), (True, True, True, "card")],
+)
+async def test_give_form_offers_only_available_methods(card, transfer, choice, method):
+    page = await give_page(200, {**GIVE_CONFIG, "card": card, "transfer": transfer})
+    assert ('<legend class="give-group__label">Как оплатить</legend>' in page) is choice
+    assert ('name="method" value="card" checked><span>Картой</span>' in page) is choice
+    assert ('name="method" value="transfer"><span>По QR-коду</span>' in page) is choice
+    assert (f'<input type="hidden" name="method" value="{method}">' in page) is not choice
+    assert f'data-give-hint="{method}">' in page
+    other = "transfer" if method == "card" else "card"
+    assert f'data-give-hint="{other}" hidden>' in page
+    assert "data-give-submit>" in page and "data-give-transfer" in page
 
 
 async def test_give_is_reachable_from_header_menu_footer_and_home(browser_client):
