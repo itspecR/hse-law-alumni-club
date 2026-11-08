@@ -56,6 +56,7 @@ DATA_COLUMNS = {
         "name",
         "alumni_id",
         "status",
+        "method",
         "payment_id",
         "paid_at",
         "consents",
