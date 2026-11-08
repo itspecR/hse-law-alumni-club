@@ -109,6 +109,28 @@ class NativeDatabaseGuards(unittest.TestCase):
                     installer.prepare_restore(context, pathlib.Path(temp) / 'new', port, mail_port)
             create.assert_not_called()
 
+    def test_restore_disables_external_integrations_and_transfer_requisites(self):
+        production = {name: 'production-value' for name in installer.RESTORE_DISABLED}
+        context = type('Source', (), {
+            'runtime': {**production, 'PUBLIC_URL': 'https://club.example'},
+            'operator': {},
+            'values': {},
+        })()
+
+        def directory(path, *args):
+            pathlib.Path(path).mkdir(mode=0o700, parents=True, exist_ok=True)
+            return pathlib.Path(path)
+
+        with tempfile.TemporaryDirectory() as temp, \
+                patch.object(installer, 'create_database'), patch.object(installer, 'directory', directory), \
+                patch.object(installer, 'self_signed'), patch.object(installer, 'protect_tls'), \
+                patch('sys.stdout', io.StringIO()):
+            config = pathlib.Path(temp).resolve() / 'new'
+            installer.prepare_restore(context, config, 9543, 8125)
+            runtime = common.read_env(config / 'runtime.env')
+        self.assertTrue({'PAYEE_ACCOUNT', 'PAYEE_BIC', 'BIFIT_CONNECTOR_TOKEN', 'YOOKASSA_SECRET_KEY'} <= set(production))
+        self.assertEqual({name: runtime[name] for name in production}, dict.fromkeys(production, ''))
+
     def test_repeat_install_preserves_closed_configuration(self):
         with tempfile.TemporaryDirectory() as temp:
             config = pathlib.Path(temp).resolve()

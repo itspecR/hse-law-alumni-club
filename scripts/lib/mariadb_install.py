@@ -28,6 +28,26 @@ from mariadb_common import (
 )
 
 CONTOURS = {"1": "local", "2": "public", "3": "server"}
+RESTORE_DISABLED = (
+    "TELEGRAM_BOT_TOKEN",
+    "TELEGRAM_WEBHOOK_SECRET",
+    "YOOKASSA_SHOP_ID",
+    "YOOKASSA_SECRET_KEY",
+    "VAPID_PUBLIC_KEY",
+    "VAPID_PRIVATE_KEY",
+    "OFFICE_TG_BOT_TOKEN",
+    "OFFICE_TG_CHAT_ID",
+    "SENTRY_DSN",
+    "BIFIT_API_URL",
+    "BIFIT_CONNECTOR_TOKEN",
+    "PAYEE_NAME",
+    "PAYEE_INN",
+    "PAYEE_KPP",
+    "PAYEE_BANK",
+    "PAYEE_BIC",
+    "PAYEE_ACCOUNT",
+    "PAYEE_CORRESPONDENT_ACCOUNT",
+)
 CONTOUR_TITLES = {"local": "локальная репетиция", "public": "публичный HTTPS", "server": "сервер по IP"}
 LISTENERS = {"local": ("127.0.0.1", 9443, 9080), "public": ("0.0.0.0", 443, 80), "server": ("0.0.0.0", 9443, 9080)}
 MAIL_PORT = 8025
@@ -433,17 +453,7 @@ def prepare_restore(context, config, port, mail_port):
     }
     for name in ("JOBS_ENABLED", "DPO_SYNC_ENABLED", "NEWS_SYNC_ENABLED", "SUPPORT_ENABLED", "TELEGRAM_POLLING"):
         runtime[name] = "false"
-    for name in (
-        "TELEGRAM_BOT_TOKEN",
-        "TELEGRAM_WEBHOOK_SECRET",
-        "YOOKASSA_SHOP_ID",
-        "YOOKASSA_SECRET_KEY",
-        "VAPID_PUBLIC_KEY",
-        "VAPID_PRIVATE_KEY",
-        "OFFICE_TG_BOT_TOKEN",
-        "OFFICE_TG_CHAT_ID",
-        "SENTRY_DSN",
-    ):
+    for name in RESTORE_DISABLED:
         runtime[name] = ""
     operator_values = {
         **context.operator,
