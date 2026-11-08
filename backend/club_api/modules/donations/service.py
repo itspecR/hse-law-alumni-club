@@ -14,6 +14,10 @@ DONATION_DESCRIPTION = "Пожертвование " + DONATION_PURPOSE
 DONATION_CONSENTS = shared_data("legal-data.json")["donation_consents"]
 THANKS_PATH = "/give/thanks"
 ONCE = "once"
+CARD = "card"
+TRANSFER = "transfer"
+NEW = "new"
+AWAITING = "awaiting"
 LOCKED_SQL = "SELECT * FROM club_donations WHERE number=%s FOR UPDATE"
 
 
@@ -31,11 +35,36 @@ def donation_outcome(donation, payment):
     return "pending"
 
 
+def greeting(donation):
+    return f"Здравствуйте, {donation['name']}!" if donation["name"] else "Здравствуйте!"
+
+
 def thanks_text(donation):
-    greeting = f"Здравствуйте, {donation['name']}!" if donation["name"] else "Здравствуйте!"
     return (
-        f"{greeting}\n\nМы получили Ваше пожертвование {rubles(donation['amount'])} {DONATION_PURPOSE}. "
+        f"{greeting(donation)}\n\nМы получили Ваше пожертвование {rubles(donation['amount'])} {DONATION_PURPOSE}. "
         f"Номер пожертвования {donation['number']}.\n\nСпасибо за поддержку.\n\n{CLUB_NAME}"
+    )
+
+
+def transfer_purpose(number):
+    return f"Пожертвование {number} {DONATION_PURPOSE}"
+
+
+def transfer_text(donation, transfer):
+    requisites = "\n".join(f"{item['label']}: {item['value']}" for item in transfer["payee"])
+    amount = rubles(donation["amount"])
+    return (
+        f"{greeting(donation)}\n\nВы оформили пожертвование {amount} {DONATION_PURPOSE}, "
+        f"номер {donation['number']}. Чтобы его завершить, переведите деньги по реквизитам.\n\n"
+        f"{requisites}\nСумма: {amount}\nНазначение платежа: {transfer['purpose']}\n\n"
+        f"Когда перевод поступит на счет клуба, мы пришлем письмо с благодарностью.\n\n{CLUB_NAME}"
+    )
+
+
+def awaiting_notice(donation):
+    return (
+        f"Пожертвование {donation['number']} на сумму {rubles(donation['amount'])} ждет перевода по реквизитам. "
+        "Проверьте поступление по выписке банка."
     )
 
 
@@ -43,7 +72,7 @@ class Donations:
     def __init__(self, state):
         self.state = state
 
-    async def create(self, *, amount, email, name, alumni_id):
+    async def create(self, *, amount, email, name, alumni_id, method=CARD):
         async with self.state.database.transaction() as connection:
             number = await next_number(connection, DONATION_TABLE)
             await self.state.store.create(
@@ -56,18 +85,27 @@ class Donations:
                     "email": email,
                     "name": name or None,
                     "alumni_id": alumni_id,
-                    "status": "new",
+                    "status": AWAITING if method == TRANSFER else NEW,
+                    "method": method,
                     "consents": DONATION_CONSENTS,
                     "created_at": datetime.now(UTC),
                 },
                 connection=connection,
             )
-        return {"number": number, "amount": amount}
+        return {"number": number, "amount": amount, "email": email, "name": name or None}
 
     async def start_payment(self, donation):
         return await self.state.payments.create_donation(
             donation["number"], donation["amount"], DONATION_DESCRIPTION, THANKS_PATH
         )
+
+    async def start_transfer(self, donation):
+        transfer = self.state.transfer.details(donation["amount"], transfer_purpose(donation["number"]))
+        await self.state.notifications.mail_applicant(
+            donation["email"], club_subject("Реквизиты для пожертвования"), transfer_text(donation, transfer)
+        )
+        await self.state.notifications.office_text(awaiting_notice(donation))
+        return transfer
 
     async def mark_failed(self, number):
         await self.state.database.execute(

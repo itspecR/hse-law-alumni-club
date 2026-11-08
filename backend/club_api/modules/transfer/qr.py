@@ -11,6 +11,7 @@ QR_ERROR_LEVEL = "m"
 QR_BORDER = 4
 QR_DARK = "#000"
 QR_LIGHT = "#fff"
+PNG_SCALE = 8
 FIELDS = (
     ("Name", "PAYEE_NAME"),
     ("PersonalAcc", "PAYEE_ACCOUNT"),
@@ -20,6 +21,15 @@ FIELDS = (
     ("PayeeINN", "PAYEE_INN"),
     ("KPP", "PAYEE_KPP"),
 )
+PAYEE_LABELS = {
+    "PAYEE_NAME": "Получатель",
+    "PAYEE_INN": "ИНН",
+    "PAYEE_KPP": "КПП",
+    "PAYEE_BANK": "Банк",
+    "PAYEE_BIC": "БИК",
+    "PAYEE_ACCOUNT": "Расчетный счет",
+    "PAYEE_CORRESPONDENT_ACCOUNT": "Корреспондентский счет",
+}
 UNAVAILABLE = "Оплата переводом по реквизитам не настроена."
 INVALID_AMOUNT = "Некорректная сумма перевода."
 
@@ -49,8 +59,18 @@ class Transfer:
         fields += [f"Sum={amount}", f"Purpose={clean_purpose(purpose)}"]
         return FORBIDDEN.join((HEADER, *fields))
 
-    def svg(self, amount, purpose):
+    def payee(self):
+        return [{"label": PAYEE_LABELS[name], "value": value} for name, value in self.settings.payee().items()]
+
+    def details(self, amount, purpose):
         code = segno.make(
             self.payload(amount, purpose), error=QR_ERROR_LEVEL, encoding=ENCODING, micro=False, eci=False
         )
-        return code.svg_inline(border=QR_BORDER, dark=QR_DARK, light=QR_LIGHT, omitsize=True)
+        drawing = {"border": QR_BORDER, "dark": QR_DARK, "light": QR_LIGHT}
+        return {
+            "amount": amount,
+            "purpose": clean_purpose(purpose),
+            "payee": self.payee(),
+            "qr_svg": code.svg_data_uri(omitsize=True, **drawing),
+            "qr_png": code.png_data_uri(scale=PNG_SCALE, **drawing),
+        }

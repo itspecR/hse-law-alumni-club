@@ -265,6 +265,7 @@ class Donations(models.Model):
     name = models.CharField(max_length=200, null=True)
     alumni = models.ForeignKey("Alumnus", on_delete=models.SET_NULL, db_column="alumni_id", related_name="+", null=True)
     status = models.CharField(max_length=16, db_default="new")
+    method = models.CharField(max_length=16, db_default="card")
     payment_id = models.CharField(max_length=64, null=True)
     paid_at = models.DateTimeField(null=True)
     consents = models.JSONField(null=True)

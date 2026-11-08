@@ -1,3 +1,6 @@
+import base64
+from urllib.parse import unquote
+
 import pytest
 from test_requisites import PAYEE, settings
 
@@ -53,8 +56,12 @@ def test_invalid_amount_is_rejected(amount):
     assert error.value.status == 400
 
 
-def test_qr_is_inline_svg_black_on_white_with_quiet_zone():
-    svg = transfer().svg(150000, "Пожертвование D-2026-000001")
-    assert svg.startswith("<svg viewBox=") and svg.endswith("</svg>")
-    assert 'fill="#fff"' in svg and 'stroke="#000"' in svg
+def test_details_carry_payee_purpose_and_both_images():
+    details = transfer().details(150000, " Пожертвование |\nD-2026-000001")
+    assert (details["amount"], details["purpose"]) == (150000, "Пожертвование D-2026-000001")
+    assert details["payee"][0] == {"label": "Получатель", "value": PAYEE["PAYEE_NAME"]}
+    assert [item["value"] for item in details["payee"]] == list(PAYEE.values())
+    svg = unquote(details["qr_svg"].removeprefix("data:image/svg+xml;charset=utf-8,"))
+    assert svg.startswith("<svg") and "#fff" in svg and "#000" in svg
     assert "width=" not in svg.split(">", 1)[0]
+    assert base64.b64decode(details["qr_png"].removeprefix("data:image/png;base64,")).startswith(b"\x89PNG")

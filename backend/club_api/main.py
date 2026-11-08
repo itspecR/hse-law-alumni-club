@@ -41,6 +41,7 @@ from club_api.modules.portfolio.applications import ROUTE_LIMITS as PORTFOLIO_LI
 from club_api.modules.support.routes import ROUTE_LIMITS as SUPPORT_LIMITS
 from club_api.modules.telegram.bot import Telegram
 from club_api.modules.telegram.routes import ROUTE_LIMITS as TELEGRAM_LIMITS
+from club_api.modules.transfer.qr import Transfer
 
 logger = logging.getLogger("club.api")
 
@@ -79,6 +80,7 @@ def create_app(settings=None):
     app.state.started_at = time.monotonic()
     app.state.checkout = Checkout(app.state)
     app.state.payments = Payments(app.state)
+    app.state.transfer = Transfer(settings)
     app.state.donations = Donations(app.state)
     app.state.fiscal = FiscalQueue(app.state)
     app.state.gamification = Gamification(app.state)

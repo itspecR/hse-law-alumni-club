@@ -15,6 +15,7 @@ from club_api.observability.audit import audit
 STATUS_LABELS = {
     "succeeded": "Оплачено",
     "pending": "Ожидает оплаты",
+    "awaiting": "Ожидает перевода",
     "review": "На проверке",
     "canceled": "Отменено",
     "failed": "Не создан платеж",

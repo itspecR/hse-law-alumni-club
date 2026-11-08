@@ -112,7 +112,7 @@ async def test_donation_starts_payment_without_receipt(database_app):
     assert sent["key"] and sent["body"]["description"] == "Пожертвование на развитие факультета права НИУ ВШЭ"
     row = await donation(app, number)
     assert (row["amount"], row["email"], row["name"]) == (300000, "donor@example.test", "Вымышленный Даритель")
-    assert (row["status"], row["payment_id"], row["period"]) == ("pending", PAYMENT_ID, "once")
+    assert (row["status"], row["payment_id"], row["period"], row["method"]) == ("pending", PAYMENT_ID, "once", "card")
     assert row["consents"] == DONATION_CONSENTS
 
 
