@@ -124,6 +124,12 @@ class NativeDatabaseGuards(unittest.TestCase):
                 refresh.assert_called_once_with(config)
             self.assertEqual(before, {name: (config / name).read_bytes() for name in installer.FILES})
 
+    def test_default_configuration_has_no_removed_stack_keys(self):
+        values = installer.HELPERS['configuration']()
+        removed = [name for name in values if name.startswith('POSTGRES_') or name in ('WEB_DOMAIN', 'ADMIN_DOMAIN', 'ACME_EMAIL')]
+        self.assertEqual(removed, [])
+        self.assertEqual(len(values['CHECKOUT_DB_PASSWORD']), 64)
+
 
 class BackupRevision(unittest.TestCase):
     API = "a" * 40

@@ -2708,7 +2708,10 @@ def test_office_cohorts_list_edit_and_create(page, site, width):
     create = page.locator("details.office-create form")
     create.get_by_label("Программа").select_option("club-1")
     create.get_by_label("Старт").fill("2027-03-02")
-    create.get_by_role("button", name="Создать", exact=True).click()
+    with page.expect_response(
+        lambda response: response.url.endswith("/api/admin/cohorts") and response.request.method == "POST"
+    ):
+        create.get_by_role("button", name="Создать", exact=True).click()
     expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
     write = site[2][-1]
     assert write["path"] == "/admin/cohorts" and write["method"] == "POST"
