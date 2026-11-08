@@ -1,3 +1,5 @@
+import re
+
 import httpx
 import pytest
 from test_auth_integration import fixture
@@ -83,3 +85,66 @@ async def test_every_login_costs_one_password_check(database_app, monkeypatch):
     for email in ("nobody@example.test", closed + "@example.test", sso + "@example.test"):
         assert (await app.state.auth.authenticate(email, PASSWORD, scope="alumni")) == ("invalid", None)
     assert checks == [None, None, None]
+
+
+def guard(app, email):
+    for index in range(app.state.auth.attempts.GUARD_LIMIT):
+        app.state.auth.attempts.fail(email, f"192.0.2.{index}")
+
+
+def capture_mail(app, monkeypatch):
+    sent = []
+
+    async def delivered(to, subject, text):
+        sent.append({"to": to, "subject": subject, "text": text})
+        return True
+
+    monkeypatch.setattr(app.state.settings, "SMTP_HOST", "smtp.example.test")
+    monkeypatch.setattr(app.state.notifications, "send_email", delivered)
+    return sent
+
+
+async def test_guarded_email_answers_alike_and_mails_code_only_for_right_password(database_app, monkeypatch):
+    app = database_app
+    sent = capture_mail(app, monkeypatch)
+    user_id, _ = await fixture(app)
+    email = user_id + "@example.test"
+    guard(app, email)
+    guard(app, "nobody@example.test")
+    async with client_from(app, OWNER_IP) as client:
+        wrong = await client.post("/auth/login", json={"email": email, "password": "wrong-password"})
+        missing = await client.post("/auth/login", json={"email": "nobody@example.test", "password": PASSWORD})
+        assert sent == []
+        right = await client.post("/auth/login", json={"email": email.upper(), "password": PASSWORD})
+    assert wrong.status_code == missing.status_code == right.status_code == 200
+    assert wrong.json() == missing.json() == right.json() == {"code_required": True}
+    assert [mail["to"] for mail in sent] == [email]
+    code = re.search(r"\b\d{6}\b", sent[0]["text"]).group()
+    async with client_from(app, OWNER_IP) as client:
+        bad = await client.post(
+            "/auth/login-code", json={"email": email, "code": str((int(code) + 1) % 10**6).zfill(6)}
+        )
+        good = await client.post("/auth/login-code", json={"email": email, "code": code})
+        reused = await client.post("/auth/login-code", json={"email": email, "code": code})
+    assert bad.status_code == reused.status_code == 400
+    assert good.status_code == 200 and good.json()["token"]
+
+
+async def test_guarded_email_without_mail_closes_password_login(database_app):
+    app = database_app
+    user_id, _ = await fixture(app)
+    email = user_id + "@example.test"
+    guard(app, email)
+    async with client_from(app, OWNER_IP) as client:
+        reply = await client.post("/auth/login", json={"email": email, "password": PASSWORD})
+    assert reply.status_code == 429
+
+
+async def test_guard_leaves_staff_login_to_its_own_code(database_app):
+    app = database_app
+    user_id, _ = await fixture(app, "editor")
+    email = user_id + "@example.test"
+    guard(app, email)
+    async with client_from(app, OWNER_IP) as client:
+        reply = await client.post("/auth/admin-login", json={"email": email, "password": PASSWORD})
+    assert reply.status_code == 200 and reply.json()["token"]

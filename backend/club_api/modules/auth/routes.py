@@ -8,9 +8,16 @@ from club_api.core.errors import ApiError
 from club_api.core.names import PersonName
 from club_api.core.schemas import Body
 from club_api.core.security import client_ip
-from club_api.core.views import api_view, parse_body
+from club_api.core.views import api_view, defer, parse_body
 from club_api.domain import MAX_INTERESTS
-from club_api.modules.auth.codes import ADMIN_PURPOSE, CODE_DIGITS, CONFIRM_PURPOSE, RESET_PURPOSE, ttl_minutes
+from club_api.modules.auth.codes import (
+    ADMIN_PURPOSE,
+    CODE_DIGITS,
+    CONFIRM_PURPOSE,
+    MEMBER_PURPOSE,
+    RESET_PURPOSE,
+    ttl_minutes,
+)
 from club_api.modules.auth.passwords import hash_password
 from club_api.modules.auth.service import (
     ALUMNI_ROLE,
@@ -26,6 +33,7 @@ from club_api.modules.telegram.signature import validate_init_data
 from club_api.observability.audit import audit
 
 CODE_INVALID = "Неверный или устаревший код. Запросите новый код."
+TOO_MANY_ATTEMPTS = "Слишком много неудачных попыток. Попробуйте позже."
 NOT_ALUMNI = "Этот аккаунт не связан с профилем выпускника."
 TELEGRAM_LOGIN_FAILED = "Не удалось проверить вход через Telegram."
 OFFICE_REVIEW = "Проверьте ее в панели управления, раздел «Выпускники»."
@@ -33,6 +41,7 @@ ROUTE_LIMITS = {
     "/auth/login": 5,
     "/auth/admin-login": 5,
     "/auth/admin-code": 10,
+    "/auth/login-code": 10,
     "/auth/register": 3,
     "/auth/telegram": 10,
     "/auth/resend-confirmation": 3,
@@ -118,6 +127,15 @@ def staff_letter(code):
     )
 
 
+def member_letter(code):
+    return (
+        f"Здравствуйте!\n\nКод для входа в кабинет выпускника: {code}\n\n"
+        f"Код действует {ttl_minutes(MEMBER_PURPOSE)} минут и срабатывает один раз.\n\n"
+        "Мы просим код, потому что к Вашему аккаунту было много неудачных попыток входа. "
+        "Если Вы не входили в кабинет, смените пароль: кто-то пытается его подобрать."
+    )
+
+
 def staff_session(service, user):
     return {"token": service.staff_session(user["id"], user["role"], user["staff_version"]), "role": user["role"]}
 
@@ -170,7 +188,9 @@ async def login(request, body, scope):
     prefix = "admin.login" if scope == "admin" else "login"
     if service.attempts.locked(email, ip):
         await audit(request, prefix + ".locked", actor="email:" + email)
-        raise ApiError(429, "Слишком много неудачных попыток. Попробуйте позже.")
+        raise ApiError(429, TOO_MANY_ATTEMPTS)
+    if scope == "alumni" and service.attempts.guarded(email):
+        return await guarded_login(request, email, body.password, ip)
     status, user = await service.authenticate(email, body.password, scope=scope)
     if status != "ok":
         service.attempts.fail(email, ip)
@@ -185,6 +205,11 @@ async def login(request, body, scope):
     if scope == "admin":
         service.attempts.success(email, ip)
         return await staff_second_step(request, user)
+    return await alumni_session(request, user, email, ip)
+
+
+async def alumni_session(request, user, email, ip):
+    service = auth_service(request)
     alumni = await service.profile(user["id"])
     if not alumni or alumni["id"] != user["alumni_id"]:
         raise ApiError(403, NOT_ALUMNI)
@@ -194,6 +219,26 @@ async def login(request, body, scope):
         "token": service.session(user["alumni_id"], user["id"], user["alumni_version"]),
         "alumni": alumni_view(alumni),
     }
+
+
+async def send_member_code(service, notifications, user):
+    code = await service.send_code(user["id"], MEMBER_PURPOSE)
+    if code:
+        await notifications.send_email(user["email"], club_subject("Код входа в кабинет"), member_letter(code))
+
+
+async def guarded_login(request, email, password, ip):
+    service = auth_service(request)
+    if not request.services.notifications.mail_enabled:
+        await audit(request, "login.locked", actor="email:" + email)
+        raise ApiError(429, TOO_MANY_ATTEMPTS)
+    status, user = await service.authenticate(email, password, scope="alumni")
+    if status == "ok":
+        defer(request, send_member_code, service, request.services.notifications, user)
+    else:
+        service.attempts.fail(email, ip)
+    await audit(request, "login.code" if status == "ok" else "login.fail", actor="email:" + email)
+    return {"code_required": True}
 
 
 @api_view(body=LoginBody)
@@ -219,6 +264,21 @@ async def admin_code(request: HttpRequest):
         raise ApiError(400, CODE_INVALID)
     await audit(request, "admin.login.ok", actor="user:" + user["id"])
     return staff_session(service, user)
+
+
+@api_view(body=CodeBody)
+async def alumni_code(request: HttpRequest):
+    body = parse_body(request, CodeBody)
+    service = auth_service(request)
+    email, ip = (body.email.lower().strip(), client_ip(request))
+    if service.attempts.locked(email, ip):
+        raise ApiError(429, TOO_MANY_ATTEMPTS)
+    user = await service.user(email=email, alumni=True, active=True)
+    if not user or not await service.member_code(user["id"], body.code):
+        service.attempts.fail(email, ip)
+        await audit(request, "login.code_fail", actor="email:" + email)
+        raise ApiError(400, CODE_INVALID)
+    return await alumni_session(request, user, email, ip)
 
 
 @api_view(permission=require_admin)

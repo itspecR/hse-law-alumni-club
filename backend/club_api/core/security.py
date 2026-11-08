@@ -63,38 +63,51 @@ class LoginAttempts:
     WINDOW_SECONDS = 15 * 60
     ACCOUNT_LIMIT, ACCOUNT_LOCK_SECONDS = 10, 15 * 60
     ADDRESS_LIMIT, ADDRESS_LOCK_SECONDS = 30, 30 * 60
+    GUARD_LIMIT, GUARD_WINDOW_SECONDS, GUARD_SECONDS = 20, 60 * 60, 60 * 60
 
     def __init__(self, clock=time.monotonic):
         self.clock = clock
         self.account = {}
         self.ip = {}
+        self.email = {}
+
+    def locks(self, email, ip):
+        return (
+            (self.account, (email.lower(), ip), self.ACCOUNT_LIMIT, self.ACCOUNT_LOCK_SECONDS, self.WINDOW_SECONDS),
+            (self.ip, ip, self.ADDRESS_LIMIT, self.ADDRESS_LOCK_SECONDS, self.WINDOW_SECONDS),
+        )
 
     def counters(self, email, ip):
-        return (
-            (self.account, (email.lower(), ip), self.ACCOUNT_LIMIT, self.ACCOUNT_LOCK_SECONDS),
-            (self.ip, ip, self.ADDRESS_LIMIT, self.ADDRESS_LOCK_SECONDS),
-        )
+        guard = (self.email, email.lower(), self.GUARD_LIMIT, self.GUARD_SECONDS, self.GUARD_WINDOW_SECONDS)
+        return (*self.locks(email, ip), guard)
 
     def cleanup(self):
         now = self.clock()
-        for entries in (self.account, self.ip):
+        for entries, window in (
+            (self.account, self.WINDOW_SECONDS),
+            (self.ip, self.WINDOW_SECONDS),
+            (self.email, self.GUARD_WINDOW_SECONDS),
+        ):
             for key, (_, first, until) in list(entries.items()):
-                if until < now and now - first > self.WINDOW_SECONDS:
+                if until < now and now - first > window:
                     del entries[key]
 
     def locked(self, email, ip):
         self.cleanup()
         now = self.clock()
-        return any(entries.get(key, (0, 0, 0))[2] > now for entries, key, _, _ in self.counters(email, ip))
+        return any(entries.get(key, (0, 0, 0))[2] > now for entries, key, *_ in self.locks(email, ip))
+
+    def guarded(self, email):
+        return self.email.get(email.lower(), (0, 0, 0))[2] > self.clock()
 
     def fail(self, email, ip):
         now = self.clock()
-        for entries, key, maximum, duration in self.counters(email, ip):
+        for entries, key, maximum, duration, window in self.counters(email, ip):
             fails, first, until = entries.get(key, (0, now, 0))
-            if now - first > self.WINDOW_SECONDS:
-                fails, first, until = 0, now, 0
+            if now - first > window:
+                fails, first = 0, now
             fails += 1
-            entries[key] = fails, first, now + duration if fails >= maximum else until
+            entries[key] = fails, first, now + duration if fails >= maximum or until > now else until
 
     def success(self, email, ip):
         self.account.pop((email.lower(), ip), None)

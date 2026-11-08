@@ -163,6 +163,10 @@ def site():
                 return httpx.Response(200, json={"code_required": True, "sent": records["staff_code"] == "sent"})
             if path == "/auth/admin-code":
                 return httpx.Response(200, json={"token": "admin-qa", "role": "admin"})
+            if path == "/auth/login" and records.get("member_code"):
+                return httpx.Response(200, json={"code_required": True})
+            if path == "/auth/login-code":
+                return httpx.Response(200, json={"token": "member-qa"})
             if path.endswith("login"):
                 return httpx.Response(200, json={"token": "member-qa"})
             if path == "/auth/register":
@@ -1787,7 +1791,7 @@ def test_pwa_column_uses_phone_gutter(page):
 def test_login_form_tile_and_profile_back_link(page, width):
     page.set_viewport_size({"width": width, "height": 900})
     page.goto("/lk")
-    form = page.locator(".cabinet-gate__form")
+    form = page.locator(".cabinet-gate__form:not([hidden])")
     for corner in ("top-left", "top-right", "bottom-left", "bottom-right"):
         assert form.evaluate(f"node => parseFloat(getComputedStyle(node)['border-{corner}-radius'])") > 0
     page.add_init_script("localStorage.setItem('club_token','member-qa');")
@@ -2168,6 +2172,31 @@ def test_office_login_asks_for_code_from_mail(page, site, width):
     write = next(row for row in site[2] if row["path"] == "/auth/admin-code")
     assert write["body"] == {"email": "office@example.test", "code": "123456"}
     assert page.evaluate("localStorage.getItem('club_admin_token')") == "admin-qa"
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_member_login_asks_for_code_after_many_failures(page, site, width):
+    site[1]["member_code"] = True
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/lk")
+    code = page.get_by_label("Код из письма", exact=True)
+    expect(code).to_be_hidden()
+    page.get_by_label("Почта", exact=True).fill("member@example.test")
+    page.get_by_label("Пароль", exact=True).fill("synthetic-member-password")
+    page.get_by_role("button", name="Войти в кабинет", exact=True).click()
+    expect(code).to_be_focused()
+    expect(page.get_by_role("heading", name="Вход для выпускников", exact=True)).to_be_hidden()
+    expect(page.locator("form:not([hidden]) [data-staff-code-note]")).to_have_text(
+        "К этому аккаунту было много неудачных попыток входа, поэтому нужен код. "
+        "Если пароль верный, мы отправили код на почту. Введите его, чтобы войти."
+    )
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    code.fill("123456")
+    page.get_by_role("button", name="Войти в кабинет", exact=True).click()
+    expect(page.locator("#page")).not_to_contain_text("Код из письма")
+    write = next(row for row in site[2] if row["path"] == "/auth/login-code")
+    assert write["body"] == {"email": "member@example.test", "code": "123456"}
+    assert page.evaluate("localStorage.getItem('club_token')") == "member-qa"
 
 
 def test_office_login_explains_operator_code_when_mail_fails(page, site):
