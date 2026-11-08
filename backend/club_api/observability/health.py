@@ -24,8 +24,7 @@ async def build_health(state):
             "detail": "Контрольный запрос не выполнен",
         }
     storage["latency_ms"] = round((time.monotonic() - start) * 1000)
-    engine = "MariaDB" if state.database.vendor == "mysql" else "PostgreSQL"
-    database = {"id": "database", "name": "База сайта · " + engine}
+    database = {"id": "database", "name": "База сайта · MariaDB"}
     if state.database.pool:
         start = time.monotonic()
         try:

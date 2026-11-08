@@ -68,7 +68,7 @@ URLconf. Обработчики получают `HttpRequest`, явно про�
 
 | Каталог | Набор |
 |---|---|
-| `backend/tests/python` | pytest, HTTPX ASGI, настоящий PostgreSQL и конкурентные операции |
+| `backend/tests/python` | pytest, HTTPX ASGI, настоящая MariaDB и конкурентные операции |
 | `frontend/tests/python` | Шаблоны, браузерные сценарии, дайджест, календарь и live-стек |
 | `scripts/tests` | Операционные проверки и запуск изолированных SQL/live-наборов |
 

@@ -8,7 +8,7 @@ import httpx
 from club_api.asgi import Application
 from club_api.core.config import load_settings
 from club_api.core.http import SecurityMiddleware
-from club_api.db.pool import Database
+from club_api.db.mysql import Database
 from club_api.db.store import Store
 from club_api.domain import DOMAIN
 from club_api.jobs.runner import Jobs

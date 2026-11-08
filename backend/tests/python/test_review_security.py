@@ -7,7 +7,6 @@ from uuid import UUID, uuid4
 
 import httpx
 import pytest
-from psycopg.types.json import Jsonb
 from pydantic import SecretStr
 from test_checkout_integration import contact, fill, product
 from test_community_integration import account
@@ -164,7 +163,7 @@ async def test_expiry_advances_past_unavailable_payments(database_app, monkeypat
         )
         await state.database.execute(
             "INSERT INTO club_checkout_commits(key_hash,request_hash,order_id,reservations,receipt) VALUES(%s,%s,%s,%s,%s)",
-            (str(index), "synthetic", order["id"], Jsonb([{"id": row["id"], "sku": None, "qty": 1}]), Jsonb({})),
+            (str(index), "synthetic", order["id"], [{"id": row["id"], "sku": None, "qty": 1}], {}),
         )
     monkeypatch.setattr(state.payments, "fetch", AsyncMock(side_effect=ApiError(502, "Временный сбой")))
     assert await state.checkout.expire_reservations() == 1

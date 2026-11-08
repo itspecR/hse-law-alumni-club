@@ -4,8 +4,6 @@ from dataclasses import dataclass
 from importlib.resources import files
 from uuid import uuid4
 
-from psycopg.types.json import Jsonb
-
 from club_api.db.operator import is_operator
 from club_api.db.queries import Query, acquire_lock
 from club_api.db.store import Store
@@ -171,18 +169,16 @@ async def ensure_site(connection, public_url):
             'INSERT INTO club_settings("key",value) VALUES(\'site\',%s) ON CONFLICT("key") DO NOTHING',
             "INSERT INTO club_settings(`key`,value) VALUES('site',%s) ON DUPLICATE KEY UPDATE `key`=`key`",
         ),
-        (Jsonb(site),),
+        (site,),
     )
 
 
 async def bootstrap(connection, config):
     config.validate()
-    store = Store(connection) if getattr(connection, "vendor", None) == "mysql" else Store(None)
+    store = Store(connection)
     async with connection.transaction():
         if not await is_operator(connection):
             raise OperatorError("Bootstrap доступен только владельцу базы данных")
-        if getattr(connection, "vendor", None) != "mysql":
-            await connection.execute("SET LOCAL lock_timeout='30s'")
         await acquire_lock(connection, "club:native-bootstrap:v1")
         admin_role = await ensure_role(connection, "admin", ("Administrator",))
         alumni_role, editor_role = await ensure_role(connection, "alumni"), await ensure_role(connection, "editor")

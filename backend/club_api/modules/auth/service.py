@@ -6,7 +6,6 @@ from uuid import UUID, uuid4
 
 import jwt
 from django.http import HttpRequest
-from psycopg.types.json import Jsonb
 
 from club_api.core.errors import ApiError
 from club_api.core.security import LoginAttempts
@@ -116,7 +115,7 @@ async def insert_alumni(connection, *, email, hashed, status, verification, prof
             profile["cohort"],
             profile["edu_level"],
             profile["edu_program"],
-            Jsonb(profile["interests_json"]),
+            profile["interests_json"],
             profile["referral_code"],
             profile["referred_by"],
             profile["consent_at"],
@@ -146,7 +145,7 @@ async def find_user(connection, *, id=None, email=None, lock=False):
     query += "u.id=%s" if id is not None else "lower(u.email)=%s"
     query += " LIMIT 2"
     if lock:
-        query += " FOR UPDATE" if getattr(connection, "vendor", None) == "mysql" else " FOR UPDATE OF u"
+        query += " FOR UPDATE"
     cursor = await connection.execute(query, (id if id is not None else email.lower().strip(),))
     rows = await cursor.fetchall()
     return rows[0] if len(rows) == 1 else None

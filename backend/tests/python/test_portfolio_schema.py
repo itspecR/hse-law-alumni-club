@@ -1,15 +1,12 @@
 from uuid import uuid4
 
 import httpx
-import psycopg
 import pytest
 from django.apps import apps
 from django.db import IntegrityError
 from test_community_integration import account, png
 
 from club_api.db.schema import DATA_COLUMNS, JSON_COLUMNS
-
-CONSTRAINT_ERRORS = (IntegrityError, psycopg.IntegrityError)
 
 
 def model_columns():
@@ -67,7 +64,7 @@ async def test_portfolio_program_keeps_lists(database_app):
 
 
 async def test_unknown_catalog_is_rejected(database_app):
-    with pytest.raises(CONSTRAINT_ERRORS):
+    with pytest.raises(IntegrityError):
         await program(database_app, catalog="unknown")
 
 
@@ -81,7 +78,7 @@ async def test_trainer_link_is_unique(database_app):
     app = database_app
     first, person = (await program(app), await trainer(app))
     await app.state.store.create("program_trainers", {"program_id": first["id"], "trainer_id": person["id"]})
-    with pytest.raises(CONSTRAINT_ERRORS):
+    with pytest.raises(IntegrityError):
         await app.state.store.create("program_trainers", {"program_id": first["id"], "trainer_id": person["id"]})
 
 

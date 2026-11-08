@@ -3,8 +3,6 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-from psycopg.types.json import Jsonb
-
 from club_api.core.errors import ApiError
 from club_api.db.queries import Query, acquire_lock
 from club_api.domain import effective_discount
@@ -82,7 +80,7 @@ class Checkout:
 
     async def save_receipt(self, key, receipt):
         await self.state.database.execute(
-            "UPDATE club_checkout_commits SET receipt=%s WHERE key_hash=%s", (Jsonb(receipt), key)
+            "UPDATE club_checkout_commits SET receipt=%s WHERE key_hash=%s", (receipt, key)
         )
 
     async def commit(self, *, session, key, request_hash, cart_id, cart_items, base):
@@ -140,7 +138,7 @@ class Checkout:
                 if variant:
                     variant["stock"] -= item["qty"]
                     await connection.execute(
-                        "UPDATE products SET variants_json=%s WHERE id=%s", (Jsonb(variants), product["id"])
+                        "UPDATE products SET variants_json=%s WHERE id=%s", (variants, product["id"])
                     )
                 else:
                     await connection.execute(
@@ -166,7 +164,7 @@ class Checkout:
         )
         await connection.execute(
             "INSERT INTO club_checkout_commits(key_hash,request_hash,order_id,reservations,receipt) VALUES(%s,%s,%s,%s,%s)",
-            (key, request_hash, order["id"], Jsonb(reservations), Jsonb(receipt(number, base))),
+            (key, request_hash, order["id"], reservations, receipt(number, base)),
         )
         return number
 
@@ -199,9 +197,7 @@ class Checkout:
                 if not variant:
                     raise ApiError(409, "Вариант товара из резерва удален. Восстановите его, затем отмените заявку.")
                 variant["stock"] += reserve["qty"]
-                await connection.execute(
-                    "UPDATE products SET variants_json=%s WHERE id=%s", (Jsonb(variants), reserve["id"])
-                )
+                await connection.execute("UPDATE products SET variants_json=%s WHERE id=%s", (variants, reserve["id"]))
             else:
                 await connection.execute(
                     "UPDATE products SET stock=stock+%s WHERE id=%s", (reserve["qty"], reserve["id"])

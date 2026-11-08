@@ -2,14 +2,13 @@ from urllib.parse import quote
 from uuid import uuid4
 
 import httpx
-import psycopg
 import pytest
 from django.core.exceptions import ValidationError
+from django.db import DatabaseError
 from test_community_integration import account
 
 from club_api.core.errors import ApiError
-from club_api.db.orm_store import ORMStore, condition, model_for
-from club_api.db.store import Store, predicate, selection
+from club_api.db.store import Store, condition, model_for, predicate, selection
 
 PAYLOADS = (
     "' OR '1'='1",
@@ -32,10 +31,9 @@ class NoDatabaseAccess:
         raise AssertionError("Недопустимый запрос выполнил SQL")
 
 
-@pytest.mark.parametrize("store_class", (Store, ORMStore))
 @pytest.mark.parametrize("table", ('news"; DROP TABLE alumni; --', "club_settings", "mediafile", "unknown", ""))
-async def test_unapproved_table_rejected_before_any_database_access(store_class, table):
-    store = store_class(NoDatabaseAccess())
+async def test_unapproved_table_rejected_before_any_database_access(table):
+    store = Store(NoDatabaseAccess())
     for operation in (
         lambda: store.read(table, fields=()),
         lambda: store.create(table, {}),
@@ -54,9 +52,8 @@ async def test_unapproved_table_rejected_before_any_database_access(store_class,
             operation()
 
 
-@pytest.mark.parametrize("store_class", (Store, ORMStore))
-async def test_sql_structure_and_django_keywords_rejected_before_database_access(store_class):
-    store = store_class(NoDatabaseAccess())
+async def test_sql_structure_and_django_keywords_rejected_before_database_access():
+    store = Store(NoDatabaseAccess())
     injected = 'title" DESC; DROP TABLE news; --'
     for operation in (
         lambda: store.read("news", fields=(injected,)),
@@ -132,6 +129,6 @@ async def test_empty_record_id_never_removes_where_guard(database_app):
         lambda: store.update("news", {"body": "changed"}, id=""),
         lambda: store.delete("news", id=""),
     ):
-        with pytest.raises((ApiError, ValidationError, psycopg.Error)):
+        with pytest.raises((ApiError, ValidationError, DatabaseError)):
             await operation()
         assert (await store.one("news", sentinel["id"]))["body"] == "untouched"
