@@ -23,6 +23,8 @@ PAYMENT_LOOKUP_PAGE_LIMIT = 20
 PAYMENT_LOOKUP_PAGE_SIZE = 100
 DONATION_KEY = "donation_number"
 AUDITED = ("review", "succeeded", "canceled")
+UNMATCHED = ("missing", "ignored")
+UNMATCHED_SUBJECTS = {"order": "заявке", "donation": "пожертвованию"}
 
 
 def secure_payment_url(value):
@@ -368,17 +370,52 @@ async def webhook(request: HttpRequest):
         payment = await state.payments.fetch(body["object"]["id"])
     except ApiError:
         return JsonResponse({"ok": False}, status=502, safe=False)
-    if payment.get("metadata", {}).get(DONATION_KEY):
-        result = await state.donations.settle(payment)
-        if result.get("donation") and result["outcome"] in AUDITED:
-            await audit(
-                request,
-                "donation." + result["outcome"],
-                actor="yookassa",
-                subject="donation:" + result["donation"]["number"],
-                detail={"payment_id": payment["id"]},
-            )
-        return {"ok": True}
+    settle = donation_webhook if payment.get("metadata", {}).get(DONATION_KEY) else order_webhook
+    await settle(request, payment)
+    return {"ok": True}
+
+
+def unmatched_text(payment, kind, number):
+    kopecks = paid_kopecks(payment)
+    amount = rubles(kopecks) if kopecks is not None else "неизвестную сумму"
+    target = f"по {UNMATCHED_SUBJECTS[kind]} {number}" if number else "ни к одной заявке"
+    return (
+        f"Платеж ЮKassa {payment['id']} на {amount} прошел, но не зачтен {target}. "
+        "Сверьте его в личном кабинете ЮKassa."
+    )
+
+
+async def report_unmatched(request, payment, kind, number):
+    await audit(
+        request,
+        "payment.unmatched",
+        actor="yookassa",
+        subject=f"{kind}:{number}" if number else None,
+        detail={"payment_id": payment["id"]},
+    )
+    await request.services.notifications.office_text(unmatched_text(payment, kind, number))
+
+
+async def check_matched(request, payment, outcome, kind, number):
+    if payment.get("status") == "succeeded" and outcome in UNMATCHED:
+        await report_unmatched(request, payment, kind, number)
+
+
+async def donation_webhook(request, payment):
+    result = await request.services.donations.settle(payment)
+    if result.get("donation") and result["outcome"] in AUDITED:
+        await audit(
+            request,
+            "donation." + result["outcome"],
+            actor="yookassa",
+            subject="donation:" + result["donation"]["number"],
+            detail={"payment_id": payment["id"]},
+        )
+    await check_matched(request, payment, result["outcome"], "donation", payment["metadata"][DONATION_KEY])
+
+
+async def order_webhook(request, payment):
+    state = request.services
     result = await state.payments.apply(payment)
     order, outcome = (result.get("order"), result["outcome"])
     if order and outcome in AUDITED:
@@ -391,4 +428,4 @@ async def webhook(request: HttpRequest):
         )
     if order and outcome == "succeeded":
         await mail_paid(state, order)
-    return {"ok": True}
+    await check_matched(request, payment, outcome, "order", payment.get("metadata", {}).get("order_number"))

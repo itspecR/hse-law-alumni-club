@@ -14,16 +14,22 @@ YOOKASSA_NETWORKS = tuple(
         "77.75.154.128/25",
         "77.75.156.11/32",
         "77.75.156.35/32",
+        "2a02:5180::/32",
     )
 )
 
 
-def ipv4(address):
+def ip_value(address):
     try:
-        value = ipaddress.ip_address(address.removeprefix("::ffff:"))
-        return value if value.version == 4 else None
+        value = ipaddress.ip_address(address)
     except ValueError:
         return None
+    return getattr(value, "ipv4_mapped", None) or value
+
+
+def ipv4(address):
+    value = ip_value(address)
+    return value if value is not None and value.version == 4 else None
 
 
 def trust_proxy(address, hop=0):
@@ -43,7 +49,7 @@ def client_ip(request):
 
 
 def yookassa_ip(address):
-    value = ipv4(address)
+    value = ip_value(address)
     return value is not None and any(value in network for network in YOOKASSA_NETWORKS)
 
 
