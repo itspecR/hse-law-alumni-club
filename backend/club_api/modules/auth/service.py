@@ -17,8 +17,10 @@ from club_api.modules.members.mailing import mailing_consent
 from club_api.resources import shared_data
 
 logger = logging.getLogger("club.auth")
+ALUMNI_ROLE = "alumni"
 STAFF_ROLES = frozenset(("admin", "Administrator", "editor"))
 FULL_ROLES = frozenset(("admin", "Administrator"))
+LOGIN_STATUSES = frozenset(("active", "unverified"))
 DUPLICATE_ACCOUNT = "Аккаунт с этой почтой уже есть. Войдите или восстановите пароль."
 PDN_POLICY_VERSION = shared_data("legal-data.json")["version"]
 PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH = 8, 100
@@ -50,7 +52,7 @@ def local_account(user):
 
 
 def recoverable_alumni(user):
-    return local_account(user) and user["role_name"] == "alumni" and (user["status"] in ("active", "unverified"))
+    return local_account(user) and user["role_name"] == ALUMNI_ROLE and user["status"] in LOGIN_STATUSES
 
 
 def public_user(user):
@@ -197,13 +199,10 @@ class AuthService:
     async def authenticate(self, email, password, *, scope):
         async with self.database.connection() as connection:
             user = await find_user(connection, email=email)
-        if (
-            not local_account(user)
-            or user["status"] not in ("active", "unverified")
-            or (not await verify_password(user["password"], password))
-        ):
+        candidate = user["password"] if local_account(user) and user["status"] in LOGIN_STATUSES else None
+        if not await verify_password(candidate, password):
             return ("invalid", None)
-        allowed = user["role_name"] == "alumni" if scope == "alumni" else user["role_name"] in STAFF_ROLES
+        allowed = user["role_name"] == ALUMNI_ROLE if scope == "alumni" else user["role_name"] in STAFF_ROLES
         if not allowed:
             return ("forbidden", None)
         if user["status"] == "unverified":

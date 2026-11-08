@@ -9,7 +9,9 @@ from club_api.core.security import client_ip
 from club_api.core.views import api_view, parse_body
 from club_api.domain import MAX_INTERESTS
 from club_api.modules.auth.codes import ADMIN_PURPOSE, CODE_DIGITS, CONFIRM_PURPOSE, RESET_PURPOSE, ttl_minutes
+from club_api.modules.auth.passwords import hash_password
 from club_api.modules.auth.service import (
+    ALUMNI_ROLE,
     DUPLICATE_ACCOUNT,
     PASSWORD_MAX_LENGTH,
     PASSWORD_MIN_LENGTH,
@@ -149,6 +151,17 @@ async def queue_confirmation(request, user_id, email):
     )
 
 
+def registration_reply(confirm_required, queued=False):
+    reply = {"ok": True, "pending": True, "confirm_required": confirm_required}
+    return {**reply, "confirmation_queued": queued} if confirm_required else reply
+
+
+async def concealed_registration(request, email, password):
+    await hash_password(password)
+    await audit(request, "register.concealed", actor="email:" + email)
+    return registration_reply(request.services.notifications.mail_enabled, True)
+
+
 def alumni_view(alumni):
     return {key: alumni[key] for key in ("fio", "cohort", "verification_status")}
 
@@ -230,8 +243,11 @@ async def register(request: HttpRequest):
     body = parse_body(request, RegisterBody)
     service = auth_service(request)
     email = body.email.lower().strip()
-    if await service.user(email=email):
+    existing = await service.user(email=email)
+    if existing and existing["role"] == ALUMNI_ROLE:
         raise ApiError(409, DUPLICATE_ACCOUNT)
+    if existing:
+        return await concealed_registration(request, email, body.password)
     referred_by = None
     if body.ref:
         rows = await service.store.read("alumni", filters={"referral_code": {"_eq": body.ref}}, fields=["id"], limit=1)
@@ -260,14 +276,9 @@ async def register(request: HttpRequest):
     )
     if confirm_required:
         result = await queue_confirmation(request, user_id, email)
-        return {
-            "ok": True,
-            "pending": True,
-            "confirm_required": True,
-            "confirmation_queued": result["sent"] or result["id"] is not None,
-        }
+        return registration_reply(True, result["sent"] or result["id"] is not None)
     await request.services.notifications.office_text(f"Новая заявка на вступление в клуб. {OFFICE_REVIEW}")
-    return {"ok": True, "pending": True, "confirm_required": False}
+    return registration_reply(False)
 
 
 @api_view(body=EmailBody)
