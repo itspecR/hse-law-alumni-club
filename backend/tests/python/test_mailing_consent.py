@@ -61,7 +61,7 @@ async def test_profile_withdraws_and_gives_consent_with_audit(database_app):
         again = await client.patch("/me/profile", headers=headers, json={"mailing_consent": True})
         same_at, _ = await consent(app, alumni_id)
         withdrawn = await client.patch("/me/profile", headers=headers, json={"mailing_consent": False})
-        untouched = await client.patch("/me/profile", headers=headers, json={"fio": "Вымышленный Выпускник"})
+        untouched = await client.patch("/me/profile", headers=headers, json={"fio": "Вымышленный участник"})
     assert given.status_code == again.status_code == withdrawn.status_code == untouched.status_code == 200
     assert at and version == MAILING_CONSENT_VERSION and same_at == at
     assert await consent(app, alumni_id) == (None, None)
