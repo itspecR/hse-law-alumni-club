@@ -59,9 +59,9 @@ async def broadcast(request: HttpRequest):
     return {"ok": True, "subscribers": subscribers}
 
 
-@api_view(permission=require_admin)
+@api_view(permission=require_full_admin)
 async def audit_rows(request: HttpRequest):
-    await require_admin(request)
+    await require_full_admin(request)
     try:
         limit = int(request.GET.get("limit", "300"))
         if not 1 <= limit <= 500:

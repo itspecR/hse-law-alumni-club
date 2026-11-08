@@ -187,7 +187,10 @@ async def browser_client():
         path = request.url.path
         if path.startswith(("/me", "/auth/admin-session", "/admin")) and "authorization" not in request.headers:
             return httpx.Response(401, json={"error": "Войдите в кабинет"})
-        if path.startswith("/admin/donations") and request.headers.get("authorization") == EDITOR["authorization"]:
+        if (
+            path.startswith(("/admin/donations", "/admin/audit"))
+            and request.headers.get("authorization") == EDITOR["authorization"]
+        ):
             return httpx.Response(403, json={"error": "Нужен доступ администратора"})
         endpoints = {
             "/pages/home": {"blocks": {}},
@@ -1480,6 +1483,14 @@ async def test_order_payment_buttons_follow_state_and_role(order, role, send, re
         assert 'data-confirm="Оплата 135 000 ₽ по заявке ALU-2026-000042 поступила на счет клуба?' in page
     if order.get("transfer_sent_at"):
         assert "реквизиты отправлены" in page
+
+
+async def test_editor_has_no_audit_section(browser_client):
+    overview = (await browser_client.get("/views/admin", headers=EDITOR)).text
+    admin = (await browser_client.get("/views/admin", headers=ADMIN)).text
+    assert 'href="/admin/audit"' not in overview and 'href="/admin/audit"' in admin
+    audit = (await browser_client.get("/views/admin/audit", headers=EDITOR)).text
+    assert "Нужен доступ администратора" in audit and 'class="site-errors"' not in audit
 
 
 async def test_editor_has_no_donations_section(browser_client):

@@ -18,7 +18,7 @@ GROUPS = [
     ),
     ("Управление", ("analytics", "pages", "media", "audit")),
 ]
-FULL_ADMIN_SECTIONS = frozenset(("donations",))
+FULL_ADMIN_SECTIONS = frozenset(("donations", "audit"))
 PORTFOLIO_BLOCKS = (
     (
         "program-main",
