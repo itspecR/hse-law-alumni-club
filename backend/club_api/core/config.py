@@ -30,6 +30,10 @@ PAYEE_ACCOUNT_CHECKS = {
 }
 
 
+PLACEHOLDER = re.compile(r"replace_with|сгенерируйте|changeme|your[_-]?secret|example", re.I)
+ADMIN_SECRET_MIN = 32
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(case_sensitive=True, extra="ignore", env_file=None)
 
@@ -146,25 +150,32 @@ class Settings(BaseSettings):
     def production_errors(self) -> list[str]:
         if self.APP_ENV != "production":
             return []
+        return self.secret_errors() + self.public_url_errors() + self.delivery_errors() + self.integration_errors()
+
+    def secret_errors(self) -> list[str]:
         errors = []
-        placeholder = re.compile(r"replace_with|сгенерируйте|changeme|your[_-]?secret|example", re.I)
         database = self.secret("CHECKOUT_DATABASE_URL")
-        if not database or placeholder.search(database):
+        if not database or PLACEHOLDER.search(database):
             errors.append("CHECKOUT_DATABASE_URL должен содержать рабочее подключение")
         auth = self.secret("AUTH_SECRET")
         admin = self.secret("ADMIN_AUTH_SECRET")
-        if placeholder.search(auth):
+        if PLACEHOLDER.search(auth):
             errors.append("AUTH_SECRET содержит шаблонное значение")
-        if len(admin) < 32 or placeholder.search(admin) or admin == auth:
+        if len(admin) < ADMIN_SECRET_MIN or PLACEHOLDER.search(admin) or admin == auth:
             errors.append("ADMIN_AUTH_SECRET должен быть отдельным случайным секретом длиной не менее 32 символов")
+        return errors
+
+    def public_url_errors(self) -> list[str]:
         try:
             url = urlsplit(self.PUBLIC_URL)
             valid = url.scheme == "https" and bool(url.hostname) and not url.username and not url.password
             valid = valid and not url.query and not url.fragment and url.path in ("", "/")
         except ValueError:
             valid = False
-        if not valid:
-            errors.append("PUBLIC_URL должен быть https://<домен>")
+        return [] if valid else ["PUBLIC_URL должен быть https://<домен>"]
+
+    def delivery_errors(self) -> list[str]:
+        errors = []
         if (
             self.secret("TELEGRAM_BOT_TOKEN")
             and self.TELEGRAM_POLLING != "true"
@@ -181,6 +192,10 @@ class Settings(BaseSettings):
             self.secret("OFFICE_TG_BOT_TOKEN") and self.OFFICE_TG_CHAT_ID
         ):
             errors.append("Для уведомлений сотрудникам нужны OFFICE_TG_BOT_TOKEN и OFFICE_TG_CHAT_ID")
+        return errors
+
+    def integration_errors(self) -> list[str]:
+        errors = []
         if bool(self.YOOKASSA_SHOP_ID) != bool(self.secret("YOOKASSA_SECRET_KEY")):
             errors.append("Оба ключа YOOKASSA должны быть заданы вместе")
         if bool(self.VAPID_PUBLIC_KEY) != bool(self.secret("VAPID_PRIVATE_KEY")):
