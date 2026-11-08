@@ -97,6 +97,7 @@ def scheduled(state):
         ("retention", lambda now: now.hour == 4 and now.minute == 0, lambda: retention(state)),
         ("reserve-expiry", lambda now: now.minute % 15 == 0, state.checkout.expire_reservations),
         ("mail-outbox", lambda now: now.minute % 5 == 0, state.notifications.drain_mail),
+        ("fiscal-receipts", lambda now: True, lambda: state.fiscal.drain()),
         (
             "news-sync",
             lambda now: state.settings.NEWS_SYNC_ENABLED == "true" and now.minute == CHECK_MINUTE,
