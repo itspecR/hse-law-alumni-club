@@ -113,6 +113,7 @@ DATA_COLUMNS = {
         "office_discount",
         "office_reason",
         "cohort_id",
+        "transfer_sent_at",
     ),
     "pages": ("id", "slug", "title", "status", "sort"),
     "pages_blocks": ("id", "collection", "item", "sort", "pages_id"),

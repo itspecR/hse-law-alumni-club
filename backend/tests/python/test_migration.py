@@ -45,6 +45,7 @@ def test_all_legacy_routes_are_present():
         ("GET", "/portfolio/challenge"),
         ("POST", "/donations"),
         ("GET", "/donations/config"),
+        ("GET", "/transfers/{token}"),
     }
     promo = {
         (method, "/admin/promo-codes" + suffix)
@@ -54,6 +55,8 @@ def test_all_legacy_routes_are_present():
         ("GET", "/admin/donations"),
         ("GET", "/admin/donations/export.csv"),
         ("POST", "/admin/donations/{number}/received"),
+        ("POST", "/admin/orders/{id}/transfer"),
+        ("POST", "/admin/orders/{id}/transfer-received"),
         ("PATCH", "/admin/orders/{id}/discount"),
         ("PATCH", "/admin/orders/{id}/cohort"),
         ("POST", "/admin/news-sources/refresh"),
@@ -79,7 +82,7 @@ def test_all_legacy_routes_are_present():
         ("PATCH", "/admin/timeline/{id}"),
         ("DELETE", "/admin/timeline/{id}"),
     }
-    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 140
+    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 143
 
 
 def test_sentry_privacy():

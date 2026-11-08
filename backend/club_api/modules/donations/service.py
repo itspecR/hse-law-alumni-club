@@ -7,6 +7,7 @@ from club_api.domain import rubles
 from club_api.modules.checkout.payments import DONATION_KEY, paid_kopecks
 from club_api.modules.checkout.store import next_number
 from club_api.modules.notifications.mail import CLUB_NAME, club_subject
+from club_api.modules.transfer.qr import requisites_text
 from club_api.resources import shared_data
 
 DONATION_TABLE = "club_donations"
@@ -55,12 +56,10 @@ def transfer_purpose(number):
 
 
 def transfer_text(donation, transfer):
-    requisites = "\n".join(f"{item['label']}: {item['value']}" for item in transfer["payee"])
-    amount = rubles(donation["amount"])
     return (
-        f"{greeting(donation)}\n\nВы оформили пожертвование {amount} {DONATION_PURPOSE}, "
+        f"{greeting(donation)}\n\nВы оформили пожертвование {rubles(donation['amount'])} {DONATION_PURPOSE}, "
         f"номер {donation['number']}. Чтобы его завершить, переведите деньги по реквизитам.\n\n"
-        f"{requisites}\nСумма: {amount}\nНазначение платежа: {transfer['purpose']}\n\n"
+        f"{requisites_text(transfer)}\n\n"
         f"Когда перевод поступит на счет клуба, мы пришлем письмо с благодарностью.\n\n{CLUB_NAME}"
     )
 

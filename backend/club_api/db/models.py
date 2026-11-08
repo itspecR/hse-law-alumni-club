@@ -643,6 +643,8 @@ class Orders(models.Model):
     cohort = models.ForeignKey(
         "ProgramCohorts", on_delete=models.SET_NULL, db_column="cohort_id", related_name="+", null=True
     )
+    transfer_token = models.CharField(max_length=64, unique=True, null=True)
+    transfer_sent_at = models.DateTimeField(null=True)
 
     class Meta:
         db_table = "orders"
