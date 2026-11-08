@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block content %}
+<main id="main" class="lux-home lux-give">
+<section class="give-hero" aria-labelledby="pay-title">
+<div class="lux-wrap">
+<p class="give-hero__eyebrow">Клуб выпускников факультета права НИУ&nbsp;ВШЭ</p>
+<h1 class="give-hero__title pay-title" id="pay-title">Оплата заявки</h1>
+{% if payment %}<p class="lux-lede give-hero__lede">Заявка {{ payment.number }} на&nbsp;программу «{{ payment.program }}».</p>{% endif %}
+</div>
+</section>
+<div class="lux-wrap pay-layout">
+{% if payment and payment.paid %}
+<section class="lux-tile give-transfer" aria-labelledby="pay-state">
+<h2 class="give-transfer__title" id="pay-state">Оплата получена</h2>
+<p class="give-hint">Спасибо! Оплата по&nbsp;заявке {{ payment.number }} поступила на&nbsp;счет клуба.</p>
+</section>
+{% elif payment %}
+{% set transfer = payment.transfer %}
+<section class="lux-tile give-transfer" aria-labelledby="pay-state">
+<h2 class="give-transfer__title" id="pay-state">Переведите {{ transfer.amount|rub }}</h2>
+<img class="give-transfer__qr" src="{{ transfer.qr_svg }}" width="240" height="240" alt="QR-код для оплаты заявки">
+<p class="give-hint">Откройте приложение банка и&nbsp;отсканируйте код в&nbsp;разделе оплаты по&nbsp;QR-коду. Если страница открыта на&nbsp;телефоне, сохраните код или введите реквизиты вручную.</p>
+<a class="foc lux-btn lux-btn--ghost give-transfer__save" href="{{ transfer.qr_png }}" download="{{ payment.number }}.png">Сохранить QR-код</a>
+<dl class="give-requisites">
+{% for item in transfer.payee %}<dt>{{ item.label }}</dt><dd>{{ item.value }}</dd>
+{% endfor %}<dt>Сумма</dt><dd>{{ transfer.amount|rub }}</dd>
+<dt>Назначение платежа</dt><dd>{{ transfer.purpose }}</dd>
+</dl>
+<p class="give-hint">Когда оплата поступит на&nbsp;счет клуба, мы пришлем письмо.</p>
+</section>
+{% elif payment_state == 'closed' %}
+<section class="lux-tile give-transfer" aria-labelledby="pay-state">
+<h2 class="give-transfer__title" id="pay-state">Заявка закрыта</h2>
+<p class="give-hint">Оплата по&nbsp;этой заявке не&nbsp;принимается. Если это ошибка, <a href="/support">напишите в&nbsp;поддержку</a>.</p>
+</section>
+{% elif payment_state == 'missing' %}
+<section class="lux-tile give-transfer" aria-labelledby="pay-state">
+<h2 class="give-transfer__title" id="pay-state">Ссылка не&nbsp;действует</h2>
+<p class="give-hint">Ссылка на&nbsp;оплату не&nbsp;найдена или устарела. Откройте ссылку из&nbsp;последнего письма с&nbsp;реквизитами или <a href="/support">напишите в&nbsp;поддержку</a>.</p>
+</section>
+{% else %}
+<section class="lux-tile give-transfer" aria-labelledby="pay-state">
+<h2 class="give-transfer__title" id="pay-state">Не&nbsp;удалось загрузить данные для оплаты</h2>
+<p class="give-hint">Обновите страницу позже.</p>
+</section>
+{% endif %}
+</div>
+</main>
+{% endblock %}

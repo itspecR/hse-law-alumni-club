@@ -38,6 +38,9 @@ HOME_EPISODES = 4
 HOME_CHANGES = 3
 ACHIEVEMENT_STRIP = 4
 FULL_ADMIN_ROLES = ("admin", "Administrator")
+PAY_PREFIX = "/pay/"
+PAYMENT_FAILURES = {404: ("missing", 404), 410: ("closed", 410)}
+PAYMENT_UNAVAILABLE = ("unavailable", 503)
 POINT_PROGRAM_GROUPS = (("portfolio", "Программы клуба"), ("dpo", "Программы ДПО"))
 FULL_PROGRESS = 100
 GIVE_AMOUNTS = (100000, 300000, 500000, 1000000)
@@ -165,6 +168,7 @@ def select_page(path):
         ("/events/", "events.html"),
         ("/podcasts/", "episode.html"),
         ("/changes/", "changes.html"),
+        (PAY_PREFIX, "pay.html"),
     ):
         if path.startswith(prefix) and "/" not in path[len(prefix) :] and path[len(prefix) :]:
             return template, "Клуб выпускников"
@@ -185,6 +189,14 @@ def with_member_from(program, levels):
     if not price:
         return program
     return {**program, "member_from": rub(min(row["price"] for row in member_prices(price, levels)))}
+
+
+async def program_payment(api, token):
+    try:
+        return {"payment": await api.get("/transfers/" + quote(token, safe=""))}
+    except ApiFailure as failure:
+        state, status = PAYMENT_FAILURES.get(failure.status, PAYMENT_UNAVAILABLE)
+        return {"payment": None, "payment_state": state, "status": status}
 
 
 def program_redirect(item):
@@ -400,6 +412,8 @@ async def context(api, path, params, authorized=False):
     elif path.startswith("/dpo/"):
         await load("item", "/programs/" + quote(path.rsplit("/", 1)[1], safe=""), {})
         data["redirect"] = program_redirect(data["item"])
+    elif path.startswith(PAY_PREFIX) and template == "pay.html":
+        data.update(await program_payment(api, path.removeprefix(PAY_PREFIX)), title="Оплата заявки")
     elif path.startswith("/news/"):
         await load("item", "/news/" + quote(path.rsplit("/", 1)[1], safe=""), {})
         if data["item"]:
@@ -540,7 +554,8 @@ async def context(api, path, params, authorized=False):
             await load("session", "/auth/admin-session", {})
             if data["session"]:
                 data["role"] = data["session"]["role"]
-                data["office_groups"] = visible_groups(data["role"] in FULL_ADMIN_ROLES)
+                data["full_admin"] = data["role"] in FULL_ADMIN_ROLES
+                data["office_groups"] = visible_groups(data["full_admin"])
                 if section == "support":
                     await load("bot", "/admin/bot-status", {})
                 if section == "support" and data["role"] not in FULL_ADMIN_ROLES:

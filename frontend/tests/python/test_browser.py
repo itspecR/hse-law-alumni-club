@@ -2679,6 +2679,65 @@ def test_office_sets_discount_on_club_application(page, site, width):
     expect(rows.nth(2).locator("form[data-api$='/discount']")).to_have_count(0)
 
 
+@pytest.mark.parametrize("width", [1440, 390])
+def test_office_sends_requisites_and_marks_program_payment(page, site, width):
+    awaiting = {
+        **CLUB_ORDER,
+        "id": "order-2",
+        "number": "ALU-2026-000102",
+        "payment_status": "awaiting",
+        "transfer_sent_at": "2026-11-08T10:00:00Z",
+    }
+    shop = {**CLUB_ORDER, "id": "order-3", "number": "ALU-2026-000103", "type": "merch"}
+    dialogs = []
+    page.on("dialog", lambda dialog: dialogs.append(dialog.message))
+    rows = office_orders(page, site, width, CLUB_ORDER, awaiting, shop)
+    expect(rows.nth(1).locator(".office-meta").first).to_contain_text("реквизиты отправлены")
+    expect(rows.nth(2).get_by_role("button", name=re.compile("реквизиты|Оплата получена"))).to_have_count(0)
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    with page.expect_response(lambda response: response.url.endswith("/api/admin/orders/order-1/transfer")):
+        rows.first.get_by_role("button", name="Отправить реквизиты", exact=True).click()
+    with page.expect_response(lambda response: response.url.endswith("/api/admin/orders/order-2/transfer-received")):
+        rows.nth(1).get_by_role("button", name="Оплата получена", exact=True).click()
+    assert dialogs[0].startswith("Отправить заявителю реквизиты для оплаты 114")
+    assert dialogs[1].startswith("Оплата 114") and "по заявке ALU-2026-000102 поступила на счет клуба?" in dialogs[1]
+    paths = [write["path"] for write in site[2] if write["method"] == "POST"]
+    assert "/admin/orders/order-1/transfer" in paths and "/admin/orders/order-2/transfer-received" in paths
+
+
+PAY_TOKEN = "A" * 43
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_program_payment_page_shows_qr_and_requisites(chromium, site, width):
+    site[1]["/transfers/" + PAY_TOKEN] = {
+        "number": "ALU-2026-000101",
+        "program": "Переговоры для юристов",
+        "paid": False,
+        "transfer": {
+            **TRANSFER_REPLY["transfer"],
+            "amount": 11475000,
+            "purpose": "Оплата участия в программе «Переговоры для юристов», заявка ALU-2026-000101",
+        },
+    }
+    context = chromium.new_context(base_url=site[0], viewport={"width": width, "height": 900})
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+    page = context.new_page()
+    page.goto("/pay/" + PAY_TOKEN)
+    expect(page.get_by_role("heading", level=1)).to_have_text("Оплата заявки")
+    expect(page.get_by_role("heading", name=re.compile(r"^Переведите 114\s750 ₽$"))).to_be_visible()
+    expect(page.get_by_role("img", name="QR-код для оплаты заявки")).to_have_attribute("src", QR_SVG)
+    save = page.get_by_role("link", name="Сохранить QR-код")
+    expect(save).to_have_attribute("download", "ALU-2026-000101.png")
+    expect(save).to_have_attribute("href", QR_PNG)
+    expect(page.locator(".give-requisites dt")).to_have_text(
+        ["Получатель", "Расчетный счет", "Сумма", "Назначение платежа"]
+    )
+    expect(page.locator('meta[name="robots"]')).to_have_attribute("content", "noindex,nofollow")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    context.close()
+
+
 def test_office_discount_shows_reason_and_resets(page, site):
     discounted = {**CLUB_ORDER, "office_discount": 20, "office_reason": "Корпоративный договор"}
     row = office_orders(page, site, 1440, discounted).first

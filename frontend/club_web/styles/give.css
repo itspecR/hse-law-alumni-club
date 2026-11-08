@@ -43,6 +43,8 @@
 .give-requisites dt { color: var(--c-text-3); }
 .give-requisites dd { margin: 0 0 10px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; user-select: all; color: var(--c-text); }
 .give-requisites dd:last-child { margin-bottom: 0; }
+.pay-layout { max-width: 480px; }
+.give-hero .pay-title { font-size: clamp(44px, 7cqi, 96px); }
 
 .give-thanks { padding-block: clamp(72px, 10cqi, 144px); }
 .give-thanks__mark { display: block; width: 64px; height: 64px; margin: 0 auto 32px; border-radius: 14px; }
