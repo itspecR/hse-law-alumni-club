@@ -23,6 +23,7 @@ MONTHS = (
 SKIPPED = {"script", "style", "noscript", "iframe", "form", "button", "svg", "video", "audio"}
 HEADINGS = {"h1": "## ", "h2": "## ", "h3": "### ", "h4": "#### ", "h5": "#### ", "h6": "#### "}
 LISTS = {"ul", "ol"}
+TEXT_TAGS = frozenset((*HEADINGS, *LISTS, "blockquote", "table"))
 MARKS = {"strong": "**", "b": "**", "em": "*", "i": "*"}
 REMOVED = ".annotation, .lead-in, .head-picture, .articleMeta, .tag-set, .post-meta, .print, .share"
 ESCAPED = re.compile(r"([\\`*_\[\]<>])")
@@ -100,38 +101,33 @@ def table_block(node, base):
     return "\n\n".join(row for row in rows if row)
 
 
+def present(text):
+    return (text,) if text else ()
+
+
+def text_block(child, base):
+    if child.name in HEADINGS:
+        return paragraph(clean(inline(child, base)), HEADINGS[child.name])
+    if child.name in LISTS:
+        return list_block(child, base)
+    if child.name == "blockquote":
+        return paragraph(clean(inline(child, base)), "> ")
+    return table_block(child, base)
+
+
 def blocks(node, base):
     for child in node.children:
         if isinstance(child, NavigableString):
-            text = paragraph(escape(clean(str(child))))
-            if text:
-                yield text
+            yield from present(paragraph(escape(clean(str(child)))))
+        elif child.name in SKIPPED:
             continue
-        if child.name in SKIPPED:
-            continue
-        if child.name == "img":
+        elif child.name == "img":
             yield from images(child, base)
-        elif child.name in HEADINGS:
-            text = paragraph(clean(inline(child, base)), HEADINGS[child.name])
-            if text:
-                yield text
         elif child.name == "p":
-            text = paragraph(inline(child, base).strip())
-            if text:
-                yield text
+            yield from present(paragraph(inline(child, base).strip()))
             yield from images(child, base)
-        elif child.name in LISTS:
-            text = list_block(child, base)
-            if text:
-                yield text
-        elif child.name == "blockquote":
-            text = paragraph(clean(inline(child, base)), "> ")
-            if text:
-                yield text
-        elif child.name == "table":
-            text = table_block(child, base)
-            if text:
-                yield text
+        elif child.name in TEXT_TAGS:
+            yield from present(text_block(child, base))
         elif isinstance(child, Tag):
             yield from blocks(child, base)
 
