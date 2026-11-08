@@ -21,6 +21,18 @@ SOURCE_HOSTS = {
     "www.cbr.ru",
 }
 MAX_ITEMS = 10000
+ARCHIVE_VERSIONS = (1, 2)
+ARCHIVE_MODES = ("archive", "channel")
+ITEM_TEXT_KEYS = ("title", "kind", "number", "topic", "url")
+SYNC_KEYS = ("checkedAt", "lastSuccessAt", "lastPostAt")
+SYNC_STATUSES = ("archive", "ok", "unavailable")
+ID_MAX = 40
+TEXT_MAX = 3000
+SUMMARY_MAX = 1000
+BLOCKS_MAX = 120
+SEGMENTS_MAX = 100
+SEGMENT_MAX = 10000
+MESSAGE_MAX = 20000
 
 
 def source_url(value):
@@ -62,11 +74,11 @@ def valid_instant(value):
         return False
 
 
-def parse_changes(value):
+def check_archive(value):
     if (
         not isinstance(value, dict)
-        or value.get("version") not in (1, 2)
-        or value.get("mode") not in ("archive", "channel")
+        or value.get("version") not in ARCHIVE_VERSIONS
+        or value.get("mode") not in ARCHIVE_MODES
     ):
         raise ValueError("Некорректный архив изменений")
     if (
@@ -78,80 +90,89 @@ def parse_changes(value):
     items = value.get("items")
     if not isinstance(items, list) or len(items) > MAX_ITEMS:
         raise ValueError("Некорректные записи архива")
-    result = json.loads(json.dumps(value))
-    ids = set()
-    for item in result["items"]:
-        if not isinstance(item, dict):
-            raise ValueError("Некорректная запись")
-        identifier = item.get("id")
-        if not isinstance(identifier, str) or len(identifier) > 40 or identifier in ids:
-            raise ValueError("Некорректный номер записи")
-        ids.add(identifier)
-        if (
-            not valid_date(item.get("date"))
-            or not valid_date(item.get("published"))
-            or not value["periodFrom"] <= item["published"] <= value["periodTo"]
-            or item.get("effectiveDate") is not None
-        ):
-            raise ValueError("Некорректные реквизиты записи")
-        for key in ("title", "kind", "number", "topic", "url"):
-            if not isinstance(item.get(key), str) or len(item[key]) > 3000:
-                raise ValueError("Некорректный текст записи")
-        if not item["title"].strip():
-            raise ValueError("Нет названия материала")
-        kind = "act" if value["version"] == 1 else item.get("entryType")
-        if kind == "act":
-            if (
-                not re.fullmatch(r"\d{16}", identifier)
-                or item["url"] != "https://publication.pravo.gov.ru/document/" + identifier
-            ):
-                raise ValueError("Некорректная ссылка акта")
-            item.update(entryType="act", blocks=[], summary="", sourcePublishedAt=None)
-        elif kind == "digest":
-            if (
-                not re.fullmatch(r"tg-[1-9]\d{0,11}", identifier)
-                or item["url"] != f"https://t.me/{CHANNEL}/{identifier[3:]}"
-                or not valid_instant(item.get("sourcePublishedAt"))
-                or item["published"] != item["sourcePublishedAt"][:10]
-            ):
-                raise ValueError("Некорректная ссылка или дата сообщения")
-            if (
-                not isinstance(item.get("summary"), str)
-                or len(item["summary"]) > 1000
-                or not isinstance(item.get("blocks"), list)
-                or not 1 <= len(item["blocks"]) <= 120
-            ):
-                raise ValueError("Некорректный текст сообщения")
-            size = 0
-            for block in item["blocks"]:
-                if (
-                    not isinstance(block, dict)
-                    or type(block.get("heading")) is not bool
-                    or not isinstance(block.get("segments"), list)
-                    or not 1 <= len(block["segments"]) <= 100
-                ):
-                    raise ValueError("Некорректный абзац")
-                for segment in block["segments"]:
-                    if (
-                        not isinstance(segment, dict)
-                        or not isinstance(segment.get("text"), str)
-                        or len(segment["text"]) > 10000
-                        or ("url" in segment and not source_url(segment["url"]))
-                    ):
-                        raise ValueError("Недопустимый текст или ссылка")
-                    size += len(segment["text"])
-            if size > 20000:
-                raise ValueError("Слишком длинное сообщение")
-        else:
-            raise ValueError("Неизвестный тип записи")
-    if value["version"] == 1:
-        result.update(version=2, checkedAt=None, lastSuccessAt=None, lastPostAt=None, syncStatus="archive")
-    for key in ("checkedAt", "lastSuccessAt", "lastPostAt"):
+
+
+def check_item(item, archive, ids):
+    if not isinstance(item, dict):
+        raise ValueError("Некорректная запись")
+    identifier = item.get("id")
+    if not isinstance(identifier, str) or len(identifier) > ID_MAX or identifier in ids:
+        raise ValueError("Некорректный номер записи")
+    ids.add(identifier)
+    if (
+        not valid_date(item.get("date"))
+        or not valid_date(item.get("published"))
+        or not archive["periodFrom"] <= item["published"] <= archive["periodTo"]
+        or item.get("effectiveDate") is not None
+    ):
+        raise ValueError("Некорректные реквизиты записи")
+    for key in ITEM_TEXT_KEYS:
+        if not isinstance(item.get(key), str) or len(item[key]) > TEXT_MAX:
+            raise ValueError("Некорректный текст записи")
+    if not item["title"].strip():
+        raise ValueError("Нет названия материала")
+    kind = "act" if archive["version"] == 1 else item.get("entryType")
+    if not isinstance(kind, str) or kind not in ENTRY_CHECKS:
+        raise ValueError("Неизвестный тип записи")
+    ENTRY_CHECKS[kind](item, identifier)
+
+
+def check_act(item, identifier):
+    if (
+        not re.fullmatch(r"\d{16}", identifier)
+        or item["url"] != "https://publication.pravo.gov.ru/document/" + identifier
+    ):
+        raise ValueError("Некорректная ссылка акта")
+    item.update(entryType="act", blocks=[], summary="", sourcePublishedAt=None)
+
+
+def check_digest(item, identifier):
+    if (
+        not re.fullmatch(r"tg-[1-9]\d{0,11}", identifier)
+        or item["url"] != f"https://t.me/{CHANNEL}/{identifier[3:]}"
+        or not valid_instant(item.get("sourcePublishedAt"))
+        or item["published"] != item["sourcePublishedAt"][:10]
+    ):
+        raise ValueError("Некорректная ссылка или дата сообщения")
+    if (
+        not isinstance(item.get("summary"), str)
+        or len(item["summary"]) > SUMMARY_MAX
+        or not isinstance(item.get("blocks"), list)
+        or not 1 <= len(item["blocks"]) <= BLOCKS_MAX
+    ):
+        raise ValueError("Некорректный текст сообщения")
+    if sum(block_size(block) for block in item["blocks"]) > MESSAGE_MAX:
+        raise ValueError("Слишком длинное сообщение")
+
+
+def block_size(block):
+    if (
+        not isinstance(block, dict)
+        or type(block.get("heading")) is not bool
+        or not isinstance(block.get("segments"), list)
+        or not 1 <= len(block["segments"]) <= SEGMENTS_MAX
+    ):
+        raise ValueError("Некорректный абзац")
+    return sum(segment_size(segment) for segment in block["segments"])
+
+
+def segment_size(segment):
+    if (
+        not isinstance(segment, dict)
+        or not isinstance(segment.get("text"), str)
+        or len(segment["text"]) > SEGMENT_MAX
+        or ("url" in segment and not source_url(segment["url"]))
+    ):
+        raise ValueError("Недопустимый текст или ссылка")
+    return len(segment["text"])
+
+
+def check_sync(result):
+    for key in SYNC_KEYS:
         if result.get(key) is not None and not valid_instant(result[key]):
             raise ValueError("Некорректное время обновления")
-    if result.get("syncStatus") not in ("archive", "ok", "unavailable") or (
-        result["syncStatus"] == "ok"
-        and not all(result.get(key) for key in ("checkedAt", "lastSuccessAt", "lastPostAt"))
+    if result.get("syncStatus") not in SYNC_STATUSES or (
+        result["syncStatus"] == "ok" and not all(result.get(key) for key in SYNC_KEYS)
     ):
         raise ValueError("Некорректный статус обновления")
     if (
@@ -160,6 +181,20 @@ def parse_changes(value):
         and datetime.fromisoformat(result["lastSuccessAt"]) > datetime.fromisoformat(result["checkedAt"])
     ):
         raise ValueError("Некорректное время последнего обновления")
+
+
+ENTRY_CHECKS = {"act": check_act, "digest": check_digest}
+
+
+def parse_changes(value):
+    check_archive(value)
+    result = json.loads(json.dumps(value))
+    ids = set()
+    for item in result["items"]:
+        check_item(item, value, ids)
+    if value["version"] == 1:
+        result.update(version=2, checkedAt=None, lastSuccessAt=None, lastPostAt=None, syncStatus="archive")
+    check_sync(result)
     result = {
         key: result.get(key)
         for key in (

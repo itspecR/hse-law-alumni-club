@@ -301,6 +301,371 @@ def changes_items():
     return parse_changes(resource("changes.json"))["items"] if features.CHANGES_ENABLED else None
 
 
+class Page:
+    def __init__(self, api, path, params, authorized, template, data):
+        self.api, self.path, self.params, self.authorized = api, path, params, authorized
+        self.template, self.data = template, data
+
+    async def load(self, key, endpoint, default=None):
+        try:
+            self.data[key] = await self.api.get(endpoint)
+        except ApiFailure as error:
+            self.data[key] = default
+            self.data["load_errors"][key] = error.status
+            if not office_denied(self.path, error.status):
+                self.data["errors"].append(error.message)
+            if error.status in (401, 403):
+                self.data["access_error"] = error.status
+            if key == "item" and error.status >= 500:
+                self.data.update(template="unavailable.html", title="Не удалось загрузить страницу", status=503)
+            if key == "item" and error.status == 404:
+                self.data.update(template="not-found.html", title="Страница не найдена", status=404)
+        return self.data[key]
+
+
+async def home_page(page):
+    data, load = page.data, page.load
+    await asyncio.gather(
+        load("page", "/pages/home", {}),
+        load("news", "/news?limit=3", []),
+        load("programs", "/programs", []),
+        load("portfolio", "/portfolio", []),
+        load("events", "/events", []),
+        load("podcasts", "/podcasts", {"items": []}),
+    )
+    data["hero"] = (data["page"].get("blocks") or {}).get("hero") or {}
+    data["cta"] = (data["page"].get("blocks") or {}).get("cta") or {}
+    now = datetime.now(UTC)
+    data["upcoming"] = sorted(
+        [item for item in data["events"] if instant(item.get("starts_at")) >= now],
+        key=lambda item: instant(item["starts_at"]),
+    )[:2]
+    data.update(home_programs(data["programs"], data["domain"]["levels"]))
+    data["club_programs"] = club_programs_preview(page_items(data["portfolio"]))
+    data["episodes"] = page_items(data["podcasts"])[:HOME_EPISODES]
+    data["recent_changes"] = recent_changes() if features.CHANGES_ENABLED else []
+
+
+async def catalog_page(page):
+    data, load, params, path, authorized = page.data, page.load, page.params, page.path, page.authorized
+    kind = "dpo" if path == "/dpo" else "merch"
+    await load("items", "/programs" if kind == "dpo" else "/products", [])
+    data["kind"] = kind
+    if kind == "dpo":
+        data.update(prepare_catalog(data["items"], params))
+        data["items"] = [with_member_from(item, data["domain"]["levels"]) for item in data["items"]]
+    else:
+        fields = ("category",)
+        data["filters"] = {
+            field: sorted({str(item.get(field) or "") for item in data["items"]} - {""}) for field in fields
+        }
+        data["items"] = [
+            item
+            for item in data["items"]
+            if all(not params.get(field) or item.get(field) == params[field] for field in fields)
+            and params.get("q", "").casefold() in item.get("title", "").casefold()
+        ]
+        if params.get("sort", "title") == "title":
+            data["items"].sort(key=lambda item: item.get("title", "").casefold())
+        elif params.get("sort") == "price":
+            data["items"].sort(key=lambda item: item.get("price") or 0)
+        elif params.get("sort") == "price-desc":
+            data["items"].sort(key=lambda item: -(item.get("price") or 0))
+    if authorized:
+        await load("me", "/me", {})
+
+
+async def portfolio_list_page(page):
+    load = page.load
+    await load("items", "/portfolio", [])
+
+
+async def portfolio_item_page(page):
+    data, load, path = page.data, page.load, page.path
+    await load("item", "/portfolio/" + quote(path.rsplit("/", 1)[1], safe=""), {})
+    if data["item"]:
+        data["title"] = data["item"]["title"]
+
+
+async def dpo_item_page(page):
+    data, load, path = page.data, page.load, page.path
+    await load("item", "/programs/" + quote(path.rsplit("/", 1)[1], safe=""), {})
+    data["redirect"] = program_redirect(data["item"])
+
+
+async def payment_page(page):
+    data, path, api = page.data, page.path, page.api
+    data.update(await program_payment(api, path.removeprefix(PAY_PREFIX)), title="Оплата заявки")
+
+
+async def news_item_page(page):
+    data, load, path = page.data, page.load, page.path
+    await load("item", "/news/" + quote(path.rsplit("/", 1)[1], safe=""), {})
+    if data["item"]:
+        data["title"] = data["item"]["title"]
+
+
+async def merch_item_page(page):
+    data, load, path = page.data, page.load, page.path
+    await load("products", "/products", [])
+    data["item"] = next((item for item in data["products"] if item["slug"] == path.rsplit("/", 1)[1]), None)
+    if data["item"]:
+        data["title"] = data["item"]["title"]
+    elif "products" in data["load_errors"]:
+        data.update(template="unavailable.html", title="Не удалось загрузить страницу", status=503)
+    else:
+        data.update(template="not-found.html", status=404)
+
+
+async def search_page(page):
+    data, load, params = page.data, page.load, page.params
+    await asyncio.gather(
+        load("portfolio_programs", "/portfolio", []),
+        load("programs", "/programs", []),
+        load("news", "/news", []),
+        load("events", "/events", []),
+        load("podcasts", "/podcasts", {"items": []}),
+    )
+    needle = params.get("q", "").casefold().replace("ё", "е").strip()
+    groups = search_groups(
+        page_items(data["portfolio_programs"]),
+        data["programs"],
+        data["news"],
+        data["events"],
+        page_items(data["podcasts"]),
+        changes_items(),
+        params.get("q", ""),
+    )
+    data["groups"] = groups
+    data["sections"] = [
+        (href, label)
+        for href, label in navigation() + [("/lk", "Личный кабинет"), ("/support", "Поддержка")]
+        if not needle or needle in label.casefold().replace("ё", "е")
+    ]
+    data["found"] = sum(len(group["items"]) for group in groups) + len(data["sections"])
+
+
+async def news_list_page(page):
+    load = page.load
+    await load("items", "/news", [])
+
+
+async def events_page(page):
+    data, load, params, path = page.data, page.load, page.params, page.path
+    event_id = path.removeprefix("/events/") if path != "/events" else params.get("event")
+    endpoint = "/events"
+    if event_id:
+        endpoint += "?id=" + quote(event_id, safe="")
+    elif params.get("month"):
+        endpoint += "?month=" + month_view([], params["month"])["selected"]
+    await load("items", endpoint, [])
+    for event in data["items"]:
+        event["calendar_url"] = google_calendar(event)
+        event["past"] = event.get("status") in ("done", "canceled") or instant(event.get("starts_at")) < datetime.now(
+            UTC
+        )
+    data["calendar"] = month_view(data["items"], params.get("month"))
+    data["item"] = next((item for item in data["items"] if item["id"] == event_id), None)
+    if event_id and "items" in data["load_errors"]:
+        data.update(template="unavailable.html", title="Не удалось загрузить страницу", status=503)
+    elif event_id and not data["item"]:
+        data.update(template="not-found.html", status=404)
+
+
+async def podcasts_page(page):
+    data, load, path = page.data, page.load, page.path
+    await load("podcasts", "/podcasts", {"items": []})
+    data["items"] = page_items(data["podcasts"])
+    if path != "/podcasts":
+        data["item"] = next((item for item in data["items"] if item["id"] == path.rsplit("/", 1)[1]), None)
+        if data["item"]:
+            data["title"] = data["item"]["title"]
+        elif "podcasts" in data["load_errors"]:
+            data.update(template="unavailable.html", title="Не удалось загрузить страницу", status=503)
+        else:
+            data.update(template="not-found.html", status=404)
+
+
+async def changes_soon_page(page):
+    data = page.data
+    data["template"] = "changes-soon.html"
+
+
+async def changes_page(page):
+    data, params, path = page.data, page.params, page.path
+    snapshot = parse_changes(resource("changes.json"))
+    data["snapshot"] = snapshot
+    data["item"] = (
+        next((item for item in snapshot["items"] if item["id"] == path.rsplit("/", 1)[1]), None)
+        if path != "/changes"
+        else None
+    )
+    if data["item"]:
+        data["title"] = data["item"]["title"]
+    if path != "/changes" and not data["item"]:
+        data.update(template="not-found.html", status=404)
+    data["items"] = select_changes(snapshot["items"], {"view": "digest", **params})
+    data["total"] = len(data["items"])
+    page = pagination_page(params.get("page", "1"))
+    data["items"] = data["items"][(page - 1) * 20 : page * 20]
+    data["page_number"] = page
+    retained = {
+        key: value
+        for key, value in params.items()
+        if key in ("q", "view", "kind", "topic", "from", "to", "sort", "page")
+    }
+    suffix = "?" + urlencode(retained) if retained else ""
+    data["changes_suffix"] = suffix
+    data["changes_back"] = "/changes" + suffix
+    data["previous_page"] = "/changes?" + urlencode({**retained, "page": page - 1}) if page > 1 else ""
+    data["next_page"] = "/changes?" + urlencode({**params, "page": page + 1}) if data["total"] > page * 20 else ""
+    data["filters"] = {
+        key: sorted({item.get(key) or "" for item in snapshot["items"]} - {""}) for key in ("kind", "topic")
+    }
+
+
+async def cabinet_page(page):
+    data, load, path = page.data, page.load, page.path
+    await load("me", "/me", {})
+    data["initials"] = initials(data["me"].get("alumni", {}).get("fio"))
+    if path == "/lk" and data["me"].get("alumni", {}).get("verification_status") == "verified":
+        await asyncio.gather(
+            load("orders", "/me/orders", []),
+            load("ledger", "/me/ledger", []),
+            load("classmates", "/me/classmates", []),
+            load("notifications", "/me/events", []),
+            load("club_events", "/events", []),
+            load("club_news", "/news?limit=3", []),
+        )
+        now = datetime.now(UTC)
+        upcoming = sorted(
+            [item for item in data["club_events"] if instant(item.get("starts_at")) >= now],
+            key=lambda item: instant(item["starts_at"]),
+        )
+        data["next_event"] = upcoming[0] if upcoming else None
+        with_cabinet(data)
+
+
+async def cart_page(page):
+    load = page.load
+    await load("cart", "/cart", {"items": [], "subtotal": 0})
+
+
+async def support_page(page):
+    data, load = page.data, page.load
+    await load("support", "/support/config", {"enabled": False})
+    data["faq"] = resource("faq-data.json")
+
+
+async def give_page(page):
+    data, load = page.data, page.load
+    await load("donation", "/donations/config", {"enabled": False, "card": False, "transfer": False})
+    data.update(give_amounts=GIVE_AMOUNTS, give_chosen=GIVE_CHOSEN)
+
+
+def office_pagination(data, params, section):
+    records = data.get("records") or {}
+    current = pagination_page(params.get("page", "1"))
+    limit = (records.get("limit") or records.get("page_size") or 30) if isinstance(records, dict) else 30
+    total = records.get("total", 0) if isinstance(records, dict) else 0
+    data["office_previous"] = "?" + urlencode({**params, "page": current - 1}) if current > 1 else ""
+    data["office_next"] = (
+        "?" + urlencode({**params, "page": current + 1})
+        if total > current * limit or section == "support" and len(data["rows"]) == 30
+        else ""
+    )
+
+
+async def office_page(page):
+    data, path = page.data, page.path
+    section = path.removeprefix("/admin/") if path != "/admin" else "overview"
+    data["section"] = section
+    data["labels"] = {**LABELS, **SECTION_LABELS.get(section, {})}
+    data["office_template"] = "office/" + ("content" if section in FIELDS else section) + ".html"
+    data["office_statuses"] = status_values(section)
+    data["office_filters"] = SECTION_FILTERS.get(section, ())
+    if not page.authorized or page.template == "not-found.html":
+        return
+    await page.load("session", "/auth/admin-session", {})
+    if not data["session"]:
+        return
+    data["role"] = data["session"]["role"]
+    data["full_admin"] = data["role"] in FULL_ADMIN_ROLES
+    data["office_groups"] = visible_groups(data["full_admin"])
+    await office_records(page, section)
+    await office_extras(page, section)
+    office_rows(data, page.params, section)
+
+
+async def office_records(page, section):
+    data, load, params = page.data, page.load, page.params
+    if section == "support":
+        await load("bot", "/admin/bot-status", {})
+    if section == "support" and data["role"] not in FULL_ADMIN_ROLES:
+        data["records"] = []
+    elif section == "pages":
+        await load("record", "/admin/pages/home", {})
+    else:
+        query = urlencode({key: params[key] for key in ("q", "status", "payment", "page", "range") if key in params})
+        await load("records", OFFICE_ENDPOINTS[section] + ("?" + query if query else ""), [])
+
+
+async def office_extras(page, section):
+    data, load, params = page.data, page.load, page.params
+    full_admin = data["role"] in FULL_ADMIN_ROLES
+    if section == "overview":
+        await load("health", "/admin/system-health", {})
+    if section == "programs":
+        await load("dpo_sync", "/admin/dpo-sync", {})
+    if section == "members" and full_admin:
+        data["point_programs"] = point_program_groups(
+            page_items(await load("point_programs", "/admin/point-programs", []))
+        )
+    for source in choice_sources(section):
+        rows = page_items(await load("choices:" + source, OFFICE_ENDPOINTS[source], []))
+        data["office_options"][source] = choice_options(source, rows)
+        data["office_names"][source] = {row["id"]: row["label"] for row in data["office_options"][source]}
+    if section == "orders":
+        data["office_cohorts"] = cohort_options(page_items(await load("cohorts", "/admin/cohorts", [])))
+    if params.get("id") and section == "events":
+        await load("roster", "/admin/events/" + quote(params["id"], safe="") + "/rsvps", [])
+    if params.get("id") and section == "members" and full_admin:
+        await load("point_history", "/admin/members/" + quote(params["id"], safe="") + "/points", {})
+
+
+def office_rows(data, params, section):
+    data["rows"] = section_records(section, page_items(data.get("records")), data["office_names"])
+    if section == "portfolio":
+        portfolio_editor(data, params.get("id"))
+    if section in FIELDS:
+        data["office_total"] = len(data["rows"])
+        data["rows"] = filter_content(data["rows"], params)
+    office_pagination(data, params, section)
+
+
+PAGE_ROUTES = (
+    (lambda page: page.path == "/", home_page),
+    (lambda page: page.path in ("/dpo", "/merch"), catalog_page),
+    (lambda page: page.path == "/portfolio", portfolio_list_page),
+    (lambda page: page.path.startswith("/portfolio/"), portfolio_item_page),
+    (lambda page: page.path.startswith("/dpo/"), dpo_item_page),
+    (lambda page: page.path.startswith(PAY_PREFIX) and page.template == "pay.html", payment_page),
+    (lambda page: page.path.startswith("/news/"), news_item_page),
+    (lambda page: page.path.startswith("/merch/"), merch_item_page),
+    (lambda page: page.path == "/search", search_page),
+    (lambda page: page.path == "/news", news_list_page),
+    (lambda page: page.path == "/events" or page.path.startswith("/events/"), events_page),
+    (lambda page: page.path == "/podcasts" or page.path.startswith("/podcasts/"), podcasts_page),
+    (lambda page: not features.section_enabled(page.path), changes_soon_page),
+    (lambda page: page.path == "/changes" or page.path.startswith("/changes/"), changes_page),
+    (lambda page: page.path in ("/lk", "/lk/profile") and page.authorized, cabinet_page),
+    (lambda page: page.path == "/cart" and "x-cart-session" in page.api.headers, cart_page),
+    (lambda page: page.path == "/support", support_page),
+    (lambda page: page.path == "/give", give_page),
+    (lambda page: page.path.startswith("/admin"), office_page),
+)
+
+
 async def context(api, path, params, authorized=False):
     template, title = select_page(path)
     nav = navigation()
@@ -341,264 +706,8 @@ async def context(api, path, params, authorized=False):
     }
     data["point_values"] = {rule["reason"]: rule["points"] for rule in data["domain"]["point_rules"]}
 
-    async def load(key, endpoint, default=None):
-        try:
-            data[key] = await api.get(endpoint)
-        except ApiFailure as error:
-            data[key] = default
-            data["load_errors"][key] = error.status
-            if not office_denied(path, error.status):
-                data["errors"].append(error.message)
-            if error.status in (401, 403):
-                data["access_error"] = error.status
-            if key == "item" and error.status >= 500:
-                data.update(template="unavailable.html", title="Не удалось загрузить страницу", status=503)
-            if key == "item" and error.status == 404:
-                data.update(template="not-found.html", title="Страница не найдена", status=404)
-        return data[key]
-
-    if path == "/":
-        await asyncio.gather(
-            load("page", "/pages/home", {}),
-            load("news", "/news?limit=3", []),
-            load("programs", "/programs", []),
-            load("portfolio", "/portfolio", []),
-            load("events", "/events", []),
-            load("podcasts", "/podcasts", {"items": []}),
-        )
-        data["hero"] = (data["page"].get("blocks") or {}).get("hero") or {}
-        data["cta"] = (data["page"].get("blocks") or {}).get("cta") or {}
-        now = datetime.now(UTC)
-        data["upcoming"] = sorted(
-            [item for item in data["events"] if instant(item.get("starts_at")) >= now],
-            key=lambda item: instant(item["starts_at"]),
-        )[:2]
-        data.update(home_programs(data["programs"], data["domain"]["levels"]))
-        data["club_programs"] = club_programs_preview(page_items(data["portfolio"]))
-        data["episodes"] = page_items(data["podcasts"])[:HOME_EPISODES]
-        data["recent_changes"] = recent_changes() if features.CHANGES_ENABLED else []
-    elif path in ("/dpo", "/merch"):
-        kind = "dpo" if path == "/dpo" else "merch"
-        await load("items", "/programs" if kind == "dpo" else "/products", [])
-        data["kind"] = kind
-        if kind == "dpo":
-            data.update(prepare_catalog(data["items"], params))
-            data["items"] = [with_member_from(item, data["domain"]["levels"]) for item in data["items"]]
-        else:
-            fields = ("category",)
-            data["filters"] = {
-                field: sorted({str(item.get(field) or "") for item in data["items"]} - {""}) for field in fields
-            }
-            data["items"] = [
-                item
-                for item in data["items"]
-                if all(not params.get(field) or item.get(field) == params[field] for field in fields)
-                and params.get("q", "").casefold() in item.get("title", "").casefold()
-            ]
-            if params.get("sort", "title") == "title":
-                data["items"].sort(key=lambda item: item.get("title", "").casefold())
-            elif params.get("sort") == "price":
-                data["items"].sort(key=lambda item: item.get("price") or 0)
-            elif params.get("sort") == "price-desc":
-                data["items"].sort(key=lambda item: -(item.get("price") or 0))
-        if authorized:
-            await load("me", "/me", {})
-    elif path == "/portfolio":
-        await load("items", "/portfolio", [])
-    elif path.startswith("/portfolio/"):
-        await load("item", "/portfolio/" + quote(path.rsplit("/", 1)[1], safe=""), {})
-        if data["item"]:
-            data["title"] = data["item"]["title"]
-    elif path.startswith("/dpo/"):
-        await load("item", "/programs/" + quote(path.rsplit("/", 1)[1], safe=""), {})
-        data["redirect"] = program_redirect(data["item"])
-    elif path.startswith(PAY_PREFIX) and template == "pay.html":
-        data.update(await program_payment(api, path.removeprefix(PAY_PREFIX)), title="Оплата заявки")
-    elif path.startswith("/news/"):
-        await load("item", "/news/" + quote(path.rsplit("/", 1)[1], safe=""), {})
-        if data["item"]:
-            data["title"] = data["item"]["title"]
-    elif path.startswith("/merch/"):
-        await load("products", "/products", [])
-        data["item"] = next((item for item in data["products"] if item["slug"] == path.rsplit("/", 1)[1]), None)
-        if data["item"]:
-            data["title"] = data["item"]["title"]
-        elif "products" in data["load_errors"]:
-            data.update(template="unavailable.html", title="Не удалось загрузить страницу", status=503)
-        else:
-            data.update(template="not-found.html", status=404)
-    elif path == "/search":
-        await asyncio.gather(
-            load("portfolio_programs", "/portfolio", []),
-            load("programs", "/programs", []),
-            load("news", "/news", []),
-            load("events", "/events", []),
-            load("podcasts", "/podcasts", {"items": []}),
-        )
-        needle = params.get("q", "").casefold().replace("ё", "е").strip()
-        groups = search_groups(
-            page_items(data["portfolio_programs"]),
-            data["programs"],
-            data["news"],
-            data["events"],
-            page_items(data["podcasts"]),
-            changes_items(),
-            params.get("q", ""),
-        )
-        data["groups"] = groups
-        data["sections"] = [
-            (href, label)
-            for href, label in navigation() + [("/lk", "Личный кабинет"), ("/support", "Поддержка")]
-            if not needle or needle in label.casefold().replace("ё", "е")
-        ]
-        data["found"] = sum(len(group["items"]) for group in groups) + len(data["sections"])
-    elif path == "/news":
-        await load("items", "/news", [])
-    elif path == "/events" or path.startswith("/events/"):
-        event_id = path.removeprefix("/events/") if path != "/events" else params.get("event")
-        endpoint = "/events"
-        if event_id:
-            endpoint += "?id=" + quote(event_id, safe="")
-        elif params.get("month"):
-            endpoint += "?month=" + month_view([], params["month"])["selected"]
-        await load("items", endpoint, [])
-        for event in data["items"]:
-            event["calendar_url"] = google_calendar(event)
-            event["past"] = event.get("status") in ("done", "canceled") or instant(
-                event.get("starts_at")
-            ) < datetime.now(UTC)
-        data["calendar"] = month_view(data["items"], params.get("month"))
-        data["item"] = next((item for item in data["items"] if item["id"] == event_id), None)
-        if event_id and "items" in data["load_errors"]:
-            data.update(template="unavailable.html", title="Не удалось загрузить страницу", status=503)
-        elif event_id and not data["item"]:
-            data.update(template="not-found.html", status=404)
-    elif path == "/podcasts" or path.startswith("/podcasts/"):
-        await load("podcasts", "/podcasts", {"items": []})
-        data["items"] = page_items(data["podcasts"])
-        if path != "/podcasts":
-            data["item"] = next((item for item in data["items"] if item["id"] == path.rsplit("/", 1)[1]), None)
-            if data["item"]:
-                data["title"] = data["item"]["title"]
-            elif "podcasts" in data["load_errors"]:
-                data.update(template="unavailable.html", title="Не удалось загрузить страницу", status=503)
-            else:
-                data.update(template="not-found.html", status=404)
-    elif not features.section_enabled(path):
-        data["template"] = "changes-soon.html"
-    elif path == "/changes" or path.startswith("/changes/"):
-        snapshot = parse_changes(resource("changes.json"))
-        data["snapshot"] = snapshot
-        data["item"] = (
-            next((item for item in snapshot["items"] if item["id"] == path.rsplit("/", 1)[1]), None)
-            if path != "/changes"
-            else None
-        )
-        if data["item"]:
-            data["title"] = data["item"]["title"]
-        if path != "/changes" and not data["item"]:
-            data.update(template="not-found.html", status=404)
-        data["items"] = select_changes(snapshot["items"], {"view": "digest", **params})
-        data["total"] = len(data["items"])
-        page = pagination_page(params.get("page", "1"))
-        data["items"] = data["items"][(page - 1) * 20 : page * 20]
-        data["page_number"] = page
-        retained = {
-            key: value
-            for key, value in params.items()
-            if key in ("q", "view", "kind", "topic", "from", "to", "sort", "page")
-        }
-        suffix = "?" + urlencode(retained) if retained else ""
-        data["changes_suffix"] = suffix
-        data["changes_back"] = "/changes" + suffix
-        data["previous_page"] = "/changes?" + urlencode({**retained, "page": page - 1}) if page > 1 else ""
-        data["next_page"] = "/changes?" + urlencode({**params, "page": page + 1}) if data["total"] > page * 20 else ""
-        data["filters"] = {
-            key: sorted({item.get(key) or "" for item in snapshot["items"]} - {""}) for key in ("kind", "topic")
-        }
-    elif path in ("/lk", "/lk/profile") and authorized:
-        await load("me", "/me", {})
-        data["initials"] = initials(data["me"].get("alumni", {}).get("fio"))
-        if path == "/lk" and data["me"].get("alumni", {}).get("verification_status") == "verified":
-            await asyncio.gather(
-                load("orders", "/me/orders", []),
-                load("ledger", "/me/ledger", []),
-                load("classmates", "/me/classmates", []),
-                load("notifications", "/me/events", []),
-                load("club_events", "/events", []),
-                load("club_news", "/news?limit=3", []),
-            )
-            now = datetime.now(UTC)
-            upcoming = sorted(
-                [item for item in data["club_events"] if instant(item.get("starts_at")) >= now],
-                key=lambda item: instant(item["starts_at"]),
-            )
-            data["next_event"] = upcoming[0] if upcoming else None
-            with_cabinet(data)
-    elif path == "/cart" and "x-cart-session" in api.headers:
-        await load("cart", "/cart", {"items": [], "subtotal": 0})
-    elif path == "/support":
-        await load("support", "/support/config", {"enabled": False})
-        data["faq"] = resource("faq-data.json")
-    elif path == "/give":
-        await load("donation", "/donations/config", {"enabled": False, "card": False, "transfer": False})
-        data.update(give_amounts=GIVE_AMOUNTS, give_chosen=GIVE_CHOSEN)
-    elif path.startswith("/admin"):
-        section = path.removeprefix("/admin/") if path != "/admin" else "overview"
-        data["section"] = section
-        data["labels"] = {**LABELS, **SECTION_LABELS.get(section, {})}
-        data["office_template"] = "office/" + ("content" if section in FIELDS else section) + ".html"
-        data["office_statuses"] = status_values(section)
-        data["office_filters"] = SECTION_FILTERS.get(section, ())
-        if authorized and template != "not-found.html":
-            await load("session", "/auth/admin-session", {})
-            if data["session"]:
-                data["role"] = data["session"]["role"]
-                data["full_admin"] = data["role"] in FULL_ADMIN_ROLES
-                data["office_groups"] = visible_groups(data["full_admin"])
-                if section == "support":
-                    await load("bot", "/admin/bot-status", {})
-                if section == "support" and data["role"] not in FULL_ADMIN_ROLES:
-                    data["records"] = []
-                elif section == "pages":
-                    await load("record", "/admin/pages/home", {})
-                else:
-                    query = urlencode(
-                        {key: params[key] for key in ("q", "status", "payment", "page", "range") if key in params}
-                    )
-                    await load("records", OFFICE_ENDPOINTS[section] + ("?" + query if query else ""), [])
-                if section == "overview":
-                    await load("health", "/admin/system-health", {})
-                if section == "programs":
-                    await load("dpo_sync", "/admin/dpo-sync", {})
-                if section == "members" and data["role"] in FULL_ADMIN_ROLES:
-                    data["point_programs"] = point_program_groups(
-                        page_items(await load("point_programs", "/admin/point-programs", []))
-                    )
-                for source in choice_sources(section):
-                    rows = page_items(await load("choices:" + source, OFFICE_ENDPOINTS[source], []))
-                    data["office_options"][source] = choice_options(source, rows)
-                    data["office_names"][source] = {row["id"]: row["label"] for row in data["office_options"][source]}
-                if section == "orders":
-                    data["office_cohorts"] = cohort_options(page_items(await load("cohorts", "/admin/cohorts", [])))
-                if params.get("id") and section == "events":
-                    await load("roster", "/admin/events/" + quote(params["id"], safe="") + "/rsvps", [])
-                if params.get("id") and section == "members" and data["role"] in FULL_ADMIN_ROLES:
-                    await load("point_history", "/admin/members/" + quote(params["id"], safe="") + "/points", {})
-                data["rows"] = section_records(section, page_items(data.get("records")), data["office_names"])
-                if section == "portfolio":
-                    portfolio_editor(data, params.get("id"))
-                if section in FIELDS:
-                    data["office_total"] = len(data["rows"])
-                    data["rows"] = filter_content(data["rows"], params)
-                records = data.get("records") or {}
-                current = pagination_page(params.get("page", "1"))
-                limit = (records.get("limit") or records.get("page_size") or 30) if isinstance(records, dict) else 30
-                total = records.get("total", 0) if isinstance(records, dict) else 0
-                data["office_previous"] = "?" + urlencode({**params, "page": current - 1}) if current > 1 else ""
-                data["office_next"] = (
-                    "?" + urlencode({**params, "page": current + 1})
-                    if total > current * limit or section == "support" and len(data["rows"]) == 30
-                    else ""
-                )
+    page = Page(api, path, params, authorized, template, data)
+    handler = next((handler for matches, handler in PAGE_ROUTES if matches(page)), None)
+    if handler:
+        await handler(page)
     return data
