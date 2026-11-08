@@ -57,8 +57,11 @@ line-length = 120
 "../scripts/lib/mariadb_*.py" = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "ASYNC", "S"]
+select = ["E", "F", "I", "UP", "B", "ASYNC", "S", "C90"]
 ignore = ["E501", "S101"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
 
 [tool.ruff.lint.per-file-ignores]
 "../scripts/lib/mariadb_native.py" = ["S603", "S608", "S104"]
@@ -68,7 +71,9 @@ ignore = ["E501", "S101"]
 "../scripts/tests/test-nginx.py" = ["S603", "S108"]
 "../scripts/lib/autodeploy.py" = ["S310", "S603", "S607"]
 "../scripts/tests/test-autodeploy.py" = ["S603", "S607"]
-"tests/**" = ["S105", "S106"]
+"tests/**" = ["S105", "S106", "C901"]
+"../scripts/lib/**" = ["C901"]
+"../scripts/tests/**" = ["C901"]
 "tests/python/test_dpo_center_tls.py" = ["S603", "S607"]
 "club_api/core/config.py" = ["S104"]
 "club_api/db/store.py" = ["S608"]
