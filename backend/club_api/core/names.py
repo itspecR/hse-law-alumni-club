@@ -15,8 +15,12 @@ PERSON = re.compile(rf"(?:{WORD}|{INITIALS})(?: (?:{WORD}|{INITIALS}))*")
 INVALID_NAME = "Имя пишется буквами; можно пробел, дефис, апостроф и точку после инициала."
 
 
+def normalized_name(value):
+    return " ".join(unicodedata.normalize("NFC", value or "").split())
+
+
 def person_name(value):
-    name = " ".join(unicodedata.normalize("NFC", value).split())
+    name = normalized_name(value)
     if not PERSON_NAME_MIN <= len(name) <= PERSON_NAME_MAX or not PERSON.fullmatch(name):
         raise ValueError(INVALID_NAME)
     return name

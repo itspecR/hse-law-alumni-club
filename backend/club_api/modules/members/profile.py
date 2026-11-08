@@ -6,7 +6,7 @@ from django.http import HttpRequest
 from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
-from club_api.core.names import PersonName
+from club_api.core.names import PersonName, normalized_name
 from club_api.core.schemas import Body
 from club_api.core.views import api_view, parse_body
 from club_api.domain import MAX_INTERESTS, achievement_progress, level_info
@@ -100,7 +100,7 @@ async def profile(request: HttpRequest):
     body = parse_body(request, ProfileBody)
     data = body.model_dump(exclude_unset=True)
     patch = {}
-    if "fio" in data and data["fio"] != " ".join(alumni["fio"].split()):
+    if "fio" in data and data["fio"] != normalized_name(alumni["fio"]):
         raise ApiError(409, FIO_LOCKED)
     if "contacts" in data:
         patch["contacts_json"] = data["contacts"]
