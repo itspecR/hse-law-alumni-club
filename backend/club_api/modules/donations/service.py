@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from club_api.core.errors import ApiError
 from club_api.db.store import normalize
 from club_api.domain import rubles
 from club_api.modules.checkout.payments import DONATION_KEY, paid_kopecks
@@ -18,6 +19,9 @@ CARD = "card"
 TRANSFER = "transfer"
 NEW = "new"
 AWAITING = "awaiting"
+SUCCEEDED = "succeeded"
+NOT_FOUND = "Пожертвование не найдено."
+NOT_AWAITING = "Это пожертвование не ждет перевода."
 LOCKED_SQL = "SELECT * FROM club_donations WHERE number=%s FOR UPDATE"
 
 
@@ -131,6 +135,19 @@ class Donations:
         if result["outcome"] == "succeeded":
             await self.thank(result["donation"])
         return result
+
+    async def receive_transfer(self, number):
+        async with self.state.database.transaction() as connection:
+            donation = normalize(await (await connection.execute(LOCKED_SQL, (number,))).fetchone())
+            if not donation:
+                raise ApiError(404, NOT_FOUND)
+            if donation["status"] != AWAITING:
+                raise ApiError(409, NOT_AWAITING)
+            await connection.execute(
+                "UPDATE club_donations SET status=%s,paid_at=now() WHERE id=%s", (SUCCEEDED, donation["id"])
+            )
+        await self.thank(donation)
+        return donation
 
     async def thank(self, donation):
         await self.state.notifications.mail_applicant(

@@ -28,8 +28,20 @@ PERIOD_LABELS = {"7d": "7 дней", "30d": "30 дней", "365d": "Год", ALL
 DEFAULT_PERIOD = "30d"
 LOCAL_ZONE = ZoneInfo("Europe/Moscow")
 SEARCH_FIELDS = ("number", "email", "name")
-LIST_FIELDS = ("number", "created_at", "amount", "status", "name", "email", "alumni_id", "payment_id", "paid_at")
-CSV_HEADER = ("Номер", "Дата", "Сумма, ₽", "Статус", "Имя", "Почта", "Выпускник", "Платеж ЮKassa", "Оплачено")
+METHOD_LABELS = {"card": "Картой", "transfer": "Переводом"}
+LIST_FIELDS = (
+    "number",
+    "created_at",
+    "amount",
+    "status",
+    "name",
+    "email",
+    "alumni_id",
+    "payment_id",
+    "paid_at",
+    "method",
+)
+CSV_HEADER = ("Номер", "Дата", "Сумма, ₽", "Статус", "Имя", "Почта", "Выпускник", "Платеж ЮKassa", "Оплачено", "Способ")
 
 
 def requested_period(request):
@@ -107,6 +119,7 @@ def csv_row(donation):
         "Да" if donation["alumni_id"] else "",
         donation["payment_id"],
         local_time(donation["paid_at"]),
+        METHOD_LABELS.get(donation["method"], donation["method"]),
     ]
 
 
@@ -125,3 +138,17 @@ async def export_donations(request: HttpRequest):
         request, "donations.export", actor="admin:" + admin["userId"], detail={"count": len(rows), "range": period}
     )
     return csv_response([CSV_HEADER, *map(csv_row, rows)], "donations")
+
+
+@api_view(permission=require_full_admin)
+async def receive_transfer(request: HttpRequest, number: str):
+    admin = await require_full_admin(request)
+    donation = await request.services.donations.receive_transfer(number)
+    await audit(
+        request,
+        "donation.transfer_received",
+        actor="admin:" + admin["userId"],
+        subject="donation:" + number,
+        detail={"amount": donation["amount"]},
+    )
+    return {"ok": True}

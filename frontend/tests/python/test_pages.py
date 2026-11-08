@@ -1334,6 +1334,45 @@ async def test_full_admin_sees_donations_read_only_with_paid_total(browser_clien
     assert 'data-api="/admin/donations' not in page
 
 
+AWAITING_TRANSFER = {
+    **DONATIONS_PAGE["items"][1],
+    "number": "DON-2026-000008",
+    "status": "awaiting",
+    "method": "transfer",
+    "amount": 300000,
+    "email": "donor@example.test",
+}
+
+
+async def office_donations(listing):
+    async def upstream(request):
+        if request.url.path == "/auth/admin-session":
+            return httpx.Response(200, json={"role": "admin"})
+        if request.url.path == "/admin/donations":
+            return httpx.Response(200, json=listing)
+        return httpx.Response(200, json=[])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            return plain((await client.get("/views/admin/donations", headers=ADMIN)).text)
+
+
+async def test_only_awaiting_transfer_has_received_button():
+    statuses = {**DONATIONS_PAGE["statuses"], "awaiting": "Ожидает перевода"}
+    page = await office_donations(
+        {**DONATIONS_PAGE, "items": [AWAITING_TRANSFER, *DONATIONS_PAGE["items"]], "statuses": statuses}
+    )
+    assert '<span class="office-status" data-status="awaiting">Ожидает перевода</span>' in page
+    assert page.count(" · перевод по реквизитам") == 1
+    assert page.count('data-api="/admin/donations/') == 1
+    assert (
+        '<button data-api="/admin/donations/DON-2026-000008/received" data-confirm="Перевод 3 000 ₽ по пожертвованию '
+        'DON-2026-000008 поступил на счет клуба? Дарителю уйдет письмо с благодарностью.">Перевод получен</button>'
+    ) in page
+
+
 async def test_editor_has_no_donations_section(browser_client):
     orders = (await browser_client.get("/views/admin/orders", headers=EDITOR)).text
     assert 'href="/admin/orders"' in orders and 'href="/admin/donations"' not in orders
