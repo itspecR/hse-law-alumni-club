@@ -7,10 +7,11 @@ from pydantic import Field
 
 from club_api.core.errors import ApiError
 from club_api.core.models import count, group_count, guid, query_choice, query_page, query_search, sub_active
+from club_api.core.names import PersonName
 from club_api.core.schemas import Body
 from club_api.core.views import api_view, defer, parse_body
 from club_api.domain import DOMAIN
-from club_api.modules.auth.service import require_admin, require_full_admin
+from club_api.modules.auth.service import alumni_names, require_admin, require_full_admin
 from club_api.modules.members.service import alumni_email, anonymize
 from club_api.modules.notifications.mail import CLUB_NAME, club_subject
 from club_api.observability.audit import audit
@@ -38,6 +39,7 @@ MEMBER_FIELDS = (
 class MemberPatch(Body):
     verification_status: Literal["pending", "verified", "rejected"] = None
     personal_discount: int = Field(default=None, ge=0, le=10)
+    fio: PersonName = None
 
 
 MANUAL_COMMENT = "Начисление клуба"
@@ -159,6 +161,20 @@ async def notify_verification(state, id, status):
     await state.notifications.send_email(email, subject, text)
 
 
+def patch_detail(data):
+    detail = {key: value for key, value in data.items() if key != "fio"}
+    return {**detail, "fio_changed": True} if "fio" in data else detail
+
+
+async def rename_user(state, user_id, fio):
+    if user_id:
+        await state.database.execute(
+            "UPDATE directus_users SET first_name=%s,last_name=%s WHERE id=%s "
+            "AND role IN (SELECT id FROM directus_roles WHERE name='alumni')",
+            (*alumni_names(fio), user_id),
+        )
+
+
 @api_view(body=MemberPatch, permission=require_full_admin)
 async def patch_member(request: HttpRequest, id: str):
     admin = await require_full_admin(request)
@@ -169,7 +185,11 @@ async def patch_member(request: HttpRequest, id: str):
     if data.get("verification_status") == "verified":
         patch["verified_at"] = datetime.now(UTC)
     row = await state.store.update("alumni", patch, id=id)
-    await audit(request, "member.patch", actor="admin:" + admin["userId"], subject="alumni:" + id, detail=data)
+    if "fio" in data:
+        await rename_user(state, row["user_id"], data["fio"])
+    await audit(
+        request, "member.patch", actor="admin:" + admin["userId"], subject="alumni:" + id, detail=patch_detail(data)
+    )
     if data.get("verification_status") in ("verified", "rejected"):
         defer(request, notify_verification, state, id, data["verification_status"])
     if data.get("verification_status") == "verified" and row.get("referred_by"):

@@ -97,23 +97,25 @@ def news_sources(office, request, headers, name, directory):
     office.screenshot(path=str(directory / (name + ".news-sources.png")), full_page=True)
 
 
+def member_form(office, member_id):
+    return office.locator(f'form[data-api="/admin/members/{member_id}"]:has([name="verification_status"])')
+
+
 def member_verification(office, member_id):
     office.goto("/admin/members")
-    form = office.locator(f'form[data-api="/admin/members/{member_id}"]')
+    form = member_form(office, member_id)
     form.locator('[name="verification_status"]').select_option("verified")
     submit(office, form, "/admin/members/" + member_id, "PATCH")
-    expect(office.locator(f'form[data-api="/admin/members/{member_id}"] [name="verification_status"]')).to_have_value(
-        "verified"
-    )
+    expect(member_form(office, member_id).locator('[name="verification_status"]')).to_have_value("verified")
 
 
 def member_points_discount(office, request, headers, member_headers, member_id):
     original = request.get("/api/me", headers=member_headers).json()["level"]["discount"]
-    form = office.locator(f'form[data-api="/admin/members/{member_id}"]')
+    form = member_form(office, member_id)
     form.locator('[name="personal_discount"]').fill("5")
     submit(office, form, "/admin/members/" + member_id, "PATCH")
     assert request.get("/api/me", headers=member_headers).json()["level"]["discount"] == original + 5
-    form = office.locator(f'form[data-api="/admin/members/{member_id}"]')
+    form = member_form(office, member_id)
     form.locator('[name="personal_discount"]').fill("0")
     submit(office, form, "/admin/members/" + member_id, "PATCH")
     assert request.get("/api/me", headers=member_headers).json()["level"]["discount"] == original

@@ -50,6 +50,16 @@
 </p>
 </form>
 <details>
+<summary>Исправить ФИО</summary>
+<form class="office-edit-grid" data-api="/admin/members/{{ member.id }}" data-method="PATCH">
+<label>ФИО<input name="fio" value="{{ member.fio or '' }}" required maxlength="{{ domain.limits.person_name_max }}" autocomplete="off">
+</label>
+<button>Сохранить ФИО</button>
+<p role="alert" data-error hidden>
+</p>
+</form>
+</details>
+<details>
 <summary>Начислить или списать баллы</summary>
 <form class="office-points" data-api="/admin/members/{{ member.id }}/points">
 <label class="site-field">Причина<select name="reason" data-points-reason>
