@@ -110,6 +110,14 @@
 </p>
 <button class="site-primary">Войти</button>
 </form>
+{% else %}
+<form class="cabinet-gate__form" data-api="/auth/login-code" data-login="member" data-staff-code hidden>
+<h1>Код из письма</h1>
+<p data-staff-code-note>К этому аккаунту было много неудачных попыток входа, поэтому нужен код. Если пароль верный, мы отправили код на почту. Введите его, чтобы войти.</p>
+<input type="hidden" name="email">{{ code_field() }}<p role="alert" data-error hidden>
+</p>
+<button class="site-primary">Войти в кабинет</button>
+</form>
 {% endif %}
 </div>
 {% endmacro %}

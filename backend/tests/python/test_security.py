@@ -93,6 +93,24 @@ def test_account_lock_holds_only_for_the_failing_address():
     assert not attempts.locked("member@example.test", ATTACKER_IP)
 
 
+def test_failures_from_many_addresses_guard_the_email_without_locking_it():
+    now = [1000]
+    attempts = LoginAttempts(clock=lambda: now[0])
+    for index in range(LoginAttempts.GUARD_LIMIT - 1):
+        attempts.fail("member@example.test", f"198.51.100.{index}")
+    assert not attempts.guarded("member@example.test")
+    attempts.fail("member@example.test", "198.51.100.250")
+    assert attempts.guarded("MEMBER@example.test") and not attempts.guarded("other@example.test")
+    assert not attempts.locked("member@example.test", OWNER_IP)
+    now[0] += LoginAttempts.GUARD_SECONDS - 1
+    attempts.fail("member@example.test", "198.51.100.251")
+    now[0] += LoginAttempts.GUARD_SECONDS - 1
+    assert attempts.guarded("member@example.test")
+    now[0] += 2
+    attempts.cleanup()
+    assert not attempts.guarded("member@example.test") and "member@example.test" not in attempts.email
+
+
 def test_own_login_does_not_reset_address_failures():
     attempts = LoginAttempts(clock=lambda: 1000)
     for index in range(LoginAttempts.ADDRESS_LIMIT - 1):

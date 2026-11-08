@@ -44,7 +44,7 @@ function showStaffCode(form, email, sent) {
   const step = form.parentElement.querySelector("form[data-staff-code]");
   if (!step) throw new Error("Не удалось открыть ввод кода. Обновите страницу.");
   step.elements.email.value = email;
-  if (!sent) step.querySelector("[data-staff-code-note]").textContent = "Письмо с кодом не отправилось. Попросите оператора сервера выдать код командой admin-code.";
+  if (sent === false) step.querySelector("[data-staff-code-note]").textContent = "Письмо с кодом не отправилось. Попросите оператора сервера выдать код командой admin-code.";
   form.hidden = true;
   step.hidden = false;
   step.querySelector("input[name=code]").focus();

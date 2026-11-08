@@ -14,10 +14,12 @@ CODE_WINDOW_LIMIT = 5
 CONFIRM_PURPOSE = "email-confirm"
 RESET_PURPOSE = "reset"
 ADMIN_PURPOSE = "admin-login"
+MEMBER_PURPOSE = "member-login"
 CODE_TTL = {
     CONFIRM_PURPOSE: timedelta(minutes=15),
     RESET_PURPOSE: timedelta(minutes=15),
     ADMIN_PURPOSE: timedelta(minutes=10),
+    MEMBER_PURPOSE: timedelta(minutes=10),
 }
 STORED_SQL = (
     "SELECT id,code_hash,attempts,expires_at,sent_at,window_started_at,window_count "

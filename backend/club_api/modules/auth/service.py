@@ -11,7 +11,14 @@ from club_api.core.errors import ApiError
 from club_api.core.security import LoginAttempts
 from club_api.db.queries import acquire_lock
 from club_api.db.store import Store
-from club_api.modules.auth.codes import ADMIN_PURPOSE, CONFIRM_PURPOSE, RESET_PURPOSE, accept_code, issue_code
+from club_api.modules.auth.codes import (
+    ADMIN_PURPOSE,
+    CONFIRM_PURPOSE,
+    MEMBER_PURPOSE,
+    RESET_PURPOSE,
+    accept_code,
+    issue_code,
+)
 from club_api.modules.auth.passwords import hash_password, verify_password
 from club_api.modules.members.mailing import mailing_consent
 from club_api.resources import shared_data
@@ -291,6 +298,10 @@ class AuthService:
     async def staff_code(self, user_id, code):
         async with self.database.transaction() as connection:
             return await self.accept(connection, user_id, ADMIN_PURPOSE, code)
+
+    async def member_code(self, user_id, code):
+        async with self.database.transaction() as connection:
+            return await self.accept(connection, user_id, MEMBER_PURPOSE, code)
 
     async def confirm(self, user_id, code):
         async with self.database.transaction() as connection:
