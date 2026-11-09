@@ -99,6 +99,12 @@ class Files(unittest.TestCase):
         env.write_text("CLUB_STATE_DIR=/srv/old\nOTHER=1\nCLUB_STATE_DIR=/srv/club-state\n")
         self.assertEqual(autodeploy.state_dir(env), pathlib.Path("/srv/club-state"))
 
+    def test_compose_project_follows_installed_config(self):
+        env = self.root / "compose.env"
+        self.assertEqual(autodeploy.compose_project(env), autodeploy.DEFAULT_PROJECT)
+        env.write_text("CLUB_PROJECT=club-mariadb-old\nCLUB_PROJECT=club-mariadb-main\n")
+        self.assertEqual(autodeploy.compose_project(env), "club-mariadb-main")
+
     def test_maintenance_lock_is_detected_and_released(self):
         lock = self.root / autodeploy.LOCK_FILE
         self.assertFalse(autodeploy.maintenance_busy(lock))
@@ -121,6 +127,37 @@ class Repository(unittest.TestCase):
     def test_non_github_remote_is_rejected(self):
         with self.assertRaises(ValueError):
             autodeploy.repository("https://example.com/club.git")
+
+
+class Images(unittest.TestCase):
+    def revisions(self, **changes):
+        return {service: [NEW] for service in autodeploy.DEPLOYED_SERVICES} | changes
+
+    def test_only_every_service_built_from_head_counts_as_deployed(self):
+        self.assertTrue(autodeploy.images_built_from(NEW, self.revisions()))
+        self.assertFalse(autodeploy.images_built_from(NEW, self.revisions(web=[OLD])))
+        self.assertFalse(autodeploy.images_built_from(NEW, self.revisions(api=[])))
+        self.assertFalse(autodeploy.images_built_from(NEW, self.revisions(nginx=[NEW, OLD])))
+
+    def test_running_revisions_ask_docker_for_this_project_only(self):
+        calls = []
+
+        def run(command, **options):
+            calls.append(command)
+            return subprocess.CompletedProcess(command, 0, NEW + "\n", "")
+
+        saved, autodeploy.subprocess.run = autodeploy.subprocess.run, run
+        try:
+            revisions = autodeploy.running_revisions("club-mariadb-main")
+        finally:
+            autodeploy.subprocess.run = saved
+        self.assertEqual(revisions, self.revisions())
+        self.assertEqual(len(calls), len(autodeploy.DEPLOYED_SERVICES))
+        for command, service in zip(calls, autodeploy.DEPLOYED_SERVICES, strict=True):
+            self.assertEqual(command[:2], ["docker", "ps"])
+            self.assertIn("label=com.docker.compose.project=club-mariadb-main", command)
+            self.assertIn(f"label=com.docker.compose.service={service}", command)
+            self.assertIn('{{.Label "org.opencontainers.image.revision"}}', command)
 
 
 def git(directory, *args):
@@ -147,10 +184,14 @@ class Cycle(unittest.TestCase):
         self.target = git(seed, "rev-parse", "HEAD")
         env = root / "compose.env"
         env.write_text(f"CLUB_STATE_DIR={self.state}\n")
-        self.ci, self.deployments, self.deploy_result = "green", [], False
+        self.ci, self.deployments, self.deploy_result, self.stale = "green", [], False, False
         self.saved = {
             name: getattr(autodeploy, name)
-            for name in ("REPO", "INSTALLED_ENV_FILE", "check_runs", "deploy", "repository")
+            for name in ("REPO", "INSTALLED_ENV_FILE", "check_runs", "deploy", "repository", "running_revisions")
+        }
+        autodeploy.running_revisions = lambda project: {
+            service: ["0" * 40 if self.stale else git(self.work, "rev-parse", "HEAD")]
+            for service in autodeploy.DEPLOYED_SERVICES
         }
         autodeploy.REPO, autodeploy.INSTALLED_ENV_FILE = self.work, env
         autodeploy.repository = lambda url: "owner/club"
@@ -203,6 +244,21 @@ class Cycle(unittest.TestCase):
         git(self.work, "checkout", "-q", "--detach", self.target)
         self.assertEqual(autodeploy.main(), 0)
         self.assertEqual(self.deployments, [self.target])
+
+    def test_head_on_target_with_old_images_is_deployed_again(self):
+        git(self.work, "fetch", "-q", "origin")
+        git(self.work, "checkout", "-q", "--detach", self.target)
+        self.stale, self.deploy_result = True, True
+        self.assertEqual(autodeploy.main(), 0)
+        self.assertEqual(self.deployments, [self.target])
+
+    def test_head_and_images_on_target_ask_nothing(self):
+        git(self.work, "fetch", "-q", "origin")
+        git(self.work, "checkout", "-q", "--detach", self.target)
+        asked = []
+        autodeploy.check_runs = lambda slug, revision, token: asked.append(revision) or runs()
+        self.assertEqual(autodeploy.main(), 0)
+        self.assertEqual((asked, self.deployments), ([], []))
 
 
 class Unit(unittest.TestCase):
