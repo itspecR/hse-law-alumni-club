@@ -5,6 +5,7 @@ import pathlib
 import subprocess
 import tempfile
 import unittest
+import urllib.error
 
 LIB = pathlib.Path(__file__).resolve().parents[1] / "lib"
 spec = importlib.util.spec_from_file_location("autodeploy", LIB / "autodeploy.py")
@@ -39,28 +40,40 @@ class CiState(unittest.TestCase):
 
 class Decision(unittest.TestCase):
     def decide(self, deployed=OLD, ci="green", state=None, now=NOW, busy=False):
-        return autodeploy.decide(deployed, NEW, ci, state or {}, now, busy)
+        self.asked = 0
+
+        def lookup():
+            self.asked += 1
+            return ci
+
+        return autodeploy.decide(deployed, NEW, state or {}, now, busy, lookup)
 
     def test_current_commit_is_left_alone(self):
         self.assertEqual(self.decide(deployed=NEW, ci="red"), "current")
+        self.assertEqual(self.asked, 0)
 
     def test_new_commit_waits_for_green_ci(self):
         self.assertEqual(self.decide(ci="pending"), "wait-ci")
         self.assertEqual(self.decide(ci="red"), "ci-failed")
+        self.assertEqual(self.decide(ci="unknown"), "ci-unknown")
         self.assertEqual(self.decide(), "deploy")
+        self.assertEqual(self.asked, 1)
 
     def test_busy_maintenance_does_not_spend_an_attempt(self):
         self.assertEqual(self.decide(busy=True), "busy")
+        self.assertEqual(self.asked, 0)
 
     def test_failed_commit_is_retried_after_pause(self):
         state = {"commit": NEW, "attempts": 1, "last_attempt": NOW}
         self.assertEqual(self.decide(state=state, now=NOW + autodeploy.RETRY_PAUSE_SECONDS - 1), "pause")
+        self.assertEqual(self.asked, 0)
         self.assertEqual(self.decide(state=state, now=NOW + autodeploy.RETRY_PAUSE_SECONDS), "deploy")
 
     def test_attempts_stop_at_limit_until_next_commit(self):
         state = {"commit": NEW, "attempts": autodeploy.MAX_ATTEMPTS, "last_attempt": 0}
         self.assertEqual(self.decide(state=state), "exhausted")
-        self.assertEqual(autodeploy.decide(OLD, "c" * 40, "green", state, NOW, False), "deploy")
+        self.assertEqual(self.asked, 0)
+        self.assertEqual(autodeploy.decide(OLD, "c" * 40, state, NOW, False, lambda: "green"), "deploy")
         self.assertEqual(autodeploy.attempts_for(state, "c" * 40), 0)
 
 
@@ -156,6 +169,25 @@ class Cycle(unittest.TestCase):
         self.ci = "pending"
         self.assertEqual(autodeploy.main(), 0)
         self.assertEqual(self.deployments, [])
+
+    def test_github_error_skips_the_run_without_spending_an_attempt(self):
+        def refused(slug, revision, token):
+            raise urllib.error.HTTPError("https://api.github.com", 403, "rate limit exceeded", {}, None)
+
+        autodeploy.check_runs = refused
+        self.assertEqual(autodeploy.main(), 0)
+        self.assertEqual(self.deployments, [])
+        self.assertFalse((self.state / autodeploy.STATE_FILE).exists())
+
+    def test_exhausted_commit_does_not_ask_github(self):
+        self.state.mkdir(parents=True)
+        (self.state / autodeploy.STATE_FILE).write_text(
+            json.dumps({"commit": self.target, "attempts": autodeploy.MAX_ATTEMPTS, "last_attempt": 0})
+        )
+        asked = []
+        autodeploy.check_runs = lambda slug, revision, token: asked.append(revision) or runs()
+        self.assertEqual(autodeploy.main(), 0)
+        self.assertEqual((asked, self.deployments), ([], []))
 
     def test_failed_deploy_is_counted_and_paused(self):
         self.assertEqual(autodeploy.main(), 1)
