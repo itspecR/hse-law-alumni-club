@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
@@ -27,6 +28,7 @@ MESSAGES = {
     "current": "Выкачен последний коммит {target}, обновлений нет.",
     "wait-ci": "Новый коммит {target}: CI ещё не завершён, ждём.",
     "ci-failed": "Новый коммит {target}: CI красный, не выкатываем.",
+    "ci-unknown": "Новый коммит {target}: GitHub не ответил о CI, проверим на следующем запуске.",
     "exhausted": "Коммит {target} не выкатился за {limit} попытки, ждём следующий коммит в {branch}.",
     "pause": "Коммит {target}: следующая попытка после паузы {pause} с.",
     "busy": "Идёт другая операция обслуживания, проверим на следующем запуске.",
@@ -109,19 +111,30 @@ def attempts_for(state, target):
     return state.get("attempts", 0) if state.get("commit") == target else 0
 
 
-def decide(deployed, target, ci, state, now, busy):
+CI_ACTIONS = {"pending": "wait-ci", "red": "ci-failed", "unknown": "ci-unknown", "green": "deploy"}
+
+
+def decide(deployed, target, state, now, busy, ci):
     if deployed == target:
         return "current"
-    if ci == "pending":
-        return "wait-ci"
-    if ci == "red":
-        return "ci-failed"
     attempts = attempts_for(state, target)
     if attempts >= MAX_ATTEMPTS:
         return "exhausted"
     if attempts and now - state.get("last_attempt", 0) < RETRY_PAUSE_SECONDS:
         return "pause"
-    return "busy" if busy else "deploy"
+    if busy:
+        return "busy"
+    return CI_ACTIONS[ci()]
+
+
+def target_ci(target):
+    slug = repository(git("remote", "get-url", "origin"))
+    try:
+        runs = check_runs(slug, target, os.environ.get("GITHUB_TOKEN"))
+    except (urllib.error.URLError, TimeoutError, ValueError, KeyError) as error:
+        print(f"Ответ GitHub о CI: {error}", flush=True)
+        return "unknown"
+    return ci_state(runs)
 
 
 def deploy(target):
@@ -144,13 +157,13 @@ def main():
     if deployed == target:
         report("current", target)
         return 0
-    ci = ci_state(check_runs(repository(git("remote", "get-url", "origin")), target, os.environ.get("GITHUB_TOKEN")))
     directory = state_dir(INSTALLED_ENV_FILE)
     directory.mkdir(parents=True, exist_ok=True)
     state_path = directory / STATE_FILE
     state = load_state(state_path)
     now = int(time.time())
-    action = decide(deployed, target, ci, state, now, maintenance_busy(directory / LOCK_FILE))
+    busy = maintenance_busy(directory / LOCK_FILE)
+    action = decide(deployed, target, state, now, busy, lambda: target_ci(target))
     attempt = attempts_for(state, target) + 1
     report(action, target, attempt)
     if action != "deploy":
