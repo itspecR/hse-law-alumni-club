@@ -66,6 +66,17 @@ def test_static_content_change_updates_worker_version(build_source, tmp_path, as
     assert (other_destination / "sw.js").read_bytes() == changed_worker
 
 
+def test_themis_poster_replacement_changes_asset_version(build_source, tmp_path):
+    destination = tmp_path / "output"
+    poster = build_source / "assets" / "themis-alive.webp"
+    poster.write_bytes(b"original")
+    build.build_public(destination)
+    original = (destination / "assets" / "version.txt").read_text()
+    poster.write_bytes(b"replacement at the same URL")
+    build.build_public(destination)
+    assert (destination / "assets" / "version.txt").read_text() != original
+
+
 def test_theme_layer_is_built_last(build_source, tmp_path):
     destination = tmp_path / "output"
     build.build_public(destination)

@@ -734,6 +734,7 @@ async def test_versioned_assets_are_cached_for_a_year(browser_client):
     policies = {
         f"/assets/site.css?v={version}": "public, max-age=31536000, immutable",
         f"/assets/home.js?v={version}": "public, max-age=31536000, immutable",
+        f"/assets/themis-alive.webp?v={version}": "public, max-age=31536000, immutable",
         "/assets/site.css?v=stale": "no-cache",
         "/assets/site.js": "no-cache",
         "/fonts/HSESans-Thin.woff2": "public, max-age=2592000",
@@ -742,6 +743,14 @@ async def test_versioned_assets_are_cached_for_a_year(browser_client):
     for path, policy in policies.items():
         response = await browser_client.get(path)
         assert response.status_code == 200 and response.headers["cache-control"] == policy, path
+
+
+@pytest.mark.parametrize("path", ["/", "/tg"])
+async def test_themis_poster_url_follows_release_version(browser_client, path):
+    build_public(PUBLIC)
+    version = (PUBLIC / "assets/version.txt").read_text()
+    page = (await browser_client.get(path)).text
+    assert f'src="/assets/themis-alive.webp?v={version}"' in page
 
 
 async def test_portfolio_pages_show_club_program_without_cart(browser_client):
