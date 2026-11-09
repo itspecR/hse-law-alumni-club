@@ -250,6 +250,11 @@ sudo journalctl -u club-backup.service -u club-monitor.service --since today
 
 `club-autodeploy.timer` раз в минуту запускает `scripts/lib/autodeploy.py`. Скрипт
 сравнивает выкаченный коммит с последним коммитом `main` в `origin` (`git ls-remote`).
+Выкаченным считается коммит, который стоит в HEAD `/opt/club`, если из него же собраны
+работающие контейнеры `api`, `web` и `nginx` проекта `CLUB_PROJECT` (метка
+`org.opencontainers.image.revision`). Если код подтянули без выкладки, контейнер не
+пересоздан или остановлен, в журнале строка «Коммит … в папке, но api, web или nginx
+работают не из него», и этот коммит выкатывается заново по тем же правилам.
 Новый коммит выкатывается через `scripts/deploy.sh` только после того, как в GitHub
 зеленые все проверки CI этого коммита из списка `REQUIRED_CHECKS` в
 `scripts/lib/autodeploy.py`. Выкатывается ровно проверенный SHA (`DEPLOY_COMMIT`),

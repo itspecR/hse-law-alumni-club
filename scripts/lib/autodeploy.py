@@ -19,6 +19,9 @@ API_URL = "https://api.github.com"
 INSTALLED_ENV_FILE = pathlib.Path("/etc/club/compose.env")
 DEFAULT_STATE_DIR = pathlib.Path("/var/lib/club-ops")
 STATE_FILE = "autodeploy.json"
+DEFAULT_PROJECT = "club-mariadb"
+DEPLOYED_SERVICES = ("api", "web", "nginx")
+REVISION_LABEL = "org.opencontainers.image.revision"
 LOCK_FILE = "maintenance.lock"
 REVISION = re.compile(r"[0-9a-f]{40}")
 GITHUB_REMOTE = re.compile(r"github\.com[:/]([\w.-]+)/([\w.-]+?)(?:\.git)?/?$")
@@ -26,6 +29,7 @@ PASSED = {"success", "neutral", "skipped"}
 
 MESSAGES = {
     "current": "Выкачен последний коммит {target}, обновлений нет.",
+    "stale": "Коммит {target} в папке, но api, web или nginx работают не из него: нужна выкладка.",
     "wait-ci": "Новый коммит {target}: CI ещё не завершён, ждём.",
     "ci-failed": "Новый коммит {target}: CI красный, не выкатываем.",
     "ci-unknown": "Новый коммит {target}: GitHub не ответил о CI, проверим на следующем запуске.",
@@ -74,12 +78,50 @@ def ci_state(runs):
     return "pending"
 
 
-def state_dir(env_file):
+def env_value(env_file, key):
     if env_file.is_file():
         for line in reversed(env_file.read_text().splitlines()):
-            if line.startswith("CLUB_STATE_DIR="):
-                return pathlib.Path(line.split("=", 1)[1].strip())
-    return DEFAULT_STATE_DIR
+            if line.startswith(key + "="):
+                return line.split("=", 1)[1].strip()
+    return None
+
+
+def state_dir(env_file):
+    value = env_value(env_file, "CLUB_STATE_DIR")
+    return pathlib.Path(value) if value else DEFAULT_STATE_DIR
+
+
+def compose_project(env_file):
+    return env_value(env_file, "CLUB_PROJECT") or DEFAULT_PROJECT
+
+
+def running_revisions(project):
+    return {
+        service: subprocess.run(
+            [
+                "docker",
+                "ps",
+                "--filter",
+                f"label=com.docker.compose.project={project}",
+                "--filter",
+                f"label=com.docker.compose.service={service}",
+                "--format",
+                '{{.Label "' + REVISION_LABEL + '"}}',
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.split()
+        for service in DEPLOYED_SERVICES
+    }
+
+
+def images_built_from(revision, revisions):
+    return all(values == [revision] for values in revisions.values())
+
+
+def deployed_revision(head):
+    return head if images_built_from(head, running_revisions(compose_project(INSTALLED_ENV_FILE))) else None
 
 
 def load_state(path):
@@ -153,10 +195,13 @@ def report(action, target, attempt=0):
 
 def main():
     target = remote_head()
-    deployed = git("rev-parse", "HEAD")
+    head = git("rev-parse", "HEAD")
+    deployed = deployed_revision(head)
     if deployed == target:
         report("current", target)
         return 0
+    if head == target:
+        report("stale", target)
     directory = state_dir(INSTALLED_ENV_FILE)
     directory.mkdir(parents=True, exist_ok=True)
     state_path = directory / STATE_FILE
