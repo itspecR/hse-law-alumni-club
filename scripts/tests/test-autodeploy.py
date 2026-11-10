@@ -2,16 +2,20 @@ import fcntl
 import importlib.util
 import json
 import pathlib
+import runpy
 import subprocess
+import sys
 import tempfile
 import unittest
 import urllib.error
 
 LIB = pathlib.Path(__file__).resolve().parents[1] / "lib"
+sys.path.insert(0, str(LIB))
 spec = importlib.util.spec_from_file_location("autodeploy", LIB / "autodeploy.py")
 autodeploy = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(autodeploy)
 
+DOTENV = runpy.run_path(str(LIB / "install-config.py"))["dotenv"]
 OLD = "a" * 40
 NEW = "b" * 40
 NOW = 1_000_000
@@ -93,17 +97,22 @@ class Files(unittest.TestCase):
         path.write_text("{broken")
         self.assertEqual(autodeploy.load_state(path), {})
 
-    def test_state_dir_follows_installed_config(self):
+    def installed_config(self, **values):
         env = self.root / "compose.env"
-        self.assertEqual(autodeploy.state_dir(env), autodeploy.DEFAULT_STATE_DIR)
-        env.write_text("CLUB_STATE_DIR=/srv/old\nOTHER=1\nCLUB_STATE_DIR=/srv/club-state\n")
+        env.write_text(DOTENV(values))
+        env.chmod(0o600)
+        return env
+
+    def test_state_dir_follows_installed_config(self):
+        self.assertEqual(autodeploy.state_dir(self.root / "compose.env"), autodeploy.DEFAULT_STATE_DIR)
+        env = self.installed_config(OTHER="1", CLUB_STATE_DIR="/srv/club-state")
+        self.assertIn('CLUB_STATE_DIR="/srv/club-state"', env.read_text())
         self.assertEqual(autodeploy.state_dir(env), pathlib.Path("/srv/club-state"))
 
     def test_compose_project_follows_installed_config(self):
-        env = self.root / "compose.env"
-        self.assertEqual(autodeploy.compose_project(env), autodeploy.DEFAULT_PROJECT)
-        env.write_text("CLUB_PROJECT=club-mariadb-old\nCLUB_PROJECT=club-mariadb-main\n")
-        self.assertEqual(autodeploy.compose_project(env), "club-mariadb-main")
+        self.assertEqual(autodeploy.compose_project(self.root / "compose.env"), autodeploy.DEFAULT_PROJECT)
+        env = self.installed_config(CLUB_PROJECT="club-mariadb-c85ffe9c1ea3")
+        self.assertEqual(autodeploy.compose_project(env), "club-mariadb-c85ffe9c1ea3")
 
     def test_maintenance_lock_is_detected_and_released(self):
         lock = self.root / autodeploy.LOCK_FILE
@@ -183,7 +192,8 @@ class Cycle(unittest.TestCase):
         git(seed, "push", "-q", str(origin), "main")
         self.target = git(seed, "rev-parse", "HEAD")
         env = root / "compose.env"
-        env.write_text(f"CLUB_STATE_DIR={self.state}\n")
+        env.write_text(DOTENV({"CLUB_STATE_DIR": str(self.state)}))
+        env.chmod(0o600)
         self.ci, self.deployments, self.deploy_result, self.stale = "green", [], False, False
         self.saved = {
             name: getattr(autodeploy, name)

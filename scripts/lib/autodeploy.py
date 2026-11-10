@@ -9,6 +9,8 @@ import time
 import urllib.error
 import urllib.request
 
+from mariadb_common import read_env
+
 REPO = pathlib.Path(__file__).resolve().parents[2]
 BRANCH = "main"
 REQUIRED_CHECKS = ("build-test", "mariadb-integration", "live-stack", "secrets")
@@ -79,11 +81,7 @@ def ci_state(runs):
 
 
 def env_value(env_file, key):
-    if env_file.is_file():
-        for line in reversed(env_file.read_text().splitlines()):
-            if line.startswith(key + "="):
-                return line.split("=", 1)[1].strip()
-    return None
+    return read_env(env_file).get(key) if env_file.is_file() else None
 
 
 def state_dir(env_file):
