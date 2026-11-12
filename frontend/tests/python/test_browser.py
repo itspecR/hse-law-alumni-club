@@ -3381,6 +3381,40 @@ def test_office_campaign_editor_saves_amounts_and_lists(page, site):
     assert (body["steps"], body["results"], body["trainer_ids"]) == ([], [], [])
 
 
+@pytest.mark.parametrize("width", [390, 1440])
+def test_office_sends_campaign_invitation_after_confirmation(page, site, width):
+    site[1]["/admin/trainers"] = TRAINERS
+    site[1]["/admin/campaigns"] = [OFFICE_CAMPAIGN]
+    site[1]["/admin/campaigns/camp-1/donors"] = {
+        "threshold": 1500000,
+        "letter_ready": True,
+        "items": [
+            {
+                "number": "DON-2026-000011",
+                "name": "Вымышленный Даритель",
+                "email": "donor@example.test",
+                "amount": 1500000,
+                "paid_at": "2026-11-05T10:05:00Z",
+                "invited_at": None,
+            }
+        ],
+    }
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/campaigns?id=camp-1")
+    block = page.locator("#campaign-invitations")
+    expect(block).to_contain_text("DON-2026-000011 · donor@example.test")
+    dialogs = []
+    page.on("dialog", lambda dialog: (dialogs.append(dialog.message), dialog.accept()))
+    target = "/api/admin/campaigns/camp-1/donors/DON-2026-000011/invite"
+    with page.expect_response(lambda response: response.url.endswith(target)):
+        block.get_by_role("button", name="Отправить приглашение", exact=True).click()
+    assert dialogs == ["Отправить приглашение на donor@example.test? Письмо уйдет один раз."]
+    write = site[2][-1]
+    assert (write["path"], write["method"]) == ("/admin/campaigns/camp-1/donors/DON-2026-000011/invite", "POST")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
 def test_office_campaign_editor_reports_wrong_amounts_and_unnamed_rows(page, site):
     site[1]["/admin/trainers"] = TRAINERS
     site[1]["/admin/campaigns"] = [OFFICE_CAMPAIGN]

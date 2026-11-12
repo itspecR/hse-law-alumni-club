@@ -62,6 +62,8 @@ def test_all_legacy_routes_are_present():
         ("GET", "/admin/donations"),
         ("GET", "/admin/donations/export.csv"),
         ("POST", "/admin/donations/{number}/received"),
+        ("GET", "/admin/campaigns/{id}/donors"),
+        ("POST", "/admin/campaigns/{id}/donors/{number}/invite"),
         ("POST", "/admin/orders/{id}/transfer"),
         ("POST", "/admin/orders/{id}/transfer-received"),
         ("PATCH", "/admin/orders/{id}/discount"),
@@ -90,7 +92,7 @@ def test_all_legacy_routes_are_present():
         ("DELETE", "/admin/timeline/{id}"),
         ("POST", "/support/faq-event"),
     }
-    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 149
+    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 151
 
 
 def test_sentry_privacy():

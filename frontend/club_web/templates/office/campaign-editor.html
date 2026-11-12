@@ -21,6 +21,26 @@
 </aside>
 </form>
 {% if program.id %}
+{% set donors=campaign_donors if campaign_donors is mapping else {} %}
+<section class="site-panel office-invitations" id="campaign-invitations" aria-labelledby="campaign-invite-title">
+<h2 id="campaign-invite-title">Приглашения</h2>
+<p>Дарители с оплаченным пожертвованием в этот сбор{% if donors.threshold %} от {{ donors.threshold|rub }}{% endif %}. Приглашение уходит письмом из блока «Платеж и приглашение» и отправляется каждому один раз.</p>
+{% if not donors.letter_ready %}<p class="office-meta">Заполните тему и текст письма-приглашения и сохраните сбор: до этого кнопки неактивны.</p>{% endif %}
+<div class="office-list">
+{% for donor in donors|page_items %}
+<article class="office-record">
+<div class="office-record-head">
+<h3>{{ donor.name or 'Без имени' }} · {{ donor.amount|rub }}</h3>
+{% if donor.invited_at %}<span class="office-status" data-status="succeeded">Приглашение отправлено</span>{% endif %}
+</div>
+<p class="office-meta">{{ donor.number }} · {{ 'почта удалена по сроку хранения' if donor.email=='-' else donor.email }} · оплачено {{ donor.paid_at|date(true) }}{% if donor.invited_at %} · приглашение отправлено {{ donor.invited_at|date(true) }}{% endif %}</p>
+{% if not donor.invited_at and donor.email!='-' %}
+<div class="site-actions"><button data-api="/admin/campaigns/{{ program.id }}/donors/{{ donor.number|urlencode }}/invite" data-confirm="Отправить приглашение на {{ donor.email }}? Письмо уйдет один раз."{% if not donors.letter_ready %} disabled{% endif %}>Отправить приглашение</button></div>
+{% endif %}
+</article>
+{% else %}{{ empty('Дарителей для приглашения пока нет.') }}{% endfor %}
+</div>
+</section>
 <section class="site-panel program-editor__danger" aria-labelledby="campaign-danger-title">
 <h2 id="campaign-danger-title">Удаление сбора</h2>
 <p>Сбор с пожертвованиями удалить нельзя: переведите его в архив в блоке «Публикация».</p>

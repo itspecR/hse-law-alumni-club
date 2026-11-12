@@ -24,6 +24,10 @@ AWAITING = "awaiting"
 SUCCEEDED = "succeeded"
 NOT_FOUND = "Пожертвование не найдено."
 NOT_AWAITING = "Это пожертвование не ждет перевода."
+NOT_INVITABLE = "Приглашение отправляют дарителю оплаченного пожертвования от порога сбора."
+ALREADY_INVITED = "Приглашение этому дарителю уже отправлено."
+EMAIL_ERASED = "Почта дарителя удалена по сроку хранения, отправить письмо некуда."
+ERASED_EMAIL = "-"
 LOCKED_SQL = "SELECT * FROM club_donations WHERE number=%s FOR UPDATE"
 
 
@@ -67,6 +71,21 @@ def transfer_text(donation, transfer, purpose):
         f"{requisites_text(transfer)}\n\n"
         f"Когда перевод поступит на счет клуба, мы пришлем письмо с благодарностью.\n\n{CLUB_NAME}"
     )
+
+
+def invitation_text(donation, body):
+    return f"{greeting(donation)}\n\n{body.strip()}\n\n{CLUB_NAME}"
+
+
+def require_invitable(donation, campaign):
+    if not donation or donation["campaign_id"] != campaign["id"]:
+        raise ApiError(404, NOT_FOUND)
+    if donation["status"] != SUCCEEDED or donation["amount"] < campaign["invite_threshold"]:
+        raise ApiError(409, NOT_INVITABLE)
+    if donation["invited_at"]:
+        raise ApiError(409, ALREADY_INVITED)
+    if donation["email"] == ERASED_EMAIL:
+        raise ApiError(409, EMAIL_ERASED)
 
 
 def awaiting_notice(donation):
@@ -157,6 +176,18 @@ class Donations:
                 "UPDATE club_donations SET status=%s,paid_at=now() WHERE id=%s", (SUCCEEDED, donation["id"])
             )
         await self.thank(donation)
+        return donation
+
+    async def invite(self, number, campaign):
+        async with self.state.database.transaction() as connection:
+            donation = normalize(await (await connection.execute(LOCKED_SQL, (number,))).fetchone())
+            require_invitable(donation, campaign)
+            await connection.execute("UPDATE club_donations SET invited_at=now() WHERE id=%s", (donation["id"],))
+        await self.state.notifications.mail_applicant(
+            donation["email"],
+            club_subject(campaign["invite_subject"].strip()),
+            invitation_text(donation, campaign["invite_body"]),
+        )
         return donation
 
     async def thank(self, donation):
