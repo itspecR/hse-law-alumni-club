@@ -452,7 +452,10 @@ def test_live_offline_reading(width):
         item = items[0]
         path = prefix + item["slug"]
         page = context.new_page()
-        page.goto(path)
+        opened = page.goto(path)
+        assert opened.headers.get("x-club-offline") == "public", (
+            f"{path}: ответ {opened.status}, страница не разрешена для офлайн-чтения"
+        )
         page.evaluate("navigator.serviceWorker.ready")
         wait_for_offline_page(page, path)
         wait_for_offline_page(page, "/saved")
