@@ -94,6 +94,9 @@ class PortfolioBody(Body):
 
 
 class TrainerLinks:
+    def __init__(self, links=PROGRAM_TRAINERS):
+        self.links = links
+
     def split(self, data):
         data = dict(data)
         return data, data.pop("trainer_ids", None)
@@ -109,11 +112,11 @@ class TrainerLinks:
         )
         return data
 
-    async def save(self, state, program_id, trainer_ids, connection):
-        await PROGRAM_TRAINERS.replace(state, program_id, trainer_ids, connection)
+    async def save(self, state, owner_id, trainer_ids, connection):
+        await self.links.replace(state, owner_id, trainer_ids, connection)
 
     async def attach(self, state, rows):
-        links = await PROGRAM_TRAINERS.grouped(state, [row["id"] for row in rows])
+        links = await self.links.grouped(state, [row["id"] for row in rows])
         return [{**row, "trainer_ids": links.get(row["id"], [])} for row in rows]
 
 

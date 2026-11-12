@@ -1,22 +1,11 @@
-{% from 'office/forms.html' import field_control with context %}
+{% from 'office/forms.html' import block_nav,block_sections with context %}
 {% if program is none %}
 <div class="site-panel office-program-missing">{{ empty('Программа не найдена: возможно, ее удалили.') }}<a class="site-primary" href="/admin/portfolio">К списку программ</a></div>
 {% else %}
 <div class="program-editor" data-program-editor>
-<nav class="program-editor__nav" aria-label="Блоки программы">
-{% for anchor,heading,fields in office_blocks %}<a href="#{{ anchor }}" data-block-link>{{ heading }}</a>{% endfor %}
-</nav>
+{{ block_nav(office_blocks,'Блоки программы') }}
 <form id="program-form" class="program-editor__layout" data-api="/admin/portfolio{{ '/'~program.id if program.id }}" data-method="{{ 'PATCH' if program.id else 'POST' }}"{% if not program.id %} data-open-record="/admin/portfolio?id="{% endif %}>
-<div class="program-editor__blocks">
-{% for anchor,heading,fields in office_blocks %}
-<section class="program-editor__block" id="{{ anchor }}" aria-labelledby="{{ anchor }}-title">
-<h2 id="{{ anchor }}-title">{{ heading }}</h2>
-<div class="program-editor__fields">
-{% for name,label,kind in fields %}{{ field_control(name,label,kind,program) }}{% endfor %}
-</div>
-</section>
-{% endfor %}
-</div>
+{{ block_sections(office_blocks,program) }}
 <aside class="program-editor__side" aria-label="Карточка и сохранение">
 <p class="program-editor__caption">Карточка на сайте</p>
 <article class="program-card office-program-preview" data-program-preview aria-hidden="true">

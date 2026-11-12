@@ -3203,6 +3203,95 @@ def test_give_transfer_rejects_reply_without_data_image(chromium, site):
     context.close()
 
 
+OFFICE_CAMPAIGN = {
+    "id": "camp-1",
+    "slug": "intensive",
+    "status": "draft",
+    "title": "Искусство влияния",
+    "goal_amount": 150000000,
+    "extra_amount": 0,
+    "invite_threshold": 1500000,
+    "amounts": [500000, 1500000],
+    "modules": [
+        {"title": "Сильное выступление", "time": "10:00-11:30", "note": "Структура", "points": ["Цель"]},
+        {"title": "Обед 60 минут", "time": None, "note": None, "points": []},
+    ],
+    "faq": [{"question": "Это плата за участие?", "answer": "Нет."}],
+    "highlights": [],
+    "steps": [],
+    "results": [],
+    "trainer_ids": [],
+    "raised": 0,
+    "percent": 0,
+}
+
+
+def test_office_campaign_editor_saves_amounts_and_lists(page, site):
+    site[1]["/admin/trainers"] = TRAINERS
+    site[1]["/admin/campaigns"] = [OFFICE_CAMPAIGN]
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/campaigns?id=camp-1")
+    root = page.locator("[data-program-editor]")
+    day = root.get_by_role("group", name="Программа по блокам")
+    expect(day.locator("[data-modules-total]")).to_have_text("Блоков: 2")
+    expect(day.locator(".office-module__meta").first).to_have_text("10:00-11:30")
+    faq = root.get_by_role("group", name="Вопросы и ответы")
+    faq.get_by_role("button", name="Добавить вопрос").click()
+    added = faq.locator("[data-module]").nth(1)
+    added.get_by_label("Вопрос").fill("Можно пожертвовать меньше?")
+    added.get_by_label("Ответ").fill("Да, от 100 ₽.")
+    expect(added.locator(".office-module__title")).to_have_text("Можно пожертвовать меньше?")
+    expect(faq.locator("[data-modules-total]")).to_have_text("Вопросов: 2")
+    numbers = root.get_by_role("group", name="Цифры")
+    numbers.get_by_role("button", name="Добавить цифру").click()
+    numbers.get_by_label("Число или короткое значение").fill("6")
+    numbers.get_by_label("Подпись").fill("часов практики")
+    expect(numbers.locator(".office-module__meta")).to_have_text("часов практики")
+    root.get_by_label("Сумма цели, ₽").fill("2000000.50")
+    root.get_by_label("Суммы в форме, ₽, каждая с новой строки").fill("5 000\n15000\n30000,5")
+    root.get_by_label("Статус").select_option("published")
+    expect(root.locator("[data-program-state]")).to_have_text("Есть несохраненные изменения")
+    root.get_by_role("button", name="Сохранить", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
+    write = site[2][-1]
+    assert (write["path"], write["method"]) == ("/admin/campaigns/camp-1", "PATCH")
+    body = write["body"]
+    assert (body["goal_amount"], body["amounts"], body["status"]) == (
+        200000050,
+        [500000, 1500000, 3000050],
+        "published",
+    )
+    assert body["faq"] == [
+        {"question": "Это плата за участие?", "answer": "Нет."},
+        {"question": "Можно пожертвовать меньше?", "answer": "Да, от 100 ₽."},
+    ]
+    assert body["highlights"] == [{"value": "6", "label": "часов практики"}]
+    assert body["modules"] == [
+        {"title": "Сильное выступление", "time": "10:00-11:30", "note": "Структура", "points": ["Цель"]},
+        {"title": "Обед 60 минут", "time": None, "note": None, "points": []},
+    ]
+    assert (body["steps"], body["results"], body["trainer_ids"]) == ([], [], [])
+
+
+def test_office_campaign_editor_reports_wrong_amounts_and_unnamed_rows(page, site):
+    site[1]["/admin/trainers"] = TRAINERS
+    site[1]["/admin/campaigns"] = [OFFICE_CAMPAIGN]
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/campaigns?id=camp-1")
+    root = page.locator("[data-program-editor]")
+    writes = len(site[2])
+    root.get_by_label("Суммы в форме, ₽, каждая с новой строки").fill("пять тысяч")
+    root.get_by_role("button", name="Сохранить", exact=True).click()
+    expect(root.locator("[data-error]")).to_have_text("Суммы пишутся числами, каждая с новой строки.")
+    root.get_by_label("Суммы в форме, ₽, каждая с новой строки").fill("5000")
+    steps = root.get_by_role("group", name="Шаги")
+    steps.get_by_role("button", name="Добавить шаг").click()
+    steps.get_by_label("Описание").fill("Текст без названия")
+    root.get_by_role("button", name="Сохранить", exact=True).click()
+    expect(root.locator("[data-error]")).to_have_text("Укажите название каждого шага.")
+    assert len(site[2]) == writes
+
+
 def test_office_course_modules_reorder_and_count_hours(page, site):
     modules = [
         {"title": "Введение", "points": [], "hours": "0,5 ак. ч.", "format": "Лекция"},

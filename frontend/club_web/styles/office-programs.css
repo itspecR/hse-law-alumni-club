@@ -36,6 +36,8 @@
 .program-editor__fields textarea { min-height: 120px; }
 .program-editor__side { position: sticky; top: 72px; display: grid; gap: 16px; min-width: 0; }
 .program-editor__caption { margin: 0; font-size: 13px; color: var(--c-text-3); }
+.office-campaign-raised { margin: 0; font-size: 15px; color: var(--c-text-3); font-variant-numeric: tabular-nums; }
+.office-campaign-raised strong { display: block; font: 200 32px/1.1 var(--f-display); letter-spacing: -0.03em; color: var(--c-text); }
 .office-program-preview { overflow: hidden; border-radius: var(--r-lg); background: var(--c-bg-raised); }
 .office-program-preview__media { aspect-ratio: 16 / 9; overflow: hidden; background: var(--c-bg-sunken); }
 .office-program-preview__media:not(:has(img)) { aspect-ratio: auto; height: 104px; }

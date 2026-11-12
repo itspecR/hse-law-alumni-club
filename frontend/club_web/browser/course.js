@@ -1,8 +1,7 @@
-const NEW_MODULE = "Новый модуль";
 const HOURS = /(\d+(?:[.,]\d+)?)/;
 
-function field(row, name) {
-  return row.querySelector(`[data-module-field="${name}"]`).value.trim();
+function inputs(row) {
+  return [...row.querySelectorAll("[data-module-field]")];
 }
 
 function rows(editor) {
@@ -10,22 +9,27 @@ function rows(editor) {
 }
 
 function hours(row) {
-  const match = HOURS.exec(field(row, "hours"));
+  const match = HOURS.exec(row.querySelector('[data-module-field="hours"]').value);
   return match ? Number(match[1].replace(",", ".")) : null;
 }
 
-function summarize(row) {
-  row.querySelector('[data-module-summary="title"]').textContent = field(row, "title") || NEW_MODULE;
-  row.querySelector('[data-module-summary="meta"]').textContent = [field(row, "hours"), field(row, "format")].filter(Boolean).join(" · ");
+function summarize(row, editor) {
+  row.querySelector('[data-module-summary="title"]').textContent = inputs(row)[0].value.trim() || editor.dataset.modulesNew;
+  row.querySelector('[data-module-summary="meta"]').textContent = [...row.querySelectorAll("[data-module-meta]")].map(input => input.value.trim()).filter(Boolean).join(" · ");
+}
+
+function hourParts(modules) {
+  const known = modules.map(hours).filter(value => value !== null);
+  const sum = known.reduce((result, value) => result + value, 0);
+  const parts = known.length ? ["часов: " + sum.toLocaleString("ru-RU")] : [];
+  if (known.length < modules.length && modules.length) parts.push("часы указаны не у всех модулей");
+  return parts;
 }
 
 function total(editor) {
   const modules = rows(editor);
-  const known = modules.map(hours).filter(value => value !== null);
-  const sum = known.reduce((result, value) => result + value, 0);
-  const parts = ["Модулей: " + modules.length];
-  if (known.length) parts.push("часов: " + sum.toLocaleString("ru-RU"));
-  if (known.length < modules.length && modules.length) parts.push("часы указаны не у всех модулей");
+  const parts = [editor.dataset.modulesCount + ": " + modules.length];
+  if (editor.hasAttribute("data-modules-hours")) parts.push(...hourParts(modules));
   editor.querySelector("[data-modules-total]").textContent = parts.join(" · ");
 }
 
@@ -78,7 +82,7 @@ export function prepareCourse() {
     editor.addEventListener("input", event => {
       const row = event.target.closest("[data-module]");
       if (!row) return;
-      summarize(row);
+      summarize(row, editor);
       total(editor);
     });
     refresh(editor);

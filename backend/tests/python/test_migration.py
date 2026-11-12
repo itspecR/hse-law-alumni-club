@@ -39,7 +39,7 @@ def test_all_legacy_routes_are_present():
     }
     portfolio = {
         (method, "/admin/" + name + suffix)
-        for name in ("trainers", "portfolio", "cohorts")
+        for name in ("trainers", "portfolio", "cohorts", "campaigns")
         for method, suffix in (("GET", ""), ("POST", ""), ("PATCH", "/{id}"), ("DELETE", "/{id}"))
     }
     public = {
@@ -90,7 +90,7 @@ def test_all_legacy_routes_are_present():
         ("DELETE", "/admin/timeline/{id}"),
         ("POST", "/support/faq-event"),
     }
-    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 145
+    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 149
 
 
 def test_sentry_privacy():

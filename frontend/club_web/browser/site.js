@@ -152,7 +152,10 @@ function formBody(form) {
       if (!Number.isFinite(value)) throw new Error("Введите число.");
       if (input.hasAttribute("data-kopecks")) value = Math.round(value * KOPECKS);
     } else if (input.hasAttribute("data-lines")) {
-      value = value.split("\n").map(line => line.trim()).filter(Boolean);
+      value = lines(value);
+    } else if (input.hasAttribute("data-kopecks-lines")) {
+      value = lines(value).map(line => Math.round(Number(line.replace(/\s/g, "").replace(",", ".")) * KOPECKS));
+      if (!value.every(Number.isFinite)) throw new Error("Суммы пишутся числами, каждая с новой строки.");
     } else if (input.hasAttribute("data-json")) {
       if (!value.trim()) continue;
       try { value = JSON.parse(value); } catch { throw new Error("Проверьте формат JSON в поле «" + input.closest("label").childNodes[0].textContent.trim() + "»."); }
@@ -163,18 +166,32 @@ function formBody(form) {
       body[group][name] = value;
     } else body[input.name] = value;
   }
-  for (const editor of form.querySelectorAll("[data-modules]")) body[editor.dataset.modules] = [...editor.querySelectorAll(":scope > [data-module]")].map(moduleBody).filter(module => module.title);
+  for (const editor of form.querySelectorAll("[data-modules]")) body[editor.dataset.modules] = [...editor.querySelectorAll(":scope > [data-module]")].map(moduleBody).filter(filled);
   if (body.repeat_password !== undefined) { if (body.password !== body.repeat_password) throw new Error("Пароли не совпадают."); delete body.repeat_password; }
   if (body.variant_sku === "") body.variant_sku = null;
   if (form.hasAttribute("data-registration")) body.ref = new URLSearchParams(location.search).get("ref") || null;
   return body;
 }
 
+function lines(text) {
+  return text.split("\n").map(line => line.trim()).filter(Boolean);
+}
+
+function moduleValue(input, primary) {
+  const text = input.value.trim();
+  if (input.hasAttribute("data-module-lines")) return lines(text);
+  return primary ? text : text || null;
+}
+
 function moduleBody(row) {
-  const value = field => row.querySelector(`[data-module-field="${field}"]`).value.trim();
-  const module = { title: value("title"), points: value("points").split("\n").map(line => line.trim()).filter(Boolean), hours: value("hours") || null, format: value("format") || null };
-  if (!module.title && (module.points.length || module.hours || module.format)) throw new Error("Укажите тему каждого модуля.");
-  return module;
+  const values = [...row.querySelectorAll("[data-module-field]")].map((input, index) => [input.dataset.moduleField, moduleValue(input, index === 0)]);
+  const [[, primary], ...rest] = values;
+  if (!primary && rest.some(([, value]) => Array.isArray(value) ? value.length : value)) throw new Error(row.closest("[data-modules]").dataset.modulesRequired);
+  return Object.fromEntries(values);
+}
+
+function filled(module) {
+  return Object.values(module)[0];
 }
 
 function formError(form, message) {

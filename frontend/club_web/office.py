@@ -1,7 +1,7 @@
 from club_web.formatting import date, rub
 
 GROUPS = [
-    ("Работа клуба", ("overview", "orders", "donations", "promo-codes", "members", "subs", "support")),
+    ("Работа клуба", ("overview", "orders", "donations", "campaigns", "promo-codes", "members", "subs", "support")),
     (
         "Публикации",
         (
@@ -29,11 +29,120 @@ PORTFOLIO_BLOCKS = (
     ("program-course", "Программа курса", ("modules",)),
     ("program-publish", "Публикация", ("cover", "enrollment", "status")),
 )
+CAMPAIGN_BLOCKS = (
+    (
+        "campaign-main",
+        "Основное",
+        ("title", "subtitle", "slug", "lede", "date_text", "time_text", "place_text", "duration_text"),
+    ),
+    (
+        "campaign-goal",
+        "Цель и суммы",
+        ("goal_title", "goal_text", "goal_amount", "extra_amount", "invite_threshold", "amounts"),
+    ),
+    ("campaign-about", "О мероприятии", ("about_title", "about", "highlights", "trainer_ids")),
+    (
+        "campaign-program",
+        "Программа",
+        ("program_title", "modules", "feature_note", "feature_title", "feature_text", "results_title", "results"),
+    ),
+    ("campaign-rules", "Как устроен сбор", ("steps", "faq", "note")),
+    ("campaign-letters", "Платеж и приглашение", ("payment_purpose", "invite_subject", "invite_body")),
+    ("campaign-publish", "Публикация", ("status",)),
+)
+PROGRAM_EDITOR_LEDE = (
+    "Карточка программы показывает, как она будет выглядеть на сайте. Изменения появятся на сайте после сохранения."
+)
+CAMPAIGN_EDITOR_LEDE = "Сбор виден на сайте только со статусом «Опубликовано». Изменения появятся после сохранения."
+EDITORS = {
+    "portfolio": {
+        "list": "office/portfolio.html",
+        "editor": "office/portfolio-editor.html",
+        "blocks": PORTFOLIO_BLOCKS,
+        "lede": PROGRAM_EDITOR_LEDE,
+        "new": "Новая программа",
+        "missing": "Программа не найдена",
+    },
+    "campaigns": {
+        "list": "office/campaigns.html",
+        "editor": "office/campaign-editor.html",
+        "blocks": CAMPAIGN_BLOCKS,
+        "lede": CAMPAIGN_EDITOR_LEDE,
+        "new": "Новый сбор",
+        "missing": "Сбор не найден",
+    },
+}
+ROW_EDITORS = {
+    "modules": {
+        "new": "Новый модуль",
+        "add": "Добавить модуль",
+        "remove": "Удалить модуль",
+        "count": "Модулей",
+        "required": "Укажите тему каждого модуля.",
+        "hours": True,
+        "meta": ("hours", "format"),
+        "fields": (
+            ("title", "Тема", "text", True, ""),
+            ("hours", "Часы", "text", False, "Например, 2 ак. ч."),
+            ("format", "Формат", "text", False, ""),
+            ("points", "Содержание, каждый пункт с новой строки", "lines", True, ""),
+        ),
+    },
+    "schedule": {
+        "new": "Новый блок",
+        "add": "Добавить блок или перерыв",
+        "remove": "Удалить блок",
+        "count": "Блоков",
+        "required": "Укажите название каждого блока.",
+        "hours": False,
+        "meta": ("time",),
+        "fields": (
+            ("title", "Название блока или перерыва", "text", True, ""),
+            ("time", "Время", "text", False, "Например, 10:00-11:30"),
+            ("note", "Что получит участник", "text", True, ""),
+            ("points", "Содержание, каждый пункт с новой строки", "lines", True, ""),
+        ),
+    },
+    "highlights": {
+        "new": "Новая цифра",
+        "add": "Добавить цифру",
+        "remove": "Удалить цифру",
+        "count": "Цифр",
+        "required": "Укажите значение каждой цифры.",
+        "hours": False,
+        "meta": ("label",),
+        "fields": (
+            ("value", "Число или короткое значение", "text", False, "Например, 6"),
+            ("label", "Подпись", "text", False, "Например, часов практики"),
+        ),
+    },
+    "steps": {
+        "new": "Новый шаг",
+        "add": "Добавить шаг",
+        "remove": "Удалить шаг",
+        "count": "Шагов",
+        "required": "Укажите название каждого шага.",
+        "hours": False,
+        "meta": (),
+        "fields": (("title", "Название шага", "text", True, ""), ("text", "Описание", "textarea", True, "")),
+    },
+    "faq": {
+        "new": "Новый вопрос",
+        "add": "Добавить вопрос",
+        "remove": "Удалить вопрос",
+        "count": "Вопросов",
+        "required": "Укажите текст каждого вопроса.",
+        "hours": False,
+        "meta": (),
+        "fields": (("question", "Вопрос", "text", True, ""), ("answer", "Ответ", "textarea", True, "")),
+    },
+}
 DESCRIPTIONS = {
     "overview": "Заявки, проверка выпускников и состояние сервисов клуба.",
     "analytics": "Участники, заявки и активность за выбранный период.",
     "orders": "Заявки на программы, мерч и подписки.",
     "donations": "Пожертвования на развитие факультета: оплаты через ЮKassa и итог за период.",
+    "campaigns": "Сборы на отдельную цель: страница на сайте, счетчик собранного и приглашение дарителям.",
     "promo-codes": "Скидки по коду для программ клуба: срок, лимиты и программы.",
     "members": "Профили выпускников, проверка статуса и возможности клуба.",
     "subs": "Доступ к подкастам и прослушивания выпусков.",
@@ -114,9 +223,9 @@ def status_values(section):
     return STATUS_FILTERS.get(section) or (kinds[0] if kinds else [])
 
 
-def portfolio_blocks():
-    fields = {field[0]: field for field in FIELDS["portfolio"]}
-    return [(anchor, title, [fields[name] for name in names]) for anchor, title, names in PORTFOLIO_BLOCKS]
+def editor_blocks(section):
+    fields = {field[0]: field for field in FIELDS[section]}
+    return [(anchor, title, [fields[name] for name in names]) for anchor, title, names in EDITORS[section]["blocks"]]
 
 
 def visible_groups(full_admin):
@@ -178,6 +287,40 @@ FIELDS = {
         ("modules", "Программа курса", "modules"),
         ("cover", "Обложка", "text"),
         ("status", "Статус", "published|draft|archived"),
+    ],
+    "campaigns": [
+        ("title", "Название", "text"),
+        ("subtitle", "Подзаголовок", "text"),
+        ("slug", "Адрес страницы: латиница, цифры и дефис. Страница откроется по адресу /give/адрес", "text"),
+        ("lede", "Короткое вступление для первого экрана и блока на главной", "textarea"),
+        ("date_text", "Когда", "text"),
+        ("time_text", "Время", "text"),
+        ("place_text", "Где", "text"),
+        ("duration_text", "Длительность", "text"),
+        ("goal_title", "Цель сбора", "text"),
+        ("goal_text", "Рассказ о цели", "textarea"),
+        ("goal_amount", "Сумма цели, ₽", "rubles"),
+        ("extra_amount", "Добавить к собранному вручную, ₽. Например, переводы мимо сайта", "rubles"),
+        ("invite_threshold", "Порог приглашения, ₽. Приглашение можно отправить дарителю от этой суммы", "rubles"),
+        ("amounts", "Суммы в форме, ₽, каждая с новой строки", "ruble-lines"),
+        ("about_title", "Заголовок описания", "text"),
+        ("about", "Описание", "textarea"),
+        ("highlights", "Цифры", "highlights"),
+        ("trainer_ids", "Спикеры", "trainers"),
+        ("program_title", "Заголовок программы", "text"),
+        ("modules", "Программа по блокам", "schedule"),
+        ("feature_note", "Надпись над выделенным блоком", "text"),
+        ("feature_title", "Заголовок выделенного блока", "text"),
+        ("feature_text", "Текст выделенного блока", "textarea"),
+        ("results_title", "Заголовок результатов", "text"),
+        ("results", "Результаты, каждый с новой строки", "lines"),
+        ("steps", "Шаги", "steps"),
+        ("faq", "Вопросы и ответы", "faq"),
+        ("note", "Пояснение под формой пожертвования", "textarea"),
+        ("payment_purpose", "Назначение платежа после слова «Пожертвование». Пусто - на развитие факультета", "text"),
+        ("invite_subject", "Тема письма-приглашения", "text"),
+        ("invite_body", "Текст письма-приглашения", "textarea"),
+        ("status", "Статус", "draft|published|archived"),
     ],
     "cohorts": [
         ("program_id", "Программа", "program"),

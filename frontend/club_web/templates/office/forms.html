@@ -17,31 +17,47 @@
 </select></label>
 {% if not office_options.get(source) %}<p class="office-meta">{{ office_choices[source][1] }} Добавьте их в разделе <a href="/admin/{{ source }}">«{{ dict(office_nav)[source] }}»</a>.</p>{% endif %}
 {% endmacro %}
-{% macro module_row(module={},open=false) %}
+{% macro editor_row(shape,row={},open=false) %}
 <div class="office-module{{ ' is-open' if open }}" data-module>
 <div class="office-module__head">
-<button type="button" class="office-module__toggle" data-action="module-toggle" aria-expanded="{{ 'true' if open else 'false' }}"><span class="office-module__number" aria-hidden="true"></span><span class="office-module__title" data-module-summary="title">{{ module.title or 'Новый модуль' }}</span><span class="office-module__meta" data-module-summary="meta">{{ [module.hours,module.format]|select|join(' · ') }}</span></button>
+<button type="button" class="office-module__toggle" data-action="module-toggle" aria-expanded="{{ 'true' if open else 'false' }}"><span class="office-module__number" aria-hidden="true"></span><span class="office-module__title" data-module-summary="title">{{ row[shape.fields[0][0]] or shape.new }}</span><span class="office-module__meta" data-module-summary="meta">{% set meta=[] %}{% for key in shape.meta %}{% if row[key] %}{% set _=meta.append(row[key]) %}{% endif %}{% endfor %}{{ meta|join(' · ') }}</span></button>
 <div class="office-module__tools">
 <button type="button" class="office-module__tool" data-action="module-up" aria-label="Выше">{{ icon('up') }}</button>
 <button type="button" class="office-module__tool" data-action="module-down" aria-label="Ниже">{{ icon('down') }}</button>
 </div>
 </div>
 <div class="office-module__body"{% if not open %} hidden{% endif %}>
-<label class="site-field office-module__wide">Тема<input data-module-field="title" value="{{ module.title or '' }}"></label>
-<label class="site-field">Часы<input data-module-field="hours" value="{{ module.hours or '' }}" placeholder="Например, 2 ак. ч."></label>
-<label class="site-field">Формат<input data-module-field="format" value="{{ module.format or '' }}"></label>
-<label class="site-field office-module__wide">Содержание, каждый пункт с новой строки<textarea data-module-field="points">{{ (module.points or [])|join('\n') }}</textarea></label>
-<button type="button" class="site-danger" data-action="module-remove">Удалить модуль</button>
+{% for key,title,kind,wide,hint in shape.fields %}
+<label class="site-field{{ ' office-module__wide' if wide }}">{{ title }}{% if kind=='lines' %}<textarea data-module-field="{{ key }}" data-module-lines>{{ (row[key] or [])|join('\n') }}</textarea>{% elif kind=='textarea' %}<textarea data-module-field="{{ key }}">{{ row[key] or '' }}</textarea>{% else %}<input data-module-field="{{ key }}" value="{{ row[key] or '' }}"{% if key in shape.meta %} data-module-meta{% endif %}{% if hint %} placeholder="{{ hint }}"{% endif %}>{% endif %}</label>
+{% endfor %}
+<button type="button" class="site-danger" data-action="module-remove">{{ shape.remove }}</button>
 </div>
 </div>
 {% endmacro %}
-{% macro modules(name,label,items) %}
-<fieldset class="office-modules" data-modules="{{ name }}"><legend>{{ label }}</legend>
+{% macro row_editor(name,label,items,shape) %}
+<fieldset class="office-modules" data-modules="{{ name }}" data-modules-count="{{ shape.count }}" data-modules-new="{{ shape.new }}" data-modules-required="{{ shape.required }}"{% if shape.hours %} data-modules-hours{% endif %}><legend>{{ label }}</legend>
 <p class="office-modules__total" data-modules-total aria-live="polite"></p>
-{% for module in items %}{{ module_row(module) }}{% endfor %}
-<template>{{ module_row(open=true) }}</template>
-<button type="button" data-action="module-add">Добавить модуль</button>
+{% for row in items %}{{ editor_row(shape,row) }}{% endfor %}
+<template>{{ editor_row(shape,open=true) }}</template>
+<button type="button" data-action="module-add">{{ shape.add }}</button>
 </fieldset>
+{% endmacro %}
+{% macro block_nav(blocks,label) %}
+<nav class="program-editor__nav" aria-label="{{ label }}">
+{% for anchor,heading,fields in blocks %}<a href="#{{ anchor }}" data-block-link>{{ heading }}</a>{% endfor %}
+</nav>
+{% endmacro %}
+{% macro block_sections(blocks,record) %}
+<div class="program-editor__blocks">
+{% for anchor,heading,fields in blocks %}
+<section class="program-editor__block" id="{{ anchor }}" aria-labelledby="{{ anchor }}-title">
+<h2 id="{{ anchor }}-title">{{ heading }}</h2>
+<div class="program-editor__fields">
+{% for name,label,kind in fields %}{{ field_control(name,label,kind,record) }}{% endfor %}
+</div>
+</section>
+{% endfor %}
+</div>
 {% endmacro %}
 {% macro field_control(name,label,kind,record) %}
 {% set value=(record.get('dates') or {}).get('start') if section in ('programs','portfolio') and name=='start' else record.get(name) %}
@@ -50,8 +66,8 @@
 {{ choices(name,label,value or [],kind) }}
 {% elif kind in office_single %}
 {{ single(name,label,value,office_single[kind]) }}
-{% elif kind=='modules' %}
-{{ modules(name,label,value or []) }}
+{% elif kind in office_row_editors %}
+{{ row_editor(name,label,value or [],office_row_editors[kind]) }}
 {% else %}
 <label class="site-field">{{ label }}{% if '|' in kind %}
 <select name="{{ name }}" aria-label="{{ label }}">
@@ -61,6 +77,8 @@
 </select>
 {% elif kind=='lines' %}
 <textarea name="{{ name }}" aria-label="{{ label }}" data-lines>{{ (value or [])|join('\n') }}</textarea>
+{% elif kind=='ruble-lines' %}
+<textarea name="{{ name }}" aria-label="{{ label }}" data-kopecks-lines>{{ (value or [])|map('rubles_input')|join('\n') }}</textarea>
 {% elif kind in ('textarea','json') %}
 <textarea name="{{ name }}" aria-label="{{ label }}" {% if kind=='json' %}data-json{% endif %}>{{ (value|tojson) if kind=='json' and value else value or '' }}</textarea>
 {% elif kind=='checkbox' %}

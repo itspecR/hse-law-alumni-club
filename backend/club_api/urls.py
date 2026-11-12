@@ -2,6 +2,7 @@ from django.urls import path
 
 import club_api.modules.analytics.pageviews as analytics_pageviews
 import club_api.modules.auth.routes as auth_routes
+import club_api.modules.campaigns.admin as campaigns_admin
 import club_api.modules.campaigns.routes as campaigns_routes
 import club_api.modules.catalog.center as catalog_sync
 import club_api.modules.checkout.admin as checkout_admin
@@ -166,6 +167,7 @@ routes = (
     ]
     + content_admin.urlpatterns
     + portfolio_admin.urlpatterns
+    + campaigns_admin.urlpatterns
     + portfolio_promo.urlpatterns
     + portfolio_cohorts.urlpatterns
     + podcasts_routes.urlpatterns
