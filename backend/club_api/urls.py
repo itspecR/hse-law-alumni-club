@@ -2,6 +2,7 @@ from django.urls import path
 
 import club_api.modules.analytics.pageviews as analytics_pageviews
 import club_api.modules.auth.routes as auth_routes
+import club_api.modules.campaigns.routes as campaigns_routes
 import club_api.modules.catalog.center as catalog_sync
 import club_api.modules.checkout.admin as checkout_admin
 import club_api.modules.checkout.cart as checkout_cart
@@ -93,6 +94,8 @@ routes = (
         path("payments/yookassa/webhook", endpoint({"POST": checkout_payments.webhook})),
         path("donations", endpoint({"POST": donations_routes.donate})),
         path("donations/config", endpoint({"GET": donations_routes.donation_config})),
+        path("campaigns/current", endpoint({"GET": campaigns_routes.current})),
+        path("campaigns/<str:slug>", endpoint({"GET": campaigns_routes.campaign})),
         path("orders", endpoint({"POST": checkout_orders.create_order})),
         path("me/orders", endpoint({"GET": checkout_orders.my_orders})),
         path("admin/orders", endpoint({"GET": checkout_admin.orders})),
