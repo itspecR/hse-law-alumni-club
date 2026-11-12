@@ -563,6 +563,9 @@ async def give_page(page):
     data.update(give_amounts=GIVE_AMOUNTS, give_chosen=GIVE_CHOSEN)
 
 
+OFFICE_QUERY_KEYS = ("q", "status", "payment", "page", "range", "campaign")
+
+
 def office_pagination(data, params, section):
     records = data.get("records") or {}
     current = pagination_page(params.get("page", "1"))
@@ -606,7 +609,7 @@ async def office_records(page, section):
     elif section == "pages":
         await load("record", "/admin/pages/home", {})
     else:
-        query = urlencode({key: params[key] for key in ("q", "status", "payment", "page", "range") if key in params})
+        query = urlencode({key: params[key] for key in OFFICE_QUERY_KEYS if key in params})
         await load("records", OFFICE_ENDPOINTS[section] + ("?" + query if query else ""), [])
 
 

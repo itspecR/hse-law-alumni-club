@@ -2,6 +2,10 @@
 {% set statuses=donations.statuses or {} %}
 {% set summary=donations.summary or {} %}
 {% set period=donations.range or query.get('range','') %}
+{% set campaigns=donations.campaigns or {} %}
+{% set campaign=query.get('campaign','') %}
+{% set export=dict(q=query.get('q',''),status=query.get('status',''),range=period) %}
+{% if campaign %}{% set export=dict(export,campaign=campaign) %}{% endif %}
 <form class="site-filters">
 <label>Поиск<input name="q" value="{{ query.get('q','') }}" placeholder="Номер, почта или имя">
 </label>
@@ -18,13 +22,22 @@
 {% endfor %}
 </select>
 </label>
+{% if campaigns %}
+<label>Сбор<select aria-label="Сбор" name="campaign">
+<option value="">Все</option>
+{% for value,title in campaigns.items() %}
+<option value="{{ value }}" {% if campaign==value %}selected{% endif %}>{{ title }}</option>
+{% endfor %}
+</select>
+</label>
+{% endif %}
 <button>Показать</button>
 </form>
 <div class="site-metrics">
 <article><strong>{{ summary.count or 0 }}</strong><span>Оплачено пожертвований за период</span></article>
 <article><strong>{{ (summary.amount or 0)|rub }}</strong><span>Получено за период</span></article>
 </div>
-<div class="office-toolbar"><p>Найдено: {{ donations.total or 0 }}</p><button data-download="/admin/donations/export.csv?{{ dict(q=query.get('q',''),status=query.get('status',''),range=period)|urlencode }}" data-filename="donations.csv">Скачать CSV</button></div>
+<div class="office-toolbar"><p>Найдено: {{ donations.total or 0 }}</p><button data-download="/admin/donations/export.csv?{{ export|urlencode }}" data-filename="donations.csv">Скачать CSV</button></div>
 <div class="office-list">
 {% for donation in rows %}
 <article class="site-panel office-record">
@@ -33,7 +46,7 @@
 <span class="office-status" data-status="{{ donation.status }}">{{ statuses.get(donation.status,donation.status) }}</span>
 </div>
 <p>{{ donation.name or 'Без имени' }} · {{ donation.email }}{% if donation.alumni_id %} · выпускник{% endif %}</p>
-<p class="office-meta">Создано {{ donation.created_at|date(true) }}{% if donation.method == 'transfer' %} · перевод по реквизитам{% endif %}{% if donation.paid_at %} · оплачено {{ donation.paid_at|date(true) }}{% endif %}{% if donation.payment_id %} · платеж {{ donation.payment_id }}{% endif %}</p>
+<p class="office-meta">Создано {{ donation.created_at|date(true) }}{% if donation.method == 'transfer' %} · перевод по реквизитам{% endif %}{% if donation.paid_at %} · оплачено {{ donation.paid_at|date(true) }}{% endif %}{% if donation.payment_id %} · платеж {{ donation.payment_id }}{% endif %}{% if donation.campaign_id %} · сбор «{{ campaigns.get(donation.campaign_id,'удален') }}»{% endif %}{% if donation.invited_at %} · приглашение отправлено {{ donation.invited_at|date(true) }}{% endif %}</p>
 {% if donation.status == 'awaiting' %}
 <div class="site-actions">
 <button data-api="/admin/donations/{{ donation.number|urlencode }}/received" data-confirm="Перевод {{ donation.amount|rub }} по пожертвованию {{ donation.number }} поступил на счет клуба? Дарителю уйдет письмо с благодарностью.">Перевод получен</button>

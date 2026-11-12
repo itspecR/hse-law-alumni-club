@@ -4,6 +4,7 @@ from uuid import uuid4
 from club_api.core.errors import ApiError
 from club_api.db.store import normalize
 from club_api.domain import rubles
+from club_api.modules.campaigns.store import payment_purpose
 from club_api.modules.checkout.payments import DONATION_KEY, paid_kopecks
 from club_api.modules.checkout.store import next_number
 from club_api.modules.notifications.mail import CLUB_NAME, club_subject
@@ -12,8 +13,8 @@ from club_api.resources import shared_data
 
 DONATION_TABLE = "club_donations"
 DONATION_PURPOSE = "на развитие факультета права НИУ ВШЭ"
-DONATION_DESCRIPTION = "Пожертвование " + DONATION_PURPOSE
 DONATION_CONSENTS = shared_data("legal-data.json")["donation_consents"]
+CAMPAIGN_CONSENTS = {**DONATION_CONSENTS, **shared_data("legal-data.json")["campaign_consents"]}
 THANKS_PATH = "/give/thanks"
 ONCE = "once"
 CARD = "card"
@@ -44,20 +45,24 @@ def greeting(donation):
     return f"Здравствуйте, {donation['name']}!" if donation["name"] else "Здравствуйте!"
 
 
-def thanks_text(donation):
+def payment_description(purpose):
+    return "Пожертвование " + purpose
+
+
+def thanks_text(donation, purpose):
     return (
-        f"{greeting(donation)}\n\nМы получили Ваше пожертвование {rubles(donation['amount'])} {DONATION_PURPOSE}. "
+        f"{greeting(donation)}\n\nМы получили Ваше пожертвование {rubles(donation['amount'])} {purpose}. "
         f"Номер пожертвования {donation['number']}.\n\nСпасибо за поддержку.\n\n{CLUB_NAME}"
     )
 
 
-def transfer_purpose(number):
-    return f"Пожертвование {number} {DONATION_PURPOSE}"
+def transfer_purpose(number, purpose):
+    return f"Пожертвование {number} {purpose}"
 
 
-def transfer_text(donation, transfer):
+def transfer_text(donation, transfer, purpose):
     return (
-        f"{greeting(donation)}\n\nВы оформили пожертвование {rubles(donation['amount'])} {DONATION_PURPOSE}, "
+        f"{greeting(donation)}\n\nВы оформили пожертвование {rubles(donation['amount'])} {purpose}, "
         f"номер {donation['number']}. Чтобы его завершить, переведите деньги по реквизитам.\n\n"
         f"{requisites_text(transfer)}\n\n"
         f"Когда перевод поступит на счет клуба, мы пришлем письмо с благодарностью.\n\n{CLUB_NAME}"
@@ -75,7 +80,10 @@ class Donations:
     def __init__(self, state):
         self.state = state
 
-    async def create(self, *, amount, email, name, alumni_id, method=CARD):
+    async def purpose(self, donation):
+        return await payment_purpose(self.state, donation.get("campaign_id")) or DONATION_PURPOSE
+
+    async def create(self, *, amount, email, name, alumni_id, method=CARD, campaign_id=None):
         async with self.state.database.transaction() as connection:
             number = await next_number(connection, DONATION_TABLE)
             await self.state.store.create(
@@ -90,22 +98,25 @@ class Donations:
                     "alumni_id": alumni_id,
                     "status": AWAITING if method == TRANSFER else NEW,
                     "method": method,
-                    "consents": DONATION_CONSENTS,
+                    "consents": CAMPAIGN_CONSENTS if campaign_id else DONATION_CONSENTS,
                     "created_at": datetime.now(UTC),
+                    "campaign_id": campaign_id,
                 },
                 connection=connection,
             )
-        return {"number": number, "amount": amount, "email": email, "name": name or None}
+        return {"number": number, "amount": amount, "email": email, "name": name or None, "campaign_id": campaign_id}
 
     async def start_payment(self, donation):
+        description = payment_description(await self.purpose(donation))
         return await self.state.payments.create_donation(
-            donation["number"], donation["amount"], DONATION_DESCRIPTION, THANKS_PATH
+            donation["number"], donation["amount"], description, THANKS_PATH
         )
 
     async def start_transfer(self, donation):
-        transfer = self.state.transfer.details(donation["amount"], transfer_purpose(donation["number"]))
+        purpose = await self.purpose(donation)
+        transfer = self.state.transfer.details(donation["amount"], transfer_purpose(donation["number"], purpose))
         await self.state.notifications.mail_applicant(
-            donation["email"], club_subject("Реквизиты для пожертвования"), transfer_text(donation, transfer)
+            donation["email"], club_subject("Реквизиты для пожертвования"), transfer_text(donation, transfer, purpose)
         )
         await self.state.notifications.office_text(awaiting_notice(donation))
         return transfer
@@ -150,7 +161,9 @@ class Donations:
 
     async def thank(self, donation):
         await self.state.notifications.mail_applicant(
-            donation["email"], club_subject("Спасибо за пожертвование"), thanks_text(donation)
+            donation["email"],
+            club_subject("Спасибо за пожертвование"),
+            thanks_text(donation, await self.purpose(donation)),
         )
         await self.state.notifications.office_text(
             f"Пожертвование {donation['number']} на сумму {rubles(donation['amount'])} получено."

@@ -1381,11 +1381,13 @@ AWAITING_TRANSFER = {
 }
 
 
-async def office_donations(listing):
+async def office_donations(listing, query="", asked=None):
     async def upstream(request):
         if request.url.path == "/auth/admin-session":
             return httpx.Response(200, json={"role": "admin"})
         if request.url.path == "/admin/donations":
+            if asked is not None:
+                asked.append(dict(request.url.params))
             return httpx.Response(200, json=listing)
         return httpx.Response(200, json=[])
 
@@ -1393,7 +1395,28 @@ async def office_donations(listing):
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
         ) as client:
-            return plain((await client.get("/views/admin/donations", headers=ADMIN)).text)
+            return plain((await client.get("/views/admin/donations" + query, headers=ADMIN)).text)
+
+
+async def test_donations_are_filtered_and_exported_by_campaign():
+    campaigns = {"camp-1": "Искусство влияния", "camp-2": "Другой сбор"}
+    linked = {**DONATIONS_PAGE["items"][0], "campaign_id": "camp-1", "invited_at": "2026-11-06T09:30:00Z"}
+    orphan = {**DONATIONS_PAGE["items"][1], "campaign_id": "camp-9"}
+    asked = []
+    listing = {**DONATIONS_PAGE, "items": [linked, orphan], "campaigns": campaigns}
+    page = await office_donations(listing, "?campaign=camp-1&range=all", asked)
+    assert asked == [{"range": "all", "campaign": "camp-1"}]
+    assert '<label>Сбор<select aria-label="Сбор" name="campaign">' in page
+    assert '<option value="camp-1" selected>Искусство влияния</option>' in page
+    assert '<option value="camp-2" >Другой сбор</option>' in page
+    assert " · сбор «Искусство влияния» · приглашение отправлено 6 ноября" in page
+    assert " · сбор «удален»</p>" in page
+    assert 'export.csv?q=&amp;status=&amp;range=30d&amp;campaign=camp-1"' in page
+
+
+async def test_donations_without_campaigns_have_no_campaign_filter():
+    page = await office_donations(DONATIONS_PAGE)
+    assert 'name="campaign"' not in page and "сбор «" not in page and "campaign=" not in page
 
 
 async def test_only_awaiting_transfer_has_received_button():
