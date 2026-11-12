@@ -1,0 +1,5 @@
+{% from 'campaign-art.html' import meter %}
+<div class="camp-panel-head">
+{% if give_campaign.goal_title %}<p class="camp-panel-head__goal">{{ give_campaign.goal_title }}</p>{% endif %}
+{{ meter(give_campaign,'camp-panel-meter') }}
+</div>

@@ -1,0 +1,62 @@
+{% from 'macros.html' import field %}
+{% from 'macros.html' import name_field with context %}
+<form class="lux-tile give-form" data-give-form data-min="{{ donation.min }}" data-max="{{ donation.max }}" novalidate>
+<h2 class="lux-sr" id="give-form-title">Пожертвование</h2>
+{% if give_campaign %}{% include 'campaign-meter.html' %}{% endif %}
+<p class="give-amount" aria-hidden="true"><span class="give-amount__value" data-give-value>{{ give_chosen|rub|replace(' ₽','') }}</span><span class="give-amount__unit">₽</span></p>
+<fieldset class="give-group">
+<legend class="give-group__label">Как часто</legend>
+<div class="lux-seg give-seg" style="--seg-n:2">
+<span class="lux-seg__thumb" aria-hidden="true"></span>
+<label class="lux-seg__opt"><input type="radio" name="period" value="once" checked><span>Разово</span></label>
+<label class="lux-seg__opt give-seg__soon"><input type="radio" name="period" value="monthly" disabled><span>Каждый месяц <small>Скоро</small></span></label>
+</div>
+</fieldset>
+<fieldset class="give-group">
+<legend class="give-group__label">Сумма</legend>
+<div class="lux-seg give-seg give-seg--sums" style="--seg-n:{{ give_amounts|length }}">
+<span class="lux-seg__thumb" aria-hidden="true"></span>
+{% for amount in give_amounts %}
+<label class="lux-seg__opt"><input type="radio" name="preset" value="{{ amount }}"{% if amount == give_chosen %} checked{% endif %}><span>{{ amount|rub|replace(' ₽','') }}</span></label>
+{% endfor %}
+</div>
+<label class="site-field give-other">Другая сумма, ₽<input type="text" name="other" inputmode="numeric" autocomplete="off" placeholder="Например, 2 500" data-give-other></label>
+</fieldset>
+{% set give_method = 'card' if donation.card or not donation.transfer else 'transfer' %}
+{% if donation.card and donation.transfer %}
+<fieldset class="give-group">
+<legend class="give-group__label">Как оплатить</legend>
+<div class="lux-seg give-seg" style="--seg-n:2">
+<span class="lux-seg__thumb" aria-hidden="true"></span>
+<label class="lux-seg__opt"><input type="radio" name="method" value="card" checked><span>Картой</span></label>
+<label class="lux-seg__opt"><input type="radio" name="method" value="transfer"><span>По QR-коду</span></label>
+</div>
+</fieldset>
+{% else %}
+<input type="hidden" name="method" value="{{ give_method }}">
+{% endif %}
+{{ name_field('name','Имя, необязательно',required=false) }}
+{{ field('email','Почта',type='email') }}
+<p class="give-hint">На&nbsp;почту придет подтверждение с&nbsp;суммой и&nbsp;номером пожертвования.</p>
+<label class="site-consent"><input type="checkbox" name="consent_offer" required><span>Принимаю <a href="/give/offer">условия оферты о&nbsp;пожертвовании</a></span></label>
+<label class="site-consent"><input type="checkbox" name="consent_pdn" required><span>Даю <a href="/give/consent">согласие на&nbsp;обработку персональных данных</a>. <a href="/privacy">Политика обработки персональных данных</a></span></label>
+{% if give_campaign %}<label class="site-consent"><input type="checkbox" name="consent_gift" required><span>Понимаю, что пожертвование безвозмездно и&nbsp;не&nbsp;является оплатой участия в&nbsp;мероприятиях</span></label>
+<input type="hidden" name="campaign" value="{{ give_campaign.slug }}">
+{% endif %}<input type="text" name="website" class="site-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true">
+<button class="foc lux-btn give-submit" data-give-submit{% if not donation.enabled %} disabled{% endif %}>Пожертвовать <span data-give-label>{{ give_chosen|rub }}</span></button>
+{% if donation.enabled %}
+<p class="give-hint give-hint--center" data-give-hint="card"{% if give_method != 'card' %} hidden{% endif %}>Оплата на&nbsp;странице ЮKassa. Клуб не&nbsp;получает и&nbsp;не&nbsp;хранит данные карты.</p>
+<p class="give-hint give-hint--center" data-give-hint="transfer"{% if give_method != 'transfer' %} hidden{% endif %}>Покажем QR-код для приложения банка и&nbsp;пришлем реквизиты на&nbsp;почту.</p>
+{% elif not load_errors.donation %}
+<p class="give-status" role="status">Прием пожертвований на&nbsp;сайте пока не&nbsp;подключен.</p>
+{% endif %}
+<p class="give-status" role="alert" data-error hidden></p>
+</form>
+<section class="lux-tile give-transfer" data-give-transfer aria-labelledby="give-transfer-title" tabindex="-1" hidden>
+<h2 class="give-transfer__title" id="give-transfer-title">Переведите <span data-transfer-amount></span></h2>
+<img class="give-transfer__qr" data-transfer-qr width="240" height="240" alt="QR-код для перевода пожертвования">
+<p class="give-hint">Откройте приложение банка и&nbsp;отсканируйте код в&nbsp;разделе оплаты по&nbsp;QR-коду. Если сайт открыт на&nbsp;телефоне, сохраните код или введите реквизиты вручную.</p>
+<a class="foc lux-btn lux-btn--ghost give-transfer__save" data-transfer-save download>Сохранить QR-код</a>
+<dl class="give-requisites" data-transfer-requisites></dl>
+<p class="give-hint">Номер пожертвования <b data-transfer-number></b>. Реквизиты отправили на&nbsp;почту. Когда перевод поступит на&nbsp;счет клуба, придет письмо с&nbsp;благодарностью.</p>
+</section>
