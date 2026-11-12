@@ -662,6 +662,8 @@ async def office_extras(page, section):
         data["office_names"][source] = {row["id"]: row["label"] for row in data["office_options"][source]}
     if section == "orders":
         data["office_cohorts"] = cohort_options(page_items(await load("cohorts", "/admin/cohorts", [])))
+    if section == "campaigns" and params.get("id") not in (None, "", NEW_RECORD):
+        await load("campaign_donors", "/admin/campaigns/" + quote(params["id"], safe="") + "/donors", {})
     if params.get("id") and section == "events":
         await load("roster", "/admin/events/" + quote(params["id"], safe="") + "/rsvps", [])
     if params.get("id") and section == "members" and full_admin:

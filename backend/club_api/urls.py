@@ -3,6 +3,7 @@ from django.urls import path
 import club_api.modules.analytics.pageviews as analytics_pageviews
 import club_api.modules.auth.routes as auth_routes
 import club_api.modules.campaigns.admin as campaigns_admin
+import club_api.modules.campaigns.invitations as campaigns_invitations
 import club_api.modules.campaigns.routes as campaigns_routes
 import club_api.modules.catalog.center as catalog_sync
 import club_api.modules.checkout.admin as checkout_admin
@@ -109,6 +110,11 @@ routes = (
         path("admin/donations", endpoint({"GET": donations_admin.donations})),
         path("admin/donations/export.csv", endpoint({"GET": donations_admin.export_donations})),
         path("admin/donations/<str:number>/received", endpoint({"POST": donations_admin.receive_transfer})),
+        path("admin/campaigns/<str:id>/donors", endpoint({"GET": campaigns_invitations.donors})),
+        path(
+            "admin/campaigns/<str:id>/donors/<str:number>/invite",
+            endpoint({"POST": campaigns_invitations.invite}),
+        ),
         path("podcasts", endpoint({"GET": podcasts_routes.podcasts})),
         path("podcasts/<str:id>/audio", endpoint({"GET": podcasts_routes.audio})),
         path("podcasts/subscribe", endpoint({"POST": podcasts_routes.subscribe})),

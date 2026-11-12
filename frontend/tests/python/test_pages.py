@@ -210,6 +210,36 @@ PUBLIC_CAMPAIGN = {
     "cover": None,
     "speakers": [{"id": "t-1", "fio": "Вымышленный Спикер", "photo": None, "bio": "Тренер"}],
 }
+CAMPAIGN_DONORS = {
+    "threshold": 1500000,
+    "letter_ready": True,
+    "items": [
+        {
+            "number": "DON-2026-000011",
+            "name": "Вымышленный Даритель",
+            "email": "donor@example.test",
+            "amount": 1500000,
+            "paid_at": "2026-11-05T10:05:00Z",
+            "invited_at": None,
+        },
+        {
+            "number": "DON-2026-000010",
+            "name": None,
+            "email": "second@example.test",
+            "amount": 5000000,
+            "paid_at": "2026-11-04T10:05:00Z",
+            "invited_at": "2026-11-06T09:30:00Z",
+        },
+        {
+            "number": "DON-2026-000009",
+            "name": None,
+            "email": "-",
+            "amount": 3000000,
+            "paid_at": "2026-01-04T10:05:00Z",
+            "invited_at": None,
+        },
+    ],
+}
 ADMIN = {"authorization": "Bearer admin-test"}
 EDITOR = {"authorization": "Bearer editor-test"}
 GIVE_CLOSED = "Прием пожертвований на&nbsp;сайте пока не&nbsp;подключен."
@@ -291,6 +321,7 @@ async def browser_client():
             "/admin/donations": DONATIONS_PAGE,
             "/admin/portfolio": [PORTFOLIO],
             "/admin/campaigns": [CAMPAIGN],
+            "/admin/campaigns/camp-1/donors": CAMPAIGN_DONORS,
             "/admin/overview": {"alumni_count": 1},
             "/admin/system-health": {"checks": []},
             "/admin/analytics": ANALYTICS,
@@ -1812,6 +1843,53 @@ async def test_campaign_editor_pages_for_existing_new_and_missing_campaign(brows
     assert created.index('<option value="draft" >Черновик</option>') < created.index('<option value="published" >')
     missing = (await browser_client.get("/views/admin/campaigns?id=unknown", headers=EDITOR)).text
     assert "Сбор не найден: возможно, его удалили." in missing and "data-program-editor" not in missing
+
+
+async def test_campaign_editor_lists_donors_for_invitation(browser_client):
+    page = plain((await browser_client.get("/views/admin/campaigns?id=camp-1", headers=EDITOR)).text)
+    block = page.split('id="campaign-invitations"', 1)[1].split("</section>", 1)[0]
+    assert "Дарители с оплаченным пожертвованием в этот сбор от 15 000 ₽." in block
+    assert "<h3>Вымышленный Даритель · 15 000 ₽</h3>" in block and "<h3>Без имени · 50 000 ₽</h3>" in block
+    assert block.count(">Отправить приглашение</button>") == 1 and "disabled" not in block
+    assert (
+        '<button data-api="/admin/campaigns/camp-1/donors/DON-2026-000011/invite" '
+        'data-confirm="Отправить приглашение на donor@example.test? Письмо уйдет один раз.">'
+    ) in block
+    assert "DON-2026-000010 · second@example.test · оплачено 4 ноября" in block
+    assert "приглашение отправлено 6 ноября" in block and block.count('data-status="succeeded"') == 1
+    assert "DON-2026-000009 · почта удалена по сроку хранения" in block
+    created = (await browser_client.get("/views/admin/campaigns?id=new", headers=EDITOR)).text
+    assert "campaign-invitations" not in created
+
+
+async def campaign_editor_with_donors(donors):
+    async def upstream(request):
+        replies = {
+            "/auth/admin-session": {"role": "editor"},
+            "/admin/campaigns": [CAMPAIGN],
+            "/admin/campaigns/camp-1/donors": donors,
+        }
+        return httpx.Response(200, json=replies.get(request.url.path, []))
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            return plain((await client.get("/views/admin/campaigns?id=camp-1", headers=EDITOR)).text)
+
+
+async def test_campaign_invitations_wait_for_letter_text():
+    page = await campaign_editor_with_donors({**CAMPAIGN_DONORS, "letter_ready": False})
+    assert "Заполните тему и текст письма-приглашения и сохраните сбор: до этого кнопки неактивны." in page
+    assert 'Письмо уйдет один раз." disabled>Отправить приглашение</button>' in page
+
+
+@pytest.mark.parametrize("donors", [[], {}, {"threshold": 0, "letter_ready": True, "items": []}])
+async def test_campaign_invitations_without_donors(donors):
+    page = await campaign_editor_with_donors(donors)
+    block = page.split('id="campaign-invitations"', 1)[1].split("</section>", 1)[0]
+    assert "Дарителей для приглашения пока нет." in block and "Отправить приглашение" not in block
+    assert "Дарители с оплаченным пожертвованием в этот сбор." in block
 
 
 async def test_program_modules_editor_keeps_hours_total(browser_client):
