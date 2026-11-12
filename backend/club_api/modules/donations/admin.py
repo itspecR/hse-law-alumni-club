@@ -7,6 +7,7 @@ from club_api.core.models import count, parse_date, query_choice, query_page, qu
 from club_api.core.views import api_view
 from club_api.db.store import normalize
 from club_api.modules.auth.service import require_full_admin
+from club_api.modules.campaigns.store import campaign_titles
 from club_api.modules.checkout.admin import csv_response
 from club_api.modules.donations.service import DONATION_TABLE
 from club_api.modules.office.analytics import sum_field
@@ -40,8 +41,23 @@ LIST_FIELDS = (
     "payment_id",
     "paid_at",
     "method",
+    "campaign_id",
+    "invited_at",
 )
-CSV_HEADER = ("Номер", "Дата", "Сумма, ₽", "Статус", "Имя", "Почта", "Выпускник", "Платеж ЮKassa", "Оплачено", "Способ")
+CSV_HEADER = (
+    "Номер",
+    "Дата",
+    "Сумма, ₽",
+    "Статус",
+    "Имя",
+    "Почта",
+    "Выпускник",
+    "Платеж ЮKassa",
+    "Оплачено",
+    "Способ",
+    "Сбор",
+    "Приглашение отправлено",
+)
 
 
 def requested_period(request):
@@ -54,8 +70,13 @@ def period_filter(period, now):
     return {"created_at": {"_gte": normalize(now - timedelta(days=PERIOD_DAYS[period]))}}
 
 
-def list_filters(request, period, now):
-    filters = [period_filter(period, now)]
+def campaign_filter(request, campaigns):
+    campaign = query_choice(request, "campaign", campaigns)
+    return {"campaign_id": {"_eq": campaign}} if campaign else {}
+
+
+def list_filters(request, period, now, campaigns):
+    filters = [period_filter(period, now), campaign_filter(request, campaigns)]
     status = query_choice(request, "status", STATUS_LABELS)
     search = query_search(request)
     if status:
@@ -66,8 +87,8 @@ def list_filters(request, period, now):
     return {"_and": active} if active else None
 
 
-async def paid_summary(store, period, now):
-    paid = {**period_filter(period, now), "status": {"_eq": PAID}}
+async def paid_summary(store, scope):
+    paid = {**scope, "status": {"_eq": PAID}}
     return {
         "count": await count(store, DONATION_TABLE, paid),
         "amount": await sum_field(store, DONATION_TABLE, "amount", paid),
@@ -80,7 +101,9 @@ async def donations(request: HttpRequest):
     store, now = request.services.store, datetime.now(UTC)
     page, limit = query_page(request)
     period = requested_period(request)
-    where = list_filters(request, period, now)
+    campaigns = await campaign_titles(store)
+    where = list_filters(request, period, now, campaigns)
+    scope = {**period_filter(period, now), **campaign_filter(request, campaigns)}
     return {
         "items": await store.read(
             DONATION_TABLE,
@@ -96,7 +119,8 @@ async def donations(request: HttpRequest):
         "range": period,
         "statuses": STATUS_LABELS,
         "periods": PERIOD_LABELS,
-        "summary": await paid_summary(store, period, now),
+        "campaigns": campaigns,
+        "summary": await paid_summary(store, scope),
     }
 
 
@@ -108,7 +132,7 @@ def rubles(kopecks):
     return f"{kopecks // 100},{kopecks % 100:02d}"
 
 
-def csv_row(donation):
+def csv_row(donation, campaigns):
     return [
         donation["number"],
         local_time(donation["created_at"]),
@@ -120,6 +144,8 @@ def csv_row(donation):
         donation["payment_id"],
         local_time(donation["paid_at"]),
         METHOD_LABELS.get(donation["method"], donation["method"]),
+        campaigns.get(donation["campaign_id"], ""),
+        local_time(donation["invited_at"]),
     ]
 
 
@@ -127,9 +153,11 @@ def csv_row(donation):
 async def export_donations(request: HttpRequest):
     admin = await require_full_admin(request)
     period = requested_period(request)
-    rows = await request.services.store.read(
+    store = request.services.store
+    campaigns = await campaign_titles(store)
+    rows = await store.read(
         DONATION_TABLE,
-        filters=list_filters(request, period, datetime.now(UTC)),
+        filters=list_filters(request, period, datetime.now(UTC), campaigns),
         fields=LIST_FIELDS,
         sort=("-created_at",),
         limit=-1,
@@ -137,7 +165,7 @@ async def export_donations(request: HttpRequest):
     await audit(
         request, "donations.export", actor="admin:" + admin["userId"], detail={"count": len(rows), "range": period}
     )
-    return csv_response([CSV_HEADER, *map(csv_row, rows)], "donations")
+    return csv_response([CSV_HEADER, *(csv_row(row, campaigns) for row in rows)], "donations")
 
 
 @api_view(permission=require_full_admin)
