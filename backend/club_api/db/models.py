@@ -270,10 +270,67 @@ class Donations(models.Model):
     paid_at = models.DateTimeField(null=True)
     consents = models.JSONField(null=True)
     created_at = models.DateTimeField(db_default=Now())
+    campaign = models.ForeignKey(
+        "Campaigns", on_delete=models.PROTECT, db_column="campaign_id", related_name="+", null=True
+    )
+    invited_at = models.DateTimeField(null=True)
 
     class Meta:
         db_table = "club_donations"
         indexes = [models.Index(fields=["status", "created_at"], name="club_donations_status_created")]
+
+
+class Campaigns(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, db_default=DatabaseUUID())
+    slug = models.CharField(max_length=64, unique=True)
+    status = models.CharField(max_length=16, db_default="draft")
+    title = models.CharField(max_length=255)
+    subtitle = models.CharField(max_length=255, null=True)
+    lede = models.TextField(null=True)
+    date_text = models.CharField(max_length=255, null=True)
+    time_text = models.CharField(max_length=255, null=True)
+    place_text = models.CharField(max_length=255, null=True)
+    duration_text = models.CharField(max_length=255, null=True)
+    goal_title = models.CharField(max_length=255, null=True)
+    goal_text = models.TextField(null=True)
+    goal_amount = models.BigIntegerField(db_default=0)
+    extra_amount = models.BigIntegerField(db_default=0)
+    invite_threshold = models.BigIntegerField(db_default=0)
+    amounts = models.JSONField(null=True)
+    about_title = models.CharField(max_length=255, null=True)
+    about = models.TextField(null=True)
+    highlights = models.JSONField(null=True)
+    program_title = models.CharField(max_length=255, null=True)
+    modules = models.JSONField(null=True)
+    feature_title = models.CharField(max_length=255, null=True)
+    feature_note = models.CharField(max_length=255, null=True)
+    feature_text = models.TextField(null=True)
+    results_title = models.CharField(max_length=255, null=True)
+    results = models.JSONField(null=True)
+    steps = models.JSONField(null=True)
+    faq = models.JSONField(null=True)
+    note = models.TextField(null=True)
+    payment_purpose = models.CharField(max_length=140, null=True)
+    invite_subject = models.CharField(max_length=255, null=True)
+    invite_body = models.TextField(null=True)
+    cover = models.CharField(max_length=255, null=True)
+    created_at = models.DateTimeField(db_default=Now())
+
+    class Meta:
+        db_table = "club_campaigns"
+
+
+class CampaignTrainers(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, db_default=DatabaseUUID())
+    campaign = models.ForeignKey("Campaigns", on_delete=models.CASCADE, db_column="campaign_id", related_name="+")
+    trainer = models.ForeignKey("Trainers", on_delete=models.CASCADE, db_column="trainer_id", related_name="+")
+    sort = models.IntegerField(db_default=0)
+
+    class Meta:
+        db_table = "club_campaign_trainers"
+        constraints = [
+            models.UniqueConstraint(fields=("campaign", "trainer"), name="uq_club_campaign_trainers_pair"),
+        ]
 
 
 class CaptchaUses(models.Model):

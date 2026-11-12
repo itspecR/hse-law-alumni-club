@@ -50,6 +50,8 @@ def test_all_legacy_routes_are_present():
         ("GET", "/portfolio/challenge"),
         ("POST", "/donations"),
         ("GET", "/donations/config"),
+        ("GET", "/campaigns/current"),
+        ("GET", "/campaigns/{slug}"),
         ("GET", "/transfers/{token}"),
     }
     promo = {
@@ -88,7 +90,7 @@ def test_all_legacy_routes_are_present():
         ("DELETE", "/admin/timeline/{id}"),
         ("POST", "/support/faq-event"),
     }
-    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 143
+    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 145
 
 
 def test_sentry_privacy():
