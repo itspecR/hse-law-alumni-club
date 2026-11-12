@@ -6,6 +6,7 @@ from urllib.parse import quote, urlencode
 
 from club_web import features
 from club_web.calendar import google_calendar, instant, month_view
+from club_web.campaigns import WAVE, campaign_facts, form_amounts
 from club_web.catalog import UPCOMING_LIMIT, club_programs_preview, prepare_catalog
 from club_web.changes import parse_changes, select_changes
 from club_web.client import ApiFailure
@@ -164,6 +165,7 @@ def select_page(path):
     for prefix, template in (
         ("/dpo/", "not-found.html"),
         ("/portfolio/", "portfolio-program.html"),
+        ("/give/", "campaign.html"),
         ("/merch/", "product.html"),
         ("/news/", "article.html"),
         ("/events/", "events.html"),
@@ -565,6 +567,23 @@ async def give_page(page):
     data.update(give_amounts=GIVE_AMOUNTS, give_chosen=GIVE_CHOSEN)
 
 
+async def campaign_page(page):
+    data, load, path = page.data, page.load, page.path
+    campaign = await load("item", "/campaigns/" + quote(path.rsplit("/", 1)[1], safe=""), {})
+    if not campaign:
+        return
+    await load("donation", "/donations/config", {"enabled": False, "card": False, "transfer": False})
+    amounts, chosen = form_amounts(campaign, GIVE_AMOUNTS, GIVE_CHOSEN)
+    data.update(
+        title=campaign["title"],
+        give_campaign=campaign,
+        give_amounts=amounts,
+        give_chosen=chosen,
+        campaign_wave=WAVE,
+        campaign_facts=campaign_facts(campaign),
+    )
+
+
 OFFICE_QUERY_KEYS = ("q", "status", "payment", "page", "range", "campaign")
 
 
@@ -667,6 +686,7 @@ PAGE_ROUTES = (
     (lambda page: page.path == "/cart" and "x-cart-session" in page.api.headers, cart_page),
     (lambda page: page.path == "/support", support_page),
     (lambda page: page.path == "/give", give_page),
+    (lambda page: page.template == "campaign.html", campaign_page),
     (lambda page: page.path.startswith("/admin"), office_page),
 )
 

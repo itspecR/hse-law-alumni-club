@@ -3144,6 +3144,92 @@ def test_give_form_checks_amount_and_opens_payment(chromium, site, width):
     context.close()
 
 
+SITE_CAMPAIGN = {
+    "slug": "intensive",
+    "title": "Искусство влияния",
+    "subtitle": "Имидж, речь, аудитория",
+    "lede": "Клуб собирает средства на оснащение аудитории.",
+    "date_text": "Дата уточняется",
+    "time_text": "10:00-17:00",
+    "place_text": "Москва",
+    "duration_text": "6 часов",
+    "goal_title": "Оснащение аудитории",
+    "goal_text": "Рассказ о цели.",
+    "goal_amount": 150000000,
+    "raised": 41200000,
+    "percent": 27,
+    "invite_threshold": 1500000,
+    "amounts": [500000, 1500000, 3000000, 5000000],
+    "about": "Однодневный интенсив.",
+    "highlights": [{"value": "6", "label": "часов практики"}],
+    "modules": [
+        {"title": "Сильное выступление", "time": "10:00-11:30", "note": "Структура", "points": ["Цель"]},
+        {"title": "Самопрезентация", "time": "11:45-12:35", "note": "Минута о себе", "points": ["Формула"]},
+    ],
+    "results": ["Строить выступление"],
+    "steps": [{"title": "Пожертвование", "text": "Любая сумма."}],
+    "faq": [{"question": "Это плата за участие?", "answer": "Нет."}],
+    "note": "Участие в интенсиве бесплатное.",
+    "speakers": [],
+}
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_campaign_page_requires_gift_confirmation_and_sends_campaign(chromium, site, width):
+    site[1]["/campaigns/intensive"] = SITE_CAMPAIGN
+    context = chromium.new_context(base_url=site[0], viewport={"width": width, "height": 900})
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+    page = context.new_page()
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.route(
+        "https://pay.example.test/**",
+        lambda route: route.fulfill(body="<title>Оплата</title>", content_type="text/html"),
+    )
+    page.goto("/give/intensive")
+    expect(page.get_by_role("heading", level=1)).to_have_text("Искусство влияния")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    fill = page.locator(".camp-meter__track:visible span").first
+    assert fill.evaluate("node => Math.round(100 * node.offsetWidth / node.parentElement.offsetWidth)") == 27
+    page.get_by_role("link", name="Поддержать сбор").click()
+    form = page.locator("[data-give-form]")
+    expect(form).to_be_in_viewport()
+    expect(form.locator("[data-give-label]")).to_have_text(re.compile(r"^15\s000 ₽$"))
+    second = page.locator(".camp-day__item").nth(1)
+    expect(second.locator("ul")).to_be_hidden()
+    second.locator("summary").click()
+    expect(second.locator("ul")).to_be_visible()
+    form.get_by_label("Почта").fill("donor@example.test")
+    form.get_by_role("checkbox", name=re.compile("условия оферты")).check()
+    form.get_by_role("checkbox", name=re.compile("согласие на обработку")).check()
+    form.get_by_role("button", name=re.compile("^Пожертвовать")).click()
+    assert not [write for write in site[2] if write["path"] == "/donations"]
+    form.get_by_role("checkbox", name=re.compile("пожертвование безвозмездно")).check()
+    form.get_by_role("button", name=re.compile("^Пожертвовать")).click()
+    page.wait_for_url(DONATION_PAYMENT)
+    [sent] = [write["body"] for write in site[2] if write["path"] == "/donations"]
+    assert (sent["amount"], sent["campaign"], sent["consent_gift"]) == (15000, "intensive", True)
+    assert sent["consent_offer"] is True and sent["consent_pdn"] is True and sent["method"] == "card"
+    assert errors == []
+    context.close()
+
+
+def test_plain_give_form_sends_no_campaign(page, site):
+    page.route(
+        "https://pay.example.test/**",
+        lambda route: route.fulfill(body="<title>Оплата</title>", content_type="text/html"),
+    )
+    page.goto("/give")
+    form = page.locator("[data-give-form]")
+    form.get_by_label("Почта").fill("donor@example.test")
+    form.get_by_role("checkbox", name=re.compile("условия оферты")).check()
+    form.get_by_role("checkbox", name=re.compile("согласие на обработку")).check()
+    form.get_by_role("button", name=re.compile("^Пожертвовать")).click()
+    page.wait_for_url(DONATION_PAYMENT)
+    [sent] = [write["body"] for write in site[2] if write["path"] == "/donations"]
+    assert "campaign" not in sent and "consent_gift" not in sent
+
+
 @pytest.mark.parametrize("width", [390, 1440])
 def test_give_transfer_shows_qr_requisites_and_saves_code(chromium, site, width):
     site[1]["/donations/config"] = {"enabled": True, "card": True, "transfer": True, "min": 100, "max": 500000}

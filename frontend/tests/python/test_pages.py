@@ -174,6 +174,42 @@ CAMPAIGN = {
     "raised": 5200000,
     "percent": 3,
 }
+PUBLIC_CAMPAIGN = {
+    "slug": "intensive",
+    "title": "Искусство влияния",
+    "subtitle": "Имидж, речь, аудитория",
+    "lede": "Клуб собирает средства на оснащение аудитории.",
+    "date_text": "Дата уточняется",
+    "time_text": "10:00-17:00",
+    "place_text": None,
+    "duration_text": "6 часов",
+    "goal_title": "Оснащение аудитории",
+    "goal_text": "Рассказ о цели.",
+    "goal_amount": 150000000,
+    "raised": 41200000,
+    "percent": 27,
+    "invite_threshold": 1500000,
+    "amounts": [500000, 1500000, 3000000],
+    "about_title": "Интенсив для дарителей",
+    "about": "Однодневный интенсив.",
+    "highlights": [{"value": "6", "label": "часов практики"}],
+    "program_title": "День по часам",
+    "modules": [
+        {"title": "Сильное выступление", "time": "10:00-11:30", "note": "Структура", "points": ["Цель", "Финал"]},
+        {"title": "Перерыв 15 минут", "time": None, "note": None, "points": []},
+        {"title": "Разбор", "time": "16:25", "note": None, "points": []},
+    ],
+    "feature_title": "Деловая игра",
+    "feature_note": "Финал",
+    "feature_text": "Учебная пресс-конференция.",
+    "results_title": "Чему учит день",
+    "results": ["Строить выступление"],
+    "steps": [{"title": "Пожертвование", "text": "Любая сумма."}],
+    "faq": [{"question": "Это плата за участие?", "answer": "Нет."}],
+    "note": "Участие в интенсиве бесплатное.",
+    "cover": None,
+    "speakers": [{"id": "t-1", "fio": "Вымышленный Спикер", "photo": None, "bio": "Тренер"}],
+}
 ADMIN = {"authorization": "Bearer admin-test"}
 EDITOR = {"authorization": "Bearer editor-test"}
 GIVE_CLOSED = "Прием пожертвований на&nbsp;сайте пока не&nbsp;подключен."
@@ -250,6 +286,8 @@ async def browser_client():
             },
             "/support/config": {"enabled": True, "version": "test-version", "consent": "Тестовое согласие"},
             "/donations/config": GIVE_CONFIG,
+            "/campaigns/intensive": PUBLIC_CAMPAIGN,
+            "/campaigns/bare": {"slug": "bare", "title": "Пустой сбор", "raised": 0, "percent": 0, "goal_amount": 0},
             "/admin/donations": DONATIONS_PAGE,
             "/admin/portfolio": [PORTFOLIO],
             "/admin/campaigns": [CAMPAIGN],
@@ -1612,11 +1650,80 @@ async def test_program_editor_pages_for_existing_new_and_missing_program(browser
     assert 'href="/admin/portfolio?id=new">' in listing and 'href="/admin/portfolio?id=club-1">Открыть</a>' in listing
 
 
+async def test_campaign_page_shows_story_meter_and_campaign_form(browser_client):
+    response = await browser_client.get("/give/intensive")
+    page = plain(response.text)
+    assert response.status_code == 200 and "<title>Искусство влияния" in page
+    assert '<h1 class="camp-hero__title lux-reveal" id="camp-title" style="--d:1">Искусство влияния</h1>' in page
+    assert page.count('class="camp-wave__bar"') == 56
+    facts = re.search(r'<dl class="camp-facts.*?</dl>', page, re.S)[0]
+    assert re.findall(r"<dt>(.*?)</dt><dd>(.*?)</dd>", facts) == [
+        ("Когда", "Дата уточняется"),
+        ("Время", "10:00-17:00"),
+        ("Длительность", "6 часов"),
+    ]
+    assert page.count("<b>412 000 ₽</b>") == 2 and page.count("из 1 500 000 ₽") == 2
+    assert page.count('aria-valuenow="27"') == 2 and page.count('style="--camp-fill:27%"') == 2
+    assert '<li class="camp-day__pause lux-reveal"><span>Перерыв 15 минут</span></li>' in page
+    assert page.count('<details class="lux-disclosure camp-day__body"') == 1
+    assert '<div class="camp-day__body"><span class="camp-day__head"><b>Разбор</b></span></div>' in page
+    assert '<h3 id="camp-game-title">Деловая игра</h3>' in page and ">Чему учит день</h2>" in page
+    assert "<h3>Вымышленный Спикер</h3><p>Тренер</p>" in page
+    assert '<summary class="foc">Это плата за участие?</summary><p>Нет.</p>' in page
+    assert '<p class="camp-panel-note">Участие в интенсиве бесплатное.</p>' in page
+    form = page.split("<form", 1)[1].split("</form>", 1)[0]
+    assert '<p class="camp-panel-head__goal">Оснащение аудитории</p>' in form
+    assert re.findall(r'name="preset" value="(\d+)"( checked)?', form) == [
+        ("500000", ""),
+        ("1500000", " checked"),
+        ("3000000", ""),
+    ]
+    assert '<input type="checkbox" name="consent_gift" required>' in form
+    assert "Понимаю, что пожертвование безвозмездно и не является оплатой участия в мероприятиях" in plain(
+        form.replace("&nbsp;", " ")
+    )
+    assert '<input type="hidden" name="campaign" value="intensive">' in form
+    assert page.index('class="give-story camp-story"') < page.index('id="camp-support"')
+    assert 'content="noindex,nofollow"' in page
+
+
+async def test_campaign_page_hides_empty_blocks_and_unknown_campaign_is_missing(browser_client):
+    bare = plain((await browser_client.get("/give/bare")).text)
+    assert "<h1" in bare and "Пустой сбор" in bare and 'name="campaign" value="bare"' in bare
+    for absent in (
+        "camp-facts",
+        "camp-goal",
+        "camp-numbers",
+        "camp-day",
+        "camp-speakers",
+        "camp-faq",
+        "camp-panel-note",
+    ):
+        assert absent not in bare
+    assert "<b>0 ₽</b>" in bare and "progressbar" not in bare
+    assert re.findall(r'name="preset" value="(\d+)"( checked)?', bare) == [
+        ("100000", ""),
+        ("300000", " checked"),
+        ("500000", ""),
+        ("1000000", ""),
+    ]
+    missing = await browser_client.get("/give/unknown")
+    assert missing.status_code == 404 and "Страница не найдена" in missing.text
+    assert (await browser_client.get("/give/offer")).status_code == 200
+
+
+async def test_plain_give_form_has_no_campaign_fields(browser_client):
+    page = (await browser_client.get("/give")).text
+    assert 'name="consent_gift"' not in page and 'name="campaign"' not in page and "camp-" not in page
+    assert '<aside class="give-panel" aria-labelledby="give-form-title">' in page
+
+
 async def test_editor_sees_campaigns_list_with_collected_amount(browser_client):
     listing = plain((await browser_client.get("/views/admin/campaigns", headers=EDITOR)).text)
     assert '<a href="/admin/campaigns" aria-current="page">' in listing and "<span>Сборы</span>" in listing
     assert '<h2><a href="/admin/campaigns?id=camp-1">Искусство влияния</a></h2>' in listing
     assert "<p>Собрано 52 000 ₽ из 1 500 000 ₽ · 3%</p>" in listing
+    assert '<a href="/give/intensive" target="_blank" rel="noopener noreferrer">На сайте ↗</a>' in listing
     assert "Адрес /give/intensive · приглашение от 15 000 ₽" in listing
     assert 'href="/admin/campaigns?id=new">' in listing and "Нужен доступ администратора" not in listing
 
@@ -1646,10 +1753,12 @@ async def test_campaign_editor_pages_for_existing_new_and_missing_campaign(brows
     assert 'data-modules="faq" data-modules-count="Вопросов"' in existing and "data-modules-hours" not in existing
     assert "<strong>52 000 ₽</strong> из 1 500 000 ₽ · 3%" in existing
     assert 'data-method="DELETE" data-next="/admin/campaigns"' in existing
+    assert 'class="program-editor__site" href="/give/intensive" target="_blank"' in existing
     assert '<option value="published" selected>Опубликовано</option>' in existing
     created = (await browser_client.get("/views/admin/campaigns?id=new", headers=EDITOR)).text
     assert 'data-method="POST" data-open-record="/admin/campaigns?id="' in created
     assert ">Создать сбор</button>" in created and "Удаление сбора" not in created and "Собрано" not in created
+    assert "program-editor__site" not in created
     assert created.index('<option value="draft" >Черновик</option>') < created.index('<option value="published" >')
     missing = (await browser_client.get("/views/admin/campaigns?id=unknown", headers=EDITOR)).text
     assert "Сбор не найден: возможно, его удалили." in missing and "data-program-editor" not in missing

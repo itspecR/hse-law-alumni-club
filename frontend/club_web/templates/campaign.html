@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import icon %}
+{% from 'campaign-art.html' import wave,meter %}
+{% block content %}
+{% set campaign=item %}
+<main id="main" class="lux-home lux-give lux-camp">
+<section class="camp-hero" aria-labelledby="camp-title">
+<div class="lux-wrap camp-hero__grid">
+<div class="camp-hero__text">
+<p class="camp-eyebrow lux-reveal">Сбор клуба</p>
+<h1 class="camp-hero__title lux-reveal" id="camp-title" style="--d:1">{{ campaign.title }}</h1>
+{% if campaign.subtitle %}<p class="camp-hero__sub lux-reveal" style="--d:2">{{ campaign.subtitle }}</p>{% endif %}
+{% if campaign.lede %}<p class="lux-lede camp-hero__lede lux-reveal" style="--d:3">{{ campaign.lede }}</p>{% endif %}
+<a href="#camp-support" class="foc lux-btn camp-hero__cta lux-reveal" style="--d:4">Поддержать сбор</a>
+</div>
+<div class="camp-hero__art lux-reveal" style="--d:2">{{ wave(campaign_wave,'camp-hero-wave') }}</div>
+</div>
+{% if campaign_facts %}
+<div class="lux-wrap">
+<dl class="camp-facts lux-reveal" style="--d:4">
+{% for label,value in campaign_facts %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}
+</dl>
+</div>
+{% endif %}
+</section>
+
+<div class="lux-wrap give-layout camp-layout">
+<div class="give-story camp-story">
+{% if campaign.goal_title or campaign.goal_text %}
+<section class="camp-block camp-goal lux-tile lux-reveal" aria-labelledby="camp-goal-title">
+<p class="camp-eyebrow">На что собираем</p>
+<h2 class="give-h2" id="camp-goal-title">{{ campaign.goal_title or 'Цель сбора' }}</h2>
+{% if campaign.goal_text %}<p class="camp-text">{{ campaign.goal_text }}</p>{% endif %}
+{{ meter(campaign,'camp-goal-meter') }}
+</section>
+{% endif %}
+
+{% if campaign.about or campaign.highlights %}
+<section class="camp-block" aria-labelledby="camp-about-title">
+<h2 class="give-h2 lux-reveal" id="camp-about-title">{{ campaign.about_title or 'О мероприятии' }}</h2>
+{% if campaign.about %}<p class="camp-text lux-reveal">{{ campaign.about }}</p>{% endif %}
+{% if campaign.highlights %}
+<ul class="camp-numbers">
+{% for number in campaign.highlights %}<li class="lux-reveal" style="--d:{{ loop.index }}"><b>{{ number.value }}</b><span>{{ number.label }}</span></li>{% endfor %}
+</ul>
+{% endif %}
+</section>
+{% endif %}
+
+{% if campaign.modules or campaign.feature_title %}
+<section class="camp-block" aria-labelledby="camp-day-title">
+<h2 class="give-h2 lux-reveal" id="camp-day-title">{{ campaign.program_title or 'Программа' }}</h2>
+{% if campaign.modules %}
+<ol class="camp-day">
+{% for block in campaign.modules %}
+{% if block|campaign_pause %}
+<li class="camp-day__pause lux-reveal"><span>{{ block.title }}</span></li>
+{% else %}
+<li class="camp-day__item lux-reveal">
+<span class="camp-day__time">{{ block.time or '' }}</span>
+{% if block.points %}
+<details class="lux-disclosure camp-day__body"{% if loop.first %} open{% endif %}>
+<summary class="foc"><span class="camp-day__head"><b>{{ block.title }}</b>{% if block.note %}<span>{{ block.note }}</span>{% endif %}</span></summary>
+<ul>{% for point in block.points %}<li>{{ point }}</li>{% endfor %}</ul>
+</details>
+{% else %}
+<div class="camp-day__body"><span class="camp-day__head"><b>{{ block.title }}</b>{% if block.note %}<span>{{ block.note }}</span>{% endif %}</span></div>
+{% endif %}
+</li>
+{% endif %}
+{% endfor %}
+</ol>
+{% endif %}
+{% if campaign.feature_title %}
+<article class="camp-game lux-reveal" aria-labelledby="camp-game-title">
+{% if campaign.feature_note %}<p class="camp-eyebrow">{{ campaign.feature_note }}</p>{% endif %}
+<h3 id="camp-game-title">{{ campaign.feature_title }}</h3>
+{% if campaign.feature_text %}<p>{{ campaign.feature_text }}</p>{% endif %}
+</article>
+{% endif %}
+</section>
+{% endif %}
+
+{% if campaign.results %}
+<section class="camp-block" aria-labelledby="camp-results-title">
+<h2 class="give-h2 lux-reveal" id="camp-results-title">{{ campaign.results_title or 'Результаты' }}</h2>
+<ol class="camp-results">
+{% for result in campaign.results %}<li class="lux-reveal" style="--d:{{ loop.index0 % 2 }}">{{ result }}</li>{% endfor %}
+</ol>
+</section>
+{% endif %}
+
+{% if campaign.speakers %}
+<section class="camp-block" aria-labelledby="camp-speakers-title">
+<h2 class="give-h2 lux-reveal" id="camp-speakers-title">Спикеры</h2>
+<ul class="camp-speakers">
+{% for speaker in campaign.speakers %}
+<li class="lux-reveal" style="--d:{{ loop.index0 }}">{% if speaker.photo|media %}<img class="camp-speakers__photo" src="{{ speaker.photo|media }}" alt="" width="144" height="144" loading="lazy">{% else %}<span class="camp-speakers__photo" aria-hidden="true">{{ icon('members',32) }}</span>{% endif %}<div><h3>{{ speaker.fio }}</h3>{% if speaker.bio %}<p>{{ speaker.bio }}</p>{% endif %}</div></li>
+{% endfor %}
+</ul>
+</section>
+{% endif %}
+
+{% if campaign.steps %}
+<section class="camp-block" aria-labelledby="camp-steps-title">
+<h2 class="give-h2 lux-reveal" id="camp-steps-title">Как устроен сбор</h2>
+<ol class="camp-steps">
+{% for step in campaign.steps %}<li class="lux-reveal" style="--d:{{ loop.index0 }}"><span class="camp-steps__n" aria-hidden="true">{{ loop.index }}</span><h3>{{ step.title }}</h3><p>{{ step.text }}</p></li>{% endfor %}
+</ol>
+</section>
+{% endif %}
+
+{% if campaign.faq %}
+<section class="camp-block" aria-labelledby="camp-faq-title">
+<h2 class="give-h2 lux-reveal" id="camp-faq-title">Вопросы и ответы</h2>
+<div class="camp-faq">
+{% for entry in campaign.faq %}
+<details class="lux-disclosure lux-reveal"><summary class="foc">{{ entry.question }}</summary><p>{{ entry.answer }}</p></details>
+{% endfor %}
+</div>
+</section>
+{% endif %}
+</div>
+<aside class="give-panel" id="camp-support" aria-labelledby="give-form-title">
+{% include 'give-form.html' %}
+{% if campaign.note %}<p class="camp-panel-note">{{ campaign.note }}</p>{% endif %}
+</aside>
+</div>
+</main>
+{% endblock %}

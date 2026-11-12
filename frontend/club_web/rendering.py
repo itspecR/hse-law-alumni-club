@@ -3,6 +3,7 @@ from pathlib import Path
 from django.template import engines
 from jinja2 import Environment
 
+from club_web.campaigns import is_pause
 from club_web.formatting import (
     FORMAT_LABELS,
     ORDER_STATUS_LABELS,
@@ -63,6 +64,7 @@ def environment(**options):
         initials=initials,
         price_or_pending=price_or_pending,
         rich_text=rich_text,
+        campaign_pause=is_pause,
     )
     renderer.globals.update(
         format_labels=FORMAT_LABELS, order_status_labels=ORDER_STATUS_LABELS, price_pending=PRICE_PENDING, icons=ICONS

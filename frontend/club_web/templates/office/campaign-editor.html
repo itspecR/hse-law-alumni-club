@@ -17,6 +17,7 @@
 <button class="site-primary">{{ 'Сохранить' if program.id else 'Создать сбор' }}</button>
 <p role="alert" data-error hidden></p>
 </div>
+{% if program.status=='published' and program.slug %}<a class="program-editor__site" href="/give/{{ program.slug }}" target="_blank" rel="noopener noreferrer">Открыть на сайте ↗</a>{% endif %}
 </aside>
 </form>
 {% if program.id %}

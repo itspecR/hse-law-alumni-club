@@ -54,6 +54,11 @@ function amountError(form, rubles) {
   return "Сумма пожертвования от " + grouped(min) + " до " + grouped(max) + " ₽.";
 }
 
+function campaignBody(form) {
+  const campaign = form.elements.namedItem("campaign");
+  return campaign ? { campaign: campaign.value, consent_gift: form.elements.namedItem("consent_gift").checked } : {};
+}
+
 function donationBody(form, rubles) {
   const field = name => form.elements.namedItem(name);
   return {
@@ -64,6 +69,7 @@ function donationBody(form, rubles) {
     consent_offer: field("consent_offer").checked,
     consent_pdn: field("consent_pdn").checked,
     website: field("website").value,
+    ...campaignBody(form),
   };
 }
 

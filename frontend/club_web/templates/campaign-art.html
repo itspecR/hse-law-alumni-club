@@ -1,0 +1,12 @@
+{% macro wave(bars,id) %}
+<svg class="camp-wave" viewBox="0 0 {{ bars|length * 10 }} 320" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+<defs><linearGradient id="{{ id }}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="{{ bars|length * 10 }}" y2="0"><stop offset="0" stop-color="#ea6806"/><stop offset="0.5" stop-color="#ffb347"/><stop offset="0.78" stop-color="#6f9bd8"/><stop offset="1" stop-color="#2e6fae"/></linearGradient></defs>
+<g fill="url(#{{ id }})">{% for height in bars %}<rect class="camp-wave__bar" style="--i:{{ loop.index0 }}" x="{{ loop.index0 * 10 + 2.5 }}" y="{{ 160 - height }}" width="5" height="{{ height * 2 }}" rx="2.5"/>{% endfor %}</g>
+</svg>
+{% endmacro %}
+{% macro meter(campaign,id) %}
+<div class="camp-meter" role="group" aria-labelledby="{{ id }}">
+<p class="camp-meter__sum" id="{{ id }}"><span class="camp-meter__label">Собрано</span><b>{{ campaign.raised|rub }}</b>{% if campaign.goal_amount %}<span class="camp-meter__goal">из {{ campaign.goal_amount|rub }}</span>{% endif %}</p>
+{% if campaign.goal_amount %}<div class="camp-meter__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ campaign.percent }}" aria-label="Собрано {{ campaign.percent }}% цели"><span style="--camp-fill:{{ campaign.percent }}%"></span></div>{% endif %}
+</div>
+{% endmacro %}
