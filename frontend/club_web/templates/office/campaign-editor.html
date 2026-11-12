@@ -11,6 +11,7 @@
 <p class="program-editor__caption">Собрано</p>
 <p class="office-campaign-raised"><strong>{{ program.raised|rub }}</strong> из {{ program.goal_amount|rub }} · {{ program.percent }}%</p>
 {% endif %}
+{% if not program.id and program.title %}<p class="office-meta">Форма заполнена по образцу. Проверьте тексты, цель и суммы, затем создайте сбор: он сохранится черновиком.</p>{% endif %}
 <p class="office-meta">В текстах не называйте пожертвование оплатой, ценой или билетом и не обещайте место. Участие бесплатное, приглашение выражает благодарность клуба.</p>
 <div class="program-editor__save">
 <p class="program-editor__state" data-program-state aria-live="polite">{{ 'Изменений нет' if program.id else 'Сбор еще не создан' }}</p>

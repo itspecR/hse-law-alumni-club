@@ -1,5 +1,5 @@
 {{ filters() }}
-<div class="office-toolbar"><p data-office-count>Показано: {{ rows|length }}{% if office_total is defined %} из {{ office_total }}{% endif %}</p><a class="site-primary office-program-new" href="/admin/campaigns?id=new">{{ icon('campaigns') }}Новый сбор</a></div>
+<div class="office-toolbar"><p data-office-count>Показано: {{ rows|length }}{% if office_total is defined %} из {{ office_total }}{% endif %}</p><div class="site-actions">{% for key,label in office_record_templates.items() %}<a href="/admin/campaigns?id=new&amp;template={{ key }}">{{ label }}</a>{% endfor %}<a class="site-primary office-program-new" href="/admin/campaigns?id=new">{{ icon('campaigns') }}Новый сбор</a></div></div>
 <div class="office-list">
 {% for campaign in rows %}
 {% set editor='/admin/campaigns?id='~campaign.id %}
