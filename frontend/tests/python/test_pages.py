@@ -150,6 +150,30 @@ DONATIONS_PAGE = {
     "periods": {"7d": "7 дней", "30d": "30 дней", "all": "Все время"},
     "summary": {"count": 1, "amount": 300000},
 }
+CAMPAIGN = {
+    "id": "camp-1",
+    "slug": "intensive",
+    "status": "published",
+    "title": "Искусство влияния",
+    "subtitle": "Имидж, речь, аудитория",
+    "goal_title": "Оснащение аудитории",
+    "goal_amount": 150000000,
+    "extra_amount": 1200000,
+    "invite_threshold": 1500000,
+    "amounts": [500000, 1500000, 3000050],
+    "highlights": [{"value": "6", "label": "часов практики"}],
+    "modules": [
+        {"title": "Сильное выступление", "time": "10:00-11:30", "note": "Структура", "points": ["Цель", "Финал"]},
+        {"title": "Перерыв 15 минут", "time": None, "note": None, "points": []},
+    ],
+    "steps": [{"title": "Пожертвование", "text": "Любая сумма."}],
+    "faq": [{"question": "Это плата за участие?", "answer": "Нет."}],
+    "results": ["Строить выступление"],
+    "payment_purpose": "на оснащение аудитории",
+    "trainer_ids": [],
+    "raised": 5200000,
+    "percent": 3,
+}
 ADMIN = {"authorization": "Bearer admin-test"}
 EDITOR = {"authorization": "Bearer editor-test"}
 GIVE_CLOSED = "Прием пожертвований на&nbsp;сайте пока не&nbsp;подключен."
@@ -228,6 +252,7 @@ async def browser_client():
             "/donations/config": GIVE_CONFIG,
             "/admin/donations": DONATIONS_PAGE,
             "/admin/portfolio": [PORTFOLIO],
+            "/admin/campaigns": [CAMPAIGN],
             "/admin/overview": {"alumni_count": 1},
             "/admin/system-health": {"checks": []},
             "/admin/analytics": ANALYTICS,
@@ -1585,6 +1610,59 @@ async def test_program_editor_pages_for_existing_new_and_missing_program(browser
     assert "Программа не найдена: возможно, ее удалили." in missing and "data-program-editor" not in missing
     listing = (await browser_client.get("/views/admin/portfolio", headers=ADMIN)).text
     assert 'href="/admin/portfolio?id=new">' in listing and 'href="/admin/portfolio?id=club-1">Открыть</a>' in listing
+
+
+async def test_editor_sees_campaigns_list_with_collected_amount(browser_client):
+    listing = plain((await browser_client.get("/views/admin/campaigns", headers=EDITOR)).text)
+    assert '<a href="/admin/campaigns" aria-current="page">' in listing and "<span>Сборы</span>" in listing
+    assert '<h2><a href="/admin/campaigns?id=camp-1">Искусство влияния</a></h2>' in listing
+    assert "<p>Собрано 52 000 ₽ из 1 500 000 ₽ · 3%</p>" in listing
+    assert "Адрес /give/intensive · приглашение от 15 000 ₽" in listing
+    assert 'href="/admin/campaigns?id=new">' in listing and "Нужен доступ администратора" not in listing
+
+
+async def test_campaign_editor_pages_for_existing_new_and_missing_campaign(browser_client):
+    existing = plain((await browser_client.get("/views/admin/campaigns?id=camp-1", headers=EDITOR)).text)
+    assert 'data-api="/admin/campaigns/camp-1" data-method="PATCH"' in existing
+    assert '<a href="/admin/campaigns">Сборы</a>' in existing and "office-page-header--record" in existing
+    blocks = ("main", "goal", "about", "program", "rules", "letters", "publish")
+    assert [f'id="campaign-{block}"' in existing for block in blocks] == [True] * len(blocks)
+    assert '<input name="slug" type="text" value="intensive">' in existing
+    assert (
+        'name="goal_amount" type="number" min="0" step="0.01" inputmode="decimal" data-kopecks value="1500000"'
+        in existing
+    )
+    assert "data-kopecks-lines>5000\n15000\n30000.50</textarea>" in existing
+    assert (
+        '<fieldset class="office-modules" data-modules="modules" data-modules-count="Блоков" '
+        'data-modules-new="Новый блок" data-modules-required="Укажите название каждого блока."><legend>'
+    ) in existing
+    assert (
+        '<input data-module-field="time" value="10:00-11:30" data-module-meta placeholder="Например, 10:00-11:30">'
+        in existing
+    )
+    assert '<textarea data-module-field="points" data-module-lines>Цель\nФинал</textarea>' in existing
+    assert '<textarea data-module-field="answer">Нет.</textarea>' in existing
+    assert 'data-modules="faq" data-modules-count="Вопросов"' in existing and "data-modules-hours" not in existing
+    assert "<strong>52 000 ₽</strong> из 1 500 000 ₽ · 3%" in existing
+    assert 'data-method="DELETE" data-next="/admin/campaigns"' in existing
+    assert '<option value="published" selected>Опубликовано</option>' in existing
+    created = (await browser_client.get("/views/admin/campaigns?id=new", headers=EDITOR)).text
+    assert 'data-method="POST" data-open-record="/admin/campaigns?id="' in created
+    assert ">Создать сбор</button>" in created and "Удаление сбора" not in created and "Собрано" not in created
+    assert created.index('<option value="draft" >Черновик</option>') < created.index('<option value="published" >')
+    missing = (await browser_client.get("/views/admin/campaigns?id=unknown", headers=EDITOR)).text
+    assert "Сбор не найден: возможно, его удалили." in missing and "data-program-editor" not in missing
+
+
+async def test_program_modules_editor_keeps_hours_total(browser_client):
+    page = (await browser_client.get("/views/admin/portfolio?id=club-1", headers=ADMIN)).text
+    assert (
+        '<fieldset class="office-modules" data-modules="modules" data-modules-count="Модулей" '
+        'data-modules-new="Новый модуль" data-modules-required="Укажите тему каждого модуля." data-modules-hours>'
+    ) in page
+    assert '<input data-module-field="hours" value="" data-module-meta placeholder="Например, 2 ак. ч.">' in page
+    assert ">Добавить модуль</button>" in page and ">Удалить модуль</button>" in page
 
 
 async def test_name_fields_hint_allowed_characters(browser_client):

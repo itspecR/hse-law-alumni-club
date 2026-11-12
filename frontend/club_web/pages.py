@@ -14,19 +14,21 @@ from club_web.office import (
     CHOICES,
     CREATE_DEFAULTS,
     DESCRIPTIONS,
+    EDITORS,
     FIELDS,
     GROUPS,
     LABELS,
     METRICS,
     READ_ONLY_SECTIONS,
+    ROW_EDITORS,
     SECTION_FILTERS,
     SECTION_LABELS,
     SINGLE_CHOICES,
     choice_options,
     choice_sources,
     cohort_options,
+    editor_blocks,
     filter_content,
-    portfolio_blocks,
     section_records,
     status_values,
     visible_groups,
@@ -48,9 +50,6 @@ GIVE_CHOSEN = 300000
 HEADER_ROOMY_LINKS = 6
 FORBIDDEN = 403
 NEW_RECORD = "new"
-PROGRAM_EDITOR_LEDE = (
-    "Карточка программы показывает, как она будет выглядеть на сайте. Изменения появятся на сайте после сохранения."
-)
 PUBLIC_PAGES = {
     "/": ("home.html", "Клуб выпускников факультета права"),
     "/tg": ("mini.html", "Клуб выпускников"),
@@ -107,6 +106,7 @@ OFFICE_NAV = [
     ("analytics", "Аналитика"),
     ("orders", "Заявки"),
     ("donations", "Пожертвования"),
+    ("campaigns", "Сборы"),
     ("promo-codes", "Промокоды"),
     ("members", "Выпускники"),
     ("subs", "Подписки"),
@@ -129,6 +129,7 @@ OFFICE_ENDPOINTS = {
     "analytics": "/admin/analytics",
     "orders": "/admin/orders",
     "donations": "/admin/donations",
+    "campaigns": "/admin/campaigns",
     "promo-codes": "/admin/promo-codes",
     "members": "/admin/members",
     "subs": "/admin/podcast-subs",
@@ -274,18 +275,19 @@ def recent_changes():
     ]
 
 
-def portfolio_editor(data, record_id):
+def record_editor(data, section, record_id):
+    editor = EDITORS[section]
     if not record_id:
-        data["office_template"] = "office/portfolio.html"
+        data["office_template"] = editor["list"]
         return
-    program = {} if record_id == NEW_RECORD else next((row for row in data["rows"] if row.get("id") == record_id), None)
+    record = {} if record_id == NEW_RECORD else next((row for row in data["rows"] if row.get("id") == record_id), None)
     data.update(
-        office_template="office/portfolio-editor.html",
-        office_parent=dict(OFFICE_NAV)["portfolio"],
-        office_lede=PROGRAM_EDITOR_LEDE,
-        office_blocks=portfolio_blocks(),
-        program=program,
-        title=(program or {}).get("title") or ("Новая программа" if program == {} else "Программа не найдена"),
+        office_template=editor["editor"],
+        office_parent=dict(OFFICE_NAV)[section],
+        office_lede=editor["lede"],
+        office_blocks=editor_blocks(section),
+        program=record,
+        title=(record or {}).get("title") or (editor["new"] if record == {} else editor["missing"]),
     )
 
 
@@ -638,8 +640,8 @@ async def office_extras(page, section):
 
 def office_rows(data, params, section):
     data["rows"] = section_records(section, page_items(data.get("records")), data["office_names"])
-    if section == "portfolio":
-        portfolio_editor(data, params.get("id"))
+    if section in EDITORS:
+        record_editor(data, section, params.get("id"))
     if section in FIELDS:
         data["office_total"] = len(data["rows"])
         data["rows"] = filter_content(data["rows"], params)
@@ -690,6 +692,7 @@ async def context(api, path, params, authorized=False):
         "office_cohorts": {},
         "office_defaults": CREATE_DEFAULTS,
         "office_read_only": READ_ONLY_SECTIONS,
+        "office_row_editors": ROW_EDITORS,
         "office_options": {},
         "office_names": {},
         "labels": LABELS,

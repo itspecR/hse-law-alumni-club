@@ -54,7 +54,7 @@ export function prepareProgramEditor() {
   const preview = root.querySelector("[data-program-preview]");
   const state = root.querySelector("[data-program-state]");
   const changed = () => {
-    renderPreview(form, preview);
+    if (preview) renderPreview(form, preview);
     state.textContent = UNSAVED;
     state.dataset.dirty = "true";
   };

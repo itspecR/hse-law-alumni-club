@@ -106,7 +106,7 @@ async def test_page_shows_texts_and_published_speakers_in_saved_order(database_a
         "subtitle": "Имидж, речь, аудитория",
         "invite_threshold": 1500000,
         "amounts": [500000, 1500000],
-        "modules": [{"title": "Блок", "points": ["Тема"], "hours": "10:00-11:30"}],
+        "modules": [{"title": "Блок", "points": ["Тема"], "time": "10:00-11:30"}],
         "faq": [{"question": "Вопрос", "answer": "Ответ"}],
         "note": "Участие бесплатное.",
         "payment_purpose": "на цель сбора",

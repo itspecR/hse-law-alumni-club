@@ -1,0 +1,30 @@
+{% from 'office/forms.html' import block_nav,block_sections with context %}
+{% if program is none %}
+<div class="site-panel office-program-missing">{{ empty('Сбор не найден: возможно, его удалили.') }}<a class="site-primary" href="/admin/campaigns">К списку сборов</a></div>
+{% else %}
+<div class="program-editor" data-program-editor>
+{{ block_nav(office_blocks,'Блоки сбора') }}
+<form id="campaign-form" class="program-editor__layout" data-api="/admin/campaigns{{ '/'~program.id if program.id }}" data-method="{{ 'PATCH' if program.id else 'POST' }}"{% if not program.id %} data-open-record="/admin/campaigns?id="{% endif %}>
+{{ block_sections(office_blocks,program) }}
+<aside class="program-editor__side" aria-label="Состояние сбора и сохранение">
+{% if program.id %}
+<p class="program-editor__caption">Собрано</p>
+<p class="office-campaign-raised"><strong>{{ program.raised|rub }}</strong> из {{ program.goal_amount|rub }} · {{ program.percent }}%</p>
+{% endif %}
+<p class="office-meta">В текстах не называйте пожертвование оплатой, ценой или билетом и не обещайте место. Участие бесплатное, приглашение выражает благодарность клуба.</p>
+<div class="program-editor__save">
+<p class="program-editor__state" data-program-state aria-live="polite">{{ 'Изменений нет' if program.id else 'Сбор еще не создан' }}</p>
+<button class="site-primary">{{ 'Сохранить' if program.id else 'Создать сбор' }}</button>
+<p role="alert" data-error hidden></p>
+</div>
+</aside>
+</form>
+{% if program.id %}
+<section class="site-panel program-editor__danger" aria-labelledby="campaign-danger-title">
+<h2 id="campaign-danger-title">Удаление сбора</h2>
+<p>Сбор с пожертвованиями удалить нельзя: переведите его в архив в блоке «Публикация».</p>
+<button class="site-danger" data-api="/admin/campaigns/{{ program.id }}" data-method="DELETE" data-next="/admin/campaigns" data-confirm="Удалить сбор? Сбор с пожертвованиями удалить нельзя, вместо этого переведите его в архив.">Удалить сбор</button>
+</section>
+{% endif %}
+</div>
+{% endif %}

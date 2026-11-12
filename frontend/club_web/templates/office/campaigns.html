@@ -1,0 +1,16 @@
+{{ filters() }}
+<div class="office-toolbar"><p data-office-count>Показано: {{ rows|length }}{% if office_total is defined %} из {{ office_total }}{% endif %}</p><a class="site-primary office-program-new" href="/admin/campaigns?id=new">{{ icon('campaigns') }}Новый сбор</a></div>
+<div class="office-list">
+{% for campaign in rows %}
+{% set editor='/admin/campaigns?id='~campaign.id %}
+<article class="site-panel office-record">
+<div class="office-record-head">
+<h2><a href="{{ editor }}">{{ campaign.title }}</a></h2>
+{{ status(campaign.status) }}
+</div>
+<p>Собрано {{ campaign.raised|rub }} из {{ campaign.goal_amount|rub }} · {{ campaign.percent }}%</p>
+<p class="office-meta">Адрес /give/{{ campaign.slug }}{% if campaign.invite_threshold %} · приглашение от {{ campaign.invite_threshold|rub }}{% endif %}{% for id in campaign.trainer_ids or [] %}{{ ' · спикеры: ' if loop.first else ', ' }}{{ office_names.trainers.get(id,'') }}{% endfor %}</p>
+<div class="site-actions"><a class="site-primary" href="{{ editor }}">Открыть</a></div>
+</article>
+{% else %}{{ empty('По выбранным фильтрам сборов нет.' if query.get('q') or query.get('status') else 'Сборов пока нет.') }}{% endfor %}
+</div>
