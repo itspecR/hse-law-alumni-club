@@ -1,0 +1,20 @@
+{% from 'campaign-art.html' import wave,meter %}
+<section class="lux-section camp-teaser-section" aria-labelledby="camp-teaser-title">
+<div class="lux-wrap">
+<article class="lux-tile camp-teaser lux-reveal">
+<div class="camp-teaser__text">
+<p class="camp-eyebrow">Сбор клуба</p>
+<h2 class="camp-teaser__title" id="camp-teaser-title">{{ campaign.title }}</h2>
+{% if campaign.subtitle %}<p class="camp-teaser__sub">{{ campaign.subtitle }}</p>{% endif %}
+{% if campaign.lede %}<p class="lux-lede camp-teaser__lede">{{ campaign.lede }}</p>{% endif %}
+{{ meter(campaign,'camp-teaser-meter') }}
+<div class="camp-teaser__act">
+<a href="/give/{{ campaign.slug }}" class="foc lux-btn">Подробнее о&nbsp;сборе</a>
+{% set facts=[campaign.date_text,campaign.place_text]|select|list %}
+{% if facts %}<span class="camp-teaser__facts">{{ facts|join(' · ') }}</span>{% endif %}
+</div>
+</div>
+<div class="camp-teaser__art">{{ wave(campaign_wave,'camp-teaser-wave') }}</div>
+</article>
+</div>
+</section>

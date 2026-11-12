@@ -3214,6 +3214,28 @@ def test_campaign_page_requires_gift_confirmation_and_sends_campaign(chromium, s
     context.close()
 
 
+@pytest.mark.parametrize("width", [390, 1440])
+def test_home_campaign_block_leads_to_campaign_page(page, site, width):
+    teaser = {key: SITE_CAMPAIGN.get(key) for key in ("slug", "title", "subtitle", "lede", "date_text", "place_text")}
+    site[1]["/campaigns/current"] = {"campaign": teaser | {"goal_amount": 150000000, "raised": 41200000, "percent": 27}}
+    site[1]["/campaigns/intensive"] = SITE_CAMPAIGN
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/")
+    block = page.locator(".camp-teaser")
+    expect(block.get_by_role("heading", level=2)).to_have_text("Искусство влияния")
+    expect(block.get_by_role("progressbar")).to_have_attribute("aria-valuenow", "27")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    block.get_by_role("link", name="Подробнее о сборе").click()
+    expect(page).to_have_url(re.compile(r"/give/intensive$"))
+    expect(page.get_by_role("heading", level=1)).to_have_text("Искусство влияния")
+
+
+def test_home_has_no_campaign_block_without_campaign(page, site):
+    page.goto("/")
+    expect(page.locator("#join-steps")).to_be_attached()
+    expect(page.locator(".camp-teaser")).to_have_count(0)
+
+
 def test_plain_give_form_sends_no_campaign(page, site):
     page.route(
         "https://pay.example.test/**",

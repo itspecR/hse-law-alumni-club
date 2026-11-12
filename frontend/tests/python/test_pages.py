@@ -1650,6 +1650,56 @@ async def test_program_editor_pages_for_existing_new_and_missing_program(browser
     assert 'href="/admin/portfolio?id=new">' in listing and 'href="/admin/portfolio?id=club-1">Открыть</a>' in listing
 
 
+TEASER = {
+    key: PUBLIC_CAMPAIGN[key]
+    for key in ("slug", "title", "subtitle", "lede", "date_text", "place_text", "goal_title", "goal_amount", "cover")
+} | {"raised": 41200000, "percent": 27}
+
+
+async def home_with_campaign(reply):
+    async def upstream(request):
+        if request.url.path == "/campaigns/current":
+            return reply
+        if request.url.path == "/pages/home":
+            return httpx.Response(200, json={"blocks": {}})
+        return httpx.Response(200, json=[])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            response = await client.get("/")
+            return response.status_code, plain(response.text)
+
+
+async def test_home_shows_current_campaign_after_hero():
+    status, page = await home_with_campaign(httpx.Response(200, json={"campaign": TEASER}))
+    assert status == 200
+    teaser = page.split('<section class="lux-section camp-teaser-section"', 1)[1].split("</section>", 1)[0]
+    assert page.index("lux-hero") < page.index("camp-teaser-section") < page.index('id="join-steps"')
+    assert '<h2 class="camp-teaser__title" id="camp-teaser-title">Искусство влияния</h2>' in teaser
+    assert "<b>412 000 ₽</b>" in teaser and "из 1 500 000 ₽" in teaser and 'aria-valuenow="27"' in teaser
+    assert '<a href="/give/intensive" class="foc lux-btn">' in teaser
+    assert '<span class="camp-teaser__facts">Дата уточняется</span>' in teaser
+    assert teaser.count('class="camp-wave__bar"') == 56
+
+
+@pytest.mark.parametrize(
+    "reply",
+    [
+        httpx.Response(200, json={"campaign": None}),
+        httpx.Response(200, json=[]),
+        httpx.Response(200, json={"campaign": {"title": "Без адреса"}}),
+        httpx.Response(404, json={"error": "Не найдено"}),
+        httpx.Response(503, json={"error": "Временно недоступно"}),
+    ],
+)
+async def test_home_without_campaign_stays_as_is(reply):
+    status, page = await home_with_campaign(reply)
+    assert status == 200 and "camp-" not in page and 'id="join-steps"' in page
+    assert 'class="site-errors"' not in page and "Временно недоступно" not in page
+
+
 async def test_campaign_page_shows_story_meter_and_campaign_form(browser_client):
     response = await browser_client.get("/give/intensive")
     page = plain(response.text)

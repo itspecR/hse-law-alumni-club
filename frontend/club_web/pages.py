@@ -327,16 +327,27 @@ class Page:
         return self.data[key]
 
 
+async def current_campaign(api):
+    try:
+        reply = await api.get("/campaigns/current")
+    except ApiFailure:
+        return None
+    campaign = reply.get("campaign") if isinstance(reply, dict) else None
+    return campaign if isinstance(campaign, dict) and campaign.get("slug") else None
+
+
 async def home_page(page):
     data, load = page.data, page.load
-    await asyncio.gather(
+    *_, data["campaign"] = await asyncio.gather(
         load("page", "/pages/home", {}),
         load("news", "/news?limit=3", []),
         load("programs", "/programs", []),
         load("portfolio", "/portfolio", []),
         load("events", "/events", []),
         load("podcasts", "/podcasts", {"items": []}),
+        current_campaign(page.api),
     )
+    data["campaign_wave"] = WAVE
     data["hero"] = (data["page"].get("blocks") or {}).get("hero") or {}
     data["cta"] = (data["page"].get("blocks") or {}).get("cta") or {}
     now = datetime.now(UTC)
