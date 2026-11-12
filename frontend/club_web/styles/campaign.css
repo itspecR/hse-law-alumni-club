@@ -86,7 +86,17 @@ img.camp-speakers__photo { object-fit: cover; }
 .camp-faq p { max-width: 60ch; margin: 0 0 22px; font-size: 16px; line-height: 1.5; color: var(--c-text-2); }
 
 
+.camp-teaser-section { padding-block: 0 clamp(40px, 5cqi, 72px); }
+.lux-tile.camp-teaser { position: relative; display: grid; gap: 32px; background: radial-gradient(120% 140% at 100% 0%, rgb(234 104 6 / 0.2), rgb(46 111 174 / 0.1) 45%, transparent 70%), var(--c-bg-raised); }
+.camp-teaser__title { margin: 0; font: 200 clamp(40px, 6cqi, 84px)/0.98 var(--f-display); letter-spacing: -0.045em; text-wrap: balance; }
+.camp-teaser__sub { margin: 12px 0 0; font: 200 clamp(20px, 2.4cqi, 30px)/1.15 var(--f-display); letter-spacing: -0.025em; color: var(--c-text-3); }
+.camp-teaser .camp-teaser__lede { max-width: 46ch; margin: 24px 0 32px; font-size: clamp(16px, 1.4cqi, 18px); color: var(--c-text-2); }
+.camp-teaser__act { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; margin-top: 32px; }
+.camp-teaser__facts { font-size: 14px; color: var(--c-text-3); }
+.camp-teaser__art { min-width: 0; align-self: center; }
+
 @media (min-width: 761px) {
+  .camp-teaser { grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 48px; }
   .camp-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .camp-day__item { grid-template-columns: 124px minmax(0, 1fr); gap: 0 24px; padding-left: 32px; }
   .camp-day__time { padding-top: 22px; }

@@ -25,6 +25,7 @@
 </div>
 </section>
 
+{% if campaign %}{% include 'campaign-teaser.html' %}{% endif %}
 <section class="lux-section lux-join" id="join-steps" aria-labelledby="lux-join-title">
 <div class="lux-wrap lux-join__head">
 <h2 class="lux-h2 lux-reveal" id="lux-join-title">{{ cta.title or 'Три шага, и вы в клубе.' }}</h2>
