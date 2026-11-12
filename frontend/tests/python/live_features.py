@@ -1,6 +1,9 @@
+import re
 from datetime import UTC, datetime, timedelta
 
 from playwright.sync_api import expect
+
+CAMPAIGN_EDITOR_URL = re.compile(r"/admin/campaigns\?id=[0-9a-f-]{36}$")
 
 
 def submit(page, form, path, method="POST", status=200):
@@ -78,6 +81,33 @@ def home_form(office, name):
     for field, value in original.items():
         form.locator(f'[name="{field}"]').fill(value)
     submit(office, form, "/admin/pages/home", "PATCH")
+
+
+def campaign_from_template(page, office, request, headers):
+    office.goto("/admin/campaigns?id=new&template=intensive")
+    form = office.locator("#campaign-form")
+    expect(form.locator('[name="title"]')).to_have_value("Искусство влияния")
+    form.get_by_role("button", name="Создать сбор", exact=True).click()
+    office.wait_for_url(CAMPAIGN_EDITOR_URL)
+    path = "/admin/campaigns/" + office.url.rsplit("=", 1)[1]
+    try:
+        expect(office.locator("#campaign-invitations")).to_contain_text("Дарителей для приглашения пока нет.")
+        assert request.get("/api/campaigns/current").json() == {"campaign": None}
+        form.locator('[name="status"]').select_option("published")
+        with office.expect_response(
+            lambda response: response.url.endswith("/api" + path) and response.request.method == "PATCH"
+        ) as saved:
+            form.get_by_role("button", name="Сохранить", exact=True).click()
+        assert saved.value.status == 200
+        page.goto("/give/intensive")
+        expect(page.get_by_role("heading", level=1)).to_have_text("Искусство влияния")
+        expect(page.locator('[data-give-form] [name="campaign"]')).to_have_value("intensive")
+        expect(page.locator('[data-give-form] [name="consent_gift"]')).to_have_attribute("required", "")
+        page.goto("/")
+        expect(page.locator(".camp-teaser")).to_contain_text("Искусство влияния")
+    finally:
+        assert request.delete("/api" + path, headers=headers).status == 200
+    assert request.get("/api/campaigns/current").json() == {"campaign": None}
 
 
 def news_sources(office, request, headers, name, directory):
@@ -238,6 +268,7 @@ def section_walk(page, office):
                     "analytics",
                     "orders",
                     "donations",
+                    "campaigns",
                     "members",
                     "subs",
                     "programs",

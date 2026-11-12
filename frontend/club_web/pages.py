@@ -277,19 +277,33 @@ def recent_changes():
     ]
 
 
-def record_editor(data, section, record_id):
-    editor = EDITORS[section]
+def record_templates(section):
+    return resource("campaign-templates.json") if section == "campaigns" else {}
+
+
+def new_record(section, params):
+    template = record_templates(section).get(params.get("template", ""))
+    return dict(template["record"]) if template else {}
+
+
+def record_editor(data, section, params):
+    editor, record_id = EDITORS[section], params.get("id")
+    data["office_record_templates"] = {key: value["label"] for key, value in record_templates(section).items()}
     if not record_id:
         data["office_template"] = editor["list"]
         return
-    record = {} if record_id == NEW_RECORD else next((row for row in data["rows"] if row.get("id") == record_id), None)
+    record = (
+        new_record(section, params)
+        if record_id == NEW_RECORD
+        else next((row for row in data["rows"] if row.get("id") == record_id), None)
+    )
     data.update(
         office_template=editor["editor"],
         office_parent=dict(OFFICE_NAV)[section],
         office_lede=editor["lede"],
         office_blocks=editor_blocks(section),
         program=record,
-        title=(record or {}).get("title") or (editor["new"] if record == {} else editor["missing"]),
+        title=(record or {}).get("title") or (editor["missing"] if record is None else editor["new"]),
     )
 
 
@@ -673,7 +687,7 @@ async def office_extras(page, section):
 def office_rows(data, params, section):
     data["rows"] = section_records(section, page_items(data.get("records")), data["office_names"])
     if section in EDITORS:
-        record_editor(data, section, params.get("id"))
+        record_editor(data, section, params)
     if section in FIELDS:
         data["office_total"] = len(data["rows"])
         data["rows"] = filter_content(data["rows"], params)

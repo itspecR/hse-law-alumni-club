@@ -12,6 +12,8 @@ from urllib.parse import urlsplit
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 from mariadb_common import HELPERS, Context, output, sql
 
+LIVE_RATE_LIMIT = "5000"
+
 
 def prepare(config, destination):
     config = pathlib.Path(config).resolve()
@@ -54,6 +56,7 @@ def prepare(config, destination):
     values["NODE_EXTRA_CA_CERTS"] = str(certificate)
     runtime = {
         **context.runtime,
+        "RATE_LIMIT_MAX": LIVE_RATE_LIMIT,
         "SUPPORT_ENABLED": "true",
         "SUPPORT_OPERATOR_NAME": "Локальный тестовый оператор",
         "SUPPORT_OPERATOR_ADDRESS": "Локальный стенд без реального адреса",

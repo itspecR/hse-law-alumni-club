@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import httpx
 import pytest
 from test_campaigns import campaign, donation, trainer
@@ -157,3 +160,19 @@ async def test_campaigns_office_requires_staff(database_app):
         ):
             assert (await client.request(method, path, json=BODY)).status_code == 401
     assert await app.state.store.read("club_campaigns", fields=("slug",)) == [{"slug": "intensive"}]
+
+
+async def test_intensive_template_is_saved_as_hidden_draft(database_app):
+    app = database_app
+    _, editor = await account(app, "editor")
+    templates = json.loads((Path(__file__).parents[3] / "data" / "campaign-templates.json").read_text(encoding="utf-8"))
+    record = templates["intensive"]["record"]
+    async with client_for(app) as client:
+        created = await client.post("/admin/campaigns", headers=editor, json=record)
+        assert created.status_code == 200, created.text
+        [listed] = (await client.get("/admin/campaigns", headers=editor)).json()
+        page = await client.get("/campaigns/intensive")
+        home = (await client.get("/campaigns/current")).json()
+    assert (listed["status"], listed["slug"], listed["invite_threshold"]) == ("draft", "intensive", 1500000)
+    assert (len(listed["modules"]), len(listed["faq"]), listed["invite_body"]) == (7, 5, None)
+    assert (page.status_code, home) == (404, {"campaign": None})

@@ -36,6 +36,7 @@ packages = ["club_web"]
 "../data/legal-data.json" = "club_web/data/legal-data.json"
 "../data/faq-data.json" = "club_web/data/faq-data.json"
 "../data/changes.json" = "club_web/data/changes.json"
+"../data/campaign-templates.json" = "club_web/data/campaign-templates.json"
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]

@@ -1845,6 +1845,35 @@ async def test_campaign_editor_pages_for_existing_new_and_missing_campaign(brows
     assert "Сбор не найден: возможно, его удалили." in missing and "data-program-editor" not in missing
 
 
+async def test_new_campaign_can_start_from_intensive_template(browser_client):
+    listing = (await browser_client.get("/views/admin/campaigns", headers=EDITOR)).text
+    assert (
+        '<a href="/admin/campaigns?id=new&amp;template=intensive">По образцу интенсива «Искусство влияния»</a>'
+        in listing
+    )
+    page = plain((await browser_client.get("/views/admin/campaigns?id=new&template=intensive", headers=EDITOR)).text)
+    assert 'data-api="/admin/campaigns" data-method="POST" data-open-record="/admin/campaigns?id="' in page
+    assert '<input name="title" type="text" value="Искусство влияния">' in page
+    assert '<input name="slug" type="text" value="intensive">' in page
+    assert (
+        'name="invite_threshold" type="number" min="0" step="0.01" inputmode="decimal" data-kopecks value="15000"'
+        in page
+    )
+    assert "data-kopecks-lines>5000\n15000\n30000\n50000</textarea>" in page
+    day = page.split('data-modules="modules"', 1)[1].split("<template>", 1)[0]
+    assert day.count("data-module>") == 7 and 'value="10:00-11:30"' in day and "Обед 60 минут" in day
+    assert page.count('data-module-field="question"') == 6
+    assert '<option value="draft" selected>Черновик</option>' in page
+    assert "Форма заполнена по образцу." in page and ">Создать сбор</button>" in page
+    assert "campaign-invitations" not in page and "Удаление сбора" not in page
+    assert "<h1>Искусство влияния</h1>" in page
+    plain_new = (await browser_client.get("/views/admin/campaigns?id=new&template=unknown", headers=EDITOR)).text
+    assert '<input name="title" type="text" value="">' in plain_new and "Форма заполнена по образцу." not in plain_new
+    assert "<h1>Новый сбор</h1>" in plain_new
+    program = (await browser_client.get("/views/admin/portfolio?id=new&template=intensive", headers=ADMIN)).text
+    assert "<h1>Новая программа</h1>" in program and "Искусство влияния" not in program
+
+
 async def test_campaign_editor_lists_donors_for_invitation(browser_client):
     page = plain((await browser_client.get("/views/admin/campaigns?id=camp-1", headers=EDITOR)).text)
     block = page.split('id="campaign-invitations"', 1)[1].split("</section>", 1)[0]
