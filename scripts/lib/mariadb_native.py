@@ -8,7 +8,7 @@ import sys
 import time
 from urllib.parse import urlsplit
 
-from mariadb_backup import backup, restore
+from mariadb_backup import backup
 from mariadb_common import (
     HELPERS,
     Context,
@@ -21,6 +21,7 @@ from mariadb_common import (
 )
 from mariadb_install import install as install
 from mariadb_install import prepare_restore
+from mariadb_restore import restore, restore_site
 
 MIN_BUILD_FREE_BYTES = 5 * 1024**3
 CERTIFICATE_WARNING_SECONDS = 14 * 24 * 3600
@@ -165,9 +166,13 @@ def deploy(context):
 
 def main():
     parser = argparse.ArgumentParser(description="Обслуживание MariaDB/nginx")
-    parser.add_argument("command", choices=("preflight", "monitor", "deploy", "backup", "prepare-restore", "restore"))
+    parser.add_argument(
+        "command", choices=("preflight", "monitor", "deploy", "backup", "prepare-restore", "restore", "restore-site")
+    )
     parser.add_argument("--snapshot", type=pathlib.Path)
     parser.add_argument("--target-env", type=pathlib.Path)
+    parser.add_argument("--site")
+    parser.add_argument("--snapshot-env", type=pathlib.Path)
     parser.add_argument("--config-dir", type=pathlib.Path)
     parser.add_argument("--port", type=int, default=9543)
     parser.add_argument("--mail-port", type=int, default=8125)
@@ -191,6 +196,8 @@ def main():
                 if args.config_dir is None:
                     raise ValueError("Укажите --config-dir вне checkout")
                 prepare_restore(context, args.config_dir, args.port, args.mail_port)
+            elif args.command == "restore-site":
+                restore_site(context, args.snapshot, args.site, args.snapshot_env)
             else:
                 restore(context, args.snapshot, args.target_env)
     except (ValueError, OSError, KeyError, subprocess.CalledProcessError) as error:

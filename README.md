@@ -694,6 +694,20 @@ sudo env ENV_FILE=/etc/club-restore/compose.env bash scripts/deploy.sh --current
 письма остаются в Mailpit. Затем проверьте вход и пользовательские сценарии
 на `https://localhost:9543` с CA `/etc/club-restore/local-ca.crt`.
 
+Вернуть рабочий сайт к копии или загрузить копию другого сервера:
+
+```bash
+sudo env ENV_FILE=/etc/club/compose.env SNAPSHOT_FILE=/var/backups/club/snapshot-YYYYMMDD.tar.gz.enc RESTORE_SITE=club.example.org bash scripts/restore.sh
+sudo ./scripts/deploy.sh --current
+```
+
+`RESTORE_SITE` - адрес сайта этого контура. Снимок сверяется до остановки сайта,
+прежние таблицы переносятся в базу `club_kept_<метка>`, прежние файлы - в каталог
+`uploads-kept-<метка>`; команда ничего не удаляет. При сбое прежние данные
+возвращаются на место. Для снимка другого сервера нужен его `compose.env` в
+`SNAPSHOT_ENV_FILE`. Подробности - в
+[runbook](docs/operations/deploy-runbook.md#восстановление-в-рабочий-контур).
+
 ## Мониторинг и журналы
 
 ```bash

@@ -67,6 +67,7 @@ max-complexity = 15
 "../scripts/lib/mariadb_native.py" = ["S603", "S608", "S104"]
 "../scripts/lib/mariadb_common.py" = ["S603", "S608"]
 "../scripts/lib/mariadb_backup.py" = ["S603", "S608"]
+"../scripts/lib/mariadb_restore.py" = ["S603", "S608"]
 "../scripts/lib/mariadb_install.py" = ["S608", "S104"]
 "../scripts/tests/test-nginx.py" = ["S603", "S108"]
 "../scripts/lib/autodeploy.py" = ["S310", "S603", "S607"]

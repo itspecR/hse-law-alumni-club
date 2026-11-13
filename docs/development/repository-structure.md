@@ -81,7 +81,7 @@ URLconf. Обработчики получают `HttpRequest`, явно про�
 В `deploy` собраны Docker-файлы API, bootstrap, web и nginx, шаблон nginx,
 `compose.mariadb.yml` и systemd units. `mariadb_common.py` проверяет
 контур, `mariadb_install.py` создаёт конфигурацию, `mariadb_backup.py` обслуживает
-копии, `mariadb_native.py` запускает проверяемое обновление.
+копии, `mariadb_restore.py` восстанавливает их, `mariadb_native.py` запускает проверяемое обновление.
 
 В корне `scripts` остаются команды оператора: `install.sh`, `setup-ubuntu.sh`, `preflight.sh`,
 `deploy.sh`, `backup.sh`, `restore.sh` и `monitor.sh`. Вспомогательные shell/Python-функции находятся в `lib`,
