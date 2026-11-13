@@ -50,6 +50,8 @@ GIVE_AMOUNTS = (100000, 300000, 500000, 1000000)
 GIVE_CHOSEN = 300000
 HEADER_ROOMY_LINKS = 6
 FORBIDDEN = 403
+SERVER_ERROR = 500
+SESSION_KEYS = frozenset(("me", "session"))
 NEW_RECORD = "new"
 PUBLIC_PAGES = {
     "/": ("home.html", "Клуб выпускников факультета права"),
@@ -330,7 +332,9 @@ class Page:
         except ApiFailure as error:
             self.data[key] = default
             self.data["load_errors"][key] = error.status
-            if not office_denied(self.path, error.status):
+            if key in SESSION_KEYS and error.status >= SERVER_ERROR:
+                self.data["session_unavailable"] = True
+            elif not office_denied(self.path, error.status):
                 self.data["errors"].append(error.message)
             if error.status in (401, 403):
                 self.data["access_error"] = error.status
@@ -747,6 +751,7 @@ async def context(api, path, params, authorized=False):
         "metrics": METRICS,
         "errors": [],
         "load_errors": {},
+        "session_unavailable": False,
         "authorized": authorized,
         "status": 404 if template == "not-found.html" else 200,
         "domain": resource("domain-data.json"),

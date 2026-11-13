@@ -35,6 +35,13 @@
 {% macro save(path,title,kind) %}
 <button type="button" class="save-material lux-btn lux-btn--ghost lux-btn--sm" data-action="save" data-href="{{ path }}" data-title="{{ title }}" data-kind="{{ kind }}" aria-pressed="false">Сохранить</button>
 {% endmacro %}
+{% macro unavailable(title) %}
+<section class="session-unavailable" role="status">
+<h1>{{ title }}</h1>
+<p>Не удалось проверить вход. Вход сохранен, повторите через минуту.</p>
+<button data-action="refresh">Повторить</button>
+</section>
+{% endmacro %}
 {% macro empty(text) %}
 <p class="site-empty" role="status">{{ text }}</p>
 {% endmacro %}

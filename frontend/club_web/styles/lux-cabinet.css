@@ -57,6 +57,9 @@ html.lux .cabinet-card .cabinet-card__title { color: var(--c-text); font-size: 1
 html.lux .cabinet-card a:not(.lux-btn) { justify-self: start; color: var(--c-text); text-decoration-color: var(--lux-hairline); text-underline-offset: 4px; }
 html.lux .cabinet-card > :is(button, .lux-btn) { justify-self: start; gap: 8px; }
 html.lux .cabinet-status { margin-bottom: 48px; }
+html.lux .session-unavailable { display: grid; gap: 16px; justify-items: start; max-width: 640px; margin: clamp(32px, 6vw, 72px) 0; padding: clamp(20px, 2.4cqi, 28px); border-radius: var(--r-lg); background: var(--c-bg-raised); }
+html.lux .session-unavailable h1 { margin: 0; font: 200 clamp(28px, 2.6cqi, 36px)/1.1 var(--f-display); letter-spacing: -0.03em; font-kerning: none; }
+html.lux .session-unavailable p { margin: 0; color: var(--c-text-2); }
 html.lux .cabinet-document { display: grid; gap: 12px; margin-top: 8px; padding-top: 24px; border-top: 1px solid var(--lux-hairline); }
 html.lux .cabinet-document h3 { margin: 0; color: var(--c-text); font: 500 19px/1.3 var(--f-body); }
 html.lux .cabinet-document p { margin: 0; max-width: 62ch; color: var(--c-text-2); }

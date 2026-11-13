@@ -33,6 +33,10 @@ DUPLICATE_ACCOUNT = "Аккаунт с этой почтой уже есть. В
 PDN_POLICY_VERSION = shared_data("legal-data.json")["version"]
 PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH = 8, 100
 PENDING, VERIFIED = "pending", "verified"
+SESSION_CHECK_ATTEMPTS = 2
+SESSION_CHECK_FAILED = "Не удалось проверить вход. Повторите через минуту."
+ADMIN_CHECK_FAILED = "Не удалось проверить права сотрудника"
+ALUMNI_CHECK_FAILED = "Не удалось проверить доступ выпускника"
 REFERRAL_PREFIX = "RC-"
 ALUMNI_FIELDS = (
     "id",
@@ -162,6 +166,14 @@ async def find_user(connection, *, id=None, email=None, lock=False):
     return rows[0] if len(rows) == 1 else None
 
 
+def is_uuid(value):
+    try:
+        UUID(value)
+    except ValueError, TypeError, AttributeError:
+        return False
+    return isinstance(value, str)
+
+
 class AuthService:
     def __init__(self, settings, database, store: Store):
         self.settings = settings
@@ -222,55 +234,56 @@ class AuthService:
         rows = await self.store.read("alumni", filters={"user_id": {"_eq": user_id}}, fields=ALUMNI_FIELDS, limit=1)
         return rows[0] if rows else None
 
-    async def resolve_admin(self, request):
+    async def checked(self, check, payload, failure):
+        for _ in range(SESSION_CHECK_ATTEMPTS):
+            try:
+                return await check(payload)
+            except Exception as error:
+                logger.warning("%s: %s", failure, type(error).__name__)
+        raise ApiError(503, SESSION_CHECK_FAILED)
+
+    def admin_payload(self, request):
         token = self.bearer(request)
-        if not token:
-            return None
-        payload = self.decode(token, admin=True)
-        if not payload or payload.get("scope") != "admin":
-            return None
-        try:
-            if payload.get("jti"):
-                rows = await self.database.rows(
-                    "SELECT token_key FROM club_auth_revocations WHERE token_key=%s AND expires_at > now()",
-                    ("admin:" + payload["jti"],),
-                )
-                if rows:
-                    return None
-            user = await self.user(id=payload["sub"], staff=True, active=True)
-            if not user or payload.get("ver", 0) != user["staff_version"]:
+        payload = self.decode(token, admin=True) if token else None
+        return payload if payload and payload.get("scope") == "admin" else None
+
+    async def admin_session(self, payload):
+        if payload.get("jti"):
+            rows = await self.database.rows(
+                "SELECT token_key FROM club_auth_revocations WHERE token_key=%s AND expires_at > now()",
+                ("admin:" + payload["jti"],),
+            )
+            if rows:
                 return None
-            return {"userId": user["id"], "role": user["role"], "jti": payload.get("jti")}
-        except Exception:
-            logger.warning("Не удалось проверить текущие права администратора")
+        user = await self.user(id=payload["sub"], staff=True, active=True)
+        if not user or payload.get("ver", 0) != user["staff_version"]:
             return None
+        return {"userId": user["id"], "role": user["role"], "jti": payload.get("jti")}
+
+    async def resolve_admin(self, request):
+        payload = self.admin_payload(request)
+        return await self.checked(self.admin_session, payload, ADMIN_CHECK_FAILED) if payload else None
+
+    def alumni_payload(self, request):
+        token = self.bearer(request)
+        payload = self.decode(token) if token else None
+        return payload if payload and is_uuid(payload.get("alumni_id")) else None
+
+    async def alumni_session(self, payload):
+        rows = await self.store.read(
+            "alumni", filters={"id": {"_eq": payload["alumni_id"]}}, fields=ALUMNI_FIELDS, limit=1
+        )
+        alumni = rows[0] if rows else None
+        if not alumni or payload.get("ver", 0) != (alumni["token_version"] or 0):
+            return None
+        if alumni["user_id"]:
+            linked = payload["sub"] == alumni["user_id"]
+            return alumni if linked and await self.user(id=alumni["user_id"], alumni=True, active=True) else None
+        return alumni if alumni["telegram_id"] and payload["sub"] == alumni["telegram_id"] else None
 
     async def resolve_alumni(self, request):
-        token = self.bearer(request)
-        if not token:
-            return None
-        payload = self.decode(token)
-        if not payload or not isinstance(payload.get("alumni_id"), str):
-            return None
-        try:
-            UUID(payload["alumni_id"])
-            rows = await self.store.read(
-                "alumni", filters={"id": {"_eq": payload["alumni_id"]}}, fields=ALUMNI_FIELDS, limit=1
-            )
-            alumni = rows[0] if rows else None
-            if not alumni or payload.get("ver", 0) != (alumni["token_version"] or 0):
-                return None
-            if alumni["user_id"]:
-                if payload["sub"] != alumni["user_id"] or not await self.user(
-                    id=alumni["user_id"], alumni=True, active=True
-                ):
-                    return None
-            elif not alumni["telegram_id"] or payload["sub"] != alumni["telegram_id"]:
-                return None
-            return alumni
-        except Exception:
-            logger.warning("Не удалось проверить доступ выпускника")
-            return None
+        payload = self.alumni_payload(request)
+        return await self.checked(self.alumni_session, payload, ALUMNI_CHECK_FAILED) if payload else None
 
     async def revoke_admin(self, jti):
         await self.database.execute(

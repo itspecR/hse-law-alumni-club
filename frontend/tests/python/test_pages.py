@@ -2006,3 +2006,39 @@ async def test_verified_profile_shows_name_read_only_with_support_link():
     field = re.search(r'<input type="text" value="Анна Вымышленная"[^>]*>', page)[0]
     assert "readonly" in field and "name=" not in field
     assert '<a href="/support">напишите в поддержку</a>' in page
+
+
+SESSION_CHECK_FAILED = "Не удалось проверить вход. Повторите через минуту."
+
+
+async def page_with_session_reply(path, endpoint, status, headers):
+    async def upstream(request):
+        if request.url.path == endpoint:
+            return httpx.Response(status, json={"error": SESSION_CHECK_FAILED if status >= 500 else "Войдите снова."})
+        return httpx.Response(200, json=[])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            return await client.get("/views" + path, headers=headers)
+
+
+@pytest.mark.parametrize(
+    ("path", "endpoint", "title"),
+    [
+        ("/lk", "/me", "Не удалось загрузить кабинет"),
+        ("/lk/profile", "/me", "Не удалось загрузить профиль"),
+        ("/admin", "/auth/admin-session", "Не удалось загрузить панель"),
+    ],
+)
+async def test_failed_session_check_keeps_sign_in_and_offers_retry(path, endpoint, title):
+    headers = {"authorization": "Bearer member-test"}
+    failed = await page_with_session_reply(path, endpoint, 503, headers)
+    assert failed.status_code == 200
+    block = failed.text.split('<section class="session-unavailable" role="status">')[1].split("</section>")[0]
+    assert f"<h1>{title}</h1>" in block and '<button data-action="refresh">Повторить</button>' in block
+    assert "Вход сохранен, повторите через минуту." in block
+    assert 'class="cabinet-gate"' not in failed.text and 'class="site-errors"' not in failed.text
+    expired = await page_with_session_reply(path, endpoint, 401, headers)
+    assert expired.status_code == 401 and "session-unavailable" not in expired.text

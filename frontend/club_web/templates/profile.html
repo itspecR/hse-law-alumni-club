@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
-{% from 'macros.html' import login,field,mailing_field %}
+{% from 'macros.html' import login,field,mailing_field,unavailable %}
 {% block content %}
 <main id="main" class="site-article profile-page">
-{% if not me or access_error %}{{ login(next=query.get('next','')) }}{% else %}
+{% if session_unavailable %}{{ unavailable('Не удалось загрузить профиль') }}{% elif not me or access_error %}{{ login(next=query.get('next','')) }}{% else %}
 <a href="/lk" class="foc lux-back"><span aria-hidden="true">‹</span> Кабинет</a>
 <header class="site-masthead">
 <h1>Профиль</h1>
