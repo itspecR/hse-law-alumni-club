@@ -41,8 +41,8 @@ jobs:
           uv run --directory frontend python manage.py check
           uv run --directory backend ruff check club_api tests/python ../scripts/club_ops
           uv run --directory backend ruff format --check club_api tests/python ../scripts/club_ops
-          uv run --directory backend ruff check ../scripts/lib/mariadb_common.py ../scripts/lib/mariadb_install.py ../scripts/lib/mariadb_backup.py ../scripts/lib/mariadb_native.py ../scripts/lib/autodeploy.py ../scripts/tests/test-autodeploy.py
-          uv run --directory backend ruff format --check ../scripts/lib/mariadb_common.py ../scripts/lib/mariadb_install.py ../scripts/lib/mariadb_backup.py ../scripts/lib/mariadb_native.py ../scripts/lib/autodeploy.py ../scripts/tests/test-autodeploy.py
+          uv run --directory backend ruff check ../scripts/lib/mariadb_common.py ../scripts/lib/mariadb_install.py ../scripts/lib/mariadb_backup.py ../scripts/lib/mariadb_restore.py ../scripts/lib/mariadb_native.py ../scripts/lib/autodeploy.py ../scripts/tests/test-autodeploy.py
+          uv run --directory backend ruff format --check ../scripts/lib/mariadb_common.py ../scripts/lib/mariadb_install.py ../scripts/lib/mariadb_backup.py ../scripts/lib/mariadb_restore.py ../scripts/lib/mariadb_native.py ../scripts/lib/autodeploy.py ../scripts/tests/test-autodeploy.py
           uv run --directory frontend ruff check club_web tests/python
           uv run --directory frontend ruff format --check club_web tests/python
           uv run --directory frontend python ../scripts/checks/check-comments.py

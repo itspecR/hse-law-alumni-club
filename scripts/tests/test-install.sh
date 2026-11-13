@@ -31,6 +31,8 @@ for directory in map(pathlib.Path,sys.argv[1:3]):
     else: continue
     for name in names: database_name(name)
     sql(f"DROP DATABASE `{names[0]}`; DROP USER IF EXISTS '{names[1]}'@'localhost','{names[2]}'@'localhost';")
+    restored=directory/'state'/'last-restore.json'
+    if restored.exists(): sql(f"DROP DATABASE IF EXISTS `{database_name(json.loads(restored.read_text())['kept_database'])}`;")
 PY
   then result=1; fi
   if ! sudo rm -rf -- "$temp"; then result=1; fi
@@ -95,4 +97,34 @@ request=urllib.request.Request('https://localhost:9543/api/auth/admin-login',dat
 with urllib.request.urlopen(request,context=ssl.create_default_context(cafile=str(directory/'local-ca.crt'))) as response:
     assert response.status==200
 print('Восстановление MariaDB: все таблицы и uploads сверены, прежний пароль открывает панель управления')
+PY
+site_restore=(sudo env ENV_FILE="$config/compose.env" SNAPSHOT_FILE="$snapshot" SNAPSHOT_ENV_FILE="$config/compose.env")
+sudo python3 - "$config" "$temp/repo/scripts/lib" <<'PY'
+import pathlib,sys
+sys.path.insert(0,sys.argv[2])
+from mariadb_common import read_env,sql
+values=read_env(pathlib.Path(sys.argv[1])/'compose.env')
+sql("UPDATE club_campaigns SET title='changed after snapshot';",values['CLUB_DATABASE'])
+(pathlib.Path(values['CLUB_UPLOADS_DIR'])/'after-snapshot.txt').write_text('after snapshot')
+PY
+if "${site_restore[@]}" RESTORE_SITE=other.example.org bash "$temp/repo/scripts/restore.sh"; then echo 'Восстановление приняло чужой адрес сайта' >&2; exit 1; fi
+[[ "$("${compose[@]}" ps --status running -q api)" = "$api_before" ]] || { echo 'Отказ в восстановлении остановил API' >&2; exit 1; }
+"${site_restore[@]}" RESTORE_SITE=localhost bash "$temp/repo/scripts/restore.sh"
+[[ -z "$("${compose[@]}" ps --status running -q api)" ]] || { echo 'API работает до проверенной выкладки восстановленных данных' >&2; exit 1; }
+sudo env ENV_FILE="$config/compose.env" bash "$temp/repo/scripts/deploy.sh" --current
+verify repeated
+sudo python3 - "$config" "$temp/repo/scripts/lib" <<'PY'
+import json,pathlib,sys
+sys.path.insert(0,sys.argv[2])
+from mariadb_common import read_env,sql
+directory=pathlib.Path(sys.argv[1])
+values=read_env(directory/'compose.env')
+kept=json.loads((directory/'state'/'last-restore.json').read_text())
+title="SELECT title FROM club_campaigns WHERE slug='intensive';"
+assert sql(title,kept['kept_database'])=='changed after snapshot','Прежняя база не сохранена'
+assert sql(title,values['CLUB_DATABASE']) not in ('','changed after snapshot'),'База сайта не заменена снимком'
+uploads=pathlib.Path(values['CLUB_UPLOADS_DIR'])
+assert not (uploads/'after-snapshot.txt').exists(),'Файлы сайта не заменены снимком'
+assert (pathlib.Path(kept['kept_uploads'])/'after-snapshot.txt').read_text()=='after snapshot','Прежние файлы не сохранены'
+print('Восстановление в рабочий контур: снимок загружен и сверен, прежние база и файлы сохранены, первичный пароль открывает панель')
 PY

@@ -3,6 +3,7 @@ import io
 import json
 import pathlib
 import os
+import re
 import ssl
 import subprocess
 import sys
@@ -16,6 +17,7 @@ common = importlib.import_module('mariadb_common')
 installer = importlib.import_module('mariadb_install')
 maintenance = importlib.import_module('mariadb_native')
 backup = importlib.import_module('mariadb_backup')
+restoring = importlib.import_module('mariadb_restore')
 certificate = importlib.import_module('certificate')
 
 
@@ -186,10 +188,10 @@ class RestoreResourceGuards(unittest.TestCase):
             snapshot = directory / 'snapshot.enc'
             snapshot.write_bytes(b'x' * 32)
             snapshot.chmod(0o600)
-            usage = type('Usage', (), {'free': backup.RESTORE_RESERVE_BYTES + 31})()
-            with patch.object(backup.shutil, 'disk_usage', return_value=usage), patch.object(backup, 'Context') as target, patch.object(backup, 'sql') as query, patch.object(backup.subprocess, 'Popen') as decrypt:
+            usage = type('Usage', (), {'free': restoring.RESTORE_RESERVE_BYTES + 31})()
+            with patch.object(restoring.shutil, 'disk_usage', return_value=usage), patch.object(restoring, 'Context') as target, patch.object(restoring, 'sql') as query, patch.object(restoring.subprocess, 'Popen') as decrypt:
                 with self.assertRaisesRegex(ValueError, 'Недостаточно места'):
-                    backup.restore(Mock(backups=directory), snapshot, directory / 'target.env')
+                    restoring.restore(Mock(backups=directory), snapshot, directory / 'target.env')
                 target.assert_not_called()
                 query.assert_not_called()
                 decrypt.assert_not_called()
@@ -201,9 +203,9 @@ class RestoreResourceGuards(unittest.TestCase):
             snapshot.write_bytes(b'x' * 32)
             snapshot.chmod(0o600)
             destination = directory / 'plaintext'
-            with patch.object(backup, 'MAX_SNAPSHOT_BYTES', 31), patch.object(backup.subprocess, 'Popen') as decrypt:
+            with patch.object(restoring, 'MAX_SNAPSHOT_BYTES', 31), patch.object(restoring.subprocess, 'Popen') as decrypt:
                 with self.assertRaisesRegex(ValueError, 'Размер снимка'):
-                    backup.decrypt_snapshot(snapshot, destination, 'a' * 64)
+                    restoring.decrypt_snapshot(snapshot, destination, 'a' * 64)
                 decrypt.assert_not_called()
             self.assertFalse(destination.exists())
 
@@ -218,9 +220,9 @@ class RestoreResourceGuards(unittest.TestCase):
             manager = Mock()
             manager.__enter__ = Mock(return_value=process)
             manager.__exit__ = Mock(return_value=False)
-            with patch.object(backup.subprocess, 'Popen', return_value=manager):
+            with patch.object(restoring.subprocess, 'Popen', return_value=manager):
                 with self.assertRaisesRegex(ValueError, 'превысил исходный размер'):
-                    backup.decrypt_snapshot(snapshot, destination, 'a' * 64)
+                    restoring.decrypt_snapshot(snapshot, destination, 'a' * 64)
             process.kill.assert_called_once()
             self.assertFalse(destination.exists())
 
@@ -233,14 +235,177 @@ class RestoreResourceGuards(unittest.TestCase):
             subprocess.run(['openssl', 'enc', '-aes-256-cbc', '-pbkdf2', '-iter', '200000', '-pass', 'env:BACKUP_ENCRYPTION_KEY', '-in', str(original), '-out', str(snapshot)], env={'PATH': os.environ['PATH'], 'BACKUP_ENCRYPTION_KEY': key}, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             snapshot.chmod(0o600)
             destination = directory / 'plaintext'
-            backup.decrypt_snapshot(snapshot, destination, key)
+            restoring.decrypt_snapshot(snapshot, destination, key)
             self.assertEqual(destination.read_bytes(), original.read_bytes())
             self.assertEqual(destination.stat().st_mode & 0o777, 0o600)
             snapshot.write_bytes(snapshot.read_bytes()[:-1])
             rejected = directory / 'rejected'
             with self.assertRaisesRegex(ValueError, 'расшифровать'):
-                backup.decrypt_snapshot(snapshot, rejected, key)
+                restoring.decrypt_snapshot(snapshot, rejected, key)
             self.assertFalse(rejected.exists())
+
+
+class FakeServer:
+    def __init__(self, tables):
+        self.databases = {'club_site': set(tables)}
+
+    def __call__(self, query, database=None):
+        names = re.findall(r'`(\w+)`', query)
+        if query.startswith('SELECT TABLE_NAME'):
+            schema = re.search(r"TABLE_SCHEMA='(\w+)'", query)[1]
+            return '\n'.join(name + '\tBASE TABLE' for name in sorted(self.databases[schema]))
+        if query.startswith('CREATE DATABASE'):
+            self.databases[names[0]] = set()
+        elif query.startswith('DROP DATABASE'):
+            if self.databases.pop(names[0]):
+                raise AssertionError('Удалена база с таблицами')
+        elif query.startswith('RENAME TABLE'):
+            for source, table, destination, renamed in zip(*[iter(names)] * 4):
+                self.databases[source].remove(table)
+                self.databases[destination].add(renamed)
+        else:
+            raise AssertionError(query)
+        return ''
+
+    def named(self, prefix):
+        return [name for name in self.databases if name.startswith(prefix)]
+
+
+class SiteRestore(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = pathlib.Path(self.temp.name).resolve()
+        self.uploads = self.root / 'data' / 'uploads'
+        self.uploads.mkdir(parents=True)
+        (self.uploads / 'before.png').write_text('before')
+        for name in ('backups', 'state'):
+            (self.root / name).mkdir()
+        self.snapshot = self.root / 'snapshot.tar.gz.enc'
+        self.snapshot.write_bytes(b'x' * 32)
+        self.snapshot.chmod(0o600)
+        self.context = Mock(
+            values={'CLUB_UPLOADS_DIR': str(self.uploads), 'BACKUP_ENCRYPTION_KEY': 'a' * 64},
+            runtime={'PUBLIC_URL': 'https://club.example.org'}, database='club_site',
+            backups=self.root / 'backups', state=self.root / 'state')
+        self.context.stop_writers.return_value = True
+        self.server = FakeServer({'club_members', 'club_news'})
+        self.keys = []
+
+    def folder(self, path):
+        path.mkdir()
+        return path
+
+    def opened(self, snapshot, work, key):
+        self.keys.append(key)
+        return {'revision': 'c' * 40, 'database_bytes': 1, 'uploads_bytes': 1}
+
+    def loaded(self, work, metadata, contour, uploads):
+        self.assertEqual(self.server.databases['club_site'], set())
+        self.assertEqual(list(uploads.iterdir()), [])
+        self.context.stop_writers.assert_called_once()
+        self.server.databases['club_site'].add('club_campaigns')
+        (uploads / 'after.png').write_text('after')
+
+    def broken(self, work, metadata, contour, uploads):
+        self.loaded(work, metadata, contour, uploads)
+        raise ValueError('Содержимое таблиц не совпало со снимком')
+
+    def run_restore(self, fill, site='club.example.org', source=None, opened=None):
+        with patch.object(restoring, 'sql', self.server), patch.object(restoring, 'directory', self.folder), \
+                patch.object(restoring, 'open_snapshot', opened or self.opened), patch.object(restoring, 'require_space'), \
+                patch.object(restoring, 'fill', fill), patch('builtins.print'):
+            restoring.restore_site(self.context, self.snapshot, site, source)
+
+    def files(self, folder):
+        return sorted(path.name for path in folder.iterdir())
+
+    def test_previous_database_and_files_are_set_aside_before_snapshot_is_loaded(self):
+        self.run_restore(self.loaded)
+        result = json.loads((self.root / 'state' / 'last-restore.json').read_text())
+        self.assertEqual(self.server.databases['club_site'], {'club_campaigns'})
+        self.assertEqual(self.server.databases[result['kept_database']], {'club_members', 'club_news'})
+        self.assertRegex(result['kept_database'], r'^club_kept_\d{8}t\d{6}_[a-f0-9]{4}$')
+        self.assertEqual(self.files(self.uploads), ['after.png'])
+        self.assertEqual(self.files(pathlib.Path(result['kept_uploads'])), ['before.png'])
+        self.assertEqual(pathlib.Path(result['kept_uploads']).parent, self.uploads.parent)
+        self.assertEqual((result['snapshot'], result['revision']), ('snapshot.tar.gz.enc', 'c' * 40))
+        self.assertEqual(self.keys, ['a' * 64])
+        self.context.resume.assert_not_called()
+
+    def test_failed_load_returns_previous_data_and_running_site(self):
+        with self.assertRaisesRegex(ValueError, 'не совпало'):
+            self.run_restore(self.broken)
+        self.assertEqual(self.server.databases['club_site'], {'club_members', 'club_news'})
+        self.assertEqual(self.files(self.uploads), ['before.png'])
+        failed = self.server.named('club_failed_')
+        self.assertEqual([self.server.databases[name] for name in failed], [{'club_campaigns'}])
+        self.assertEqual(self.server.named('club_kept_'), [])
+        folders = self.files(self.uploads.parent)
+        self.assertEqual([name.split('-')[1] for name in folders if name != 'uploads'], ['failed'])
+        self.assertEqual(self.files(self.uploads.parent / folders[1]), ['after.png'])
+        self.context.resume.assert_called_once()
+        self.assertFalse((self.root / 'state' / 'last-restore.json').exists())
+
+    def test_stopped_site_is_not_started_after_failed_load(self):
+        self.context.stop_writers.return_value = False
+        with self.assertRaisesRegex(ValueError, 'не совпало'):
+            self.run_restore(self.broken)
+        self.assertEqual(self.server.databases['club_site'], {'club_members', 'club_news'})
+        self.context.resume.assert_not_called()
+
+    def test_failure_while_setting_aside_returns_moved_part_without_failed_copy(self):
+        (self.uploads / 'second.png').write_text('second')
+        rename = os.rename
+
+        def stuck(source, destination):
+            if pathlib.Path(source).name == 'second.png' and 'kept' in str(destination):
+                raise OSError('Invalid cross-device link')
+            rename(source, destination)
+
+        fill = Mock()
+        with patch.object(restoring.os, 'rename', stuck), self.assertRaises(OSError):
+            self.run_restore(fill)
+        fill.assert_not_called()
+        self.assertEqual(self.server.databases, {'club_site': {'club_members', 'club_news'}})
+        self.assertEqual(self.files(self.uploads), ['before.png', 'second.png'])
+        self.assertEqual(self.files(self.uploads.parent), ['uploads'])
+        self.context.resume.assert_called_once()
+
+    def test_other_site_address_and_bad_snapshot_leave_site_running(self):
+        def rejected(snapshot, work, key):
+            raise ValueError('Контрольная сумма снимка не совпала')
+
+        for options, message in (({'site': 'other.example.org'}, 'не совпадает'), ({'site': ''}, 'Нужны'),
+                                 ({'opened': rejected}, 'Контрольная сумма')):
+            with self.subTest(options), self.assertRaisesRegex(ValueError, message):
+                self.run_restore(Mock(), **options)
+        self.context.stop_writers.assert_not_called()
+        self.assertEqual(self.server.databases, {'club_site': {'club_members', 'club_news'}})
+        self.assertEqual(self.files(self.uploads), ['before.png'])
+
+    def test_snapshot_of_another_server_is_opened_with_its_key(self):
+        source = self.root / 'source.env'
+        source.write_text('BACKUP_ENCRYPTION_KEY="' + 'b' * 64 + '"\n')
+        source.chmod(0o600)
+        self.run_restore(self.loaded, source=source)
+        self.assertEqual(self.keys, ['b' * 64])
+
+    def test_source_env_without_key_or_with_open_access_is_refused(self):
+        source = self.root / 'source.env'
+        for content, mode, message in (('BACKUP_ENCRYPTION_KEY="short"\n', 0o600, '64 hex'), ('BACKUP_ENCRYPTION_KEY="' + 'b' * 64 + '"\n', 0o644, '0600')):
+            source.write_text(content)
+            source.chmod(mode)
+            with self.subTest(mode), self.assertRaisesRegex(ValueError, message):
+                self.run_restore(Mock(), source=source)
+        self.context.stop_writers.assert_not_called()
+
+    def test_views_and_unexpected_table_names_stop_the_move(self):
+        for rows in ('club_news\tBASE TABLE\nclub_report\tVIEW', 'club`news\tBASE TABLE'):
+            with self.subTest(rows), patch.object(restoring, 'sql', return_value=rows) as query:
+                with self.assertRaisesRegex(ValueError, 'перенос остановлен'):
+                    restoring.move_tables('club_site', 'club_kept_1')
+                query.assert_called_once()
 
 
 class ServerContour(unittest.TestCase):
