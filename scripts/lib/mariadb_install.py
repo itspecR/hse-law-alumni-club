@@ -48,6 +48,46 @@ RESTORE_DISABLED = (
     "PAYEE_ACCOUNT",
     "PAYEE_CORRESPONDENT_ACCOUNT",
 )
+ADOPTED_SETTINGS = (
+    "TELEGRAM_BOT_TOKEN",
+    "TELEGRAM_WEBHOOK_SECRET",
+    "TELEGRAM_POLLING",
+    "TELEGRAM_BOT_USERNAME",
+    "TELEGRAM_REACTIONS_CHAT_ID",
+    "OFFICE_NOTIFY_CHANNEL",
+    "OFFICE_TG_BOT_TOKEN",
+    "OFFICE_TG_CHAT_ID",
+    "YOOKASSA_SHOP_ID",
+    "YOOKASSA_SECRET_KEY",
+    "BIFIT_API_URL",
+    "BIFIT_CONNECTOR_TOKEN",
+    "PAYEE_NAME",
+    "PAYEE_INN",
+    "PAYEE_KPP",
+    "PAYEE_BANK",
+    "PAYEE_BIC",
+    "PAYEE_ACCOUNT",
+    "PAYEE_CORRESPONDENT_ACCOUNT",
+    "VAPID_PUBLIC_KEY",
+    "VAPID_PRIVATE_KEY",
+    "SENTRY_DSN",
+    "DPO_SYNC_ENABLED",
+    "DPO_SITE_URL",
+    "DPO_SITE_CERTIFICATE",
+    "DPO_SITE_LINK_URL",
+    "NEWS_SYNC_ENABLED",
+    "JOBS_ENABLED",
+    "SUPPORT_ENABLED",
+    "SUPPORT_OPERATOR_NAME",
+    "SUPPORT_OPERATOR_ADDRESS",
+    "SUPPORT_OPERATOR_CONTACT",
+    "SUPPORT_RETENTION_DAYS",
+    "ORDER_RETENTION_DAYS",
+    "AUDIT_RETENTION_DAYS",
+    "RATE_LIMIT_MAX",
+)
+MANUAL_SETTINGS = ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_FROM", "MAIL_REPLY_TO", "OFFICE_EMAIL", "CORS_ORIGINS")
+SETTINGS_FILES = ("CLUB_RUNTIME_ENV", "CLUB_OPERATOR_ENV")
 CONTOUR_TITLES = {"local": "локальная репетиция", "public": "публичный HTTPS", "server": "сервер по IP"}
 LISTENERS = {"local": ("127.0.0.1", 9443, 9080), "public": ("0.0.0.0", 443, 80), "server": ("0.0.0.0", 9443, 9080)}
 MAIL_PORT = 8025
@@ -114,6 +154,36 @@ def change_public_url(config, url):
         set_env_value(config / name, "PUBLIC_URL", url)
     set_env_value(config / "compose.env", "CLUB_TLS_NAMES", ",".join(names))
     print("Адрес сайта: " + url + ("; сертификат также для " + ", ".join(names) if names else ""))
+
+
+def differing(names, source, current):
+    return {name: source[name] for name in names if name in source and source[name] != current.get(name, "")}
+
+
+def adopt_settings(context, source):
+    if source is None:
+        raise ValueError("Укажите --source-env: runtime.env сервера, с которого переносятся настройки")
+    previous = read_env(source)
+    adopted = differing(ADOPTED_SETTINGS, previous, context.runtime)
+    manual = [name for name, value in differing(MANUAL_SETTINGS, previous, context.runtime).items() if value]
+    if adopted:
+        mark = time.strftime("%Y%m%dt%H%M%S", time.gmtime())
+        for key in SETTINGS_FILES:
+            path = pathlib.Path(context.values[key])
+            HELPERS["write_new"](path.with_name(path.name + ".before-" + mark), path.read_text())
+            for name, value in adopted.items():
+                set_env_value(path, name, value)
+        print("Перенесены настройки: " + ", ".join(adopted))
+        print("Прежние файлы сохранены с окончанием .before-" + mark)
+        print("Настройки начнут действовать после sudo ./scripts/deploy.sh --current")
+    else:
+        print("Переносимые настройки уже совпадают с прежним сервером")
+    if manual:
+        print(
+            "Не переносятся и отличаются от прежнего сервера: "
+            + ", ".join(manual)
+            + "; при необходимости задайте вручную"
+        )
 
 
 def public_url(address, port):
