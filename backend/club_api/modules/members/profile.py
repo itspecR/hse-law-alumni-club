@@ -12,6 +12,7 @@ from club_api.core.views import api_view, parse_body
 from club_api.domain import MAX_INTERESTS, achievement_progress, level_info
 from club_api.modules.auth.service import require_alumni
 from club_api.modules.gamification.routes import verified_alumni
+from club_api.modules.members.education import accepts_upload
 from club_api.modules.members.mailing import mailing_consent
 from club_api.modules.members.service import anonymize
 from club_api.observability.audit import audit
@@ -84,6 +85,8 @@ async def me(request: HttpRequest):
         referrals_verified=sum(row["verification_status"] == "verified" for row in referred),
         referrals_pending=sum(row["verification_status"] == "pending" for row in referred),
         mailing_consent=bool(alumni["mailing_consent_at"]),
+        education_document=bool(alumni["education_document"]),
+        education_upload=accepts_upload(state.settings, alumni),
     )
     result = {
         "alumni": profile,

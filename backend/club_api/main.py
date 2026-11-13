@@ -30,6 +30,7 @@ from club_api.modules.gamification.service import Gamification
 from club_api.modules.media.routes import ROUTE_LIMITS as MEDIA_LIMITS
 from club_api.modules.media.service import Media
 from club_api.modules.members.community import ROUTE_LIMITS as COMMUNITY_LIMITS
+from club_api.modules.members.education import ROUTE_LIMITS as EDUCATION_LIMITS
 from club_api.modules.members.profile import ROUTE_LIMITS as PROFILE_LIMITS
 from club_api.modules.news.routes import ROUTE_LIMITS as NEWS_LIMITS
 from club_api.modules.notifications.mail import Notifications
@@ -103,6 +104,7 @@ def create_app(settings=None):
             **PUSH_LIMITS,
             **PROFILE_LIMITS,
             **COMMUNITY_LIMITS,
+            **EDUCATION_LIMITS,
             **EVENT_LIMITS,
             **MEDIA_LIMITS,
             **SUPPORT_LIMITS,

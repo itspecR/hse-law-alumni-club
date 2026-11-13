@@ -12,6 +12,7 @@ from club_api.core.schemas import Body
 from club_api.core.views import api_view, defer, parse_body
 from club_api.domain import DOMAIN
 from club_api.modules.auth.service import alumni_names, require_admin, require_full_admin
+from club_api.modules.members.education import discard
 from club_api.modules.members.service import alumni_email, anonymize
 from club_api.modules.notifications.mail import CLUB_NAME, club_subject
 from club_api.observability.audit import audit
@@ -33,7 +34,9 @@ MEMBER_FIELDS = (
     "contacts_json",
     "joined_at",
     "avatar",
+    "education_document",
 )
+DECIDED = ("verified", "rejected")
 
 
 class MemberPatch(Body):
@@ -117,6 +120,7 @@ async def members(request: HttpRequest):
         "items": [
             {
                 **row,
+                "education_document": bool(row["education_document"]),
                 "email": emails.get(row["user_id"]) or (row["contacts_json"] or {}).get("email") or None,
                 "friends_count": friends[row["id"]],
                 "podcast_active": sub_active(row["podcast_sub_until"]),
@@ -190,7 +194,8 @@ async def patch_member(request: HttpRequest, id: str):
     await audit(
         request, "member.patch", actor="admin:" + admin["userId"], subject="alumni:" + id, detail=patch_detail(data)
     )
-    if data.get("verification_status") in ("verified", "rejected"):
+    if data.get("verification_status") in DECIDED:
+        await discard(state, id)
         defer(request, notify_verification, state, id, data["verification_status"])
     if data.get("verification_status") == "verified" and row.get("referred_by"):
         await state.gamification.add(

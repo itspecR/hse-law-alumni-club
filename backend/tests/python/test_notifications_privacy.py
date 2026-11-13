@@ -26,7 +26,7 @@ class MemoryDatabase:
         self.user_id, self.alumni_id = str(uuid4()), str(uuid4())
         self.email = "canonical@example.test"
         self.users = {self.user_id: {"id": self.user_id, "email": self.email, "role_name": "alumni"}}
-        self.profile = {"id": self.alumni_id, "user_id": self.user_id, "avatar": None}
+        self.profile = {"id": self.alumni_id, "user_id": self.user_id, "avatar": None, "education_document": None}
         self.outbox = {}
         self.locks = {}
         self.lock_trace = []
@@ -81,7 +81,7 @@ class MemoryConnection:
         database = self.database
         if query.startswith("SELECT user_id FROM alumni"):
             return Cursor([{"user_id": database.profile["user_id"]}])
-        if query.startswith("SELECT id,user_id,avatar FROM alumni"):
+        if query.startswith("SELECT id,user_id,avatar,education_document FROM alumni"):
             database.lock_trace.append("profile-row")
             return Cursor([dict(database.profile)])
         if query.startswith("SELECT u.email,r.name"):

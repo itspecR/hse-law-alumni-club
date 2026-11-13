@@ -39,6 +39,7 @@ class Alumnus(models.Model):
     podcast_reminder_sent = models.BooleanField(null=True, db_default=False)
     podcast_sub_until = models.DateTimeField(null=True)
     avatar = models.CharField(max_length=255, null=True)
+    education_document = models.CharField(max_length=36, null=True)
     referral_code = models.CharField(max_length=255, unique=True, null=True)
     telegram_id = models.CharField(max_length=255, unique=True, null=True)
     token_version = models.IntegerField(null=True, db_default=0)

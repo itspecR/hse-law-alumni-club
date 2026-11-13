@@ -48,6 +48,7 @@ ALUMNI_FIELDS = (
     "interests_json",
     "podcast_sub_until",
     "avatar",
+    "education_document",
     "referral_code",
     "token_version",
     "telegram_id",

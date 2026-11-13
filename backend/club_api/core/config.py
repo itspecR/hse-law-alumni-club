@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     CHECKOUT_DATABASE_URL: SecretStr = SecretStr("")
     UPLOADS_PATH: Path = Path("/data/uploads")
     SUPPORT_ENABLED: Literal["true", "false"] = "false"
+    EDUCATION_DOCUMENT_ENABLED: Literal["true", "false"] = "false"
     SUPPORT_OPERATOR_NAME: str = "Автономная некоммерческая организация «Клуб выпускников факультета Права НИУ ВШЭ»"
     SUPPORT_OPERATOR_ADDRESS: str = "107061, г. Москва, ул. Большая Черкизовская, д. 3, к. 2, помещ. 17/1"
     SUPPORT_OPERATOR_CONTACT: str = "Письменное обращение по юридическому адресу оператора"

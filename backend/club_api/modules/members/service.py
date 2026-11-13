@@ -32,7 +32,9 @@ async def anonymize(state, alumni_id):
                     (user_id,),
                 )
             ).fetchone()
-        cursor = await connection.execute("SELECT id,user_id,avatar FROM alumni WHERE id=%s FOR UPDATE", (alumni_id,))
+        cursor = await connection.execute(
+            "SELECT id,user_id,avatar,education_document FROM alumni WHERE id=%s FOR UPDATE", (alumni_id,)
+        )
         alumni = await cursor.fetchone()
         if not alumni:
             return False
@@ -52,7 +54,7 @@ async def anonymize(state, alumni_id):
         await connection.execute("DELETE FROM club_social_reactions WHERE alumni_id=%s", (alumni_id,))
         await connection.execute("DELETE FROM club_social_membership WHERE alumni_id=%s", (alumni_id,))
         await connection.execute(
-            "UPDATE alumni SET fio=%s,contacts_json=NULL,telegram_id=NULL,avatar=NULL,interests_json=NULL,edu_program=NULL,edu_level=NULL,cohort=NULL,verification_status='rejected',points_cached=0,status='alumni_left',user_id=NULL,mailing_consent_at=NULL,mailing_consent_version=NULL,token_version=COALESCE(token_version,0)+1 WHERE id=%s",
+            "UPDATE alumni SET fio=%s,contacts_json=NULL,telegram_id=NULL,avatar=NULL,education_document=NULL,interests_json=NULL,edu_program=NULL,edu_level=NULL,cohort=NULL,verification_status='rejected',points_cached=0,status='alumni_left',user_id=NULL,mailing_consent_at=NULL,mailing_consent_version=NULL,token_version=COALESCE(token_version,0)+1 WHERE id=%s",
             (DELETED_NAME, alumni_id),
         )
         await connection.execute(
@@ -75,9 +77,10 @@ async def anonymize(state, alumni_id):
                 "DELETE FROM directus_users WHERE id=%s AND role IN (SELECT id FROM directus_roles WHERE name='alumni')",
                 (alumni["user_id"],),
             )
-    if alumni["avatar"]:
-        try:
-            await state.media.delete(str(alumni["avatar"]))
-        except Exception:
-            logger.error("Не удалось удалить прежний файл профиля")
+    for file in (alumni["avatar"], alumni["education_document"]):
+        if file:
+            try:
+                await state.media.delete(str(file))
+            except Exception:
+                logger.error("Не удалось удалить прежний файл профиля")
     return True
