@@ -163,8 +163,8 @@ sudo env ENV_FILE=/etc/club/compose.env bash scripts/monitor.sh
 
 - Тексты `/portfolio-consent` и `/portfolio-terms`: сейчас на страницах заглушки.
 - Политика обработки персональных данных.
-- Почта Оператора `club@<домен>` для правовых страниц (`operator.email` в
-  `data/legal-data.json`) вносится отдельным изменением кода.
+- Почта Оператора для правовых страниц (`operator.email` в `data/legal-data.json`)
+  совпадает с ящиком `club@<домен>`; при смене ящика ее меняют отдельным изменением кода.
 
 ## 10. Продление сертификата
 

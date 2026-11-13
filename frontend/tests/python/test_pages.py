@@ -1443,6 +1443,12 @@ async def test_give_form_takes_bounds_from_server_and_waits_for_documents(browse
         assert "<p>Текст готовится.</p>" in document and 'content="noindex,nofollow"' in document
 
 
+async def test_legal_pages_give_operator_email(browser_client):
+    link = '<a href="mailto:club@pravohse.ru">club@pravohse.ru</a>'
+    for path in ("/privacy", "/consent", "/terms", "/confidential", "/requisites"):
+        assert link in (await browser_client.get(path)).text
+
+
 async def give_page(status, config):
     async def upstream(request):
         if request.url.path == "/donations/config":
