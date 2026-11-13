@@ -28,7 +28,7 @@
 <article><strong>{{ records[key] }}</strong><span>{{ label }}</span></article>
 {% else %}{{ empty('Дополнительных показателей нет.') }}{% endfor %}
 </div></details>
-{% if role in ('admin','Administrator') %}
+{% if push_enabled and role in ('admin','Administrator') %}
 <details class="office-create">
 <summary>Отправить уведомление участникам</summary>
 <form class="site-admin-form" data-api="/admin/push/broadcast" data-confirm="Отправить уведомление всем подписчикам?">{{ field('title','Заголовок') }}{{ field('body','Текст') }}{{ field('url','Раздел сайта','/') }}<button class="site-primary">Отправить</button>

@@ -729,6 +729,7 @@ async def context(api, path, params, authorized=False):
         "nav": nav,
         "nav_dense": len(nav) > HEADER_ROOMY_LINKS,
         "changes_enabled": features.CHANGES_ENABLED,
+        "push_enabled": features.PUSH_ENABLED,
         "live": live_view(path),
         "office_nav": OFFICE_NAV,
         "office_groups": GROUPS,

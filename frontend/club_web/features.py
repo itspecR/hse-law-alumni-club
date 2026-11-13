@@ -1,4 +1,5 @@
 CHANGES_ENABLED = False
+PUSH_ENABLED = False
 CHANGES_PATH = "/changes"
 
 

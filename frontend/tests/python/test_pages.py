@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 import club_web
-from club_web import office
+from club_web import features, office
 from club_web.build import build_public
 from club_web.catalog import club_programs_preview, price_label
 from club_web.formatting import (
@@ -1177,6 +1177,18 @@ async def test_cabinet_groups_achievements_into_strip_and_grid():
     assert grid.count("<details") == len(items) and "Описание Цель 4" in grid
     empty = await cabinet_page(PROFILE)
     assert "Достижения появятся по мере участия в клубе." in empty and "Ближайшие достижения" not in empty
+
+
+async def test_push_button_and_broadcast_stay_hidden_until_switch_is_on(browser_client, monkeypatch):
+    staff = {"authorization": "Bearer admin-test"}
+    assert 'data-action="push-subscribe"' not in await cabinet_page(PROFILE)
+    assert "/admin/push/broadcast" not in (await browser_client.get("/admin", headers=staff)).text
+    monkeypatch.setattr(features, "PUSH_ENABLED", True)
+    cabinet = await cabinet_page(PROFILE)
+    assert cabinet.count('data-action="push-subscribe"') == 1 and "Включить уведомления" in cabinet
+    assert (await browser_client.get("/admin", headers=staff)).text.count('data-api="/admin/push/broadcast"') == 1
+    unverified = {**PROFILE, "alumni": {**PROFILE["alumni"], "verification_status": "pending"}}
+    assert 'data-action="push-subscribe"' not in await cabinet_page(unverified)
 
 
 async def test_join_cabinet_and_profile_texts_follow_glossary(browser_client):
