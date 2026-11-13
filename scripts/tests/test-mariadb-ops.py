@@ -762,6 +762,85 @@ class PublicAddressChange(unittest.TestCase):
         self.assertEqual(one['PUBLIC_URL'], 'https://club.example.org')
 
 
+class SettingsAdoption(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.config = pathlib.Path(self.temp.name).resolve()
+        self.current = {'PUBLIC_URL': 'https://club.example.org', 'SMTP_HOST': 'smtp.new.example', 'SMTP_PASS': 'new $pass "q"',
+                        'AUTH_SECRET': 'new-secret', 'YOOKASSA_SHOP_ID': '', 'PAYEE_NAME': '', 'JOBS_ENABLED': 'false', 'RATE_LIMIT_MAX': '1000'}
+        self.write('runtime.env', self.current)
+        self.write('operator.env', {**self.current, 'DATABASE_URL': 'mariadb://operator'})
+        self.source = self.config / 'previous-runtime.env'
+        self.previous = {'PUBLIC_URL': 'https://old.example.org', 'SMTP_HOST': 'smtp.old.example', 'SMTP_PASS': 'old-pass',
+                         'AUTH_SECRET': 'old-secret', 'YOOKASSA_SHOP_ID': '123456', 'YOOKASSA_SECRET_KEY': 'synthetic $key "k"',
+                         'PAYEE_NAME': 'АНО «Клуб»', 'JOBS_ENABLED': 'true', 'RATE_LIMIT_MAX': '1000', 'OFFICE_EMAIL': ''}
+        self.write('previous-runtime.env', self.previous)
+        self.printed = []
+
+    def write(self, name, values):
+        (self.config / name).write_text(installer.HELPERS['dotenv'](values))
+        (self.config / name).chmod(0o600)
+
+    def adopt(self):
+        context = Mock(values={'CLUB_RUNTIME_ENV': str(self.config / 'runtime.env'), 'CLUB_OPERATOR_ENV': str(self.config / 'operator.env')},
+                       runtime=common.read_env(self.config / 'runtime.env'))
+        with patch('builtins.print', side_effect=lambda text: self.printed.append(text)):
+            installer.adopt_settings(context, self.source)
+
+    def test_integrations_move_and_server_bound_settings_stay(self):
+        self.adopt()
+        runtime, operator = (common.read_env(self.config / name) for name in ('runtime.env', 'operator.env'))
+        for values in (runtime, operator):
+            self.assertEqual((values['YOOKASSA_SHOP_ID'], values['YOOKASSA_SECRET_KEY']), ('123456', 'synthetic $key "k"'))
+            self.assertEqual((values['PAYEE_NAME'], values['JOBS_ENABLED']), ('АНО «Клуб»', 'true'))
+            self.assertEqual((values['PUBLIC_URL'], values['SMTP_HOST'], values['SMTP_PASS'], values['AUTH_SECRET']),
+                             ('https://club.example.org', 'smtp.new.example', 'new $pass "q"', 'new-secret'))
+        self.assertEqual(operator['DATABASE_URL'], 'mariadb://operator')
+        copies = sorted(self.config.glob('*.before-*'))
+        self.assertEqual([path.name.split('.before-')[0] for path in copies], ['operator.env', 'runtime.env'])
+        self.assertEqual(common.read_env(copies[1]), self.current)
+        for path in (*copies, self.config / 'runtime.env', self.config / 'operator.env'):
+            self.assertEqual(os.stat(path).st_mode & 0o777, 0o600)
+        self.assertFalse(list(self.config.glob('*.partial')))
+
+    def test_report_names_settings_without_values(self):
+        self.adopt()
+        report = '\n'.join(self.printed)
+        self.assertIn('Перенесены настройки: YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY, PAYEE_NAME, JOBS_ENABLED', report)
+        self.assertIn('Не переносятся и отличаются от прежнего сервера: SMTP_HOST;', report)
+        for value in ('123456', 'synthetic', 'АНО', 'old-pass', 'old-secret', 'smtp.old.example'):
+            self.assertNotIn(value, report)
+
+    def test_matching_settings_change_nothing(self):
+        self.write('previous-runtime.env', {'JOBS_ENABLED': 'false', 'RATE_LIMIT_MAX': '1000', 'SMTP_HOST': 'smtp.new.example'})
+        before = (self.config / 'runtime.env').read_bytes()
+        self.adopt()
+        self.assertEqual((self.config / 'runtime.env').read_bytes(), before)
+        self.assertFalse(list(self.config.glob('*.before-*')))
+        self.assertEqual(self.printed, ['Переносимые настройки уже совпадают с прежним сервером'])
+
+    def test_open_or_missing_source_is_refused_before_changes(self):
+        before = (self.config / 'runtime.env').read_bytes()
+        self.source.chmod(0o644)
+        with self.assertRaisesRegex(ValueError, '0600'):
+            self.adopt()
+        self.source = None
+        with self.assertRaisesRegex(ValueError, 'source-env'):
+            self.adopt()
+        self.assertEqual((self.config / 'runtime.env').read_bytes(), before)
+        self.assertFalse(list(self.config.glob('*.before-*')))
+
+    def test_adopted_and_manual_lists_cover_only_known_settings(self):
+        known = set(installer.HELPERS['configuration']())
+        self.assertFalse(set(installer.ADOPTED_SETTINGS) - known)
+        self.assertFalse(set(installer.MANUAL_SETTINGS) - known)
+        self.assertFalse(set(installer.ADOPTED_SETTINGS) & set(installer.MANUAL_SETTINGS))
+        bound = {'PUBLIC_URL', 'AUTH_SECRET', 'ADMIN_AUTH_SECRET', 'CHECKOUT_DATABASE_URL', 'CHECKOUT_DB_PASSWORD', 'ADMIN_EMAIL',
+                 'ADMIN_PASSWORD', 'SMTP_PASS', 'BACKUP_ENCRYPTION_KEY', 'APP_ENV', 'SEED_DEMO'}
+        self.assertFalse(set(installer.ADOPTED_SETTINGS) & bound)
+
+
 def openssl(*arguments):
     subprocess.run(['openssl', *arguments], check=True, capture_output=True)
 
