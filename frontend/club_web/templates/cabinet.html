@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
-{% from 'macros.html' import login,empty %}
+{% from 'macros.html' import login,empty,unavailable %}
 {% from 'macros.html' import icon with context %}
 {% block content %}
 <main id="main" class="site-container cabinet-page">
-{% if not me or access_error %}{{ login(next=query.get('next','')) }}{% else %}
+{% if session_unavailable %}{{ unavailable('Не удалось загрузить кабинет') }}{% elif not me or access_error %}{{ login(next=query.get('next','')) }}{% else %}
 {% set verified = me.alumni.verification_status == 'verified' %}
 <header class="cabinet-head">
 <div class="cabinet-head__person">
