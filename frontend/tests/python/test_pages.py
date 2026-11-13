@@ -352,7 +352,7 @@ async def browser_client():
         "/podcasts/episode-1",
     ],
 )
-async def test_public_pages_render(browser_client, path):
+async def test_public_pages_render(browser_client, path, mini_app):
     response = await browser_client.get(path)
     assert response.status_code == 200
     assert '<html lang="ru" class="lux" data-live=' in response.text
@@ -386,7 +386,9 @@ async def test_public_pages_render(browser_client, path):
         ("/podcasts/episode-1", False, False),
     ],
 )
-async def test_offline_permission_is_only_given_to_anonymous_public_pages(browser_client, path, authorized, offline):
+async def test_offline_permission_is_only_given_to_anonymous_public_pages(
+    browser_client, path, authorized, offline, mini_app
+):
     headers = {"authorization": "Bearer member-test"} if authorized else {}
     response = await browser_client.get(path, headers=headers)
     assert response.headers.get("X-Club-Offline") == ("public" if offline else None)
@@ -840,7 +842,7 @@ async def test_versioned_assets_are_cached_for_a_year(browser_client):
 
 
 @pytest.mark.parametrize("path", ["/", "/tg"])
-async def test_themis_poster_url_follows_release_version(browser_client, path):
+async def test_themis_poster_url_follows_release_version(browser_client, path, mini_app):
     build_public(PUBLIC)
     version = (PUBLIC / "assets/version.txt").read_text()
     page = (await browser_client.get(path)).text
@@ -1337,7 +1339,7 @@ async def test_event_form_picks_moscow_date_and_time():
     )
 
 
-async def test_login_search_and_mini_texts_follow_glossary(browser_client):
+async def test_login_search_and_mini_texts_follow_glossary(browser_client, mini_app):
     login = (await browser_client.get("/lk")).text
     note = "Скидка выпускника и все разделы кабинета откроются, когда мы подтвердим ваш статус."
     assert note in login and "Войти можно после того" not in login
@@ -2042,3 +2044,14 @@ async def test_failed_session_check_keeps_sign_in_and_offers_retry(path, endpoin
     assert 'class="cabinet-gate"' not in failed.text and 'class="site-errors"' not in failed.text
     expired = await page_with_session_reply(path, endpoint, 401, headers)
     assert expired.status_code == 401 and "session-unavailable" not in expired.text
+
+
+@pytest.mark.parametrize("path", ["/tg", "/views/tg", "/tg?startapp=dpo"])
+async def test_closed_mini_app_leads_home(browser_client, path):
+    response = await browser_client.get(path)
+    assert response.status_code == 302 and response.headers["location"] == "/"
+
+
+async def test_open_mini_app_page_is_served(browser_client, mini_app):
+    response = await browser_client.get("/tg")
+    assert response.status_code == 200 and 'class="mini-home"' in response.text

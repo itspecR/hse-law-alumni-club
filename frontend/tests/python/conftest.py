@@ -11,3 +11,8 @@ def changes_section(monkeypatch):
 @pytest.fixture
 def push_notifications(monkeypatch):
     monkeypatch.setattr(features, "PUSH_ENABLED", True)
+
+
+@pytest.fixture
+def mini_app(monkeypatch):
+    monkeypatch.setattr(features, "MINI_APP_ENABLED", True)

@@ -773,6 +773,7 @@ class SettingsAdoption(unittest.TestCase):
         self.write('operator.env', {**self.current, 'DATABASE_URL': 'mariadb://operator'})
         self.source = self.config / 'previous-runtime.env'
         self.previous = {'PUBLIC_URL': 'https://old.example.org', 'SMTP_HOST': 'smtp.old.example', 'SMTP_PASS': 'old-pass',
+                         'TELEGRAM_BOT_TOKEN': '111:synthetic-bot', 'OFFICE_TG_BOT_TOKEN': '222:synthetic-office',
                          'AUTH_SECRET': 'old-secret', 'YOOKASSA_SHOP_ID': '123456', 'YOOKASSA_SECRET_KEY': 'synthetic $key "k"',
                          'PAYEE_NAME': 'АНО «Клуб»', 'JOBS_ENABLED': 'true', 'RATE_LIMIT_MAX': '1000', 'OFFICE_EMAIL': ''}
         self.write('previous-runtime.env', self.previous)
@@ -797,6 +798,9 @@ class SettingsAdoption(unittest.TestCase):
             self.assertEqual((values['PUBLIC_URL'], values['SMTP_HOST'], values['SMTP_PASS'], values['AUTH_SECRET']),
                              ('https://club.example.org', 'smtp.new.example', 'new $pass "q"', 'new-secret'))
         self.assertEqual(operator['DATABASE_URL'], 'mariadb://operator')
+        for values in (runtime, operator):
+            self.assertNotIn('TELEGRAM_BOT_TOKEN', values)
+            self.assertEqual(values['OFFICE_TG_BOT_TOKEN'], '222:synthetic-office')
         copies = sorted(self.config.glob('*.before-*'))
         self.assertEqual([path.name.split('.before-')[0] for path in copies], ['operator.env', 'runtime.env'])
         self.assertEqual(common.read_env(copies[1]), self.current)
@@ -807,8 +811,8 @@ class SettingsAdoption(unittest.TestCase):
     def test_report_names_settings_without_values(self):
         self.adopt()
         report = '\n'.join(self.printed)
-        self.assertIn('Перенесены настройки: YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY, PAYEE_NAME, JOBS_ENABLED', report)
-        self.assertIn('Не переносятся и отличаются от прежнего сервера: SMTP_HOST;', report)
+        self.assertIn('Перенесены настройки: OFFICE_TG_BOT_TOKEN, YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY, PAYEE_NAME, JOBS_ENABLED', report)
+        self.assertIn('Не переносятся и отличаются от прежнего сервера: SMTP_HOST, TELEGRAM_BOT_TOKEN;', report)
         for value in ('123456', 'synthetic', 'АНО', 'old-pass', 'old-secret', 'smtp.old.example'):
             self.assertNotIn(value, report)
 

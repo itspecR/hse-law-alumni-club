@@ -240,7 +240,6 @@ def section_walk(page, office):
             page,
             [
                 "/",
-                "/tg",
                 "/dpo",
                 "/merch",
                 "/events",
@@ -302,6 +301,8 @@ def section_walk(page, office):
             elif path in ("/lk", "/lk/profile"):
                 expect(target.locator("#main")).not_to_contain_text("Вход для выпускников")
             assert target.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"), path
+    page.goto("/tg")
+    assert page.url.endswith("/") and not page.url.endswith("/tg"), page.url
 
 
 def order_form(office, order_id):
