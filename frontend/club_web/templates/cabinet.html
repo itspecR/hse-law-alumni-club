@@ -27,6 +27,21 @@
 {% if me.alumni.verification_status!='rejected' %}<a href="/lk/profile">Загрузить фото профиля</a>{% endif %}
 <a href="/support">Поддержка</a>
 </div>
+{% if me.alumni.education_upload %}
+<div class="cabinet-document">
+<h3>Документ об образовании</h3>
+<p>По желанию приложите диплом или справку об обучении: так мы быстрее подтвердим статус. Файл увидит только администратор клуба. После решения по заявке файл удаляется.</p>
+{% if me.alumni.education_document %}<p class="cabinet-document__state">{{ icon('check', 16) }}Документ приложен. Новый файл заменит прежний.</p>{% endif %}
+<form data-api="/me/education-document" data-file>
+<label class="site-field">Файл PDF, JPEG, PNG или WebP до 10 МБ<input type="file" name="file" accept="application/pdf,image/jpeg,image/png,image/webp" required>
+</label>
+<button>{{ 'Заменить документ' if me.alumni.education_document else 'Приложить документ' }}</button>
+<p role="alert" data-error hidden>
+</p>
+</form>
+{% if me.alumni.education_document %}<button class="site-danger" data-api="/me/education-document" data-method="DELETE" data-confirm="Удалить приложенный документ?">Удалить документ</button>{% endif %}
+</div>
+{% endif %}
 </section>
 {% else %}
 <dl class="cabinet-metrics">

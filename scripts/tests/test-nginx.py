@@ -171,6 +171,8 @@ def main():
                 assert request(path)[0] == 404, path
             assert request("/api/probe", b"x" * 524289)[0] == 413
             assert request("/api/me/avatar", b"x" * (4 * 1024 * 1024 + 1))[0] == 413
+            assert request("/api/me/education-document", b"x" * (10 * 1024 * 1024))[0] == 200
+            assert request("/api/me/education-document", b"x" * (11 * 1024 * 1024 + 1))[0] == 413
             assert request("/api/admin/media", b"x" * (5 * 1024 * 1024))[0] == 200
             compressed = {"Accept-Encoding": "gzip"}
             assert request("/assets/site.css?v=1", headers=compressed)[1].get("Content-Encoding") == "gzip"
