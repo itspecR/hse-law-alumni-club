@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 from playwright.sync_api import expect
 
 CAMPAIGN_EDITOR_URL = re.compile(r"/admin/campaigns\?id=[0-9a-f-]{36}$")
+OPENING_CAMPAIGN = "intensive"
 
 
 def submit(page, form, path, method="POST", status=200):
@@ -83,31 +84,38 @@ def home_form(office, name):
     submit(office, form, "/admin/pages/home", "PATCH")
 
 
-def campaign_from_template(page, office, request, headers):
+def campaign_page(page, slug):
+    page.goto("/give/" + slug)
+    expect(page.get_by_role("heading", level=1)).to_have_text("Искусство влияния")
+    expect(page.locator('[data-give-form] [name="campaign"]')).to_have_value(slug)
+    expect(page.locator('[data-give-form] [name="consent_gift"]')).to_have_attribute("required", "")
+
+
+def campaign_from_template(page, office, request, headers, name):
+    slug = "proverka-" + name
+    campaign_page(page, OPENING_CAMPAIGN)
+    page.goto("/")
+    expect(page.locator(".camp-teaser")).to_contain_text("Искусство влияния")
     office.goto("/admin/campaigns?id=new&template=intensive")
     form = office.locator("#campaign-form")
     expect(form.locator('[name="title"]')).to_have_value("Искусство влияния")
+    form.locator('[name="slug"]').fill(slug)
     form.get_by_role("button", name="Создать сбор", exact=True).click()
     office.wait_for_url(CAMPAIGN_EDITOR_URL)
     path = "/admin/campaigns/" + office.url.rsplit("=", 1)[1]
     try:
         expect(office.locator("#campaign-invitations")).to_contain_text("Дарителей для приглашения пока нет.")
-        assert request.get("/api/campaigns/current").json() == {"campaign": None}
+        assert request.get("/api/campaigns/" + slug).status == 404
         form.locator('[name="status"]').select_option("published")
         with office.expect_response(
             lambda response: response.url.endswith("/api" + path) and response.request.method == "PATCH"
         ) as saved:
             form.get_by_role("button", name="Сохранить", exact=True).click()
         assert saved.value.status == 200
-        page.goto("/give/intensive")
-        expect(page.get_by_role("heading", level=1)).to_have_text("Искусство влияния")
-        expect(page.locator('[data-give-form] [name="campaign"]')).to_have_value("intensive")
-        expect(page.locator('[data-give-form] [name="consent_gift"]')).to_have_attribute("required", "")
-        page.goto("/")
-        expect(page.locator(".camp-teaser")).to_contain_text("Искусство влияния")
+        campaign_page(page, slug)
     finally:
         assert request.delete("/api" + path, headers=headers).status == 200
-    assert request.get("/api/campaigns/current").json() == {"campaign": None}
+    assert request.get("/api/campaigns/current").json()["campaign"]["slug"] == OPENING_CAMPAIGN
 
 
 def news_sources(office, request, headers, name, directory):

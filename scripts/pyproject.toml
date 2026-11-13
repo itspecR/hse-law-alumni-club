@@ -20,3 +20,4 @@ packages = ["club_ops"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "../data/dpo-catalog.json" = "club_ops/data/catalog.json"
+"../data/campaign-templates.json" = "club_ops/data/campaign-templates.json"
