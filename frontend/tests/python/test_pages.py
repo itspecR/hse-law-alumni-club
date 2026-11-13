@@ -1191,6 +1191,52 @@ async def test_push_button_and_broadcast_stay_hidden_until_switch_is_on(browser_
     assert 'data-action="push-subscribe"' not in await cabinet_page(unverified)
 
 
+async def test_pending_cabinet_offers_education_document_only_when_server_allows():
+    pending = {**PROFILE["alumni"], "verification_status": "pending"}
+    closed = await cabinet_page({**PROFILE, "alumni": pending})
+    assert "Заявка на проверке" in closed and "education-document" not in closed
+    offered = await cabinet_page({**PROFILE, "alumni": {**pending, "education_upload": True}})
+    form = offered.split('<div class="cabinet-document">')[1].split("</div>")[0]
+    assert '<form data-api="/me/education-document" data-file>' in form
+    assert 'accept="application/pdf,image/jpeg,image/png,image/webp" required' in form
+    assert "<button>Приложить документ</button>" in form and "Удалить документ" not in form
+    assert "Файл увидит только администратор клуба. После решения по заявке файл удаляется." in form
+    attached = {**pending, "education_upload": True, "education_document": True}
+    form = (await cabinet_page({**PROFILE, "alumni": attached})).split('<div class="cabinet-document">')[1]
+    assert "Документ приложен. Новый файл заменит прежний." in form and "<button>Заменить документ</button>" in form
+    assert 'data-api="/me/education-document" data-method="DELETE" data-confirm="Удалить приложенный документ?"' in form
+    assert "education-document" not in await cabinet_page(
+        {**PROFILE, "alumni": {**PROFILE["alumni"], "education_upload": True}}
+    )
+
+
+@pytest.mark.parametrize(
+    ("role", "note", "button"),
+    [
+        ("admin", "Документ об образовании приложен. <button", True),
+        ("editor", "Документ об образовании приложен, открыть его может администратор.", False),
+    ],
+)
+async def test_office_shows_education_document_download_only_to_admin(role, note, button):
+    members = [
+        {"id": "member-1", "fio": "Вымышленный Заявитель", "points_cached": 0, "education_document": True},
+        {"id": "member-2", "fio": "Вымышленный Выпускник", "points_cached": 0, "education_document": False},
+    ]
+    endpoints = {"/auth/admin-session": {"role": role}, "/admin/members": {"items": members}}
+
+    async def upstream(request):
+        return httpx.Response(200, json=endpoints.get(request.url.path, []))
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            page = (await client.get("/views/admin/members", headers={"authorization": "Bearer staff-test"})).text
+    assert page.count("Документ об образовании приложен") == 1 and note in page
+    download = '<button data-download="/admin/members/member-1/education-document">Скачать документ</button>'
+    assert (download in page) is button and "member-2/education-document" not in page
+
+
 async def test_join_cabinet_and_profile_texts_follow_glossary(browser_client):
     join = (await browser_client.get("/join")).text
     assert "Как вступить <em>в клуб</em>" in join and "<li>Откроется кабинет</li>" in join

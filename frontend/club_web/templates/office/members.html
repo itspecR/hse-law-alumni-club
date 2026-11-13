@@ -35,6 +35,9 @@
 {{ status(member.verification_status) }}</div>
 <p class="office-meta">{{ member.email or '' }} · {{ member.cohort }} · {{ member.edu_program or '' }}</p>
 <p>{{ member.points_cached }} баллов{% if role in ('admin','Administrator') %} · <a href="/admin/members?id={{ member.id }}">История баллов</a>{% endif %}</p>
+{% if member.education_document %}
+<p class="office-meta">Документ об образовании приложен{{ '.' if role in ('admin','Administrator') else ', открыть его может администратор.' }}{% if role in ('admin','Administrator') %} <button data-download="/admin/members/{{ member.id }}/education-document">Скачать документ</button>{% endif %}</p>
+{% endif %}
 {% if role in ('admin','Administrator') %}
 <form class="office-edit-grid" data-api="/admin/members/{{ member.id }}" data-method="PATCH">
 <label>Проверка<select aria-label="Проверка" name="verification_status">

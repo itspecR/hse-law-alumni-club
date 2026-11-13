@@ -28,6 +28,11 @@ STATIC_FILES = {
 }
 
 
+MEBIBYTE = 1024 * 1024
+DEFAULT_BODY_LIMIT = 256 * 1024
+BODY_LIMITS = {"admin/media": 129 * MEBIBYTE, "me/avatar": 4 * MEBIBYTE, "me/education-document": 11 * MEBIBYTE}
+
+
 @require_safe
 async def health(request):
     return JsonResponse({"status": "ok", "service": "club-web"})
@@ -42,7 +47,7 @@ async def api_proxy(request, path):
             raise ValueError
     except ValueError:
         return JsonResponse({"error": "Некорректный размер запроса"}, status=400)
-    maximum = 129 * 1024 * 1024 if path == "admin/media" else 4 * 1024 * 1024 if path == "me/avatar" else 256 * 1024
+    maximum = BODY_LIMITS.get(path, DEFAULT_BODY_LIMIT)
     if size > maximum or len(request.body) > maximum:
         return JsonResponse({"error": "Запрос превышает допустимый размер"}, status=413)
     outgoing = {

@@ -633,7 +633,8 @@ async function download(button) {
   const response = await fetch(url("api" + button.dataset.download), { headers });
   if (!response.ok) throw new Error("Не удалось скачать файл. Проверьте доступ и повторите.");
   const blobUrl = URL.createObjectURL(await response.blob());
-  const link = element("a", undefined, { href: blobUrl, download: button.dataset.filename || "club-export" });
+  const served = /filename="([^"]+)"/.exec(response.headers.get("content-disposition") || "");
+  const link = element("a", undefined, { href: blobUrl, download: button.dataset.filename || served?.[1] || "club-export" });
   link.click();
   setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 }
