@@ -9,8 +9,19 @@ from club_api.core.errors import ApiError
 from club_api.db.schema import DATA_COLUMNS
 
 BLOCK_FIELDS = frozenset(("blocks.collection", "blocks.sort", "blocks.item:block_hero.*", "blocks.item:block_cta.*"))
+UPLOAD_KIND = "club_upload_kind"
+PERSONAL_MEDIA = {
+    "avatar": (
+        "avatar",
+        "Фотографию профиля нельзя использовать в материалах. Загрузите отдельный файл в медиатеку.",
+    ),
+    "education": (
+        "education_document",
+        "Документ об образовании нельзя использовать в материалах. Загрузите отдельный файл в медиатеку.",
+    ),
+}
 MEDIA_FIELDS = {
-    "alumni": ("avatar",),
+    "alumni": tuple(field for field, _ in PERSONAL_MEDIA.values()),
     "events": ("cover", "description"),
     "news": ("cover", "body"),
     "podcasts": ("cover", "audio_url", "description"),
@@ -218,11 +229,10 @@ async def media_references(connection, table, data):
         if len(files) != len(ids):
             raise ApiError(400, "Один из файлов удален. Выберите файл заново.")
         if table != "alumni":
-            avatars = set(model_for("alumni").objects.filter(avatar__in=ids).values_list("avatar", flat=True))
-            if avatars or any((item.metadata or {}).get("club_upload_kind") == "avatar" for item in files):
-                raise ApiError(
-                    400, "Фотографию профиля нельзя использовать в материалах. Загрузите отдельный файл в медиатеку."
-                )
+            for kind, (field, message) in PERSONAL_MEDIA.items():
+                linked = model_for("alumni").objects.filter(**{field + "__in": ids}).exists()
+                if linked or any((item.metadata or {}).get(UPLOAD_KIND) == kind for item in files):
+                    raise ApiError(400, message)
 
     await connection.run(check)
 

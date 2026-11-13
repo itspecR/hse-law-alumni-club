@@ -17,6 +17,7 @@ DATA_COLUMNS = {
         "podcast_reminder_sent",
         "podcast_sub_until",
         "avatar",
+        "education_document",
         "referral_code",
         "telegram_id",
         "token_version",

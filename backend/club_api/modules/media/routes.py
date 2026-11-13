@@ -66,7 +66,7 @@ async def upload_office(request: HttpRequest):
 
 async def office_file(media, id):
     file = await media.get(id)
-    if not file or (file["metadata"] or {}).get("club_upload_kind") == "avatar" or await media.is_avatar(id):
+    if not file or await media.is_personal(file):
         raise ApiError(404, "Файл не найден.")
     return file
 

@@ -19,6 +19,7 @@ import club_api.modules.gamification.routes as gamification_routes
 import club_api.modules.media.routes as media_routes
 import club_api.modules.members.admin as members_admin
 import club_api.modules.members.community as members_community
+import club_api.modules.members.education as members_education
 import club_api.modules.members.profile as members_profile
 import club_api.modules.news.routes as news_routes
 import club_api.modules.notifications.push as notifications_push
@@ -144,6 +145,11 @@ routes = (
             endpoint({"GET": members_admin.point_history, "POST": members_admin.points}),
         ),
         path("admin/members/<str:id>/anonymize", endpoint({"POST": members_admin.erase})),
+        path("admin/members/<str:id>/education-document", endpoint({"GET": members_education.office_document})),
+        path(
+            "me/education-document",
+            endpoint({"POST": members_education.upload, "DELETE": members_education.remove}),
+        ),
         path("me/classmates", endpoint({"GET": members_community.classmates})),
         path("me/events", endpoint({"GET": members_community.notifications})),
         path("me/friends", endpoint({"POST": members_community.friend})),

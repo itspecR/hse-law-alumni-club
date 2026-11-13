@@ -75,6 +75,11 @@ def test_all_legacy_routes_are_present():
         ("GET", "/admin/members/{id}/points"),
         ("POST", "/admin/events/rsvp/{rsvpId}/unattend"),
     }
+    education = {
+        ("POST", "/me/education-document"),
+        ("DELETE", "/me/education-document"),
+        ("GET", "/admin/members/{id}/education-document"),
+    }
     retired = {
         ("POST", "/admin/news-sources/{source}/refresh"),
         ("POST", "/admin/news-sources/{id}/import"),
@@ -92,7 +97,8 @@ def test_all_legacy_routes_are_present():
         ("DELETE", "/admin/timeline/{id}"),
         ("POST", "/support/faq-event"),
     }
-    assert actual == (expected - retired) | added | portfolio | public | promo | office and len(actual) == 151
+    inventory = (expected - retired) | added | portfolio | public | promo | office | education
+    assert actual == inventory and len(actual) == 154
 
 
 def test_sentry_privacy():

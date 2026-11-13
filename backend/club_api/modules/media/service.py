@@ -16,7 +16,7 @@ from PIL import Image, ImageOps
 
 from club_api.core.errors import ApiError
 from club_api.core.models import guid
-from club_api.db.store import MEDIA_FIELDS, normalize
+from club_api.db.store import MEDIA_FIELDS, PERSONAL_MEDIA, UPLOAD_KIND, normalize
 
 THUMBNAIL_WORKERS = 1
 BUSY_MESSAGE = "Сервер занят обработкой изображений. Попробуйте позже."
@@ -32,6 +32,22 @@ UPLOAD_TYPES = {
     "audio/ogg": "ogg",
     "audio/mp4": "m4a",
 }
+PDF_TYPE = "application/pdf"
+PHOTO_TYPES = {name: UPLOAD_TYPES[name] for name in ("image/jpeg", "image/png", "image/webp")}
+KIND_TYPES = {"avatar": PHOTO_TYPES, "education": {**PHOTO_TYPES, PDF_TYPE: "pdf"}}
+STREAM_TYPES = {"image": IMAGE_TYPES, "document": frozenset(KIND_TYPES["education"])}
+PERSONAL_KINDS = tuple(PERSONAL_MEDIA)
+PERSONAL_FIELDS = tuple(field for field, _ in PERSONAL_MEDIA.values())
+LIBRARY_FILES = " AND ".join(
+    [f"NOT EXISTS(SELECT 1 FROM alumni a WHERE a.{field}=CAST(f.id AS CHAR(36)))" for field in PERSONAL_FIELDS]
+    + [
+        "COALESCE(JSON_UNQUOTE(JSON_EXTRACT(f.metadata,'$."
+        + UPLOAD_KIND
+        + "')),'') NOT IN ("
+        + ",".join("'" + kind + "'" for kind in PERSONAL_KINDS)
+        + ")"
+    ]
+)
 SANDBOX_CSP = "default-src 'none'; sandbox"
 UUID_PATTERN = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
@@ -65,6 +81,8 @@ def media_id(value):
 def sniff_media(header):
     if len(header) < 12:
         return None
+    if header[:5] == b"%PDF-":
+        return PDF_TYPE
     if header[:3] == b"\xff\xd8\xff":
         return "image/jpeg"
     if header[:8] == b"\x89PNG\r\n\x1a\n":
@@ -159,9 +177,18 @@ class Media:
         rows = await self.state.database.rows("SELECT id FROM alumni WHERE avatar=%s LIMIT 1", (id,))
         return bool(rows)
 
+    async def is_personal(self, file):
+        if (file["metadata"] or {}).get(UPLOAD_KIND) in PERSONAL_KINDS:
+            return True
+        owned = " OR ".join(f'"{field}"=%s' for field in PERSONAL_FIELDS)
+        rows = await self.state.database.rows(
+            "SELECT id FROM alumni WHERE " + owned + " LIMIT 1", [file["id"]] * len(PERSONAL_FIELDS)
+        )
+        return bool(rows)
+
     async def is_published_image(self, id):
         file = await self.get(id)
-        if not file or (file["metadata"] or {}).get("club_upload_kind") == "avatar" or await self.is_avatar(id):
+        if not file or await self.is_personal(file):
             return False
         for table in sorted(MEDIA_FIELDS):
             if table == "alumni":
@@ -176,7 +203,10 @@ class Media:
 
     async def list(self, page, limit, search):
         pattern = "%" + re.sub("[\\\\%_]", lambda match: "\\" + match[0], search) + "%"
-        where = "NOT EXISTS(SELECT 1 FROM alumni a WHERE a.avatar=CAST(f.id AS CHAR(36))) AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(f.metadata,'$.club_upload_kind')),'')<>'avatar' AND (LOWER(COALESCE(f.title,'')) LIKE LOWER(%s) OR LOWER(f.filename_download) LIKE LOWER(%s))"
+        where = (
+            LIBRARY_FILES
+            + " AND (LOWER(COALESCE(f.title,'')) LIKE LOWER(%s) OR LOWER(f.filename_download) LIKE LOWER(%s))"
+        )
         rows = await self.state.database.rows(
             "SELECT f.* FROM directus_files f WHERE " + where + " ORDER BY f.created_on DESC,f.id LIMIT %s OFFSET %s",
             (pattern, pattern, limit, (page - 1) * limit),
@@ -222,11 +252,12 @@ class Media:
                 await asyncio.to_thread(file.write, chunk)
             await asyncio.to_thread(file.close)
             detected = sniff_media(header)
-            if detected not in UPLOAD_TYPES or (kind == "avatar" and detected not in IMAGE_TYPES):
+            accepted = KIND_TYPES.get(kind, UPLOAD_TYPES)
+            if detected not in accepted:
                 raise ApiError(415, "Поддерживаются JPEG, PNG, WebP, MP3, WAV, OGG и M4A.")
             if kind == "avatar":
                 await self.thumbnail(temporary.name)
-            disk_name = id + "." + UPLOAD_TYPES[detected]
+            disk_name = id + "." + accepted[detected]
             final = directory / disk_name
             await asyncio.to_thread(os.rename, temporary, final)
             download = (
@@ -237,7 +268,7 @@ class Media:
             )
             rows = await self.state.database.rows(
                 "INSERT INTO directus_files(id,storage,filename_disk,filename_download,title,type,uploaded_by,uploaded_on,filesize,metadata) VALUES(%s,'local',%s,%s,%s,%s,%s,now(),%s,%s) RETURNING *",
-                (id, disk_name, download, download, detected, uploaded_by, size, {"club_upload_kind": kind}),
+                (id, disk_name, download, download, detected, uploaded_by, size, {UPLOAD_KIND: kind}),
             )
             return normalize(rows[0])
         except BaseException:
@@ -352,7 +383,7 @@ class Media:
             headers={"Content-Security-Policy": SANDBOX_CSP, "Cache-Control": "public, max-age=300"},
         )
 
-    async def stream(self, id, *, kind, range=None, cache="private, no-store"):
+    async def stream(self, id, *, kind, range=None, cache="private, no-store", download=None):
         file = await self.get(id)
         if not file or file["storage"] != "local":
             raise ApiError(404, "Файл не найден.")
@@ -368,7 +399,8 @@ class Media:
             if not stat.S_ISREG(info.st_mode) or not info.st_size:
                 raise ApiError(404, "Файл не найден.")
             detected = sniff_media(await asyncio.to_thread(os.read, descriptor, 512))
-            if not detected or (detected not in IMAGE_TYPES if kind == "image" else not detected.startswith("audio/")):
+            allowed = detected in STREAM_TYPES[kind] if kind in STREAM_TYPES else (detected or "").startswith("audio/")
+            if not allowed:
                 raise ApiError(404, "Файл не найден.")
             selected = parse_range(range, info.st_size)
             if selected is False:
@@ -393,6 +425,10 @@ class Media:
             }
             if selected:
                 headers["Content-Range"] = f"bytes {start}-{end}/{info.st_size}"
+            if download:
+                headers["Content-Disposition"] = (
+                    f'attachment; filename="{download}.{KIND_TYPES["education"][detected]}"'
+                )
             owned = False
             return FileResponse(
                 chunks(), descriptor=descriptor, content_type=detected, status=206 if selected else 200, headers=headers
