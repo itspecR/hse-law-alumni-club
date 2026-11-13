@@ -15,7 +15,7 @@
 </div>
 <div class="cabinet-head__actions">
 <a href="/lk/profile" class="lux-btn lux-btn--ghost lux-btn--sm" aria-label="Профиль">{{ icon('profile', 18) }}<span class="cabinet-head__label">Профиль</span></a>
-{% if verified %}<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="push-subscribe" aria-label="Включить уведомления">{{ icon('bell', 18) }}<span class="cabinet-head__label">Включить уведомления</span></button>{% endif %}
+{% if verified and push_enabled %}<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="push-subscribe" aria-label="Включить уведомления">{{ icon('bell', 18) }}<span class="cabinet-head__label">Включить уведомления</span></button>{% endif %}
 <button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="logout" aria-label="Выйти">{{ icon('logout', 18) }}<span class="cabinet-head__label">Выйти</span></button>
 </div>
 </header>
