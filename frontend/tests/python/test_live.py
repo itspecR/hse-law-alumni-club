@@ -286,7 +286,7 @@ def test_live_system(name, width, height):
         content_forms(office, request, headers, name)
         news_sources(office, request, headers, name, state_path.parent)
         home_form(office, name)
-        campaign_from_template(page, office, request, headers)
+        campaign_from_template(page, office, request, headers, name)
         members = result(request.get("/api/admin/members", headers=headers))["items"]
         member = next(member for member in members if member["email"] == email)
         member_verification(office, member["id"])

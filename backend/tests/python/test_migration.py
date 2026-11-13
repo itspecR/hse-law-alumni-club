@@ -152,6 +152,29 @@ async def test_bootstrap_creates_site_defaults_and_ignores_legacy_settings(datab
     assert row["value"] == site_settings("https://club.example.test")
 
 
+async def test_bootstrap_opens_intensive_campaign_once_and_keeps_office_changes(database_app):
+    app = database_app
+    config = BootstrapConfig(
+        "production", False, "bootstrap@example.test", "synthetic-bootstrap-password", "https://club.example.test"
+    )
+    async with app.state.database.connection() as connection:
+        first = await bootstrap(connection, config)
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://localhost") as client:
+        page = (await client.get("/campaigns/intensive")).json()
+        home = (await client.get("/campaigns/current")).json()["campaign"]
+    assert (page["title"], page["invite_threshold"], page["raised"]) == ("Искусство влияния", 1500000, 0)
+    assert (len(page["modules"]), len(page["faq"]), page["speakers"]) == (7, 5, [])
+    assert (home["slug"], home["goal_amount"]) == ("intensive", 150000000)
+    [saved] = await app.state.store.read("club_campaigns", fields=("id", "status", "payment_purpose", "invite_body"))
+    assert (saved["status"], saved["payment_purpose"], saved["invite_body"]) == ("published", None, None)
+    await app.state.store.update("club_campaigns", {"status": "archived", "title": "Правка офиса"}, id=saved["id"])
+    async with app.state.database.connection() as connection:
+        repeated = await bootstrap(connection, config)
+    rows = await app.state.store.read("club_campaigns", fields=("slug", "status", "title"))
+    assert rows == [{"slug": "intensive", "status": "archived", "title": "Правка офиса"}]
+    assert first["createdRows"] - repeated["createdRows"] == first["createdRows"] > 0
+
+
 async def test_bootstrap_preserves_accounts_settings_and_empty_home(database_app):
     db = database_app.state.database
     config = BootstrapConfig(

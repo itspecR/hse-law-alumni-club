@@ -9,6 +9,7 @@ from club_api.db.queries import acquire_lock
 from club_api.db.store import Store
 from club_api.domain import ACHIEVEMENT_FLAGS, DOMAIN
 from club_api.modules.auth.passwords import hash_password
+from club_ops.campaigns import opening_campaign
 
 SITE_TITLE = "Клуб выпускников факультета права НИУ ВШЭ"
 SITE_DESCRIPTION = "Клуб выпускников факультета права НИУ ВШЭ: программы ДПО, мерч, подкасты и кабинет участника."
@@ -204,6 +205,7 @@ async def bootstrap(connection, config):
                     connection=connection,
                 )
             result["createdHome"] = True
+        result["createdRows"] += await seed_missing(connection, store, "club_campaigns", "slug", [opening_campaign()])
         await ensure_site(connection, config.public_url)
         if config.seed_demo:
             _, editor_created = await ensure_user(
