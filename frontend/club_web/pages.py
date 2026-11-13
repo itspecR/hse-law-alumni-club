@@ -519,6 +519,10 @@ async def podcasts_page(page):
             data.update(template="not-found.html", status=404)
 
 
+async def mini_app_closed_page(page):
+    page.data["redirect"] = features.HOME_PATH
+
+
 async def changes_soon_page(page):
     data = page.data
     data["template"] = "changes-soon.html"
@@ -699,6 +703,7 @@ def office_rows(data, params, section):
 
 
 PAGE_ROUTES = (
+    (lambda page: features.mini_app_closed(page.path), mini_app_closed_page),
     (lambda page: page.path == "/", home_page),
     (lambda page: page.path in ("/dpo", "/merch"), catalog_page),
     (lambda page: page.path == "/portfolio", portfolio_list_page),

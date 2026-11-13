@@ -534,7 +534,7 @@ def test_checkout_blocks_cart_mutation_and_restores_fields_on_error(page, site):
 
 
 @pytest.mark.parametrize("path", ["/news", "/support", "/tg", "/?pwa=1"])
-def test_help_button_and_bot_dialog_are_gone(page, path):
+def test_help_button_and_bot_dialog_are_gone(page, path, mini_app):
     page.goto(path)
     expect(page.locator(".support-launcher, #support-bot, [data-action='support']")).to_have_count(0)
     expect(page.get_by_role("link", name="Помощь", exact=True)).to_have_count(0)
@@ -605,7 +605,7 @@ def test_pwa_uses_phone_layout_and_preserves_navigation(page):
     expect(page.get_by_role("heading", name="Вход для выпускников", exact=True)).to_be_visible()
 
 
-def test_telegram_preview_safe_start_and_return(page):
+def test_telegram_preview_safe_start_and_return(page, mini_app):
     page.set_viewport_size({"width": 390, "height": 844})
     page.goto("/tg?startapp=dpo")
     expect(page).to_have_url(re.compile(r"/dpo$"))
@@ -618,7 +618,7 @@ def test_telegram_preview_safe_start_and_return(page):
     expect(page.locator(".mini-home")).to_be_visible()
 
 
-def test_telegram_back_returns_to_previous_catalog(page):
+def test_telegram_back_returns_to_previous_catalog(page, mini_app):
     page.add_init_script(
         "window.Telegram={WebApp:{initData:'test',BackButton:{onClick:callback=>window.telegramBack=callback}}};"
     )
@@ -631,14 +631,14 @@ def test_telegram_back_returns_to_previous_catalog(page):
     expect(page.get_by_role("searchbox", name="Поиск", exact=True)).to_have_value("Сумка")
 
 
-def test_telegram_colors_follow_dark_theme(page):
+def test_telegram_colors_follow_dark_theme(page, mini_app):
     page.add_init_script(TELEGRAM_COLORS)
     page.goto("/tg")
     page.wait_for_function("() => window.telegramColors.bar")
     assert page.evaluate("window.telegramColors") == {"header": "#000000", "background": "#000000", "bar": "#0b0b0c"}
 
 
-def test_telegram_colors_follow_vision_mode(page):
+def test_telegram_colors_follow_vision_mode(page, mini_app):
     page.add_init_script(
         TELEGRAM_COLORS + "localStorage.setItem('club_vision', JSON.stringify({on:true,scheme:'bw'}));"
     )
@@ -656,7 +656,7 @@ def test_pwa_page_titles_use_column_width(page):
     expect(page.locator("main h1").first).to_have_css("font-size", "40px")
 
 
-def test_mini_home_sections_and_photo(page):
+def test_mini_home_sections_and_photo(page, mini_app):
     page.set_viewport_size({"width": 390, "height": 844})
     page.goto("/tg")
     image = page.locator(".mini-agenda img")
@@ -1773,7 +1773,7 @@ def test_program_dock_keeps_application_in_reach_on_phone(page):
     assert dock.bounding_box()["y"] + dock.bounding_box()["height"] <= application["y"]
 
 
-def test_pwa_column_uses_phone_gutter(page):
+def test_pwa_column_uses_phone_gutter(page, mini_app):
     page.set_viewport_size({"width": 1440, "height": 900})
     page.goto("/tg?pwa=1")
     main = page.locator("#main").bounding_box()
@@ -1825,7 +1825,7 @@ def test_focus_keeps_ribbon_items_in_view(page, site):
         assert item["y"] - box["y"] >= 6 and box["y"] + box["height"] - item["y"] - item["height"] >= 6
 
 
-def test_mini_app_focus_rings_are_not_clipped(page):
+def test_mini_app_focus_rings_are_not_clipped(page, mini_app):
     page.set_viewport_size({"width": 390, "height": 844})
     page.goto("/tg")
     expect(page.locator(".mini-home > .site-catalog")).to_have_css("overflow", "visible")
@@ -1867,7 +1867,7 @@ def moving_themis_page(chromium, site, path, viewport, script=""):
     return context, page, errors
 
 
-def test_mini_app_sign_pauses_off_screen(chromium, site):
+def test_mini_app_sign_pauses_off_screen(chromium, site, mini_app):
     context, page, errors = moving_themis_page(chromium, site, "/tg", {"width": 390, "height": 500})
     themis = page.locator(".mini-welcome .lux-themis")
     expect(themis).to_have_class(re.compile("is-moving"))
