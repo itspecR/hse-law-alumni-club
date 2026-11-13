@@ -66,12 +66,10 @@ ADOPTED_SETTINGS = (
     "VAPID_PUBLIC_KEY",
     "VAPID_PRIVATE_KEY",
     "SENTRY_DSN",
-    "DPO_SYNC_ENABLED",
     "DPO_SITE_URL",
     "DPO_SITE_CERTIFICATE",
     "DPO_SITE_LINK_URL",
     "NEWS_SYNC_ENABLED",
-    "JOBS_ENABLED",
     "SUPPORT_ENABLED",
     "EDUCATION_DOCUMENT_ENABLED",
     "SUPPORT_OPERATOR_NAME",
@@ -99,6 +97,7 @@ MANUAL_SETTINGS = (
     "CORS_ORIGINS",
     *BOT_SETTINGS,
 )
+PUBLIC_SWITCHES = {"JOBS_ENABLED": "true", "DPO_SYNC_ENABLED": "true"}
 SETTINGS_FILES = ("CLUB_RUNTIME_ENV", "CLUB_OPERATOR_ENV")
 CONTOUR_TITLES = {"local": "локальная репетиция", "public": "публичный HTTPS", "server": "сервер по IP"}
 LISTENERS = {"local": ("127.0.0.1", 9443, 9080), "public": ("0.0.0.0", 443, 80), "server": ("0.0.0.0", 9443, 9080)}
@@ -336,6 +335,7 @@ def ask_server(values):
 
 
 def ask_public(values):
+    values.update(PUBLIC_SWITCHES)
     values["PUBLIC_URL"] = "https://" + HELPERS["prompt"]("Домен сайта", check=HELPERS["hostname"])
     values["ADMIN_EMAIL"] = HELPERS["prompt"]("Email первого администратора", check=HELPERS["email"])
     values["SMTP_HOST"] = HELPERS["prompt"]("Сервер SMTP", check=HELPERS["hostname"])

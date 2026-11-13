@@ -761,6 +761,11 @@ class PublicAddressChange(unittest.TestCase):
         self.assertEqual((two['SMTP_FROM'], two['OFFICE_EMAIL']), ('noreply@club.example.org', 'noreply@club.example.org'))
         self.assertEqual(one['PUBLIC_URL'], 'https://club.example.org')
 
+    def test_public_install_runs_background_jobs(self):
+        values = self.public_answers({'Домен': 'club.example.org', 'Email первого': 'admin@club.example.org',
+                                      'Сервер SMTP': 'smtp.example.org', 'Логин SMTP': 'club@club.example.org'})
+        self.assertEqual((values['JOBS_ENABLED'], values['DPO_SYNC_ENABLED']), ('true', 'true'))
+
 
 class SettingsAdoption(unittest.TestCase):
     def setUp(self):
@@ -768,14 +773,16 @@ class SettingsAdoption(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.config = pathlib.Path(self.temp.name).resolve()
         self.current = {'PUBLIC_URL': 'https://club.example.org', 'SMTP_HOST': 'smtp.new.example', 'SMTP_PASS': 'new $pass "q"',
-                        'AUTH_SECRET': 'new-secret', 'YOOKASSA_SHOP_ID': '', 'PAYEE_NAME': '', 'JOBS_ENABLED': 'false', 'RATE_LIMIT_MAX': '1000'}
+                        'AUTH_SECRET': 'new-secret', 'YOOKASSA_SHOP_ID': '', 'PAYEE_NAME': '', 'JOBS_ENABLED': 'true', 'DPO_SYNC_ENABLED': 'true',
+                        'NEWS_SYNC_ENABLED': 'false', 'RATE_LIMIT_MAX': '1000'}
         self.write('runtime.env', self.current)
         self.write('operator.env', {**self.current, 'DATABASE_URL': 'mariadb://operator'})
         self.source = self.config / 'previous-runtime.env'
         self.previous = {'PUBLIC_URL': 'https://old.example.org', 'SMTP_HOST': 'smtp.old.example', 'SMTP_PASS': 'old-pass',
                          'TELEGRAM_BOT_TOKEN': '111:synthetic-bot', 'OFFICE_TG_BOT_TOKEN': '222:synthetic-office',
                          'AUTH_SECRET': 'old-secret', 'YOOKASSA_SHOP_ID': '123456', 'YOOKASSA_SECRET_KEY': 'synthetic $key "k"',
-                         'PAYEE_NAME': 'АНО «Клуб»', 'JOBS_ENABLED': 'true', 'RATE_LIMIT_MAX': '1000', 'OFFICE_EMAIL': ''}
+                         'PAYEE_NAME': 'АНО «Клуб»', 'JOBS_ENABLED': 'false', 'DPO_SYNC_ENABLED': 'false',
+                         'NEWS_SYNC_ENABLED': 'true', 'RATE_LIMIT_MAX': '1000', 'OFFICE_EMAIL': ''}
         self.write('previous-runtime.env', self.previous)
         self.printed = []
 
@@ -794,7 +801,8 @@ class SettingsAdoption(unittest.TestCase):
         runtime, operator = (common.read_env(self.config / name) for name in ('runtime.env', 'operator.env'))
         for values in (runtime, operator):
             self.assertEqual((values['YOOKASSA_SHOP_ID'], values['YOOKASSA_SECRET_KEY']), ('123456', 'synthetic $key "k"'))
-            self.assertEqual((values['PAYEE_NAME'], values['JOBS_ENABLED']), ('АНО «Клуб»', 'true'))
+            self.assertEqual((values['PAYEE_NAME'], values['NEWS_SYNC_ENABLED']), ('АНО «Клуб»', 'true'))
+            self.assertEqual((values['JOBS_ENABLED'], values['DPO_SYNC_ENABLED']), ('true', 'true'))
             self.assertEqual((values['PUBLIC_URL'], values['SMTP_HOST'], values['SMTP_PASS'], values['AUTH_SECRET']),
                              ('https://club.example.org', 'smtp.new.example', 'new $pass "q"', 'new-secret'))
         self.assertEqual(operator['DATABASE_URL'], 'mariadb://operator')
@@ -811,7 +819,7 @@ class SettingsAdoption(unittest.TestCase):
     def test_report_names_settings_without_values(self):
         self.adopt()
         report = '\n'.join(self.printed)
-        self.assertIn('Перенесены настройки: OFFICE_TG_BOT_TOKEN, YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY, PAYEE_NAME, JOBS_ENABLED', report)
+        self.assertIn('Перенесены настройки: OFFICE_TG_BOT_TOKEN, YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY, PAYEE_NAME, NEWS_SYNC_ENABLED', report)
         self.assertIn('Не переносятся и отличаются от прежнего сервера: SMTP_HOST, TELEGRAM_BOT_TOKEN;', report)
         for value in ('123456', 'synthetic', 'АНО', 'old-pass', 'old-secret', 'smtp.old.example'):
             self.assertNotIn(value, report)
