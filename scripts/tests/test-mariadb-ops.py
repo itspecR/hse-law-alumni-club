@@ -900,7 +900,8 @@ class CertificateCommands(unittest.TestCase):
     def test_request_keeps_private_key_and_asks_for_domain_and_www(self):
         text = subprocess.run(['openssl', 'req', '-noout', '-text', '-in', str(self.folder / certificate.REQUEST_NAME)],
                               check=True, capture_output=True, text=True).stdout
-        self.assertIn('DNS:club.example.org, DNS:www.club.example.org', text)
+        self.assertIn('CN=www.club.example.org', text.replace(' ', ''))
+        self.assertNotIn('Subject Alternative Name', text)
         self.assertEqual(oct((self.folder / certificate.KEY_NAME).stat().st_mode & 0o777), '0o600')
         self.assertEqual(certificate.request_names(self.folder), ['club.example.org', 'www.club.example.org'])
 

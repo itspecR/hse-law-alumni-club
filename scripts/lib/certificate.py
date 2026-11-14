@@ -52,9 +52,7 @@ def request(domain, home=CERTIFICATE_HOME):
             "-out",
             str(target / REQUEST_NAME),
             "-subj",
-            "/CN=" + names[0],
-            "-addext",
-            "subjectAltName=" + ",".join("DNS:" + name for name in names),
+            "/CN=" + names[1],
         ],
         capture_output=True,
     )
