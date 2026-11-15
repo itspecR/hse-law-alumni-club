@@ -73,6 +73,7 @@ services:
       dockerfile: deploy/web.Dockerfile
     environment:
       API_INTERNAL_URL: http://api:3000
+      PUBLIC_URL: ${PUBLIC_URL:?Нужен HTTPS-адрес сайта}
     depends_on:
       api:
         condition: service_healthy

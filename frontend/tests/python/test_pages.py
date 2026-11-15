@@ -623,10 +623,6 @@ async def test_hidden_changes_section_shows_stub_and_leaves_menus_and_search(bro
     assert 'href="/changes"' not in home and "Изменения в&nbsp;праве</h3>" in home
     assert '<p class="lux-tile__lede">Раздел в&nbsp;разработке.</p>' in home
     assert "<p>Программы клуба и ДПО, события, подкасты и новости.</p>" in home
-    assert (
-        'content="Клуб выпускников факультета права НИУ ВШЭ. Программы клуба и ДПО, события, подкасты и новости."'
-        in home
-    )
     for path in ("/changes", "/changes/tg-18"):
         page = await browser_client.get(path)
         assert page.status_code == 200 and "<h1>Изменения в праве</h1>\n<p>Раздел в разработке.</p>" in page.text
@@ -1851,7 +1847,7 @@ async def test_campaign_page_shows_story_meter_and_campaign_form(browser_client)
     )
     assert '<input type="hidden" name="campaign" value="intensive">' in form
     assert page.index('class="give-story camp-story"') < page.index('id="camp-support"')
-    assert 'content="noindex,nofollow"' in page
+    assert 'content="index,follow"' in page
 
 
 async def test_campaign_page_hides_empty_blocks_and_unknown_campaign_is_missing(browser_client):

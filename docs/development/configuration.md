@@ -121,7 +121,7 @@
 | `UPLOADS_PATH` | Каталог файлов API | В Compose `/data/uploads`, на сервере это `CLUB_UPLOADS_DIR` | Нет | `/data/uploads` | Запуск API |
 | `AUTH_SECRET` | Подпись сессий выпускников | Да, не короче 32 символов, без шаблонных значений | Да | `〈64 hex〉` | Запуск API |
 | `ADMIN_AUTH_SECRET` | Отдельная подпись административных сессий | В production не короче 32 символов и отличен от `AUTH_SECRET` | Да | `〈другие 64 hex〉` | Запуск API |
-| `PUBLIC_URL` | Адрес сайта, ссылки писем и оплаты | В production `https://<домен>` без пути | Нет | `https://club.example.org` | Запуск API и nginx |
+| `PUBLIC_URL` | Адрес сайта, ссылки писем и оплаты, адреса `canonical` и превью ссылок на страницах | В production `https://<домен>` без пути | Нет | `https://club.example.org` | Запуск API, web и nginx |
 | `CORS_ORIGINS` | Дополнительные разрешенные origin через запятую | Необязательно | Нет | Пусто для same-origin | Запуск API |
 | `RATE_LIMIT_MAX` | Общий лимит запросов с IP за минуту | По умолчанию `1000` | Нет | `1000` | Запуск API |
 | `SUPPORT_ENABLED` | Доступность поддержки | По умолчанию `false`; включать после определения оператора | Нет | `false` | Запуск API |
