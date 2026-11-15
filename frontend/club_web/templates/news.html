@@ -9,7 +9,7 @@
 <div class="site-editorial-list">
 {% for item in items %}
 <article{% if item.cover|media %} class="has-cover"{% endif %}>
-<p class="news-meta"><time>{{ item.published_at|date }}</time>{% if item.origin=='faculty' %} · Факультет права{% endif %}</p>
+<p class="news-meta"><time datetime="{{ item.published_at }}">{{ item.published_at|date }}</time>{% if item.origin=='faculty' %} · Факультет права{% endif %}</p>
 <h2>
 <a href="/news/{{ item.slug }}">{{ item.title }}</a>
 </h2>
