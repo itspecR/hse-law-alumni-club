@@ -16,3 +16,8 @@ def push_notifications(monkeypatch):
 @pytest.fixture
 def mini_app(monkeypatch):
     monkeypatch.setattr(features, "MINI_APP_ENABLED", True)
+
+
+@pytest.fixture
+def dpo(monkeypatch):
+    monkeypatch.setattr(features, "DPO_ENABLED", True)

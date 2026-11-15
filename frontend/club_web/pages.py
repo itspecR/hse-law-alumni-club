@@ -314,7 +314,7 @@ def office_denied(path, status):
 
 
 def navigation():
-    return [(href, label) for href, label in NAV if features.section_enabled(href)]
+    return [(href, label) for href, label in NAV if features.link_shown(href)]
 
 
 def changes_items():
@@ -462,7 +462,7 @@ async def search_page(page):
     needle = params.get("q", "").casefold().replace("ё", "е").strip()
     groups = search_groups(
         page_items(data["portfolio_programs"]),
-        data["programs"],
+        data["programs"] if features.DPO_ENABLED else [],
         data["news"],
         data["events"],
         page_items(data["podcasts"]),
@@ -519,7 +519,7 @@ async def podcasts_page(page):
             data.update(template="not-found.html", status=404)
 
 
-async def mini_app_closed_page(page):
+async def closed_page(page):
     page.data["redirect"] = features.HOME_PATH
 
 
@@ -703,7 +703,7 @@ def office_rows(data, params, section):
 
 
 PAGE_ROUTES = (
-    (lambda page: features.mini_app_closed(page.path), mini_app_closed_page),
+    (lambda page: features.closed(page.path), closed_page),
     (lambda page: page.path == "/", home_page),
     (lambda page: page.path in ("/dpo", "/merch"), catalog_page),
     (lambda page: page.path == "/portfolio", portfolio_list_page),
@@ -739,6 +739,7 @@ async def context(api, path, params, authorized=False):
         "nav_dense": len(nav) > HEADER_ROOMY_LINKS,
         "changes_enabled": features.CHANGES_ENABLED,
         "push_enabled": features.PUSH_ENABLED,
+        "dpo_enabled": features.DPO_ENABLED,
         "live": live_view(path),
         "office_nav": OFFICE_NAV,
         "office_groups": GROUPS,

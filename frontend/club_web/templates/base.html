@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>{{ title }} - Клуб выпускников факультета права НИУ ВШЭ</title>
-<meta name="description" content="Клуб выпускников факультета права НИУ ВШЭ. Программы клуба и ДПО, события, подкасты{{ ', новости и изменения в праве' if changes_enabled else ' и новости' }}.">
+<meta name="description" content="Клуб выпускников факультета права НИУ ВШЭ. Программы клуба{{ ' и ДПО' if dpo_enabled else '' }}, события, подкасты{{ ', новости и изменения в праве' if changes_enabled else ' и новости' }}.">
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="robots" content="{{ 'noindex,nofollow' if path.startswith(('/lk','/admin','/cart','/join','/reset','/confirm','/saved','/give/','/pay/')) else 'index,follow' }}">
@@ -133,7 +133,7 @@
 <img src="{{ base }}assets/themis-club.svg" width="40" height="40" alt="">
 <div>
 <strong>Клуб выпускников факультета права НИУ&nbsp;ВШЭ</strong>
-<p>Программы клуба и ДПО, события, подкасты{{ ' и изменения в праве' if changes_enabled else ' и новости' }}.</p>
+<p>Программы клуба{{ ' и ДПО' if dpo_enabled else '' }}, события, подкасты{{ ' и изменения в праве' if changes_enabled else ' и новости' }}.</p>
 </div>
 </div>
 <div>
@@ -187,7 +187,7 @@
 <nav class="mobile-tabs" aria-label="Основные разделы">
 <a href="/">Клуб</a>
 <a href="/news">Новости</a>
-<a href="/dpo">ДПО</a>
+{% if dpo_enabled %}<a href="/dpo">ДПО</a>{% endif %}
 <a href="/merch">Мерч</a>
 <a href="/lk">Кабинет</a>
 </nav>

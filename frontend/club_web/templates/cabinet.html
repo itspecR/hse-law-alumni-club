@@ -143,7 +143,7 @@
 <p>По вашему приглашению: подтверждено {{ me.alumni.referrals_verified or 0 }}, на проверке {{ me.alumni.referrals_pending or 0 }}.</p>
 <button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="copy-invite" data-code="{{ me.alumni.referral_code }}">{{ icon('copy', 18) }}Скопировать ссылку-приглашение</button>
 </div>
-<div class="site-actions"><a href="/dpo">Программы ДПО</a><a href="/events">События</a><a href="/podcasts">Подкасты</a></div>
+<div class="site-actions">{% if dpo_enabled %}<a href="/dpo">Программы ДПО</a>{% endif %}<a href="/events">События</a><a href="/podcasts">Подкасты</a></div>
 </section>
 <section id="orders" class="cabinet-panel">
 <h2>Мои заявки</h2>
