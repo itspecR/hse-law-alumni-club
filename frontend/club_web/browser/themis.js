@@ -1,6 +1,8 @@
 const SOURCE = [130, 0, 930, 1360];
 const LOOP_SECONDS = 12;
 const MAX_PIXEL_RATIO = 2;
+const IDLE_TIMEOUT = 2000;
+const IDLE_FALLBACK = 200;
 const BODY_GRID = [70, 88];
 const BODY = 0;
 const BEAM = 2;
@@ -202,9 +204,19 @@ function animate(root, canvas, image) {
   update();
 }
 
+function whenIdle(start) {
+  if ("requestIdleCallback" in window) requestIdleCallback(start, { timeout: IDLE_TIMEOUT });
+  else setTimeout(start, IDLE_FALLBACK);
+}
+
+function whenPageLoaded(start) {
+  if (document.readyState === "complete") { whenIdle(start); return; }
+  window.addEventListener("load", () => whenIdle(start), { once: true });
+}
+
 function whenLoaded(image, start) {
-  if (image.complete && image.naturalWidth) { start(); return; }
-  image.addEventListener("load", start, { once: true });
+  if (image.complete && image.naturalWidth) { whenPageLoaded(start); return; }
+  image.addEventListener("load", () => whenPageLoaded(start), { once: true });
 }
 
 function releaseDetached() {
