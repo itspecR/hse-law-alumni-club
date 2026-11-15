@@ -307,3 +307,9 @@ async def test_pages_and_manifest_are_not_cached():
         page = await client.get("/give")
         manifest = await client.get("/manifest.webmanifest")
     assert page.headers["cache-control"] == "no-store" and manifest.headers["cache-control"] == "no-store"
+
+
+async def test_cookie_banner_role_fits_its_element():
+    async with site() as client:
+        page = (await client.get("/give")).text
+    assert '<div class="club-cookie-banner" id="cookie-banner" role="dialog"' in page
