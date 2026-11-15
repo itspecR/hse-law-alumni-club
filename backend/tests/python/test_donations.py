@@ -11,7 +11,7 @@ from test_portfolio_applications import solved_captcha
 
 from club_api.jobs.tasks import retention
 from club_api.modules.donations.routes import DONATION_MIN_RUB
-from club_api.modules.donations.service import DONATION_CONSENTS, donation_outcome
+from club_api.modules.donations.service import DONATION_CONSENTS, donation_outcome, donor_retention_cutoff
 from club_api.modules.members.service import anonymize
 from club_api.modules.notifications.mail import CLUB_NAME
 
@@ -190,10 +190,11 @@ def test_outcome_ignores_foreign_payment_and_repeats():
 async def test_deleted_profile_and_retention_forget_donor(database_app):
     app = database_app
     _, alumni_id = await fixture(app)
-    now = datetime.now(UTC)
+    cutoff = donor_retention_cutoff(datetime.now(UTC))
     for number, alumni, created in (
-        ("DON-2026-000001", alumni_id, now),
-        ("DON-2020-000001", None, now - timedelta(days=app.state.settings.ORDER_RETENTION_DAYS + 1)),
+        ("DON-2026-000001", alumni_id, datetime.now(UTC)),
+        ("DON-2020-000001", None, cutoff - timedelta(seconds=1)),
+        ("DON-2021-000001", None, cutoff + timedelta(seconds=1)),
     ):
         await app.state.database.execute(
             "INSERT INTO club_donations(id,number,amount,email,name,alumni_id,status,created_at) VALUES(%s,%s,10000,'donor@example.test','Даритель',%s,'succeeded',%s)",
@@ -201,9 +202,24 @@ async def test_deleted_profile_and_retention_forget_donor(database_app):
         )
     await anonymize(app.state, alumni_id)
     await retention(app.state)
-    rows = await app.state.database.rows("SELECT email,name,alumni_id,status FROM club_donations ORDER BY number")
-    assert [(row["email"], row["name"], row["alumni_id"]) for row in rows] == [("-", None, None), ("-", None, None)]
+    rows = await app.state.database.rows("SELECT number,email,name,status FROM club_donations ORDER BY number")
+    assert [(row["number"], row["email"], row["name"]) for row in rows] == [
+        ("DON-2020-000001", "-", None),
+        ("DON-2021-000001", "donor@example.test", "Даритель"),
+        ("DON-2026-000001", "-", None),
+    ]
     assert {row["status"] for row in rows} == {"succeeded"}
+
+
+@pytest.mark.parametrize(
+    ("now", "cutoff"),
+    [
+        (datetime(2031, 12, 31, 20, 30, tzinfo=UTC), datetime(2025, 12, 31, 21, 0, tzinfo=UTC)),
+        (datetime(2031, 12, 31, 21, 30, tzinfo=UTC), datetime(2026, 12, 31, 21, 0, tzinfo=UTC)),
+    ],
+)
+def test_donor_data_kept_five_years_after_moscow_year_end(now, cutoff):
+    assert donor_retention_cutoff(now) == cutoff
 
 
 async def test_sitemap_lists_give_page(database_app):
