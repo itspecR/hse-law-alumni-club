@@ -11,6 +11,7 @@ from club_web.client import Api, forwarded_headers
 from club_web.offline import can_save_page
 from club_web.pages import context
 from club_web.rendering import ROOT, published_version, templates
+from club_web.schema import structured_data
 from club_web.seo import page_meta
 
 PUBLIC = ROOT / "public" if (ROOT / "public").exists() else ROOT.parent / "public"
@@ -114,6 +115,7 @@ async def render_page(request, path, *, fragment):
         return HttpResponseRedirect(data["redirect"])
     data.update(request=request, fragment=fragment, base="/", asset_version=published_version(PUBLIC))
     data["meta"] = page_meta(data, site_url(request))
+    data["schema"] = structured_data(data, site_url(request))
     data["offline_reading"] = can_save_page(
         "/" + path, request.GET, data, fragment=fragment, authorized="authorization" in supplied
     )
