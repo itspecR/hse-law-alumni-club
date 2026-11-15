@@ -4,11 +4,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>{{ title }} - Клуб выпускников факультета права НИУ ВШЭ</title>
-<meta name="description" content="Клуб выпускников факультета права НИУ ВШЭ. Программы клуба{{ ' и ДПО' if dpo_enabled else '' }}, события, подкасты{{ ', новости и изменения в праве' if changes_enabled else ' и новости' }}.">
+<title>{{ meta.title }}</title>
+<meta name="description" content="{{ meta.description }}">
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="robots" content="{{ 'noindex,nofollow' if path.startswith(('/lk','/admin','/cart','/join','/reset','/confirm','/saved','/give/','/pay/')) else 'index,follow' }}">
+<meta name="robots" content="{{ meta.robots }}">
+{% if meta.canonical %}
+<link rel="canonical" href="{{ meta.canonical }}">
+{% endif %}
+<meta property="og:type" content="{{ meta.type }}">
+<meta property="og:site_name" content="{{ meta.site_name }}">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="{{ meta.title }}">
+<meta property="og:description" content="{{ meta.description }}">
+<meta property="og:url" content="{{ meta.url }}">
+<meta property="og:image" content="{{ meta.image.url }}">
+{% if meta.image.width %}
+<meta property="og:image:width" content="{{ meta.image.width }}">
+<meta property="og:image:height" content="{{ meta.image.height }}">
+{% endif %}
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="{{ base }}favicon.ico">
 <link rel="manifest" href="{{ base }}manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="{{ base }}icon-180.png">
