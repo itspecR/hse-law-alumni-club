@@ -876,6 +876,11 @@ Title, description, правила индексации, `canonical` и теги
 обложка записи, иначе общая карточка `frontend/public/og-card.png` 1200x630 на черном
 фоне с эмблемой.
 
+Микроразметку JSON-LD собирает `frontend/club_web/schema.py`: `Organization` на каждой
+странице, `WebSite` на главной, `NewsArticle`, `Event`, `Course`, `PodcastSeries` и
+`PodcastEpisode`, `Product`, `FAQPage` на странице поддержки и `BreadcrumbList` у записей.
+Сведения об организации берутся из `data/legal-data.json`.
+
 ## Документы
 
 Документы клуба открываются файлами PDF. Страница `/documents` перечисляет их
