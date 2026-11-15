@@ -1,13 +1,8 @@
-import asyncio
-import time
-from urllib.parse import quote
-from xml.sax.saxutils import escape
-
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest
 
 from club_api.core.errors import ApiError
 from club_api.core.views import api_view, query_integer
-from club_api.modules.catalog.scope import PUBLISHED_DPO, PUBLISHED_PORTFOLIO
+from club_api.modules.catalog.scope import PUBLISHED_DPO
 
 NEWS_FIELDS = ("id", "slug", "title", "excerpt", "body", "published_at", "source_url", "cover", "origin")
 PROGRAM_FIELDS = (
@@ -29,65 +24,6 @@ PROGRAM_FIELDS = (
 )
 PRODUCT_FIELDS = ("id", "slug", "title", "category", "price", "images", "variants_json", "stock", "description")
 PUBLISHED = {"status": {"_eq": "published"}}
-
-
-@api_view
-async def robots(request: HttpRequest):
-    text = "User-agent: *\nAllow: /\nDisallow: /lk\nDisallow: /admin\nDisallow: /cart\nDisallow: /api/\n"
-    text += f"Sitemap: {request.services.settings.PUBLIC_URL.rstrip('/')}/sitemap.xml\n"
-    return HttpResponse(text, content_type="text/plain")
-
-
-@api_view
-async def sitemap(request: HttpRequest):
-    state = request.services
-    cached = getattr(state, "sitemap_cache", None)
-    now = time.monotonic()
-    if cached and now - cached[0] < 3600:
-        return HttpResponse(cached[1], content_type="application/xml")
-    news, portfolio = await asyncio.gather(
-        state.store.read("news", filters=PUBLISHED, fields=("slug", "published_at"), limit=-1),
-        state.store.read("programs", filters=PUBLISHED_PORTFOLIO, fields=("slug",), limit=-1),
-    )
-    urls = [
-        ("/", "1.0", "weekly", None),
-        ("/portfolio", "0.9", "weekly", None),
-        ("/events", "0.9", "weekly", None),
-        ("/dpo", "0.9", "weekly", None),
-        ("/news", "0.8", "weekly", None),
-        ("/join", "0.8", "monthly", None),
-        ("/give", "0.8", "monthly", None),
-        ("/podcasts", "0.7", "weekly", None),
-        ("/merch", "0.7", "monthly", None),
-        *[
-            (
-                "/news/" + quote(item["slug"], safe=""),
-                "0.6",
-                "monthly",
-                item["published_at"][:10] if item["published_at"] else None,
-            )
-            for item in news
-        ],
-        *[("/portfolio/" + quote(item["slug"], safe=""), "0.6", "monthly", None) for item in portfolio],
-        *[(path, "0.3", "yearly", None) for path in ("/documents", "/requisites")],
-    ]
-    base = state.settings.PUBLIC_URL.rstrip("/")
-    entries = []
-    for path, priority, frequency, modified in urls:
-        date = f"<lastmod>{escape(modified)}</lastmod>" if modified else ""
-        entries.append(
-            f"<url><loc>{escape(base + path)}</loc>{date}<changefreq>{frequency}</changefreq><priority>{priority}</priority></url>"
-        )
-    xml = "\n".join(
-        [
-            '<?xml version="1.0" encoding="UTF-8"?>',
-            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-            *entries,
-            "</urlset>",
-        ]
-    )
-    state.sitemap_cache = (now, xml)
-    return HttpResponse(xml, content_type="application/xml")
 
 
 @api_view

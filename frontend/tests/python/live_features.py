@@ -300,6 +300,13 @@ def section_walk(page, office):
     for closed in ("/tg", "/dpo"):
         page.goto(closed)
         assert page.url.endswith("/") and not page.url.endswith(closed), page.url
+    robots = page.request.get("/robots.txt").text()
+    assert "Disallow: /views/" in robots and "Allow: /api/media/" in robots
+    locations = re.findall(r"<loc>https?://[^/]+(/[^<]*)</loc>", page.request.get("/sitemap.xml").text())
+    assert "/" in locations and "/dpo" not in locations
+    for location in locations:
+        listed = page.request.get(location)
+        assert listed.status == 200 and 'name="robots" content="index,follow"' in listed.text(), location
     for old_address in ("/privacy", "/give/offer"):
         document = page.request.get(old_address)
         assert document.status == 200 and document.headers["content-type"] == "application/pdf", old_address

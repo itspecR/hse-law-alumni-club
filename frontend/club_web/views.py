@@ -29,9 +29,11 @@ STATIC_FILES = {
     "icon-152.png",
     "icon-167.png",
     "og-card.png",
+    "llms.txt",
 }
 
 
+FRAGMENT_ROBOTS = "noindex"
 MEBIBYTE = 1024 * 1024
 DEFAULT_BODY_LIMIT = 256 * 1024
 BODY_LIMITS = {"admin/media": 129 * MEBIBYTE, "me/avatar": 4 * MEBIBYTE, "me/education-document": 11 * MEBIBYTE}
@@ -132,7 +134,9 @@ def site_url(request):
 
 @require_safe
 async def fragment(request, path):
-    return await render_page(request, path, fragment=True)
+    response = await render_page(request, path, fragment=True)
+    response.headers["X-Robots-Tag"] = FRAGMENT_ROBOTS
+    return response
 
 
 @require_safe
