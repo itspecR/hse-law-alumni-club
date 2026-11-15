@@ -69,20 +69,14 @@ PUBLIC_PAGES = {
     "/forgot": ("auth.html", "Восстановить пароль"),
     "/reset": ("auth.html", "Новый пароль"),
     "/confirm": ("auth.html", "Подтвердить почту"),
-    "/privacy": ("legal/privacy.html", "Политика обработки персональных данных"),
     "/terms": ("legal/terms.html", "Пользовательское соглашение"),
     "/consent": ("legal/consent.html", "Согласие на обработку персональных данных"),
-    "/mailing-consent": ("legal/mailing-consent.html", "Согласие на получение рассылок"),
-    "/confidential": ("legal/confidential.html", "Политика конфиденциальности"),
+    "/documents": ("legal/documents.html", "Документы"),
     "/requisites": ("legal/requisites.html", "Реквизиты"),
     "/give": ("give.html", "Поддержать факультет"),
     "/give/thanks": ("give-thanks.html", "Спасибо за поддержку"),
-    "/give/offer": ("legal/pending.html", "Оферта о пожертвовании"),
-    "/give/consent": ("legal/pending.html", "Согласие дарителя на обработку персональных данных"),
     "/support": ("support.html", "Поддержка клуба"),
     "/support/consent": ("legal/support.html", "Согласие на обработку данных"),
-    "/portfolio-consent": ("legal/portfolio-consent.html", "Согласие на обработку персональных данных"),
-    "/portfolio-terms": ("legal/portfolio-terms.html", "Условия обучения"),
     "/cart": ("cart.html", "Корзина"),
     "/lk": ("cabinet.html", "Личный кабинет"),
     "/lk/profile": ("profile.html", "Профиль"),
@@ -156,6 +150,13 @@ def resource(name):
     if not path.is_file():
         path = Path(__file__).resolve().parents[2] / "data" / name
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+LEGAL_FILES = {
+    path: document["file"]
+    for document in resource("legal-data.json")["documents"].values()
+    for path in document["paths"]
+}
 
 
 def select_page(path):
@@ -523,6 +524,10 @@ async def closed_page(page):
     page.data["redirect"] = features.HOME_PATH
 
 
+async def legal_file_page(page):
+    page.data["redirect"] = LEGAL_FILES[page.path]
+
+
 async def changes_soon_page(page):
     data = page.data
     data["template"] = "changes-soon.html"
@@ -704,6 +709,7 @@ def office_rows(data, params, section):
 
 PAGE_ROUTES = (
     (lambda page: features.closed(page.path), closed_page),
+    (lambda page: page.path in LEGAL_FILES, legal_file_page),
     (lambda page: page.path == "/", home_page),
     (lambda page: page.path in ("/dpo", "/merch"), catalog_page),
     (lambda page: page.path == "/portfolio", portfolio_list_page),

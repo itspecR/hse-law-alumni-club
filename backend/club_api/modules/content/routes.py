@@ -69,7 +69,7 @@ async def sitemap(request: HttpRequest):
             for item in news
         ],
         *[("/portfolio/" + quote(item["slug"], safe=""), "0.6", "monthly", None) for item in portfolio],
-        *[(path, "0.3", "yearly", None) for path in ("/privacy", "/confidential", "/requisites")],
+        *[(path, "0.3", "yearly", None) for path in ("/documents", "/requisites")],
     ]
     base = state.settings.PUBLIC_URL.rstrip("/")
     entries = []

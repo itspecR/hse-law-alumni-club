@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<main id="main" class="site-article legal">
+{% include 'legal/_header.html' %}
+<ul class="legal-documents">
+{% for document in legal.documents.values() %}
+<li><a href="{{ document.file }}">{{ document.title }}</a>, PDF</li>
+{% endfor %}
+</ul>
+</main>
+{% endblock %}

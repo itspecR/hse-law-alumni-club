@@ -1,6 +1,6 @@
 {
-  "version": "2026-11-06",
-  "date": "6 ноября 2026 года",
+  "version": "2026-11-15",
+  "date": "15 ноября 2026 года",
   "operator": {
     "name": "Автономная некоммерческая организация «Клуб выпускников факультета Права НИУ ВШЭ»",
     "short_name": "АНО «Клуб выпускников факультета Права НИУ ВШЭ»",
@@ -11,18 +11,78 @@
     "email": "club@pravohse.ru"
   },
   "mailing_consent": {
-    "version": "2026-11-05",
-    "date": "5 ноября 2026 года"
+    "version": "2026-11-15",
+    "date": "15 ноября 2026 года"
   },
   "donation_consents": {
-    "offer": "draft-2026-11-06",
-    "pdn": "draft-2026-11-06"
+    "offer": "2026-11-15",
+    "pdn": "2026-11-15"
   },
   "campaign_consents": {
     "gift": "2026-11-12"
   },
   "portfolio_consents": {
-    "pdn": "draft-2026-10-27",
-    "terms": "draft-2026-10-27"
+    "pdn": "2026-11-15",
+    "terms": "2026-11-15"
+  },
+  "documents": {
+    "responsible_order": {
+      "title": "Приказ о назначении ответственного за организацию обработки персональных данных",
+      "file": "/docs/prikaz-otvetstvennyj-pdn.pdf",
+      "paths": []
+    },
+    "policy": {
+      "title": "Политика в отношении обработки персональных данных",
+      "file": "/docs/politika-pdn.pdf",
+      "paths": [
+        "/privacy",
+        "/confidential"
+      ]
+    },
+    "registration": {
+      "title": "Согласие на обработку персональных данных при регистрации на сайте",
+      "file": "/docs/soglasie-registratsiya.pdf",
+      "paths": []
+    },
+    "mailing": {
+      "title": "Согласие на обработку персональных данных и получение рассылок",
+      "file": "/docs/soglasie-rassylki.pdf",
+      "paths": [
+        "/mailing-consent"
+      ]
+    },
+    "distribution": {
+      "title": "Согласие на обработку персональных данных, разрешенных для распространения",
+      "file": "/docs/soglasie-rasprostranenie.pdf",
+      "paths": []
+    },
+    "donation_offer": {
+      "title": "Публичная оферта о заключении договора пожертвования",
+      "file": "/docs/oferta-pozhertvovanie.pdf",
+      "paths": [
+        "/give/offer"
+      ]
+    },
+    "donor_consent": {
+      "title": "Согласие жертвователя на обработку персональных данных",
+      "file": "/docs/soglasie-zhertvovatelya.pdf",
+      "paths": [
+        "/give/consent"
+      ]
+    },
+    "education_contract": {
+      "title": "Договор об образовании",
+      "file": "/docs/dogovor-ob-obrazovanii.pdf",
+      "paths": [
+        "/portfolio-terms"
+      ]
+    },
+    "application_consent": {
+      "title": "Согласие на обработку персональных данных при заявке на обучение",
+      "file": "/docs/soglasie-zayavka-obuchenie.pdf",
+      "paths": [
+        "/portfolio-consent"
+      ]
+    }
   }
 }

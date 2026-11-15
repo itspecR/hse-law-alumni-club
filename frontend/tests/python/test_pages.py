@@ -865,7 +865,8 @@ async def test_portfolio_pages_show_club_program_without_cart(browser_client):
     assert (
         "Свободных мест" in card.text and 'max="20"' in card.text and "Мест нет. Заявку можно оставить" not in card.text
     )
-    assert 'href="/portfolio-consent"' in card.text and 'href="/portfolio-terms"' in card.text
+    assert 'href="/docs/soglasie-zayavka-obuchenie.pdf"' in card.text
+    assert 'href="/docs/dogovor-ob-obrazovanii.pdf"' in card.text
 
 
 async def portfolio_listing(items):
@@ -1386,19 +1387,46 @@ async def profile_page(profile):
             return (await client.get("/views/lk/profile", headers={"authorization": "Bearer member-test"})).text
 
 
-async def test_mailing_consent_page_names_operator_and_how_to_withdraw(browser_client):
-    page = (await browser_client.get("/mailing-consent")).text
-    assert "<h1>Согласие на получение рассылок</h1>" in page and "Редакция от 5 ноября 2026 года" in page
-    assert "других инициативах АНО «Клуб выпускников факультета Права НИУ ВШЭ»*" in page
-    assert "до 5 (Пяти) рабочих дней" in page and "сняв отметку «Получать рассылки»" in page
-    assert "НИУ ВШЭ*" not in page.replace("ВШЭ»*", "")
+@pytest.mark.parametrize(
+    ("path", "file"),
+    [
+        ("/privacy", "/docs/politika-pdn.pdf"),
+        ("/confidential", "/docs/politika-pdn.pdf"),
+        ("/mailing-consent", "/docs/soglasie-rassylki.pdf"),
+        ("/give/offer", "/docs/oferta-pozhertvovanie.pdf"),
+        ("/give/consent", "/docs/soglasie-zhertvovatelya.pdf"),
+        ("/portfolio-terms", "/docs/dogovor-ob-obrazovanii.pdf"),
+        ("/portfolio-consent", "/docs/soglasie-zayavka-obuchenie.pdf"),
+    ],
+)
+async def test_old_legal_addresses_lead_to_pdf_documents(browser_client, path, file):
+    response = await browser_client.get(path)
+    assert response.status_code == 302 and response.headers["location"] == file
+    document = await browser_client.get(file)
+    assert document.status_code == 200 and document.headers["content-type"] == "application/pdf"
+    assert document.content.startswith(b"%PDF")
+
+
+async def test_documents_page_lists_published_pdfs(browser_client):
+    page = (await browser_client.get("/documents")).text
+    assert "<h1>Документы</h1>" in page and "Редакция от 15 ноября 2026 года" in page
+    links = re.findall(r'<li><a href="(/docs/[a-z-]+\.pdf)">([^<]+)</a>, PDF</li>', page)
+    assert len(links) == 9
+    assert ("/docs/politika-pdn.pdf", "Политика в отношении обработки персональных данных") in links
+    for file, _ in links:
+        assert (await browser_client.get(file)).status_code == 200
+    assert "Положение" not in page
 
 
 async def test_join_offers_optional_unchecked_mailing_consent(browser_client):
     page = (await browser_client.get("/join")).text
     field = re.search(r'<input type="checkbox" name="consent_mailing"[^>]*>', page)[0]
     assert "required" not in field and "checked" not in field
-    assert '<a href="/mailing-consent">Согласие на получение рассылок</a>, необязательно' in page
+    assert (
+        '<a href="/docs/soglasie-rassylki.pdf" target="_blank" rel="noopener">Согласие на получение рассылок</a>, необязательно'
+        in page
+    )
+    assert 'href="/docs/soglasie-registratsiya.pdf" target="_blank" rel="noopener">согласие на обработку' in page
 
 
 async def test_profile_shows_current_mailing_consent():
@@ -1407,12 +1435,6 @@ async def test_profile_shows_current_mailing_consent():
         page = await profile_page({**PROFILE, "alumni": alumni})
         field = re.search(r'<input type="checkbox" name="mailing_consent"[^>]*>', page)[0]
         assert ("checked" in field) is given
-
-
-async def test_consent_placeholders_show_draft_version(browser_client):
-    for path in ("/portfolio-consent", "/portfolio-terms"):
-        response = await browser_client.get(path)
-        assert response.status_code == 200 and "draft-2026-10-27" in response.text
 
 
 async def test_unknown_portfolio_program_is_not_found(browser_client):
@@ -1431,21 +1453,19 @@ def test_office_search_finds_promo_by_code_and_note():
     assert filter_content(rows, {"status": "disabled"}) == rows[1:]
 
 
-async def test_give_form_takes_bounds_from_server_and_waits_for_documents(browser_client):
+async def test_give_form_takes_bounds_from_server_and_links_documents(browser_client):
     page = (await browser_client.get("/give")).text
     assert 'data-min="100" data-max="500000"' in page
     assert "data-give-submit>" in page and GIVE_CLOSED not in page
     assert 'value="monthly" disabled><span>Каждый месяц <small>Скоро</small>' in page
-    assert '<a href="/give/offer">' in page and '<a href="/give/consent">' in page
+    assert '<a href="/docs/oferta-pozhertvovanie.pdf" target="_blank" rel="noopener">' in page
+    assert '<a href="/docs/soglasie-zhertvovatelya.pdf" target="_blank" rel="noopener">' in page
     assert 'content="index,follow"' in page
-    for path in ("/give/offer", "/give/consent"):
-        document = (await browser_client.get(path)).text
-        assert "<p>Текст готовится.</p>" in document and 'content="noindex,nofollow"' in document
 
 
 async def test_legal_pages_give_operator_email(browser_client):
     link = '<a href="mailto:club@pravohse.ru">club@pravohse.ru</a>'
-    for path in ("/privacy", "/consent", "/terms", "/confidential", "/requisites"):
+    for path in ("/consent", "/terms", "/requisites"):
         assert link in (await browser_client.get(path)).text
 
 
@@ -1856,7 +1876,7 @@ async def test_campaign_page_hides_empty_blocks_and_unknown_campaign_is_missing(
     ]
     missing = await browser_client.get("/give/unknown")
     assert missing.status_code == 404 and "Страница не найдена" in missing.text
-    assert (await browser_client.get("/give/offer")).status_code == 200
+    assert (await browser_client.get("/give/offer")).status_code == 302
 
 
 async def test_plain_give_form_has_no_campaign_fields(browser_client):
