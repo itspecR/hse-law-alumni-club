@@ -10,6 +10,7 @@
 <section class="lux-hero" aria-labelledby="lux-hero-title">
 <div class="lux-hero__stage">
 <h1 class="lux-hero__title" id="lux-hero-title" style="--hero-chars:{{ hero_chars }}">
+<span class="lux-hero__name">Клуб выпускников факультета права НИУ&nbsp;ВШЭ</span>
 <span class="lux-hero__word lux-hero__word--l">{% for word in title_pre.split() %}<span class="lux-hero__line"><span style="--i:{{ loop.index0 }}">{{ word }}</span></span> {% endfor %}</span>
 <span class="lux-hero__word lux-hero__word--r">{% for word in title_accent.split() %}<span class="lux-hero__line"><span style="--i:{{ loop.index0 + title_pre.split()|length }}">{{ word }}</span></span> {% endfor %}</span>
 </h1>
@@ -21,7 +22,7 @@
 <a href="/portfolio" class="foc lux-more">Программы клуба <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </div>
 </div>
-<p class="lux-hero__next">Программы клуба, ДПО по&nbsp;цене выпускника, события и&nbsp;подкасты.</p>
+<p class="lux-hero__next">Программы клуба{% if dpo_enabled %}, ДПО по&nbsp;цене выпускника{% endif %}, события и&nbsp;подкасты.</p>
 </div>
 </section>
 

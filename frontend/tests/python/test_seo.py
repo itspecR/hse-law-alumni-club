@@ -207,3 +207,76 @@ async def test_llms_file_describes_the_club_and_its_sections():
     for path in ("/join", "/portfolio", "/events", "/news", "/podcasts", "/merch", "/give", "/support", "/documents"):
         assert "](https://pravohse.ru" + path + ")" in text
     assert "ДПО" not in text
+
+
+async def test_event_with_wrong_address_is_missing_not_broken():
+    async def upstream(request):
+        if request.url.path == "/events" and request.url.params.get("id"):
+            return httpx.Response(400, json={"error": "Некорректный идентификатор."})
+        return httpx.Response(200, json=[])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=create_app(api)), base_url=SITE) as client:
+            response = await client.get("/events/no-such")
+    assert response.status_code == 404 and "Страница не найдена" in response.text
+
+
+async def test_event_page_reports_a_broken_server_as_unavailable():
+    async def upstream(request):
+        return httpx.Response(503, json={"error": "Сервис временно недоступен"})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=create_app(api)), base_url=SITE) as client:
+            response = await client.get("/events/event-1")
+    assert response.status_code == 503 and "Не удалось загрузить страницу" in response.text
+
+
+async def test_home_heading_names_the_club_and_skips_hidden_dpo():
+    async with site() as client:
+        page = (await client.get("/")).text
+    heading = re.search(r"<h1[^>]*>(.*?)</h1>", page, re.S)[1]
+    assert '<span class="lux-hero__name">Клуб выпускников факультета права НИУ&nbsp;ВШЭ</span>' in heading
+    assert "Свои" in heading and page.count("<h1") == 1
+    assert '<p class="lux-hero__next">Программы клуба, события и&nbsp;подкасты.</p>' in page
+
+
+async def test_home_mentions_dpo_when_the_section_is_open(dpo):
+    async with site(**{"/programs": []}) as client:
+        page = (await client.get("/")).text
+    assert "Программы клуба, ДПО по&nbsp;цене выпускника, события и&nbsp;подкасты.</p>" in page
+
+
+async def test_support_answers_do_not_link_to_closed_sections():
+    async with site() as client:
+        page = (await client.get("/support")).text
+    assert "Где найти программы ДПО?" in page and 'href="/dpo"' not in page
+    assert '<a href="/join">Открыть раздел →</a>' in page
+
+
+async def test_support_answers_link_to_dpo_when_the_section_is_open(dpo):
+    async with site() as client:
+        page = (await client.get("/support")).text
+    assert '<a href="/dpo">Открыть раздел →</a>' in page
+
+
+async def test_news_dates_are_machine_readable():
+    async with site() as client:
+        article = (await client.get("/news/news-one")).text
+        listing = (await client.get("/news")).text
+    assert '<time datetime="2026-10-01T09:00:00Z">1 октября 2026</time>' in article
+    assert '<time datetime="2026-10-01T09:00:00Z">1 октября 2026</time>' in listing
+
+
+async def test_app_manifest_and_chrome_do_not_promise_hidden_sections():
+    async with site() as client:
+        manifest = (await client.get("/manifest.webmanifest")).json()
+        page = (await client.get("/give")).text
+    assert "ДПО" not in manifest["description"]
+    assert [item["url"] for item in manifest["shortcuts"]] == [
+        "./lk?source=pwa",
+        "./portfolio?source=pwa",
+        "./podcasts?source=pwa",
+        "./merch?source=pwa",
+    ]
+    assert 'aria-label="Версия для слабовидящих"><span aria-hidden="true">Аа</span></button>' in page
+    assert 'id="give-transfer-save" data-transfer-save download>' in page

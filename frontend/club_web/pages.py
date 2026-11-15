@@ -500,7 +500,7 @@ async def events_page(page):
         )
     data["calendar"] = month_view(data["items"], params.get("month"))
     data["item"] = next((item for item in data["items"] if item["id"] == event_id), None)
-    if event_id and "items" in data["load_errors"]:
+    if event_id and data["load_errors"].get("items", 0) >= SERVER_ERROR:
         data.update(template="unavailable.html", title="Не удалось загрузить страницу", status=503)
     elif event_id and not data["item"]:
         data.update(template="not-found.html", status=404)
@@ -593,10 +593,15 @@ async def cart_page(page):
     await load("cart", "/cart", {"items": [], "subtotal": 0})
 
 
+def open_answer(answer):
+    return answer if features.link_shown(answer["anchor"]) else {**answer, "anchor": ""}
+
+
 async def support_page(page):
     data, load = page.data, page.load
     await load("support", "/support/config", {"enabled": False})
-    data["faq"] = resource("faq-data.json")
+    faq = resource("faq-data.json")
+    data["faq"] = {**faq, "answers": [open_answer(answer) for answer in faq["answers"]]}
 
 
 async def give_page(page):
