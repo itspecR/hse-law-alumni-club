@@ -352,7 +352,7 @@ async def browser_client():
         "/podcasts/episode-1",
     ],
 )
-async def test_public_pages_render(browser_client, path, mini_app):
+async def test_public_pages_render(browser_client, path, mini_app, dpo):
     response = await browser_client.get(path)
     assert response.status_code == 200
     assert '<html lang="ru" class="lux" data-live=' in response.text
@@ -387,7 +387,7 @@ async def test_public_pages_render(browser_client, path, mini_app):
     ],
 )
 async def test_offline_permission_is_only_given_to_anonymous_public_pages(
-    browser_client, path, authorized, offline, mini_app
+    browser_client, path, authorized, offline, mini_app, dpo
 ):
     headers = {"authorization": "Bearer member-test"} if authorized else {}
     response = await browser_client.get(path, headers=headers)
@@ -538,7 +538,7 @@ async def test_home_uses_only_sourced_photos(browser_client):
     assert photos == {"graduates", "meeting", "conversation", "voice"}
 
 
-async def test_home_texts_follow_glossary(browser_client):
+async def test_home_texts_follow_glossary(browser_client, dpo):
     page = (await browser_client.get("/")).text
     assert '<a href="/portfolio" class="foc lux-more">Программы клуба' in page
     assert '<a href="/events" class="foc lux-more">Все события' in page
@@ -570,7 +570,7 @@ def test_home_club_programs_put_nearest_open_starts_first():
     assert [row["slug"] for row in club_programs_preview([rows[0], rows[3]], today)] == ["past", "closed"]
 
 
-async def test_home_shows_club_programs_after_join_steps(browser_client):
+async def test_home_shows_club_programs_after_join_steps(browser_client, dpo):
     page = (await browser_client.get("/")).text
     assert page.index('id="join-steps"') < page.index('id="club-programs"') < page.index('id="dpo-prices"')
     block = page[page.index('id="club-programs"') : page.index('id="dpo-prices"')]
@@ -618,7 +618,7 @@ async def test_full_club_name_and_merch_text(browser_client):
     assert "<p>Одежда и аксессуары с символикой клуба и ВШЭ.</p>" in page
 
 
-async def test_hidden_changes_section_shows_stub_and_leaves_menus_and_search(browser_client):
+async def test_hidden_changes_section_shows_stub_and_leaves_menus_and_search(browser_client, dpo):
     home = (await browser_client.get("/")).text
     assert 'href="/changes"' not in home and "Изменения в&nbsp;праве</h3>" in home
     assert '<p class="lux-tile__lede">Раздел в&nbsp;разработке.</p>' in home
@@ -636,7 +636,7 @@ async def test_hidden_changes_section_shows_stub_and_leaves_menus_and_search(bro
     assert '"change"' not in saved and "Изменения в праве" not in saved.split('<main id="main"', 1)[1]
 
 
-async def test_changes_section_returns_with_one_switch(changes_section, browser_client):
+async def test_changes_section_returns_with_one_switch(changes_section, browser_client, dpo):
     home = (await browser_client.get("/")).text
     assert 'href="/changes"' in home and "Все изменения" in home
     assert "<p>Программы клуба и ДПО, события, подкасты и изменения в праве.</p>" in home
@@ -955,7 +955,7 @@ async def test_portfolio_card_shows_course_modules():
     assert "Программа курса" not in await portfolio_page(PORTFOLIO)
 
 
-async def test_dpo_merch_and_cart_texts_follow_glossary(browser_client):
+async def test_dpo_merch_and_cart_texts_follow_glossary(browser_client, dpo):
     dpo = (await browser_client.get("/dpo")).text
     merch = (await browser_client.get("/merch")).text
     cart = (await browser_client.get("/cart", headers={"x-cart-session": "cart-test"})).text
@@ -972,14 +972,14 @@ async def test_dpo_merch_and_cart_texts_follow_glossary(browser_client):
         assert re.findall(".{0,40}[ёЁ–—].{0,20}", (templates / name).read_text()) == [], name
 
 
-async def test_dpo_program_address_leads_to_center_site():
+async def test_dpo_program_address_leads_to_center_site(dpo):
     response = await program_response(PROGRAM)
     assert response.status_code == 302 and response.headers["location"] == PROGRAM["source_url"]
     for source in (None, "javascript:alert(1)", "/dpo/other"):
         assert (await program_response({**PROGRAM, "source_url": source})).status_code == 404
 
 
-async def test_dpo_catalog_links_to_center_site_with_alumni_price(browser_client):
+async def test_dpo_catalog_links_to_center_site_with_alumni_price(browser_client, dpo):
     page = (await browser_client.get("/dpo")).text
     link = f'href="{PROGRAM["source_url"]}" target="_blank" rel="noopener noreferrer"'
     assert page.count(link) == 2 and '<a href="/dpo/course-one"' not in page
@@ -988,7 +988,7 @@ async def test_dpo_catalog_links_to_center_site_with_alumni_price(browser_client
     assert '<span class="lux-more__arrow" aria-hidden="true">↗</span>' in page
 
 
-async def test_dpo_search_and_home_lead_to_center_site(browser_client):
+async def test_dpo_search_and_home_lead_to_center_site(browser_client, dpo):
     search = (await browser_client.get("/search", params={"q": "правовая"})).text
     row = f'href="{PROGRAM["source_url"]}" target="_blank" rel="noopener noreferrer">Правовая программа<span class="lux-sr">'
     assert row in search
@@ -1502,7 +1502,7 @@ async def test_give_thanks_is_generic_and_hidden_from_search(browser_client):
     assert 'content="noindex,nofollow"' in page
 
 
-async def test_header_with_all_sections_switches_to_dense_layout(changes_section, browser_client):
+async def test_header_with_all_sections_switches_to_dense_layout(changes_section, browser_client, dpo):
     page = (await browser_client.get("/news")).text
     assert '<nav class="club-header__nav club-header__nav--dense" aria-label="Разделы">' in page
 
@@ -2056,6 +2056,16 @@ async def test_failed_session_check_keeps_sign_in_and_offers_retry(path, endpoin
 async def test_closed_mini_app_leads_home(browser_client, path):
     response = await browser_client.get(path)
     assert response.status_code == 302 and response.headers["location"] == "/"
+
+
+async def test_closed_dpo_section_leads_home_and_leaves_links(browser_client):
+    for path in ("/dpo", "/dpo/program-1"):
+        response = await browser_client.get(path)
+        assert response.status_code == 302 and response.headers["location"] == "/"
+    for path in ("/", "/cart", "/search?q=право"):
+        page = (await browser_client.get(path)).text
+        assert 'href="/dpo"' not in page and 'id="dpo-prices"' not in page
+    assert "Программы клуба, события" in (await browser_client.get("/")).text
 
 
 async def test_open_mini_app_page_is_served(browser_client, mini_app):

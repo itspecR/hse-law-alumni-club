@@ -49,7 +49,7 @@
 </aside>
 </div>
 {% else %}{{ empty('В корзине пока ничего нет.') }}<div class="site-actions">
-<a href="/dpo" class="site-primary">Выбрать программу</a>
+{% if dpo_enabled %}<a href="/dpo" class="site-primary">Выбрать программу</a>{% endif %}
 <a href="/merch" class="foc lux-more">Мерч клуба <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </div>
 {% endif %}

@@ -345,7 +345,7 @@ def center_site(page):
     )
 
 
-def test_catalog_filters_search_and_compare_lead_to_center(page, site):
+def test_catalog_filters_search_and_compare_lead_to_center(dpo, page, site):
     center_site(page)
     page.goto("/dpo?q=нет-такого")
     expect(page.get_by_text("По выбранным фильтрам ничего не найдено.")).to_be_visible()
@@ -368,7 +368,7 @@ def test_catalog_filters_search_and_compare_lead_to_center(page, site):
 
 
 @pytest.mark.parametrize("width", [390, 1440])
-def test_catalog_card_states_and_targets(page, site, width):
+def test_catalog_card_states_and_targets(dpo, page, site, width):
     page.set_viewport_size({"width": width, "height": 900})
     page.goto("/dpo")
     card = page.locator(".site-catalog-card").filter(has_text=PROGRAM["title"])
@@ -393,7 +393,7 @@ def test_catalog_card_states_and_targets(page, site, width):
 
 
 @pytest.mark.parametrize("width", [390, 1440])
-def test_dpo_finder_starts_and_shareable_comparison(page, site, width):
+def test_dpo_finder_starts_and_shareable_comparison(dpo, page, site, width):
     page.set_viewport_size({"width": width, "height": 900})
     rows = [
         {
@@ -447,7 +447,7 @@ def test_dpo_finder_starts_and_shareable_comparison(page, site, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
 
 
-def test_dpo_shows_notice_when_every_start_has_passed(page, site):
+def test_dpo_shows_notice_when_every_start_has_passed(dpo, page, site):
     site[1]["/programs"] = [{**PROGRAM, "dates": {"start": "24 октября 2099"}}]
     page.clock.install(time=datetime(2100, 1, 1))
     page.goto("/dpo")
@@ -540,7 +540,7 @@ def test_help_button_and_bot_dialog_are_gone(page, path, mini_app):
     expect(page.get_by_role("link", name="Помощь", exact=True)).to_have_count(0)
 
 
-def test_reading_storage_survives_navigation_and_rejects_external_path(page):
+def test_reading_storage_survives_navigation_and_rejects_external_path(dpo, page):
     page.add_init_script(
         "if(!localStorage.getItem('club-reading-v1')) localStorage.setItem('club-reading-v1',JSON.stringify({saved:[{kind:'news',id:'evil',title:'Внешняя ссылка',path:'https://evil.test',at:100}],recent:[],read:[]}));"
     )
@@ -605,7 +605,7 @@ def test_pwa_uses_phone_layout_and_preserves_navigation(page):
     expect(page.get_by_role("heading", name="Вход для выпускников", exact=True)).to_be_visible()
 
 
-def test_telegram_preview_safe_start_and_return(page, mini_app):
+def test_telegram_preview_safe_start_and_return(dpo, page, mini_app):
     page.set_viewport_size({"width": 390, "height": 844})
     page.goto("/tg?startapp=dpo")
     expect(page).to_have_url(re.compile(r"/dpo$"))
@@ -951,7 +951,7 @@ def test_pwa_can_start_without_connection(chromium, site):
     context.close()
 
 
-def test_search_dialog_keyboard_and_retry(page):
+def test_search_dialog_keyboard_and_retry(dpo, page):
     page.goto("/news")
     trigger = page.get_by_role("link", name="Поиск", exact=True).first
     trigger.click()
@@ -980,7 +980,7 @@ def test_search_dialog_keyboard_and_retry(page):
 @pytest.mark.parametrize("width", [390, 1440])
 @pytest.mark.parametrize("direction", ["ArrowDown", "ArrowUp"])
 @pytest.mark.parametrize("move_away", [False, True])
-def test_search_keyboard_waits_for_submitted_results(page, width, direction, move_away):
+def test_search_keyboard_waits_for_submitted_results(dpo, page, width, direction, move_away):
     page.set_viewport_size({"width": width, "height": 1000})
     page.goto("/news")
     if width < 768:
@@ -1011,7 +1011,7 @@ def test_search_keyboard_waits_for_submitted_results(page, width, direction, mov
     expect(dialog).not_to_be_visible()
 
 
-def test_saved_search_undo_and_recent_limit(page):
+def test_saved_search_undo_and_recent_limit(dpo, page):
     page.goto("/news/news-one")
     page.get_by_role("button", name="Сохранить", exact=True).click()
     page.goto("/dpo")
@@ -1096,7 +1096,7 @@ def test_changes_return_focuses_item_opened_before_scripts(changes_section, page
 
 
 @pytest.mark.parametrize("width", [390, 1440])
-def test_search_escape_from_nonempty_field_returns_to_trigger(page, width):
+def test_search_escape_from_nonempty_field_returns_to_trigger(dpo, page, width):
     page.set_viewport_size({"width": width, "height": 1000})
     page.goto("/saved")
     if width < 768:
@@ -1217,7 +1217,7 @@ def test_product_editor_retains_gallery_during_title_edit(page, site, width):
 
 
 @pytest.mark.parametrize("width", [1440, 390])
-def test_home_member_price_follows_selected_level(page, width):
+def test_home_member_price_follows_selected_level(dpo, page, width):
     page.set_viewport_size({"width": width, "height": 900})
     page.goto("/")
     price = page.locator(".lux-prog").filter(has_text=PROGRAM["title"]).locator("[data-member-price]")
@@ -1310,7 +1310,7 @@ def test_hero_progress_reaches_only_its_readers(chromium, site):
 
 
 @pytest.mark.parametrize("motion,animated", [("no-preference", True), ("reduce", False)])
-def test_links_are_prefetched_and_pages_cross_fade(chromium, site, motion, animated):
+def test_links_are_prefetched_and_pages_cross_fade(dpo, chromium, site, motion, animated):
     context = chromium.new_context(base_url=site[0], viewport={"width": 1440, "height": 900}, reduced_motion=motion)
     context.add_init_script(
         "localStorage.setItem('club_cookie_consent','essential');"
@@ -1802,7 +1802,7 @@ def test_login_form_tile_and_profile_back_link(page, width):
     assert offsets[0] == offsets[1]
 
 
-def test_focus_keeps_ribbon_items_in_view(page, site):
+def test_focus_keeps_ribbon_items_in_view(dpo, page, site):
     site[1]["/programs"] = [
         {**PROGRAM, "id": f"program-{i}", "slug": f"course-{i}", "dates": {"start": f"2{i} октября 2099"}}
         for i in range(4)
@@ -1834,7 +1834,7 @@ def test_mini_app_focus_rings_are_not_clipped(page, mini_app):
     expect(agenda).to_have_css("outline-offset", "-5px")
 
 
-def test_disclosures_and_pressed_buttons_in_vision_mode(page, site):
+def test_disclosures_and_pressed_buttons_in_vision_mode(dpo, page, site):
     page.add_init_script(
         "localStorage.setItem('club_vision', JSON.stringify({on:true,scheme:'bw'}));"
         "localStorage.setItem('club_token','member-qa');"
@@ -1928,7 +1928,7 @@ def test_themis_stays_drawn_while_zooming(chromium, site):
     context.close()
 
 
-def test_themis_moves_again_after_returning_home(chromium, site):
+def test_themis_moves_again_after_returning_home(dpo, chromium, site):
     context, page, errors = moving_themis_page(chromium, site, "/", {"width": 1440, "height": 900})
     expect(page.locator(".lux-themis")).to_have_class(re.compile("is-moving"))
     page.locator(".club-header__nav a[href='/dpo']").click()
@@ -1961,7 +1961,7 @@ def test_themis_stays_still_for_reduced_motion_and_vision(chromium, site, script
     context.close()
 
 
-def test_touch_opens_peeking_ribbon_items(chromium, site):
+def test_touch_opens_peeking_ribbon_items(dpo, chromium, site):
     site[1]["/programs"] = [
         {
             **PROGRAM,
@@ -2089,7 +2089,7 @@ def test_calendar_dot_follows_forced_colors(page):
     assert dot == link
 
 
-def test_disclosure_names_and_vision_focus_rings(page, site):
+def test_disclosure_names_and_vision_focus_rings(dpo, page, site):
     site[1]["/programs"] = [{**PROGRAM, "dates": {"start": "24 октября 2099"}}]
     page.goto("/support")
     summary = page.locator(".lux-disclosure > summary").first
@@ -2117,7 +2117,7 @@ SPACING_STEP = 4
         ("/events?month=2026-11", ".site-calendar-grid a"),
     ],
 )
-def test_block_spacing_follows_grid(page, site, path, selector):
+def test_block_spacing_follows_grid(dpo, page, site, path, selector):
     site[1]["/programs"] = [{**PROGRAM, "dates": {"start": "24 октября 2099"}}]
     page.goto(path)
     for value in page.locator(selector).first.evaluate(
@@ -2280,7 +2280,7 @@ def test_page_headings_keep_words_whole_on_small_phone(page, path):
     assert page.locator("#main h1").evaluate(WORDS_UNBROKEN)
 
 
-def test_home_without_javascript_shows_graduate_prices(chromium, site):
+def test_home_without_javascript_shows_graduate_prices(dpo, chromium, site):
     context = chromium.new_context(base_url=site[0], viewport={"width": 390, "height": 844}, java_script_enabled=False)
     page = context.new_page()
     page.goto("/")
@@ -2321,7 +2321,7 @@ def test_home_photos_keep_people_in_frame(page, width, pwa):
     "teacher_photo",
     ["/assets/teachers/byteva-alisa-vladislavovna.jpg", "/assets/teachers/avakyan-elena-georgievna.jpg"],
 )
-def test_catalog_and_detail_photos_keep_shape_without_enlargement(page, site, width, teacher_photo):
+def test_catalog_and_detail_photos_keep_shape_without_enlargement(dpo, page, site, width, teacher_photo):
     records = site[1]
     cover = "/assets/programs/472681893.jpg"
     page.route(
