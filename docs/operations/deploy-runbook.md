@@ -200,6 +200,19 @@ sudo cat /var/lib/club-ops/last-backup.json
 `BACKUP_KEEP_DAYS` по умолчанию 14. `BACKUP_OFFSITE_REMOTE` включает копирование
 через rclone. Проверка архива не равна восстановлению приложения.
 
+Пока `BACKUP_OFFSITE_REMOTE` не задан, копия вне сервера делается вручную раз в неделю:
+скачайте последнюю копию и сверьте контрольные суммы на сервере и у себя.
+
+```bash
+latest=$(ssh <сервер> 'ls -1t /var/backups/club/snapshot-*.tar.gz.enc | head -1')
+scp "<сервер>:$latest" ~/club-backups/
+ssh <сервер> "sha256sum $latest"
+sha256sum ~/club-backups/"$(basename "$latest")"
+```
+
+На macOS вместо `sha256sum` используйте `shasum -a 256`. Храните четыре последние копии
+на зашифрованном диске и отдельно от `BACKUP_ENCRYPTION_KEY`.
+
 ## Изолированное восстановление
 
 Восстановление создает отдельный пустой контур и не трогает рабочую базу:
