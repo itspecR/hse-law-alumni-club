@@ -1,11 +1,12 @@
 from asgiref.sync import markcoroutinefunction
 
 from club_web.rendering import published_version
-from club_web.views import PUBLIC
+from club_web.views import PUBLIC, STATIC_FILES
 
 VERSIONED_ASSET = "public, max-age=31536000, immutable"
 FONT_ASSET = "public, max-age=2592000"
 STATIC_ASSET = "public, max-age=86400"
+SITE_IMAGES = frozenset("/" + name for name in STATIC_FILES if name.endswith((".png", ".ico")))
 SPECULATION_RULES = '"/speculation-rules.json"'
 CSP = "default-src 'self'; script-src 'self' https://telegram.org; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https:; media-src 'self' https: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-src https://rutube.ru https://www.rutube.ru; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors https://web.telegram.org https://*.telegram.org 'self'"
 
@@ -42,6 +43,6 @@ def cache_policy(request, response):
         return "no-cache"
     if static and request.path.endswith(".woff2"):
         return FONT_ASSET
-    if static:
+    if static or (request.path in SITE_IMAGES and response.status_code == 200):
         return STATIC_ASSET
     return "no-store"

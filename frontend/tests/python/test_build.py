@@ -75,6 +75,10 @@ def test_themis_poster_replacement_changes_asset_version(build_source, tmp_path)
     poster.write_bytes(b"replacement at the same URL")
     build.build_public(destination)
     assert (destination / "assets" / "version.txt").read_text() != original
+    replaced = (destination / "assets" / "version.txt").read_text()
+    (build_source / "assets" / "themis-alive-480.webp").write_bytes(b"smaller picture")
+    build.build_public(destination)
+    assert (destination / "assets" / "version.txt").read_text() != replaced
 
 
 def test_theme_layer_is_built_last(build_source, tmp_path):

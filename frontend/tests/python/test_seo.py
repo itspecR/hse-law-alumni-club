@@ -280,3 +280,30 @@ async def test_app_manifest_and_chrome_do_not_promise_hidden_sections():
     ]
     assert 'aria-label="Версия для слабовидящих"><span aria-hidden="true">Аа</span></button>' in page
     assert 'id="give-transfer-save" data-transfer-save download>' in page
+
+
+async def test_phones_get_a_smaller_themis_picture():
+    async with site() as client:
+        page = (await client.get("/")).text
+        small = await client.get("/assets/themis-alive-480.webp")
+    source = re.search(
+        r'<source media="\(max-width: 600px\)" srcset="(/assets/themis-alive-480\.webp\?v=[0-9a-f]+)"', page
+    )
+    assert source and '<img class="lux-themis__poster" src="/assets/themis-alive.webp?v=' in page
+    assert page.index("<picture>") < page.index(source[1]) < page.index('class="lux-themis__poster"')
+    assert small.status_code == 200 and small.headers["content-type"] == "image/webp"
+    assert len(small.content) < 100_000
+
+
+@pytest.mark.parametrize("path", ["/favicon.ico", "/icon-192.png", "/og-card.png"])
+async def test_site_icons_are_cached_for_a_day(path):
+    async with site() as client:
+        response = await client.get(path)
+    assert response.status_code == 200 and response.headers["cache-control"] == "public, max-age=86400"
+
+
+async def test_pages_and_manifest_are_not_cached():
+    async with site() as client:
+        page = await client.get("/give")
+        manifest = await client.get("/manifest.webmanifest")
+    assert page.headers["cache-control"] == "no-store" and manifest.headers["cache-control"] == "no-store"

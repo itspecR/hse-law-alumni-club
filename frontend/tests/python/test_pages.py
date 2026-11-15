@@ -1314,6 +1314,9 @@ def test_themis_poster_matches_animation_frame():
     assert f'width="{width}" height="{height}"' in (package / "templates/themis.html").read_text()
     assert tuple(map(int, source.groups())) == tuple(map(int, ratio.groups())) == (width, height)
     assert flags & WEBP_ALPHA_FLAG and not flags & WEBP_METADATA_FLAGS
+    small_width, small_height, small_flags = webp_canvas(PUBLIC / "assets/themis-alive-480.webp")
+    assert abs(small_width / small_height - width / height) < 0.002
+    assert small_flags & WEBP_ALPHA_FLAG and not small_flags & WEBP_METADATA_FLAGS
 
 
 async def test_event_form_picks_moscow_date_and_time():

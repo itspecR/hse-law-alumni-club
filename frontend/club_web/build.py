@@ -11,7 +11,7 @@ from club_web.rendering import VERSION_FILE
 ROOT = Path(__file__).parent
 THEME_LAYER = "lux.css"
 VERSION_LENGTH = 12
-VERSIONED_IMAGE = "themis-alive.webp"
+VERSIONED_IMAGE = "themis-alive*.webp"
 MODULE_IMPORT = re.compile(r'(from\s+"\./[\w-]+\.js)"')
 
 
@@ -35,7 +35,7 @@ def versioned_files(destination):
 
 def compute_version(destination):
     digest = hashlib.sha256()
-    for path in [*versioned_files(destination), *(destination / "assets").glob(VERSIONED_IMAGE)]:
+    for path in [*versioned_files(destination), *sorted((destination / "assets").glob(VERSIONED_IMAGE))]:
         digest.update(path.name.encode() + b"\0" + path.read_bytes())
     return digest.hexdigest()[:VERSION_LENGTH]
 
