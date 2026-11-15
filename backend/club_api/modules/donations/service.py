@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from club_api.core.errors import ApiError
+from club_api.core.models import CLUB_TIMEZONE
 from club_api.db.store import normalize
 from club_api.domain import rubles
 from club_api.modules.campaigns.store import payment_purpose
@@ -29,6 +30,19 @@ ALREADY_INVITED = "Приглашение этому дарителю уже о�
 EMAIL_ERASED = "Почта дарителя удалена по сроку хранения, отправить письмо некуда."
 ERASED_EMAIL = "-"
 LOCKED_SQL = "SELECT * FROM club_donations WHERE number=%s FOR UPDATE"
+DONOR_RETENTION_YEARS = 5
+FORGET_DONORS_SQL = "UPDATE club_donations SET email=%s,name=NULL WHERE created_at<%s AND email<>%s"
+
+
+def donor_retention_cutoff(now):
+    year = now.astimezone(CLUB_TIMEZONE).year - DONOR_RETENTION_YEARS
+    return datetime(year, 1, 1, tzinfo=CLUB_TIMEZONE).astimezone(UTC)
+
+
+async def forget_expired_donors(state):
+    await state.database.execute(
+        FORGET_DONORS_SQL, (ERASED_EMAIL, donor_retention_cutoff(datetime.now(UTC)), ERASED_EMAIL)
+    )
 
 
 def donation_outcome(donation, payment):

@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 
 from club_api.core.models import parse_date
 from club_api.modules.catalog import center
+from club_api.modules.donations.service import forget_expired_donors
 from club_api.modules.news.schedule import CHECK_MINUTE, scheduled_news
 from club_api.modules.notifications.mail import MAIL_RETENTION_DAYS
 from club_api.modules.portfolio.captcha import forget_expired
@@ -16,10 +17,7 @@ async def retention(state):
         "UPDATE orders SET contact_fio=%s,contact_phone='-',contact_email='-',address=NULL,comment=NULL WHERE created_at<DATE_SUB(now(),INTERVAL %s DAY) AND (contact_email IS NULL OR contact_email<>'-')",
         (EXPIRED_NAME, state.settings.ORDER_RETENTION_DAYS),
     )
-    await state.database.execute(
-        "UPDATE club_donations SET email='-',name=NULL WHERE created_at<DATE_SUB(now(),INTERVAL %s DAY) AND email<>'-'",
-        (state.settings.ORDER_RETENTION_DAYS,),
-    )
+    await forget_expired_donors(state)
     await state.database.execute(
         "DELETE FROM audit_log WHERE created_at<DATE_SUB(now(),INTERVAL %s DAY)",
         (state.settings.AUDIT_RETENTION_DAYS,),
