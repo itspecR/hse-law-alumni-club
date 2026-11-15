@@ -251,13 +251,10 @@ def section_walk(page, office):
                 "/forgot",
                 "/reset",
                 "/confirm",
-                "/privacy",
-                "/confidential",
+                "/documents",
                 "/requisites",
                 "/give",
                 "/give/thanks",
-                "/give/offer",
-                "/give/consent",
                 "/support",
                 "/support/consent",
                 "/cart",
@@ -303,6 +300,9 @@ def section_walk(page, office):
     for closed in ("/tg", "/dpo"):
         page.goto(closed)
         assert page.url.endswith("/") and not page.url.endswith(closed), page.url
+    for old_address in ("/privacy", "/give/offer"):
+        document = page.request.get(old_address)
+        assert document.status == 200 and document.headers["content-type"] == "application/pdf", old_address
 
 
 def order_form(office, order_id):

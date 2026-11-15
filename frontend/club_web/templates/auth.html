@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
-{% from 'macros.html' import field,consent,code_field,mailing_field %}
+{% from 'macros.html' import field,code_field %}
+{% from 'macros.html' import consent,mailing_field with context %}
 {% from 'macros.html' import name_field with context %}
 {% block content %}
 <main id="main" class="club-auth {{ 'club-auth--split' if path=='/join' else '' }}">

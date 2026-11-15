@@ -730,31 +730,36 @@ def test_signed_audio_link_is_renewed_once_without_autoplay(page, site):
 @pytest.mark.parametrize("width", [1440, 390])
 def test_legal_pages_and_separate_form_consent(page, width):
     page.set_viewport_size({"width": width, "height": 900})
-    for path in ("/terms", "/privacy", "/consent", "/confidential", "/requisites"):
+    for path in ("/terms", "/consent", "/documents", "/requisites"):
         assert page.goto(path).status == 200
         expect(page.locator("main h1")).to_be_visible()
-        expect(page.locator("main")).to_contain_text("6 ноября 2026 года")
+        expect(page.locator("main")).to_contain_text("15 ноября 2026 года")
         expect(page.get_by_role("navigation", name="Правовые документы")).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-    assert page.goto("/mailing-consent").status == 200
-    expect(page.locator("main")).to_contain_text("5 ноября 2026 года")
-    expect(page.get_by_role("navigation", name="Правовые документы")).to_be_visible()
-    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-    page.goto("/privacy#cookies")
-    expect(page.locator("h2#cookies")).to_be_visible()
+    expect(page.locator(".club-footer").get_by_role("link", name="Документы", exact=True)).to_have_attribute(
+        "href", "/documents"
+    )
     page.get_by_role("button", name="Cookies", exact=True).click()
-    expect(page.get_by_role("dialog", name="Согласие на использование cookies")).to_be_visible()
+    banner = page.get_by_role("dialog", name="Согласие на использование cookies")
+    expect(banner).to_be_visible()
+    expect(banner.get_by_role("link", name="Подробнее", exact=True)).to_have_attribute("href", "/docs/politika-pdn.pdf")
     page.get_by_role("button", name="Только необходимые", exact=True).click()
-    expect(page.get_by_role("dialog", name="Согласие на использование cookies")).not_to_be_visible()
-    expect(page.locator("h2#cookies")).to_be_visible()
+    expect(banner).not_to_be_visible()
+    page.goto("/documents")
+    policy = page.get_by_role("link", name="Политика в отношении обработки персональных данных", exact=True)
+    expect(policy).to_have_attribute("href", "/docs/politika-pdn.pdf")
+    opened = page.request.get(policy.get_attribute("href"))
+    assert opened.status == 200 and opened.headers["content-type"] == "application/pdf"
     page.goto("/join")
     checkbox = page.locator("input[name=consent_pdn]")
     expect(checkbox).not_to_be_checked()
-    expect(page.locator(".site-consent a").first).to_have_attribute("href", "/consent#registration")
+    consent = page.locator(".site-consent", has=checkbox).get_by_role(
+        "link", name="согласие на обработку персональных данных", exact=True
+    )
+    expect(consent).to_have_attribute("href", "/docs/soglasie-registratsiya.pdf")
+    expect(consent).to_have_attribute("target", "_blank")
     expect(page.locator(".site-consent", has=checkbox)).not_to_contain_text("соглашение")
     expect(page.locator("input[name=consent_mailing]")).not_to_be_checked()
-    page.locator(".site-consent a").first.click()
-    expect(page.locator("#registration")).to_be_in_viewport()
     page.goto("/merch/" + PRODUCT["slug"])
     page.get_by_role("button", name="В корзину", exact=True).click()
     page.goto("/cart")
@@ -2273,7 +2278,7 @@ def test_password_recovery_keeps_email_and_subscription_return(page, site, width
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
-@pytest.mark.parametrize("path", ["/confidential", "/terms"])
+@pytest.mark.parametrize("path", ["/documents", "/terms"])
 def test_page_headings_keep_words_whole_on_small_phone(page, path):
     page.set_viewport_size({"width": 320, "height": 700})
     page.goto(path)

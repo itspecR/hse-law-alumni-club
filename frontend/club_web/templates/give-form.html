@@ -38,8 +38,8 @@
 {{ name_field('name','Имя, необязательно',required=false) }}
 {{ field('email','Почта',type='email') }}
 <p class="give-hint">На&nbsp;почту придет подтверждение с&nbsp;суммой и&nbsp;номером пожертвования.</p>
-<label class="site-consent"><input type="checkbox" name="consent_offer" required><span>Принимаю <a href="/give/offer">условия оферты о&nbsp;пожертвовании</a></span></label>
-<label class="site-consent"><input type="checkbox" name="consent_pdn" required><span>Даю <a href="/give/consent">согласие на&nbsp;обработку персональных данных</a>. <a href="/privacy">Политика обработки персональных данных</a></span></label>
+<label class="site-consent"><input type="checkbox" name="consent_offer" required><span>Принимаю <a href="{{ legal.documents.donation_offer.file }}" target="_blank" rel="noopener">условия оферты о&nbsp;пожертвовании</a></span></label>
+<label class="site-consent"><input type="checkbox" name="consent_pdn" required><span>Даю <a href="{{ legal.documents.donor_consent.file }}" target="_blank" rel="noopener">согласие на&nbsp;обработку персональных данных</a>. <a href="{{ legal.documents.policy.file }}" target="_blank" rel="noopener">Политика обработки персональных данных</a></span></label>
 {% if give_campaign %}<label class="site-consent"><input type="checkbox" name="consent_gift" required><span>Понимаю, что пожертвование безвозмездно и&nbsp;не&nbsp;является оплатой участия в&nbsp;мероприятиях</span></label>
 <input type="hidden" name="campaign" value="{{ give_campaign.slug }}">
 {% endif %}<input type="text" name="website" class="site-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true">
