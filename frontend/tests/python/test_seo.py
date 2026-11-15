@@ -188,3 +188,22 @@ def test_description_is_cut_at_a_word():
     text = brief("слово " * 60)
     assert len(text) <= DESCRIPTION_LIMIT and text.endswith("слово") and "  " not in text
     assert brief("Короткий текст.", "", None) == "Короткий текст."
+
+
+async def test_page_fragments_are_kept_out_of_search():
+    async with site() as client:
+        fragment = await client.get("/views/news")
+        page = await client.get("/news")
+    assert fragment.status_code == 200 and fragment.headers["x-robots-tag"] == "noindex"
+    assert "x-robots-tag" not in page.headers
+
+
+async def test_llms_file_describes_the_club_and_its_sections():
+    async with site() as client:
+        response = await client.get("/llms.txt")
+    assert response.status_code == 200 and response.headers["content-type"].startswith("text/plain")
+    text = response.text
+    assert text.startswith("# " + SITE_NAME + "\n") and PAGES["/"][1] in text
+    for path in ("/join", "/portfolio", "/events", "/news", "/podcasts", "/merch", "/give", "/support", "/documents"):
+        assert "](https://pravohse.ru" + path + ")" in text
+    assert "ДПО" not in text

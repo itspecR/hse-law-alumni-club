@@ -881,6 +881,12 @@ Title, description, правила индексации, `canonical` и теги
 `PodcastEpisode`, `Product`, `FAQPage` на странице поддержки и `BreadcrumbList` у записей.
 Сведения об организации берутся из `data/legal-data.json`.
 
+Карту сайта и robots.txt отдает `backend/club_api/modules/content/sitemap.py`. В карту
+попадают страницы с постоянным текстом, разделы, в которых есть записи, и сами записи.
+Новости факультета в карту не попадают: их `canonical` ведет на оригинал. `lastmod` стоит
+только там, где дата известна. Ответы `/views/` отдают `X-Robots-Tag: noindex`. Файл
+`frontend/public/llms.txt` описывает клуб и разделы для ИИ-ассистентов.
+
 ## Документы
 
 Документы клуба открываются файлами PDF. Страница `/documents` перечисляет их

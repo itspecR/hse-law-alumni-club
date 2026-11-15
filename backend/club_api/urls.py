@@ -12,6 +12,7 @@ import club_api.modules.checkout.orders as checkout_orders
 import club_api.modules.checkout.payments as checkout_payments
 import club_api.modules.content.admin as content_admin
 import club_api.modules.content.routes as content_routes
+import club_api.modules.content.sitemap as content_sitemap
 import club_api.modules.donations.admin as donations_admin
 import club_api.modules.donations.routes as donations_routes
 import club_api.modules.events.routes as events_routes
@@ -67,8 +68,8 @@ routes = (
         path("me/ledger", endpoint({"GET": gamification_routes.ledger})),
         path("admin/dpo-sync", endpoint({"GET": catalog_sync.status, "POST": catalog_sync.sync})),
         path("admin/pages/<str:slug>", endpoint({"GET": content_admin.admin_page, "PATCH": content_admin.patch_page})),
-        path("robots.txt", endpoint({"GET": content_routes.robots})),
-        path("sitemap.xml", endpoint({"GET": content_routes.sitemap})),
+        path("robots.txt", endpoint({"GET": content_sitemap.robots})),
+        path("sitemap.xml", endpoint({"GET": content_sitemap.sitemap})),
         path("news", endpoint({"GET": content_routes.news})),
         path("news/<str:slug>", endpoint({"GET": content_routes.news_detail})),
         path("programs", endpoint({"GET": content_routes.programs})),
