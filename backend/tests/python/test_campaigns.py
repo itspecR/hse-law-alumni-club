@@ -125,7 +125,7 @@ async def test_page_shows_texts_and_published_speakers_in_saved_order(database_a
     async with client_for(app) as client:
         card = (await client.get("/campaigns/intensive")).json()
     assert [row["fio"] for row in card["speakers"]] == ["Второй", "Первый"]
-    assert set(card["speakers"][0]) == {"id", "fio", "photo", "bio"}
+    assert set(card["speakers"][0]) == {"id", "fio", "photo", "bio", "role"}
     assert not HIDDEN & set(card)
     for name in ("subtitle", "invite_threshold", "amounts", "modules", "faq", "note"):
         assert card[name] == texts[name]
