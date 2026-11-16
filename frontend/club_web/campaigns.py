@@ -9,7 +9,7 @@ RIPPLE_SWING = 0.45
 RIPPLE_FAST = 21
 RIPPLE_SLOW = 7.5
 RIPPLE_SHIFT = 0.6
-FACT_LABELS = (("date_text", "Когда"), ("time_text", "Время"), ("place_text", "Где"), ("duration_text", "Длительность"))
+FACT_LABELS = (("date_text", "Когда"), ("time_text", "Время"), ("place_text", "Где"), ("duration_text", "Формат"))
 
 
 def bar_height(index):

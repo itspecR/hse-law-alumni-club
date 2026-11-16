@@ -1866,7 +1866,7 @@ async def test_campaign_page_shows_story_meter_and_campaign_form(browser_client)
     assert re.findall(r"<dt>(.*?)</dt><dd>(.*?)</dd>", facts) == [
         ("Когда", "Дата уточняется"),
         ("Время", "10:00-17:00"),
-        ("Длительность", "6 часов"),
+        ("Формат", "6 часов"),
     ]
     assert page.count("<b>412 000 ₽</b>") == 2 and page.count("из 1 500 000 ₽") == 2
     assert page.count('aria-valuenow="27"') == 2 and page.count('style="--camp-fill:27%"') == 2
@@ -2178,3 +2178,10 @@ async def test_home_takes_the_first_paragraph_saved_in_the_panel():
     page = (await rendered("/", {"/pages/home": (200, {"blocks": {}}), "/pages/about": (200, saved)})).text
     block = page[page.index('id="about-club"') :].split("</section>")[0]
     assert "<p>Свой первый абзац.</p>" in block and "Второй абзац" not in block and ABOUT_INTRO not in block
+
+
+async def test_campaign_speakers_follow_the_description_before_the_program(browser_client):
+    page = (await browser_client.get("/give/intensive")).text
+    about, speakers = page.index('id="camp-about-title"'), page.index('id="camp-speakers-title"')
+    assert about < speakers < page.index('id="camp-day-title"')
+    assert "Вымышленный Спикер" in page[speakers : page.index('id="camp-day-title"')]

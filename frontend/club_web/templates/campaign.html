@@ -47,6 +47,17 @@
 </section>
 {% endif %}
 
+{% if campaign.speakers %}
+<section class="camp-block" aria-labelledby="camp-speakers-title">
+<h2 class="give-h2 lux-reveal" id="camp-speakers-title">Спикеры</h2>
+<ul class="camp-speakers">
+{% for speaker in campaign.speakers %}
+<li class="lux-reveal" style="--d:{{ loop.index0 }}">{% if speaker.photo|media %}<img class="camp-speakers__photo" src="{{ speaker.photo|media }}" alt="" width="144" height="144" loading="lazy">{% else %}<span class="camp-speakers__photo" aria-hidden="true">{{ icon('members',32) }}</span>{% endif %}<div><h3>{{ speaker.fio }}</h3>{% if speaker.bio %}<p>{{ speaker.bio }}</p>{% endif %}</div></li>
+{% endfor %}
+</ul>
+</section>
+{% endif %}
+
 {% if campaign.modules or campaign.feature_title %}
 <section class="camp-block" aria-labelledby="camp-day-title">
 <h2 class="give-h2 lux-reveal" id="camp-day-title">{{ campaign.program_title or 'Программа' }}</h2>
@@ -87,17 +98,6 @@
 <ol class="camp-results">
 {% for result in campaign.results %}<li class="lux-reveal" style="--d:{{ loop.index0 % 2 }}">{{ result }}</li>{% endfor %}
 </ol>
-</section>
-{% endif %}
-
-{% if campaign.speakers %}
-<section class="camp-block" aria-labelledby="camp-speakers-title">
-<h2 class="give-h2 lux-reveal" id="camp-speakers-title">Спикеры</h2>
-<ul class="camp-speakers">
-{% for speaker in campaign.speakers %}
-<li class="lux-reveal" style="--d:{{ loop.index0 }}">{% if speaker.photo|media %}<img class="camp-speakers__photo" src="{{ speaker.photo|media }}" alt="" width="144" height="144" loading="lazy">{% else %}<span class="camp-speakers__photo" aria-hidden="true">{{ icon('members',32) }}</span>{% endif %}<div><h3>{{ speaker.fio }}</h3>{% if speaker.bio %}<p>{{ speaker.bio }}</p>{% endif %}</div></li>
-{% endfor %}
-</ul>
 </section>
 {% endif %}
 
