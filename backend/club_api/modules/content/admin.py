@@ -6,7 +6,7 @@ from django.urls import path
 from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
-from club_api.core.models import club_moment, guid, partial, unique_slug, web_url
+from club_api.core.models import club_moment, guid, partial, web_url, with_slug
 from club_api.core.schemas import Body
 from club_api.core.views import api_view, endpoint, parse_body
 from club_api.modules.auth.service import require_admin
@@ -73,6 +73,8 @@ class ProductBody(Body):
 
 async def write_content(state, table, data, *, id=None, connection=None):
     data = dict(data)
+    if table in SLUG_TABLES:
+        data = await with_slug(state.store, table, data, id, connection)
     if table == "news" and data.get("published_at") is None:
         data.pop("published_at", None)
     if table == "programs" and "start" in data:
@@ -88,8 +90,6 @@ async def write_content(state, table, data, *, id=None, connection=None):
                 await product_reservations(connection, id)
                 return await state.store.update(table, data, id=id, connection=connection)
         return await state.store.update(table, data, id=id, connection=connection)
-    if table in SLUG_TABLES:
-        data["slug"] = await unique_slug(state.store, table, data["title"], connection)
     if table == "news":
         data.setdefault("published_at", datetime.now(UTC))
     if table == "podcasts" and data.get("sort") is None:

@@ -9,6 +9,7 @@ from pydantic import Field, field_validator
 from club_api.core.errors import ApiError
 from club_api.core.models import (
     CLUB_TIMEZONE,
+    ReadableAddress,
     club_moment,
     count,
     group_count,
@@ -17,8 +18,8 @@ from club_api.core.models import (
     partial,
     query_page,
     record_key,
-    unique_slug,
     web_url,
+    with_slug,
 )
 from club_api.core.schemas import Body
 from club_api.core.views import api_view, defer, parse_body
@@ -49,6 +50,7 @@ EVENT_FIELDS = (
 
 class EventBody(Body):
     title: str = Field(min_length=3)
+    slug: ReadableAddress = None
     description: str | None = None
     starts_at: str = Field(min_length=4)
     location: str | None = None
@@ -330,7 +332,7 @@ async def create_event(request: HttpRequest):
     admin = await require_admin(request)
     body = parse_body(request, EventBody)
     store = request.services.store
-    row = await store.create("events", {**body.model_dump(), "slug": await unique_slug(store, "events", body.title)})
+    row = await store.create("events", await with_slug(store, "events", body.model_dump()))
     await audit(
         request,
         "event.create",
@@ -347,8 +349,9 @@ async def create_event(request: HttpRequest):
 async def patch_event(request: HttpRequest, id: str):
     admin = await require_admin(request)
     body = parse_body(request, EventPatch)
-    data = body.model_dump(exclude_unset=True)
-    await request.services.store.update("events", data, id=guid(id))
+    store = request.services.store
+    data = await with_slug(store, "events", body.model_dump(exclude_unset=True), guid(id))
+    await store.update("events", data, id=guid(id))
     await audit(request, "event.patch", actor="admin:" + admin["userId"], subject="event:" + id, detail=data)
     return {"ok": True}
 

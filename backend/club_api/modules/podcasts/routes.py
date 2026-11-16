@@ -12,7 +12,7 @@ from django.http import HttpRequest, HttpResponseRedirect
 from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
-from club_api.core.models import guid, parse_date, sub_active
+from club_api.core.models import ReadableAddress, guid, parse_date, sub_active
 from club_api.core.schemas import Body
 from club_api.core.views import api_view
 from club_api.db.queries import acquire_lock
@@ -246,6 +246,7 @@ async def subscribe(request: HttpRequest):
 
 class PodcastBody(Body):
     title: str = Field(min_length=3)
+    slug: ReadableAddress = None
     description: str | None = None
     cover: str | None = Field(default=None, max_length=500)
     audio_url: str | None = Field(default=None, max_length=500)
@@ -275,7 +276,19 @@ urlpatterns = content_crud(
     "podcasts",
     PodcastBody,
     sort=("sort",),
-    fields=("id", "title", "description", "cover", "audio_url", "video_url", "duration", "is_free", "sort", "status"),
+    fields=(
+        "id",
+        "slug",
+        "title",
+        "description",
+        "cover",
+        "audio_url",
+        "video_url",
+        "duration",
+        "is_free",
+        "sort",
+        "status",
+    ),
     subject="podcast",
     notify="Новый выпуск подкаста",
 )

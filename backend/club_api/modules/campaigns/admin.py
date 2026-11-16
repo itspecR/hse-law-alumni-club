@@ -3,6 +3,7 @@ from typing import Annotated, Literal
 from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
+from club_api.core.models import SLUG_PATTERN
 from club_api.core.requisites import FORBIDDEN, normalized_text
 from club_api.core.schemas import SAFE_INTEGER_MAX, Body
 from club_api.modules.campaigns.service import CAMPAIGN_TRAINERS, donated, progress
@@ -20,7 +21,6 @@ from club_api.modules.portfolio.admin import (
 )
 
 RESERVED_SLUGS = frozenset(("offer", "consent", "thanks"))
-SLUG_PATTERN = "^[a-z0-9]+(?:-[a-z0-9]+)*$"
 SLUG_MIN, SLUG_MAX = 2, 64
 LINE_MAX = 255
 LEDE_MAX = 600
