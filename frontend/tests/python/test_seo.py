@@ -359,3 +359,24 @@ async def test_record_without_readable_address_keeps_its_old_one():
     async with site() as client:
         page = await client.get("/events/event-1")
     assert page.status_code == 200 and head(page.text)["canonical"] == SITE + "/events/event-1"
+
+
+GIVE_LEDE = (
+    "Пожертвование клубу&nbsp;- способ поблагодарить факультет и&nbsp;поучаствовать в&nbsp;его развитии. "
+    "Средства идут на&nbsp;проекты, которые помогают факультету оставаться ведущим центром юридического образования."
+)
+
+
+async def test_giving_is_told_as_gratitude_and_growth():
+    async with site(**{"/donations/config": {"enabled": True, "card": True, "transfer": False}}) as client:
+        give = (await client.get("/give")).text
+        home = (await client.get("/")).text
+    assert GIVE_LEDE in give and GIVE_LEDE in home
+    assert "<p>Научные исследования и&nbsp;развитие учебного процесса факультета.</p>" in give
+    assert "<p>Встречи выпускников, конференции и&nbsp;семинары.</p>" in give
+    for old in ("стажировки", "формы обучения", "идут на&nbsp;развитие факультета"):
+        assert old not in give and old not in home
+    assert head(give)["description"] == (
+        "Способ поблагодарить факультет права НИУ ВШЭ и поучаствовать в его развитии. "
+        "Пожертвования помогают ему оставаться ведущим центром юридического образования."
+    )
