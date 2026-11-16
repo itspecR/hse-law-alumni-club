@@ -10,6 +10,8 @@ RIPPLE_FAST = 21
 RIPPLE_SLOW = 7.5
 RIPPLE_SHIFT = 0.6
 FACT_LABELS = (("date_text", "Когда"), ("time_text", "Время"), ("place_text", "Где"), ("duration_text", "Формат"))
+PERSON_ROLES = (("speaker", "Спикер", "Спикеры"), ("trainer", "Тренер", "Тренеры"), ("host", "Ведущий", "Ведущие"))
+DEFAULT_ROLE = PERSON_ROLES[0][0]
 
 
 def bar_height(index):
@@ -26,6 +28,14 @@ WAVE = tuple(bar_height(index) for index in range(WAVE_BARS))
 
 def campaign_facts(campaign):
     return [(label, campaign[key]) for key, label in FACT_LABELS if campaign.get(key)]
+
+
+def people_groups(people):
+    groups = [
+        (role, title, [person for person in people if (person.get("role") or DEFAULT_ROLE) == role])
+        for role, _, title in PERSON_ROLES
+    ]
+    return [group for group in groups if group[2]]
 
 
 def form_amounts(campaign, defaults, default_chosen):

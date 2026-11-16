@@ -809,6 +809,7 @@ function choosePointsReason(select) {
 }
 
 document.addEventListener("change", event => {
+  if (event.target.matches("[data-person] input[type='checkbox']")) event.target.closest("[data-person]").querySelector("select").disabled = !event.target.checked;
   if (event.target.matches("[data-points-reason]")) choosePointsReason(event.target);
   if (event.target.matches("[data-audio-rate]")) event.target.closest(".site-player").querySelector("audio").playbackRate = Number(event.target.value);
   if (event.target.matches("[data-unread-filter],[data-reading-kind]")) renderReading();

@@ -17,6 +17,21 @@
 </select></label>
 {% if not office_options.get(source) %}<p class="office-meta">{{ office_choices[source][1] }} Добавьте их в разделе <a href="/admin/{{ source }}">«{{ dict(office_nav)[source] }}»</a>.</p>{% endif %}
 {% endmacro %}
+{% macro people(name,label,selected,roles,source) %}
+<fieldset class="office-choices office-people"><legend>{{ label }}</legend>
+{% for option in office_options.get(source) or [] %}
+{% set chosen=option.id in selected %}
+<div class="office-person" data-person>
+<label><input type="checkbox" name="{{ name }}" value="{{ option.id }}" data-list {% if chosen %}checked{% endif %}>{{ option.label }}{% if option.status!='published' %} · {{ labels.get(option.status,option.status) }}{% endif %}</label>
+<select name="trainer_roles.{{ option.id }}" aria-label="Роль: {{ option.label }}" {% if not chosen %}disabled{% endif %}>
+{% for role,role_label in office_roles %}<option value="{{ role }}" {% if roles.get(option.id,office_roles[0][0])==role %}selected{% endif %}>{{ role_label }}</option>{% endfor %}
+</select>
+</div>
+{% else %}
+<p class="office-meta">{{ office_choices[source][1] }} Добавьте их в разделе <a href="/admin/{{ source }}">«{{ dict(office_nav)[source] }}»</a>.</p>
+{% endfor %}
+</fieldset>
+{% endmacro %}
 {% macro editor_row(shape,row={},open=false) %}
 <div class="office-module{{ ' is-open' if open }}" data-module>
 <div class="office-module__head">
@@ -64,6 +79,8 @@
 {% set value=(office_defaults.get(section) or {}).get(name) if value is none and not record.id else value %}
 {% if kind in office_choices %}
 {{ choices(name,label,value or [],kind) }}
+{% elif kind in office_people %}
+{{ people(name,label,value or [],record.get('trainer_roles') or {},office_people[kind]) }}
 {% elif kind in office_single %}
 {{ single(name,label,value,office_single[kind]) }}
 {% elif kind in office_row_editors %}

@@ -130,6 +130,8 @@
 .site-office .office-choices label { display:flex; align-items:center; gap:12px; min-height:44px; }
 .site-office .office-choices input { flex:none; margin:0; width:20px; height:20px; }
 .site-office .office-choices p { margin:8px 0; }
+.site-office .office-person { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:4px 16px; }
+.site-office .office-person select { width:auto; min-height:44px; }
 .site-office .office-modules { grid-column:1/-1; margin:16px 0; padding:8px 16px 16px; border-radius:var(--r-sm); }
 .site-office .office-modules legend { padding:0 4px; font-size:14px; font-family:inherit; }
 .site-office .office-module { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 16px; padding:12px 0; border-bottom:1px solid var(--c-line); }

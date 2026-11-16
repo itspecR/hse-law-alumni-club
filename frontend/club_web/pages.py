@@ -7,7 +7,7 @@ from urllib.parse import quote, urlencode
 
 from club_web import features
 from club_web.calendar import google_calendar, instant, month_view
-from club_web.campaigns import WAVE, campaign_facts, form_amounts
+from club_web.campaigns import WAVE, campaign_facts, form_amounts, people_groups
 from club_web.catalog import UPCOMING_LIMIT, club_programs_preview, prepare_catalog
 from club_web.changes import parse_changes, select_changes
 from club_web.client import ApiFailure
@@ -21,7 +21,9 @@ from club_web.office import (
     GROUPS,
     LABELS,
     METRICS,
+    PEOPLE_CHOICES,
     READ_ONLY_SECTIONS,
+    ROLE_OPTIONS,
     ROW_EDITORS,
     SECTION_FILTERS,
     SECTION_LABELS,
@@ -113,7 +115,7 @@ OFFICE_NAV = [
     ("subs", "Подписки"),
     ("portfolio", "Портфель программ"),
     ("cohorts", "Потоки"),
-    ("trainers", "Тренеры"),
+    ("trainers", "Спикеры и тренеры"),
     ("programs", "ДПО"),
     ("products", "Мерч"),
     ("news", "Новости"),
@@ -672,6 +674,7 @@ async def campaign_page(page):
         give_chosen=chosen,
         campaign_wave=WAVE,
         campaign_facts=campaign_facts(campaign),
+        campaign_people=people_groups(campaign.get("speakers") or []),
     )
 
 
@@ -810,6 +813,8 @@ async def context(api, path, params, authorized=False):
         "office_fields": FIELDS,
         "office_choices": CHOICES,
         "office_single": SINGLE_CHOICES,
+        "office_people": PEOPLE_CHOICES,
+        "office_roles": ROLE_OPTIONS,
         "office_cohorts": {},
         "office_defaults": CREATE_DEFAULTS,
         "office_read_only": READ_ONLY_SECTIONS,

@@ -4,6 +4,8 @@ from club_api.modules.portfolio.links import published_trainers
 from club_api.modules.portfolio.relations import LinkTable
 
 CAMPAIGN_TRAINERS = LinkTable("club_campaign_trainers", "campaign_id", "trainer_id", ordered=True)
+PERSON_ROLES = ("speaker", "trainer", "host")
+DEFAULT_ROLE = PERSON_ROLES[0]
 DONATED_SQL = "SELECT COALESCE(SUM(amount),0) AS donated FROM club_donations WHERE campaign_id=%s AND status=%s"
 FULL_PERCENT = 100
 INTERNAL_FIELDS = ("id", "extra_amount")
@@ -63,9 +65,25 @@ async def current_campaign(state):
     return await shown(state, campaign) if campaign else None
 
 
+async def person_roles(state, campaign_ids, connection=None):
+    rows = await state.store.read(
+        CAMPAIGN_TRAINERS.table,
+        filters={CAMPAIGN_TRAINERS.owner: {"_in": campaign_ids}},
+        fields=(CAMPAIGN_TRAINERS.owner, CAMPAIGN_TRAINERS.target, "role"),
+        limit=-1,
+        connection=connection,
+    )
+    roles = {}
+    for row in rows:
+        roles.setdefault(row[CAMPAIGN_TRAINERS.owner], {})[row[CAMPAIGN_TRAINERS.target]] = row["role"]
+    return roles
+
+
 async def published_campaign(state, slug):
     campaign = await published_by_slug(state, slug, DETAIL_FIELDS)
     if not campaign:
         return None
-    speakers = await published_trainers(state, campaign["id"], CAMPAIGN_TRAINERS)
+    people = await published_trainers(state, campaign["id"], CAMPAIGN_TRAINERS)
+    roles = (await person_roles(state, [campaign["id"]])).get(campaign["id"], {})
+    speakers = [{**person, "role": roles.get(person["id"], DEFAULT_ROLE)} for person in people]
     return {**await shown(state, campaign), "speakers": speakers}

@@ -6,7 +6,13 @@ from club_api.core.errors import ApiError
 from club_api.core.models import SLUG_PATTERN
 from club_api.core.requisites import FORBIDDEN, normalized_text
 from club_api.core.schemas import SAFE_INTEGER_MAX, Body
-from club_api.modules.campaigns.service import CAMPAIGN_TRAINERS, donated, progress
+from club_api.modules.campaigns.service import (
+    CAMPAIGN_TRAINERS,
+    PERSON_ROLES,
+    donated,
+    person_roles,
+    progress,
+)
 from club_api.modules.campaigns.store import CAMPAIGN_TABLE
 from club_api.modules.content.admin import content_crud
 from club_api.modules.donations.routes import DONATION_MAX_RUB, DONATION_MIN_RUB, KOPECKS
@@ -79,6 +85,7 @@ CAMPAIGN_FIELDS = (
 Line = Annotated[str | None, Field(default=None, max_length=LINE_MAX)]
 Text = Annotated[str | None, Field(default=None, max_length=TEXT_MAX)]
 Money = Annotated[int, Field(default=0, ge=0, le=SAFE_INTEGER_MAX)]
+PersonRole = Literal[*PERSON_ROLES]
 
 
 class HighlightBody(Body):
@@ -136,6 +143,7 @@ class CampaignBody(Body):
     invite_body: str | None = Field(default=None, max_length=LETTER_MAX)
     cover: Line
     trainer_ids: list[str] = Field(default_factory=list, max_length=MAX_PROGRAM_TRAINERS)
+    trainer_roles: dict[str, PersonRole] = Field(default_factory=dict, max_length=MAX_PROGRAM_TRAINERS)
     status: Literal["draft", "published", "archived"] = "draft"
 
     @field_validator("amounts")
@@ -178,14 +186,28 @@ async def keep_donations(connection, id):
 
 
 class CampaignLinks(TrainerLinks):
-    async def prepare(self, state, data, trainer_ids, id, connection):
-        data = await super().prepare(state, data, trainer_ids, id, connection)
+    def split(self, data):
+        data, trainer_ids = super().split(data)
+        roles = data.pop("trainer_roles", None) or {}
+        return data, None if trainer_ids is None else (trainer_ids, roles)
+
+    async def prepare(self, state, data, people, id, connection):
+        data = await super().prepare(state, data, people[0] if people else None, id, connection)
         await require_free_slug(state, data.get("slug"), id, connection)
         return data
 
+    async def save(self, state, owner_id, people, connection):
+        trainer_ids, roles = people
+        extras = {trainer_id: {"role": role} for trainer_id, role in roles.items()}
+        await self.links.replace(state, owner_id, trainer_ids, connection, extras)
+
     async def attach(self, state, rows):
         rows = await super().attach(state, rows)
-        return [{**row, **progress(row, await donated(state, row["id"]))} for row in rows]
+        roles = await person_roles(state, [row["id"] for row in rows])
+        return [
+            {**row, "trainer_roles": roles.get(row["id"], {}), **progress(row, await donated(state, row["id"]))}
+            for row in rows
+        ]
 
 
 urlpatterns = content_crud(

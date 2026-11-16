@@ -2508,7 +2508,7 @@ def test_office_portfolio_without_trainers_points_to_directory(page, site):
     page.get_by_role("link", name="Новая программа").click()
     expect(page.get_by_role("heading", name="Новая программа", level=1)).to_be_visible()
     form = page.locator("[data-program-editor] form")
-    expect(form.get_by_role("link", name="«Тренеры»")).to_have_attribute("href", "/admin/trainers")
+    expect(form.get_by_role("link", name="«Спикеры и тренеры»")).to_have_attribute("href", "/admin/trainers")
     form.get_by_label("Название", exact=True).fill("Новая программа клуба")
     form.get_by_label("Продолжительность", exact=True).fill("2 дня")
     form.get_by_role("button", name="Создать программу", exact=True).click()
@@ -3412,6 +3412,23 @@ OFFICE_CAMPAIGN = {
     "raised": 0,
     "percent": 0,
 }
+
+
+def test_office_campaign_editor_saves_a_role_for_each_person(page, site):
+    site[1]["/admin/trainers"] = TRAINERS
+    site[1]["/admin/campaigns"] = [{**OFFICE_CAMPAIGN, "trainer_ids": [], "trainer_roles": {}}]
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/campaigns?id=camp-1")
+    people = page.locator("[data-program-editor]").get_by_role("group", name="Спикеры, тренеры и ведущие")
+    role = people.get_by_label("Роль: Анна Вымышленная")
+    expect(role).to_be_disabled()
+    people.get_by_label("Анна Вымышленная", exact=True).check()
+    expect(role).to_be_enabled()
+    role.select_option("host")
+    page.locator("[data-program-editor]").get_by_role("button", name="Сохранить", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
+    body = site[2][-1]["body"]
+    assert (body["trainer_ids"], body["trainer_roles"]) == (["trainer-a"], {"trainer-a": "host"})
 
 
 def test_office_campaign_editor_saves_amounts_and_lists(page, site):

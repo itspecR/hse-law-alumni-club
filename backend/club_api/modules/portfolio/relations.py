@@ -26,11 +26,11 @@ class LinkTable:
             result.setdefault(row[self.owner], []).append(row[self.target])
         return result
 
-    async def replace(self, state, owner_id, target_ids, connection):
+    async def replace(self, state, owner_id, target_ids, connection, extras=None):
         await state.store.delete(self.table, filters={self.owner: {"_eq": owner_id}}, connection=connection)
         for sort, target_id in enumerate(target_ids):
             row = {self.owner: owner_id, self.target: target_id, **({"sort": sort} if self.ordered else {})}
-            await state.store.create(self.table, row, connection=connection)
+            await state.store.create(self.table, {**row, **(extras or {}).get(target_id, {})}, connection=connection)
 
 
 async def require_existing(state, table, ids, filters, message, connection):

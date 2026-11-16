@@ -102,7 +102,7 @@ DATA_COLUMNS = {
         "created_at",
         "updated_at",
     ),
-    "club_campaign_trainers": ("id", "campaign_id", "trainer_id", "sort"),
+    "club_campaign_trainers": ("id", "campaign_id", "trainer_id", "sort", "role"),
     "directus_roles": ("id", "name"),
     "directus_users": ("id", "email", "first_name", "last_name", "status", "role"),
     "event_rsvps": ("id", "event_id", "alumni_id", "attended", "created_at"),

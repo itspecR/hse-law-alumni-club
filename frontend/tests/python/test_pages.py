@@ -2182,6 +2182,47 @@ async def test_home_takes_the_first_paragraph_saved_in_the_panel():
 
 async def test_campaign_speakers_follow_the_description_before_the_program(browser_client):
     page = (await browser_client.get("/give/intensive")).text
-    about, speakers = page.index('id="camp-about-title"'), page.index('id="camp-speakers-title"')
+    about, speakers = page.index('id="camp-about-title"'), page.index('id="camp-speaker-title"')
     assert about < speakers < page.index('id="camp-day-title"')
     assert "Вымышленный Спикер" in page[speakers : page.index('id="camp-day-title"')]
+
+
+TEAM = [
+    {"id": "t-1", "fio": "Анна Ведущая", "status": "published"},
+    {"id": "t-2", "fio": "Борис Тренер", "status": "published"},
+    {"id": "t-3", "fio": "Вера Свободная", "status": "draft"},
+]
+
+
+async def test_campaign_editor_assigns_a_role_to_each_chosen_person():
+    campaign = {**CAMPAIGN, "trainer_ids": ["t-1", "t-2"], "trainer_roles": {"t-1": "host", "t-2": "trainer"}}
+    routes = {
+        "/auth/admin-session": (200, {"role": "editor"}),
+        "/admin/campaigns": (200, [campaign]),
+        "/admin/trainers": (200, TEAM),
+    }
+    page = plain((await rendered("/views/admin/campaigns?id=camp-1", routes, EDITOR)).text)
+    people = re.search(r'<fieldset class="office-choices office-people">.*?</fieldset>', page, re.S)[0]
+    assert "<legend>Спикеры, тренеры и ведущие</legend>" in people
+    roles = dict(
+        re.findall(r'<select name="trainer_roles\.(t-\d)"[^>]*>.*?<option value="(\w+)" selected', people, re.S)
+    )
+    assert roles == {"t-1": "host", "t-2": "trainer", "t-3": "speaker"}
+    assert re.search(r'<select name="trainer_roles\.t-3" aria-label="Роль: Вера Свободная" disabled>', people)
+    assert '<option value="host" selected>Ведущий</option>' in people
+    assert '<a href="/admin/trainers">' not in people
+
+
+async def test_campaign_page_groups_people_by_role(browser_client):
+    speakers = [
+        {"id": "t-1", "fio": "Анна Ведущая", "role": "host"},
+        {"id": "t-2", "fio": "Борис Тренер", "role": "trainer"},
+        {"id": "t-3", "fio": "Вера Спикер"},
+    ]
+    routes = {"/campaigns/intensive": (200, {**PUBLIC_CAMPAIGN, "speakers": speakers})}
+    page = (await rendered("/give/intensive", routes)).text
+    titles = re.findall(r'<h2 class="give-h2 lux-reveal" id="camp-(speaker|trainer|host)-title">(.*?)</h2>', page)
+    assert titles == [("speaker", "Спикеры"), ("trainer", "Тренеры"), ("host", "Ведущие")]
+    for role, name in (("speaker", "Вера Спикер"), ("trainer", "Борис Тренер"), ("host", "Анна Ведущая")):
+        block = page[page.index(f'id="camp-{role}-title"') :].split("</section>")[0]
+        assert name in block and sum(other in block for other in ("Вера Спикер", "Борис Тренер", "Анна Ведущая")) == 1

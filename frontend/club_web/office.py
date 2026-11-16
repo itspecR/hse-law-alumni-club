@@ -1,3 +1,4 @@
+from club_web.campaigns import PERSON_ROLES
 from club_web.formatting import date, rub
 
 GROUPS = [
@@ -148,7 +149,7 @@ DESCRIPTIONS = {
     "subs": "Доступ к подкастам и прослушивания выпусков.",
     "portfolio": "Программы клуба: карточки, тренеры, цена и набор.",
     "cohorts": "Потоки программ клуба: старт, цена, места и набор.",
-    "trainers": "Тренеры программ клуба: ФИО, фото и справка.",
+    "trainers": "Спикеры, тренеры и ведущие программ и сборов клуба: ФИО, фото и справка.",
     "programs": "Программы Центра ДПО, загружаются с его сайта автоматически.",
     "products": "Товары клуба, варианты и остатки.",
     "news": "Публикации на сайте и черновики.",
@@ -163,10 +164,12 @@ DESCRIPTIONS = {
 
 SEARCH_KEYS = ("title", "fio", "code", "note", "direction", "category", "year")
 CHOICES = {
-    "trainers": ("fio", "Тренеров пока нет."),
+    "trainers": ("fio", "Спикеров и тренеров пока нет."),
     "portfolio": ("title", "Программ портфеля пока нет."),
 }
 SINGLE_CHOICES = {"program": "portfolio"}
+PEOPLE_CHOICES = {"people": "trainers"}
+ROLE_OPTIONS = tuple((role, label) for role, label, _ in PERSON_ROLES)
 READ_ONLY_SECTIONS = {"programs"}
 CREATE_DEFAULTS = {"promo-codes": {"per_person_limit": 1, "all_programs": True}}
 SECTION_LABELS = {
@@ -184,7 +187,8 @@ SECTION_LABELS = {
 
 def choice_sources(section):
     kinds = [kind for _, _, kind in FIELDS.get(section, [])]
-    return [SINGLE_CHOICES.get(kind, kind) for kind in kinds if kind in CHOICES or kind in SINGLE_CHOICES]
+    linked = {**SINGLE_CHOICES, **PEOPLE_CHOICES}
+    return [linked.get(kind, kind) for kind in kinds if kind in CHOICES or kind in linked]
 
 
 def cohort_price_label(row):
@@ -306,7 +310,7 @@ FIELDS = {
         ("about_title", "Заголовок описания", "text"),
         ("about", "Описание", "textarea"),
         ("highlights", "Цифры", "highlights"),
-        ("trainer_ids", "Спикеры", "trainers"),
+        ("trainer_ids", "Спикеры, тренеры и ведущие", "people"),
         ("program_title", "Заголовок программы", "text"),
         ("modules", "Программа по блокам", "schedule"),
         ("feature_note", "Надпись над выделенным блоком", "text"),

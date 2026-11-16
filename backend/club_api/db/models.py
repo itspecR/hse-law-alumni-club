@@ -327,6 +327,7 @@ class CampaignTrainers(models.Model):
     campaign = models.ForeignKey("Campaigns", on_delete=models.CASCADE, db_column="campaign_id", related_name="+")
     trainer = models.ForeignKey("Trainers", on_delete=models.CASCADE, db_column="trainer_id", related_name="+")
     sort = models.IntegerField(db_default=0)
+    role = models.CharField(max_length=20, db_default="speaker")
 
     class Meta:
         db_table = "club_campaign_trainers"
