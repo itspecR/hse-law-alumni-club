@@ -13,6 +13,7 @@ from club_api.modules.auth.service import require_admin
 from club_api.modules.catalog.scope import DPO_PROGRAMS
 from club_api.observability.audit import audit
 
+HERO_SUBTITLE_LIMIT = 200
 DPO_ADMIN_FIELDS = (
     "id",
     "slug",
@@ -236,6 +237,7 @@ class HeroBody(Body):
     badge: str = None
     title_pre: str = None
     title_accent: str = None
+    subtitle: str = Field(default=None, max_length=HERO_SUBTITLE_LIMIT)
     cta_primary: str = None
     history_eyebrow: str = Field(default=None, max_length=80)
     history_title: str = Field(default=None, max_length=200)

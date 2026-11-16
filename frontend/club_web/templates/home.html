@@ -16,7 +16,7 @@
 </h1>
 <div class="lux-hero__figure">{% include 'themis.html' %}</div>
 <div class="lux-hero__foot">
-<p class="lux-hero__lede">Анонсы встреч, программы дополнительного образования, новости клуба и&nbsp;личный кабинет выпускника.</p>
+<p class="lux-hero__lede">{% if hero.subtitle %}{{ hero.subtitle }}{% else %}Встречи выпускников, тренинги и&nbsp;курсы клуба, подкасты и&nbsp;новости факультета.{% endif %}</p>
 <div class="lux-hero__acts">
 <a href="/join" class="foc lux-btn" data-member-link>{{ hero.cta_primary or 'Вступить в клуб' }}</a>
 <a href="/portfolio" class="foc lux-more">Программы клуба <span class="lux-more__arrow" aria-hidden="true">›</span></a>
