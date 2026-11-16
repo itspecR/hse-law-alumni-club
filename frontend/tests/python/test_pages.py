@@ -2158,3 +2158,23 @@ async def test_about_page_says_that_joining_is_paused():
     page = (await rendered("/about", {"/pages/about": (200, {})})).text
     assert "Прием новых участников временно приостановлен, мы обновляем правила программы лояльности." in page
     assert "Отправьте заявку на сайте" not in page
+
+
+ABOUT_INTRO = "Клуб выпускников факультета права НИУ ВШЭ объединяет выпускников в сообщество"
+
+
+async def test_home_tells_about_the_club_right_after_themis():
+    routes = {"/pages/home": (200, {"blocks": {}}), "/campaigns/current": (200, {"campaign": PUBLIC_CAMPAIGN})}
+    page = (await rendered("/", routes)).text
+    block = page[page.index('id="about-club"') :]
+    assert 'id="lux-about-title">О клубе.</h2>' in block and ABOUT_INTRO in block
+    assert 'href="/about" class="foc lux-more">Подробнее о клубе' in block
+    assert "откроем личный кабинет" not in block.split("</section>")[0]
+    assert page.index('class="lux-hero"') < page.index('id="about-club"') < page.index("camp-teaser-section")
+
+
+async def test_home_takes_the_first_paragraph_saved_in_the_panel():
+    saved = {"body": "Свой первый абзац.\n\nВторой абзац не нужен на главной."}
+    page = (await rendered("/", {"/pages/home": (200, {"blocks": {}}), "/pages/about": (200, saved)})).text
+    block = page[page.index('id="about-club"') :].split("</section>")[0]
+    assert "<p>Свой первый абзац.</p>" in block and "Второй абзац" not in block and ABOUT_INTRO not in block
