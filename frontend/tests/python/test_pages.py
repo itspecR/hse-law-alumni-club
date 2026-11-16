@@ -532,6 +532,20 @@ async def test_home_hero_words_fit_longest_word(hero, chars):
     assert f'style="--hero-chars:{chars}"' in response.text
 
 
+async def test_home_hero_line_comes_from_the_office():
+    async def upstream(request):
+        if request.url.path == "/pages/home":
+            return httpx.Response(200, json={"blocks": {"hero": {"subtitle": "Строка <из> панели"}}})
+        return httpx.Response(200, json=[])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            page = (await client.get("/")).text
+    assert '<p class="lux-hero__lede">Строка &lt;из&gt; панели</p>' in page and "тренинги" not in page
+
+
 async def test_home_uses_only_sourced_photos(browser_client):
     response = await browser_client.get("/")
     photos = set(re.findall(r"assets/photos/club/([a-z]+)-", response.text))
@@ -543,7 +557,8 @@ async def test_home_texts_follow_glossary(browser_client, dpo):
     assert '<a href="/portfolio" class="foc lux-more">Программы клуба' in page
     assert '<a href="/events" class="foc lux-more">Все события' in page
     assert (
-        "Анонсы встреч, программы дополнительного образования, новости клуба и&nbsp;личный кабинет выпускника." in page
+        '<p class="lux-hero__lede">Встречи выпускников, тренинги и&nbsp;курсы клуба, подкасты и&nbsp;новости факультета.</p>'
+        in page
     )
     assert (
         "Подайте заявку, а&nbsp;мы подтвердим ваш статус выпускника и&nbsp;предоставим доступ к&nbsp;новым возможностям."
@@ -647,7 +662,14 @@ async def test_cart_line_has_no_empty_variant(browser_client):
 async def test_office_home_form_has_only_fields_shown_on_site(browser_client):
     response = await browser_client.get("/views/admin/pages", headers={"authorization": "Bearer admin-test"})
     names = re.findall(r'name="((?:hero|cta)\.\w+)"', response.text)
-    assert names == ["hero.title_pre", "hero.title_accent", "hero.cta_primary", "cta.title", "cta.button"]
+    assert names == [
+        "hero.title_pre",
+        "hero.title_accent",
+        "hero.subtitle",
+        "hero.cta_primary",
+        "cta.title",
+        "cta.button",
+    ]
 
 
 async def test_office_uses_dark_theme(browser_client):
