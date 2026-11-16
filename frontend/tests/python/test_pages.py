@@ -659,6 +659,13 @@ async def test_cart_line_has_no_empty_variant(browser_client):
     assert f"<p>{rub(PRODUCT['price'])}</p>" in response.text
 
 
+@pytest.mark.parametrize("section", ["events", "podcasts"])
+async def test_office_lets_staff_set_the_readable_address(browser_client, section):
+    response = await browser_client.get("/views/admin/" + section, headers={"authorization": "Bearer admin-test"})
+    assert 'name="slug"' in response.text
+    assert "Адрес страницы: латиница, цифры и дефис. Пустое поле - адрес соберется из названия" in response.text
+
+
 async def test_office_home_form_has_only_fields_shown_on_site(browser_client):
     response = await browser_client.get("/views/admin/pages", headers={"authorization": "Bearer admin-test"})
     names = re.findall(r'name="((?:hero|cta)\.\w+)"', response.text)

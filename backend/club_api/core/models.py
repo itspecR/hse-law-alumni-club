@@ -1,18 +1,30 @@
 import copy
 import re
 from datetime import UTC, datetime
+from typing import Annotated
 from urllib.parse import urlsplit
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from pydantic import create_model
+from pydantic import BeforeValidator, Field, create_model
 
 from club_api.core.errors import ApiError
 
 RESERVED_SLUGS = {"programs": ("challenge",)}
 CLUB_TIMEZONE = ZoneInfo("Europe/Moscow")
-SLUG_FORMAT = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+SLUG_PATTERN = "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+SLUG_FORMAT = re.compile(SLUG_PATTERN)
 SLUG_LIMIT = 255
+SLUG_INPUT_MAX = 80
+SLUG_TAKEN = "Такой адрес уже занят."
+
+
+def blank_as_missing(value):
+    return value or None
+
+
+TypedAddress = Annotated[str, Field(max_length=SLUG_INPUT_MAX, pattern=SLUG_PATTERN)]
+ReadableAddress = Annotated[TypedAddress | None, BeforeValidator(blank_as_missing)]
 
 
 def partial(model):
@@ -162,3 +174,17 @@ async def unique_slug(store, table, title, connection=None):
 
         return slug + "-" + secrets.token_hex(4)
     return slug
+
+
+async def require_free_slug(store, table, slug, id=None, connection=None):
+    rows = await store.read(table, filters={"slug": {"_eq": slug}}, fields=("id",), limit=1, connection=connection)
+    if rows and rows[0]["id"] != id:
+        raise ApiError(409, SLUG_TAKEN)
+
+
+async def with_slug(store, table, data, id=None, connection=None):
+    if data.get("slug"):
+        await require_free_slug(store, table, data["slug"], id, connection)
+        return data
+    rest = {key: value for key, value in data.items() if key != "slug"}
+    return rest if id is not None else {**rest, "slug": await unique_slug(store, table, data["title"], connection)}

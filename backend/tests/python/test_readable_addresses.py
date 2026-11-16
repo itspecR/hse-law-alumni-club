@@ -69,3 +69,38 @@ async def test_episode_gets_an_address(database_app):
     assert created.status_code == 200
     assert [row["slug"] for row in listed if row["id"] == created.json()["id"]] == ["vypusk-o-dogovorah"]
     assert "/podcasts/vypusk-o-dogovorah</loc>" in sitemap
+
+
+async def test_staff_set_and_change_the_address_of_an_event(database_app):
+    app = database_app
+    _, headers = await account(app, "admin")
+    async with client_for(app) as client:
+        chosen = await client.post("/admin/events", headers=headers, json={**EVENT, "slug": "majskaya-vstrecha"})
+        other = await client.post("/admin/events", headers=headers, json={**EVENT, "slug": ""})
+        first, second = chosen.json()["id"], other.json()["id"]
+        taken = await client.patch("/admin/events/" + second, headers=headers, json={"slug": "majskaya-vstrecha"})
+        same = await client.patch("/admin/events/" + first, headers=headers, json={"slug": "majskaya-vstrecha"})
+        kept = await client.patch("/admin/events/" + first, headers=headers, json={"title": "Новое имя", "slug": ""})
+        renamed = await client.patch("/admin/events/" + second, headers=headers, json={"slug": "letnyaya-vstrecha"})
+        wrong = await client.patch("/admin/events/" + second, headers=headers, json={"slug": "Летняя встреча"})
+        listed = (await client.get("/admin/events", headers=headers)).json()
+    assert (taken.status_code, taken.json()["error"]) == (409, "Такой адрес уже занят.")
+    assert (same.status_code, kept.status_code, renamed.status_code, wrong.status_code) == (200, 200, 200, 400)
+    rows = listed["items"] if isinstance(listed, dict) else listed
+    assert {row["id"]: row["slug"] for row in rows if row["id"] in (first, second)} == {
+        first: "majskaya-vstrecha",
+        second: "letnyaya-vstrecha",
+    }
+
+
+async def test_staff_set_the_address_of_an_episode(database_app):
+    app = database_app
+    _, headers = await account(app, "admin")
+    async with client_for(app) as client:
+        created = await client.post("/admin/podcasts", headers=headers, json={**EPISODE, "slug": "dogovory"})
+        episode = created.json()["id"]
+        clash = await client.post("/admin/podcasts", headers=headers, json={**EPISODE, "slug": "dogovory"})
+        changed = await client.patch("/admin/podcasts/" + episode, headers=headers, json={"slug": "vse-o-dogovorah"})
+        listed = (await client.get("/admin/podcasts", headers=headers)).json()
+    assert (created.status_code, clash.status_code, changed.status_code) == (200, 409, 200)
+    assert [row["slug"] for row in listed if row["id"] == episode] == ["vse-o-dogovorah"]
