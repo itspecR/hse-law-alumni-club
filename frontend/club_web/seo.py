@@ -133,6 +133,8 @@ def texts(data):
     item = data.get("item")
     if item and item.get("title") and data["template"] in ITEM_TEXTS:
         title, description = ITEM_TEXTS[data["template"]](item)
+    elif data.get("about") and data["status"] == 200:
+        title, description = data["about"]["meta_title"], data["about"]["meta_description"]
     elif data["path"] in PAGES and data["status"] == 200:
         title, description = PAGES[data["path"]]
     else:

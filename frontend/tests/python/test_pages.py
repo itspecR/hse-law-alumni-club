@@ -666,6 +666,13 @@ async def test_office_lets_staff_set_the_readable_address(browser_client, sectio
     assert "Адрес страницы: латиница, цифры и дефис. Пустое поле - адрес соберется из названия" in response.text
 
 
+async def test_office_edits_the_about_page(browser_client):
+    response = await browser_client.get("/views/admin/pages", headers={"authorization": "Bearer admin-test"})
+    form = response.text.split('<form data-api="/admin/pages/about" data-method="PATCH">')[1].split("</form>")[0]
+    assert re.findall(r'name="(\w+)"', form) == ["title", "body", "meta_title", "meta_description"]
+    assert 'value="О клубе"' in form and "объединяет выпускников в сообщество" in form
+
+
 async def test_office_home_form_has_only_fields_shown_on_site(browser_client):
     response = await browser_client.get("/views/admin/pages", headers={"authorization": "Bearer admin-test"})
     names = re.findall(r'name="((?:hero|cta)\.\w+)"', response.text)

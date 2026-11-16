@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<main id="main" class="site-article">
+<h1>{{ about.title }}</h1>
+<div class="site-prose site-rich">{{ about.body|rich_text }}</div>
+<nav class="site-actions" aria-label="Что дальше">
+<a href="/join">Вступить в клуб</a>
+<a href="/give">Поддержать факультет</a>
+</nav>
+</main>
+{% endblock %}

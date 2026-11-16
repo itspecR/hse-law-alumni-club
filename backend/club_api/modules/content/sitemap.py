@@ -32,6 +32,7 @@ CLEAN_PARAMS = "utm_source&utm_medium&utm_campaign&utm_content&utm_term&source"
 ALWAYS = (
     ("/", "1.0", "weekly"),
     ("/join", "0.8", "monthly"),
+    ("/about", "0.6", "monthly"),
     ("/give", "0.8", "monthly"),
     ("/support", "0.5", "monthly"),
     ("/documents", "0.3", "yearly"),

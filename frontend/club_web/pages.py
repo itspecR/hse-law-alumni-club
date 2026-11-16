@@ -72,6 +72,7 @@ PUBLIC_PAGES = {
     "/terms": ("legal/terms.html", "Пользовательское соглашение"),
     "/consent": ("legal/consent.html", "Согласие на обработку персональных данных"),
     "/documents": ("legal/documents.html", "Документы"),
+    "/about": ("about.html", "О клубе"),
     "/requisites": ("legal/requisites.html", "Реквизиты"),
     "/give": ("give.html", "Поддержать факультет"),
     "/give/thanks": ("give-thanks.html", "Спасибо за поддержку"),
@@ -353,6 +354,20 @@ async def current_campaign(api):
         return None
     campaign = reply.get("campaign") if isinstance(reply, dict) else None
     return campaign if isinstance(campaign, dict) and campaign.get("slug") else None
+
+
+async def page_texts(api, slug):
+    try:
+        reply = await api.get("/pages/" + slug)
+    except ApiFailure:
+        return {}
+    return reply if isinstance(reply, dict) else {}
+
+
+async def about_page(page):
+    saved, defaults = await page_texts(page.api, "about"), resource("about-data.json")
+    page.data["about"] = {name: saved.get(name) or text for name, text in defaults.items()}
+    page.data["title"] = page.data["about"]["title"]
 
 
 async def home_page(page):
@@ -684,6 +699,8 @@ async def office_records(page, section):
         data["records"] = []
     elif section == "pages":
         await load("record", "/admin/pages/home", {})
+        data["about_record"] = await page_texts(page.api, "about")
+        data["about_defaults"] = resource("about-data.json")
     else:
         query = urlencode({key: params[key] for key in OFFICE_QUERY_KEYS if key in params})
         await load("records", OFFICE_ENDPOINTS[section] + ("?" + query if query else ""), [])
@@ -744,6 +761,7 @@ PAGE_ROUTES = (
     (lambda page: page.path in ("/lk", "/lk/profile") and page.authorized, cabinet_page),
     (lambda page: page.path == "/cart" and "x-cart-session" in page.api.headers, cart_page),
     (lambda page: page.path == "/support", support_page),
+    (lambda page: page.path == "/about", about_page),
     (lambda page: page.path == "/give", give_page),
     (lambda page: page.template == "campaign.html", campaign_page),
     (lambda page: page.path.startswith("/admin"), office_page),
