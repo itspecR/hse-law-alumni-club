@@ -225,7 +225,9 @@ async def test_event_history_does_not_hide_upcoming_month_or_detail(database_app
         assert (await client.get("/events", params={"id": draft["id"]})).json() == []
         for value in ("2020-13", "2020-1", "invalid"):
             assert (await client.get("/events", params={"month": value})).status_code == 400
-        assert (await client.get("/events?id=invalid")).status_code == 400
+        assert (await client.get("/events?id=no-such-address")).json() == []
+        for value in ("Не адрес", "UPPER", "a" * 256, "-edge-"):
+            assert (await client.get("/events", params={"id": value})).status_code == 400
 
 
 async def test_merch_order_grants_first_order_without_adding_points(database_app):

@@ -109,9 +109,9 @@
 <div class="cabinet-card">
 <h3>{{ icon('events', 18) }}Ближайшее событие</h3>
 {% if next_event %}
-<p class="cabinet-card__title"><a href="/events/{{ next_event.id }}">{{ next_event.title }}</a></p>
+<p class="cabinet-card__title"><a href="/events/{{ next_event|address }}">{{ next_event.title }}</a></p>
 <p>{{ next_event.starts_at|date }} · {{ next_event.location or format_labels.get(next_event.format,'') }}</p>
-<a href="/events/{{ next_event.id }}">{{ 'Вы записаны. Подробнее о событии' if next_event.my_rsvp else 'Подробнее и запись' }}</a>
+<a href="/events/{{ next_event|address }}">{{ 'Вы записаны. Подробнее о событии' if next_event.my_rsvp else 'Подробнее и запись' }}</a>
 {% else %}<p>Ближайших событий пока нет.</p>
 <a href="/events">Все события</a>{% endif %}
 </div>

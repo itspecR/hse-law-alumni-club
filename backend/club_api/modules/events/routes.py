@@ -16,6 +16,8 @@ from club_api.core.models import (
     parse_date,
     partial,
     query_page,
+    record_key,
+    unique_slug,
     web_url,
 )
 from club_api.core.schemas import Body
@@ -30,7 +32,19 @@ from club_api.observability.audit import audit
 
 ROUTE_LIMITS = {("POST", "/events/{id}/rsvp"): 20}
 UNNAMED = "ФИО не указано"
-EVENT_FIELDS = ("id", "title", "description", "starts_at", "location", "cover", "reg_url", "format", "points", "status")
+EVENT_FIELDS = (
+    "id",
+    "slug",
+    "title",
+    "description",
+    "starts_at",
+    "location",
+    "cover",
+    "reg_url",
+    "format",
+    "points",
+    "status",
+)
 
 
 class EventBody(Body):
@@ -126,7 +140,7 @@ async def events(request: HttpRequest):
             raise ApiError(400, "Некорректный месяц.") from None
         filters["starts_at"] = {"_gte": start, "_lt": end}
     if id is not None:
-        filters["id"] = {"_eq": guid(id)}
+        filters.update(record_key(id))
     if month is not None or id is not None:
         rows = await state.store.read(
             "events", filters=filters, sort=("starts_at", "id"), fields=EVENT_FIELDS, limit=50
@@ -315,7 +329,8 @@ async def admin_roster(request: HttpRequest, id: str):
 async def create_event(request: HttpRequest):
     admin = await require_admin(request)
     body = parse_body(request, EventBody)
-    row = await request.services.store.create("events", body.model_dump())
+    store = request.services.store
+    row = await store.create("events", {**body.model_dump(), "slug": await unique_slug(store, "events", body.title)})
     await audit(
         request,
         "event.create",

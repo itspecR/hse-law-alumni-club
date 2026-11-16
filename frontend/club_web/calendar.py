@@ -4,6 +4,8 @@ from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
+from club_web.formatting import address
+
 MONTHS = (
     "Январь",
     "Февраль",
@@ -73,7 +75,7 @@ def calendar_file(event, public_url, now=None):
         "DTEND:" + stamp(start + timedelta(hours=2)),
         "SUMMARY:" + escape(event["title"]),
         "DESCRIPTION:" + escape(event.get("description")),
-        "URL:" + public_url.rstrip("/") + "/events/" + event["id"],
+        "URL:" + public_url.rstrip("/") + "/events/" + address(event),
     ]
     if event.get("location") and event.get("format") != "online":
         lines.append("LOCATION:" + escape(event["location"]))

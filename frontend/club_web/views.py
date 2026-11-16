@@ -3,7 +3,13 @@ import mimetypes
 import os
 
 import httpx
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, StreamingHttpResponse
+from django.http import (
+    HttpResponse,
+    HttpResponsePermanentRedirect,
+    HttpResponseRedirect,
+    JsonResponse,
+    StreamingHttpResponse,
+)
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_safe
 
@@ -118,6 +124,8 @@ async def render_page(request, path, *, fragment):
         return JsonResponse({"error": "Сессия завершилась. Войдите снова."}, status=401)
     if data.get("redirect"):
         return HttpResponseRedirect(data["redirect"])
+    if data.get("moved") and not fragment:
+        return HttpResponsePermanentRedirect(data["moved"])
     data.update(request=request, fragment=fragment, base="/", asset_version=published_version(PUBLIC))
     data["meta"] = page_meta(data, site_url(request))
     data["schema"] = structured_data(data, site_url(request))

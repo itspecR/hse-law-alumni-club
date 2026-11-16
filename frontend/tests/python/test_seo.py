@@ -324,3 +324,38 @@ async def test_cookie_banner_role_fits_its_element():
     async with site() as client:
         page = (await client.get("/give")).text
     assert '<div class="club-cookie-banner" id="cookie-banner" role="dialog"' in page
+
+
+NAMED_EVENT = {**DETAILED_EVENT, "slug": "vstrecha-kluba"}
+NAMED_EPISODE = {**EPISODE, "slug": "pravovaya-gramotnost"}
+NAMED = {"/events": [NAMED_EVENT], "/podcasts": {"items": [NAMED_EPISODE], "subscribed": False}}
+
+
+async def test_lists_link_to_readable_addresses():
+    async with site(**NAMED) as client:
+        events = (await client.get("/events")).text
+        podcasts = (await client.get("/podcasts")).text
+        home = (await client.get("/")).text
+    assert '<a href="/events/vstrecha-kluba">' in events and 'href="/events/event-1"' not in events
+    assert '<a href="/podcasts/pravovaya-gramotnost">' in podcasts and 'href="/podcasts/episode-1"' not in podcasts
+    assert 'href="/podcasts/pravovaya-gramotnost"' in home
+
+
+@pytest.mark.parametrize(
+    "old,new",
+    [("/events/event-1", "/events/vstrecha-kluba"), ("/podcasts/episode-1", "/podcasts/pravovaya-gramotnost")],
+)
+async def test_old_address_moves_to_the_readable_one(old, new):
+    async with site(**NAMED) as client:
+        moved = await client.get(old)
+        page = await client.get(new)
+        fragment = await client.get("/views" + old)
+    assert moved.status_code == 301 and moved.headers["location"] == new
+    assert page.status_code == 200 and head(page.text)["canonical"] == SITE + new
+    assert fragment.status_code == 200
+
+
+async def test_record_without_readable_address_keeps_its_old_one():
+    async with site() as client:
+        page = await client.get("/events/event-1")
+    assert page.status_code == 200 and head(page.text)["canonical"] == SITE + "/events/event-1"

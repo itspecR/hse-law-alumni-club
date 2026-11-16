@@ -136,6 +136,10 @@ def payment_url(value):
     return url if parts.scheme == "https" else ""
 
 
+def address(item):
+    return item.get("slug") or item["id"]
+
+
 def media(value):
     if not value:
         return ""

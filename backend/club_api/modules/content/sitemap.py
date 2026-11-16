@@ -65,8 +65,8 @@ async def records(store):
     news, portfolio, events, podcasts, products, campaigns = await asyncio.gather(
         store.read("news", filters=PUBLISHED, fields=("slug", "published_at", "origin"), limit=-1),
         store.read("programs", filters=PUBLISHED_PORTFOLIO, fields=("slug",), limit=-1),
-        store.read("events", filters=SHOWN_EVENTS, fields=("id",), limit=-1),
-        store.read("podcasts", filters=PUBLISHED, fields=("id",), limit=-1),
+        store.read("events", filters=SHOWN_EVENTS, fields=("id", "slug"), limit=-1),
+        store.read("podcasts", filters=PUBLISHED, fields=("id", "slug"), limit=-1),
         store.read("products", filters=PUBLISHED, fields=("slug",), limit=-1),
         store.read(CAMPAIGN_TABLE, filters=PUBLISHED, fields=("slug",), limit=-1),
     )
@@ -80,13 +80,17 @@ async def records(store):
     }
 
 
+def address(item):
+    return str(item.get("slug") or item["id"])
+
+
 def record_urls(found):
     own_news = [item for item in found["news"] if item.get("origin") != FACULTY_ORIGIN]
     dated = [("/news/" + quote(item["slug"], safe=""), (item["published_at"] or "")[:10]) for item in own_news]
     plain = [
         *("/portfolio/" + quote(item["slug"], safe="") for item in found["portfolio"]),
-        *("/events/" + quote(str(item["id"]), safe="") for item in found["events"]),
-        *("/podcasts/" + quote(str(item["id"]), safe="") for item in found["podcasts"]),
+        *("/events/" + quote(address(item), safe="") for item in found["events"]),
+        *("/podcasts/" + quote(address(item), safe="") for item in found["podcasts"]),
         *("/merch/" + quote(item["slug"], safe="") for item in found["products"]),
         *("/give/" + quote(item["slug"], safe="") for item in found["campaigns"]),
     ]

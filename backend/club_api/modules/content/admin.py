@@ -14,6 +14,7 @@ from club_api.modules.catalog.scope import DPO_PROGRAMS
 from club_api.observability.audit import audit
 
 HERO_SUBTITLE_LIMIT = 200
+SLUG_TABLES = ("programs", "products", "news", "podcasts")
 DPO_ADMIN_FIELDS = (
     "id",
     "slug",
@@ -87,7 +88,7 @@ async def write_content(state, table, data, *, id=None, connection=None):
                 await product_reservations(connection, id)
                 return await state.store.update(table, data, id=id, connection=connection)
         return await state.store.update(table, data, id=id, connection=connection)
-    if table in ("programs", "products", "news"):
+    if table in SLUG_TABLES:
         data["slug"] = await unique_slug(state.store, table, data["title"], connection)
     if table == "news":
         data.setdefault("published_at", datetime.now(UTC))

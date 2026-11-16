@@ -616,6 +616,7 @@ class Events(models.Model):
     points = models.IntegerField(null=True, db_default=60)
     status = models.CharField(max_length=255, null=True, db_default="published")
     created_at = models.DateTimeField(null=True, db_default=Now())
+    slug = models.CharField(max_length=255, unique=True, null=True)
 
     class Meta:
         db_table = "events"
@@ -758,6 +759,7 @@ class Podcasts(models.Model):
     sort = models.IntegerField(null=True)
     status = models.CharField(max_length=255, null=True, db_default="draft")
     created_at = models.DateTimeField(null=True, db_default=Now())
+    slug = models.CharField(max_length=255, unique=True, null=True)
 
     class Meta:
         db_table = "podcasts"

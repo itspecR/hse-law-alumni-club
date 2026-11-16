@@ -11,6 +11,8 @@ from club_api.core.errors import ApiError
 
 RESERVED_SLUGS = {"programs": ("challenge",)}
 CLUB_TIMEZONE = ZoneInfo("Europe/Moscow")
+SLUG_FORMAT = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+SLUG_LIMIT = 255
 
 
 def partial(model):
@@ -43,6 +45,19 @@ def guid(value):
         return value
     except ValueError, AttributeError:
         raise ApiError(400, "Некорректный идентификатор.") from None
+
+
+def readable(value):
+    return isinstance(value, str) and len(value) <= SLUG_LIMIT and bool(SLUG_FORMAT.fullmatch(value))
+
+
+def record_key(value):
+    try:
+        return {"id": {"_eq": guid(value)}}
+    except ApiError:
+        if readable(value):
+            return {"slug": {"_eq": value}}
+        raise
 
 
 def query_page(request, *, default_limit=50):

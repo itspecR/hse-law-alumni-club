@@ -10,7 +10,7 @@ from club_web.campaigns import WAVE, campaign_facts, form_amounts
 from club_web.catalog import UPCOMING_LIMIT, club_programs_preview, prepare_catalog
 from club_web.changes import parse_changes, select_changes
 from club_web.client import ApiFailure
-from club_web.formatting import initials, lowest_price, page_items, rub, safe_url
+from club_web.formatting import address, initials, lowest_price, page_items, rub, safe_url
 from club_web.office import (
     CHOICES,
     CREATE_DEFAULTS,
@@ -484,6 +484,15 @@ async def news_list_page(page):
     await load("items", "/news", [])
 
 
+def found(items, key):
+    return next((item for item in items if key and key in (item["id"], item.get("slug"))), None)
+
+
+def moved(path, item):
+    section, key = path.rsplit("/", 1)
+    return "" if key == address(item) else section + "/" + quote(address(item), safe="")
+
+
 async def events_page(page):
     data, load, params, path = page.data, page.load, page.params, page.path
     event_id = path.removeprefix("/events/") if path != "/events" else params.get("event")
@@ -499,11 +508,13 @@ async def events_page(page):
             UTC
         )
     data["calendar"] = month_view(data["items"], params.get("month"))
-    data["item"] = next((item for item in data["items"] if item["id"] == event_id), None)
+    data["item"] = found(data["items"], event_id)
     if event_id and data["load_errors"].get("items", 0) >= SERVER_ERROR:
         data.update(template="unavailable.html", title="Не удалось загрузить страницу", status=503)
     elif event_id and not data["item"]:
         data.update(template="not-found.html", status=404)
+    elif path != "/events":
+        data["moved"] = moved(path, data["item"])
 
 
 async def podcasts_page(page):
@@ -511,9 +522,10 @@ async def podcasts_page(page):
     await load("podcasts", "/podcasts", {"items": []})
     data["items"] = page_items(data["podcasts"])
     if path != "/podcasts":
-        data["item"] = next((item for item in data["items"] if item["id"] == path.rsplit("/", 1)[1]), None)
+        data["item"] = found(data["items"], path.rsplit("/", 1)[1])
         if data["item"]:
             data["title"] = data["item"]["title"]
+            data["moved"] = moved(path, data["item"])
         elif "podcasts" in data["load_errors"]:
             data.update(template="unavailable.html", title="Не удалось загрузить страницу", status=503)
         else:
