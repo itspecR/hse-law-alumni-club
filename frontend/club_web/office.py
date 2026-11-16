@@ -347,7 +347,7 @@ FIELDS = {
     ],
     "trainers": [
         ("fio", "ФИО", "text"),
-        ("photo", "Фото", "text"),
+        ("photo", "Фото", "image"),
         ("bio", "Справка", "textarea"),
         ("status", "Статус", "published|draft|archived"),
     ],

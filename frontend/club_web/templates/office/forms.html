@@ -17,19 +17,40 @@
 </select></label>
 {% if not office_options.get(source) %}<p class="office-meta">{{ office_choices[source][1] }} Добавьте их в разделе <a href="/admin/{{ source }}">«{{ dict(office_nav)[source] }}»</a>.</p>{% endif %}
 {% endmacro %}
+{% macro role_select(id,person,role,disabled) %}
+<select name="trainer_roles.{{ id }}" aria-label="Роль: {{ person }}" {% if disabled %}disabled{% endif %}>
+{% for key,role_label in office_roles %}<option value="{{ key }}" {% if role==key %}selected{% endif %}>{{ role_label }}</option>{% endfor %}
+</select>
+{% endmacro %}
+{% macro image_input(label,value,name='',field='') %}
+<span class="office-image" data-image-field>
+<img src="{{ value|media }}" alt="" width="96" height="96" data-image-preview {% if not value %}hidden{% endif %}>
+<input type="hidden" {% if name %}name="{{ name }}"{% endif %} {% if field %}data-new-field="{{ field }}"{% endif %} value="{{ value or '' }}" data-image-value>
+<input type="file" accept="image/jpeg,image/png,image/webp" aria-label="{{ label }}" data-image-upload>
+<small class="office-hint">JPEG, PNG или WebP, до&nbsp;5&nbsp;МБ.</small>
+</span>
+{% endmacro %}
 {% macro people(name,label,selected,roles,source) %}
 <fieldset class="office-choices office-people"><legend>{{ label }}</legend>
+<div data-people>
 {% for option in office_options.get(source) or [] %}
 {% set chosen=option.id in selected %}
 <div class="office-person" data-person>
-<label><input type="checkbox" name="{{ name }}" value="{{ option.id }}" data-list {% if chosen %}checked{% endif %}>{{ option.label }}{% if option.status!='published' %} · {{ labels.get(option.status,option.status) }}{% endif %}</label>
-<select name="trainer_roles.{{ option.id }}" aria-label="Роль: {{ option.label }}" {% if not chosen %}disabled{% endif %}>
-{% for role,role_label in office_roles %}<option value="{{ role }}" {% if roles.get(option.id,office_roles[0][0])==role %}selected{% endif %}>{{ role_label }}</option>{% endfor %}
-</select>
+<label><input type="checkbox" name="{{ name }}" value="{{ option.id }}" data-list {% if chosen %}checked{% endif %}><span data-person-name>{{ option.label }}</span>{% if option.status!='published' %} · {{ labels.get(option.status,option.status) }}{% endif %}</label>
+{{ role_select(option.id,option.label,roles.get(option.id,office_roles[0][0]),not chosen) }}
 </div>
 {% else %}
-<p class="office-meta">{{ office_choices[source][1] }} Добавьте их в разделе <a href="/admin/{{ source }}">«{{ dict(office_nav)[source] }}»</a>.</p>
+<p class="office-meta" data-people-empty>{{ office_choices[source][1] }} Добавьте их в разделе <a href="/admin/{{ source }}">«{{ dict(office_nav)[source] }}»</a> или здесь.</p>
 {% endfor %}
+</div>
+<details class="office-new-person" data-new-person>
+<summary>Добавить нового</summary>
+<label class="site-field">ФИО<input data-new-field="fio" maxlength="255" autocomplete="off"></label>
+<label class="site-field">Описание<textarea data-new-field="bio"></textarea></label>
+<label class="site-field">Фото{{ image_input('Фото','',field='photo') }}</label>
+<button type="button" data-action="add-person">Добавить</button>
+<template data-person-row><div class="office-person" data-person><label><input type="checkbox" name="{{ name }}" data-list checked><span data-person-name></span></label>{{ role_select('','',office_roles[0][0],false) }}</div></template>
+</details>
 </fieldset>
 {% endmacro %}
 {% macro editor_row(shape,row={},open=false) %}
@@ -109,6 +130,8 @@
 <small class="office-hint">Пустая строка начинает новый абзац. ## Подзаголовок · **жирный** · *курсив* · - пункт списка · [текст ссылки](https://адрес) · ![подпись](ID файла из «Медиа»)</small>
 {% elif kind in ('limit','optional') %}
 <input name="{{ name }}" type="number" min="{{ 1 if kind=='limit' else 0 }}" data-nullable value="{{ value if value is not none else '' }}">
+{% elif kind=='image' %}
+{{ image_input(label,value,name=name) }}
 {% elif kind=='rubles' %}
 <input name="{{ name }}" type="number" min="0" step="0.01" inputmode="decimal" data-kopecks value="{{ value|rubles_input }}">
 {% else %}

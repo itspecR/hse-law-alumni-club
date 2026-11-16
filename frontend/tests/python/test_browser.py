@@ -136,7 +136,8 @@ def site():
         if path.startswith(("/me", "/admin", "/auth/admin-session")) and not request.headers.get("authorization"):
             return httpx.Response(401, json={"error": "Войдите в кабинет"})
         if request.method != "GET":
-            body = json.loads(request.content) if request.content else {}
+            multipart = request.headers.get("content-type", "").startswith("multipart/")
+            body = {"file": True} if multipart else json.loads(request.content) if request.content else {}
             writes.append({"path": path, "method": request.method, "body": body, "headers": dict(request.headers)})
             if path == "/cart":
                 line = PRODUCT if body.get("type") == "merch" else PROGRAM
@@ -182,6 +183,10 @@ def site():
                 return httpx.Response(200, json=records.get("donation_reply", reply))
             if path == "/admin/portfolio" and request.method == "POST":
                 return httpx.Response(200, json={"ok": True, "id": "club-new", "slug": "club-new"})
+            if path == "/admin/media" and request.method == "POST":
+                return httpx.Response(201, json={"id": UPLOADED_PHOTO, "filename": "photo.png", "type": "image/png"})
+            if path == "/admin/trainers" and request.method == "POST":
+                return httpx.Response(200, json={"ok": True, "id": "trainer-new"})
             if path.endswith("/applications") and records.get("application_failure"):
                 return httpx.Response(503, json={"error": "Временно недоступно"})
             if path.endswith("/applications"):
@@ -3412,6 +3417,63 @@ OFFICE_CAMPAIGN = {
     "raised": 0,
     "percent": 0,
 }
+
+
+UPLOADED_PHOTO = "8b6f2d4e-1c3a-4f5b-9d7e-2a1b3c4d5e6f"
+PHOTO_PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+)
+
+
+def test_office_campaign_editor_adds_a_new_person_with_photo(page, site):
+    site[1]["/admin/trainers"] = TRAINERS
+    site[1]["/admin/campaigns"] = [{**OFFICE_CAMPAIGN, "trainer_ids": [], "trainer_roles": {}}]
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/campaigns?id=camp-1")
+    people = page.locator("[data-program-editor]").get_by_role("group", name="Спикеры, тренеры и ведущие")
+    people.get_by_text("Добавить нового", exact=True).click()
+    adding = people.locator("[data-new-person]")
+    adding.get_by_label("Фото").set_input_files(
+        {"name": "big.png", "mimeType": "image/png", "buffer": b"0" * 6_000_000}
+    )
+    expect(page.locator("#toast")).to_contain_text("Фото больше 5 МБ")
+    adding.get_by_label("Фото").set_input_files({"name": "doc.pdf", "mimeType": "application/pdf", "buffer": b"%PDF"})
+    expect(page.locator("#toast")).to_contain_text("JPEG, PNG или WebP")
+    adding.get_by_role("button", name="Добавить", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("Укажите ФИО")
+    adding.get_by_label("ФИО").fill("Дарья Новая")
+    adding.get_by_label("Описание").fill("Ведущая интенсива")
+    adding.get_by_label("Фото").set_input_files({"name": "photo.png", "mimeType": "image/png", "buffer": PHOTO_PNG})
+    expect(adding.locator("[data-image-preview]")).to_be_visible()
+    adding.get_by_role("button", name="Добавить", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("«Дарья Новая» добавлен в список")
+    expect(people.get_by_label("Дарья Новая", exact=True)).to_be_checked()
+    people.get_by_label("Роль: Дарья Новая").select_option("host")
+    expect(adding.get_by_label("ФИО")).to_have_value("")
+    created = [write for write in site[2] if write["path"] in ("/admin/media", "/admin/trainers")]
+    assert [write["path"] for write in created] == ["/admin/media", "/admin/trainers"]
+    assert created[1]["body"] == {
+        "fio": "Дарья Новая",
+        "bio": "Ведущая интенсива",
+        "photo": UPLOADED_PHOTO,
+        "status": "published",
+    }
+    page.locator("[data-program-editor]").get_by_role("button", name="Сохранить", exact=True).click()
+    expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
+    body = site[2][-1]["body"]
+    assert (body["trainer_ids"], body["trainer_roles"]) == (["trainer-new"], {"trainer-new": "host"})
+
+
+def test_office_trainer_photo_is_uploaded_as_a_file(page, site):
+    site[1]["/admin/trainers"] = TRAINERS
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/trainers")
+    page.locator(".office-create summary").click()
+    form = page.locator(".office-create form")
+    form.get_by_label("ФИО", exact=True).fill("Евгений Новый")
+    form.get_by_label("Фото").set_input_files({"name": "photo.png", "mimeType": "image/png", "buffer": PHOTO_PNG})
+    expect(form.locator("[data-image-preview]")).to_be_visible()
+    expect(form.locator("input[name='photo']")).to_have_value(UPLOADED_PHOTO)
 
 
 def test_office_campaign_editor_saves_a_role_for_each_person(page, site):

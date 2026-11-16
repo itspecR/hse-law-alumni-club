@@ -133,6 +133,62 @@ async function copyText(text, trigger) {
   }
 }
 
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+
+async function uploadPhoto(input) {
+  const file = input.files[0];
+  const field = input.closest("[data-image-field]");
+  if (!file) return;
+  try {
+    if (!PHOTO_TYPES.includes(file.type)) throw new Error("Подойдет фото в формате JPEG, PNG или WebP.");
+    if (file.size > PHOTO_MAX_BYTES) throw new Error("Фото больше 5 МБ. Уменьшите его и загрузите снова.");
+    const body = new FormData();
+    body.append("file", file);
+    const saved = await request("/admin/media", "POST", body);
+    const value = field.querySelector("[data-image-value]");
+    value.value = saved.id;
+    value.dispatchEvent(new Event("input", { bubbles: true }));
+    const preview = field.querySelector("[data-image-preview]");
+    preview.src = URL.createObjectURL(file);
+    preview.hidden = false;
+  } catch (error) {
+    input.value = "";
+    notice(error.message);
+  }
+}
+
+function personRow(box, id, name) {
+  const row = box.querySelector("template[data-person-row]").content.firstElementChild.cloneNode(true);
+  row.querySelector("input").value = id;
+  row.querySelector("[data-person-name]").textContent = name;
+  const role = row.querySelector("select");
+  role.name = "trainer_roles." + id;
+  role.setAttribute("aria-label", "Роль: " + name);
+  return row;
+}
+
+function clearNewPerson(box) {
+  box.querySelectorAll("[data-new-field]").forEach(field => { field.value = ""; });
+  box.querySelector("[data-image-upload]").value = "";
+  box.querySelector("[data-image-preview]").hidden = true;
+}
+
+async function addPerson(button) {
+  const box = button.closest("[data-new-person]");
+  const value = name => box.querySelector(`[data-new-field='${name}']`).value.trim();
+  if (value("fio").length < 3) throw new Error("Укажите ФИО, не короче 3 символов.");
+  const person = { fio: value("fio"), bio: value("bio") || null, photo: value("photo") || null, status: "published" };
+  const saved = await request("/admin/trainers", "POST", person);
+  const list = box.closest("fieldset").querySelector("[data-people]");
+  list.querySelector("[data-people-empty]")?.remove();
+  list.append(personRow(box, saved.id, person.fio));
+  list.dispatchEvent(new Event("input", { bubbles: true }));
+  clearNewPerson(box);
+  box.open = false;
+  notice("«" + person.fio + "» добавлен в список. Сохраните сбор, чтобы он появился на странице.");
+}
+
 function formBody(form) {
   const body = {};
   for (const input of form.elements) {
@@ -662,6 +718,7 @@ document.addEventListener("click", async event => {
     const action = target.dataset.action;
     if (action === "refresh") await refresh();
     else if (action.startsWith("module-")) moduleAction(target, action);
+    else if (action === "add-person") await addPerson(target);
     else if (action === "quote") await quotePromo(target);
     else if (action === "office-menu") {
       const open = target.getAttribute("aria-expanded") !== "true";
@@ -810,6 +867,7 @@ function choosePointsReason(select) {
 
 document.addEventListener("change", event => {
   if (event.target.matches("[data-person] input[type='checkbox']")) event.target.closest("[data-person]").querySelector("select").disabled = !event.target.checked;
+  if (event.target.matches("[data-image-upload]")) void uploadPhoto(event.target);
   if (event.target.matches("[data-points-reason]")) choosePointsReason(event.target);
   if (event.target.matches("[data-audio-rate]")) event.target.closest(".site-player").querySelector("audio").playbackRate = Number(event.target.value);
   if (event.target.matches("[data-unread-filter],[data-reading-kind]")) renderReading();

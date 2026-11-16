@@ -132,6 +132,14 @@
 .site-office .office-choices p { margin:8px 0; }
 .site-office .office-person { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:4px 16px; }
 .site-office .office-person select { width:auto; min-height:44px; }
+.site-office .office-new-person { margin-top:12px; }
+.site-office .office-new-person label { display:grid; gap:8px; align-items:start; min-height:0; margin-top:12px; }
+.site-office .office-new-person input:not([type="hidden"]), .site-office .office-new-person textarea { width:100%; height:auto; }
+.site-office .office-new-person button { margin-top:16px; }
+.site-office .office-new-person summary { min-height:44px; display:flex; align-items:center; cursor:pointer; }
+.site-office .office-image { display:grid; gap:8px; justify-items:start; }
+.site-office .office-image img { width:96px; height:96px; object-fit:cover; border-radius:50%; }
+.site-office .office-image input[type="file"] { width:100%; }
 .site-office .office-modules { grid-column:1/-1; margin:16px 0; padding:8px 16px 16px; border-radius:var(--r-sm); }
 .site-office .office-modules legend { padding:0 4px; font-size:14px; font-family:inherit; }
 .site-office .office-module { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 16px; padding:12px 0; border-bottom:1px solid var(--c-line); }
