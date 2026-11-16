@@ -38,8 +38,8 @@
 .camp-goal .camp-meter { margin-top: 32px; }
 
 .camp-numbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 36px 0 0; padding: 0; list-style: none; }
-.camp-numbers li { display: grid; gap: 8px; padding: 24px 20px; border-radius: var(--r-lg); background: var(--c-bg-raised); }
-.camp-numbers b { font: 200 clamp(44px, 5cqi, 72px)/0.9 var(--f-display); letter-spacing: -0.05em; background: linear-gradient(120deg, var(--camp-warm), var(--camp-glow)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.camp-numbers li { container-type: inline-size; display: grid; grid-template: 1fr auto / minmax(0, 1fr); gap: 8px; padding: 24px 20px; border-radius: var(--r-lg); background: var(--c-bg-raised); }
+.camp-numbers b { align-self: end; overflow-wrap: anywhere; font: 200 clamp(14px, calc(170cqi / max(var(--chars, 4), 3)), 72px)/1 var(--f-display); letter-spacing: -0.05em; background: linear-gradient(120deg, var(--camp-warm), var(--camp-glow)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .camp-numbers span { font-size: 14px; line-height: 1.3; color: var(--c-text-3); }
 
 .camp-day { display: grid; margin: 0; padding: 0; list-style: none; }
