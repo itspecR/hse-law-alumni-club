@@ -15,7 +15,10 @@ from club_web.schema import structured_data
 from club_web.seo import page_meta
 
 PUBLIC = ROOT / "public" if (ROOT / "public").exists() else ROOT.parent / "public"
-CONTENT_TYPES = {"speculation-rules.json": "application/speculationrules+json"}
+CONTENT_TYPES = {
+    "speculation-rules.json": "application/speculationrules+json",
+    "llms.txt": "text/plain; charset=utf-8",
+}
 STATIC_FILES = {
     "sw.js",
     "speculation-rules.json",

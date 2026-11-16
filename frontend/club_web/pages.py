@@ -593,15 +593,15 @@ async def cart_page(page):
     await load("cart", "/cart", {"items": [], "subtotal": 0})
 
 
-def open_answer(answer):
-    return answer if features.link_shown(answer["anchor"]) else {**answer, "anchor": ""}
+def open_answers(answers):
+    return [answer for answer in answers if features.link_shown(answer["anchor"])]
 
 
 async def support_page(page):
     data, load = page.data, page.load
     await load("support", "/support/config", {"enabled": False})
     faq = resource("faq-data.json")
-    data["faq"] = {**faq, "answers": [open_answer(answer) for answer in faq["answers"]]}
+    data["faq"] = {**faq, "answers": open_answers(faq["answers"])}
 
 
 async def give_page(page):

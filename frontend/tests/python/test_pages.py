@@ -1267,7 +1267,7 @@ async def test_portfolio_texts_follow_glossary(browser_client):
         assert re.findall(".{0,40}[ёЁ–—].{0,20}", (templates / name).read_text()) == [], name
 
 
-async def test_support_texts_follow_glossary(browser_client):
+async def test_support_texts_follow_glossary(browser_client, dpo):
     support = (await browser_client.get("/support")).text
     assert "<summary>Как вступить в клуб?</summary>" in support
     assert "<summary>Чем отличаются ПК и ПП?</summary>" in support and "<summary>Пк" not in support
