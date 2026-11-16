@@ -3,6 +3,7 @@ const LOOP_SECONDS = 12;
 const MAX_PIXEL_RATIO = 2;
 const IDLE_TIMEOUT = 2000;
 const IDLE_FALLBACK = 200;
+const SCROLL_REST = 160;
 const BODY_GRID = [70, 88];
 const BODY = 0;
 const BEAM = 2;
@@ -160,7 +161,7 @@ function animate(root, canvas, image) {
   let scene;
   try { scene = createScene(canvas, image); } catch { scene = null; }
   if (!scene) return;
-  let seconds = 0, last = 0, frame = 0, visible = true;
+  let seconds = 0, last = 0, frame = 0, rest = 0, visible = true, scrolling = false;
   const resize = () => { if (fit(canvas)) scene.draw(seconds); };
   const sizer = new ResizeObserver(resize);
   const unwatchRatio = watchPixelRatio(resize);
@@ -174,16 +175,26 @@ function animate(root, canvas, image) {
   }
   function update() {
     if (!root.isConnected) { stop(); return; }
-    const moving = visible && motionAllowed() && !document.hidden;
+    const moving = visible && !scrolling && motionAllowed() && !document.hidden;
     root.classList.toggle("is-live", motionAllowed());
     root.classList.toggle("is-moving", moving);
     cancelAnimationFrame(frame);
     last = 0;
     if (moving) frame = requestAnimationFrame(tick);
   }
+  function settle() { scrolling = false; update(); }
+  function scrolled() {
+    clearTimeout(rest);
+    rest = setTimeout(settle, SCROLL_REST);
+    if (scrolling) return;
+    scrolling = true;
+    update();
+  }
   function stop() {
     running.delete(root);
     cancelAnimationFrame(frame);
+    clearTimeout(rest);
+    removeEventListener("scroll", scrolled);
     sizer.disconnect();
     unwatchRatio();
     watcher.disconnect();
@@ -200,6 +211,7 @@ function animate(root, canvas, image) {
   reduce.addEventListener("change", update);
   document.addEventListener("visibilitychange", update);
   document.addEventListener("club-vision-change", update);
+  addEventListener("scroll", scrolled, { passive: true });
   scene.draw(seconds);
   update();
 }
