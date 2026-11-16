@@ -18,6 +18,13 @@ FACULTY_NEWS = {
     "cover": "11111111-2222-3333-4444-555555555555",
 }
 DETAILED_EVENT = {**EVENT, "description": "Встреча выпускников разных лет", "location": "Москва, Покровский бульвар"}
+DPO_QUESTIONS = (
+    "Какой документ выдают после программы ДПО?",
+    "Чем отличаются ПК и ПП?",
+    "В каком формате проходят программы ДПО?",
+    "Где найти программы ДПО?",
+)
+OPEN_QUESTIONS = 8
 ENDPOINTS = {
     "/pages/home": {"blocks": {}},
     "/news": [NEWS],
@@ -201,7 +208,7 @@ async def test_page_fragments_are_kept_out_of_search():
 async def test_llms_file_describes_the_club_and_its_sections():
     async with site() as client:
         response = await client.get("/llms.txt")
-    assert response.status_code == 200 and response.headers["content-type"].startswith("text/plain")
+    assert response.status_code == 200 and response.headers["content-type"] == "text/plain; charset=utf-8"
     text = response.text
     assert text.startswith("# " + SITE_NAME + "\n") and PAGES["/"][1] in text
     for path in ("/join", "/portfolio", "/events", "/news", "/podcasts", "/merch", "/give", "/support", "/documents"):
@@ -246,17 +253,21 @@ async def test_home_mentions_dpo_when_the_section_is_open(dpo):
     assert "Программы клуба, ДПО по&nbsp;цене выпускника, события и&nbsp;подкасты.</p>" in page
 
 
-async def test_support_answers_do_not_link_to_closed_sections():
+async def test_support_hides_answers_about_closed_sections():
     async with site() as client:
         page = (await client.get("/support")).text
-    assert "Где найти программы ДПО?" in page and 'href="/dpo"' not in page
+    for question in DPO_QUESTIONS:
+        assert question not in page
+    assert 'href="/dpo"' not in page and page.count('"@type": "Question"') == OPEN_QUESTIONS
     assert '<a href="/join">Открыть раздел →</a>' in page
 
 
-async def test_support_answers_link_to_dpo_when_the_section_is_open(dpo):
+async def test_support_shows_dpo_answers_when_the_section_is_open(dpo):
     async with site() as client:
         page = (await client.get("/support")).text
-    assert '<a href="/dpo">Открыть раздел →</a>' in page
+    for question in DPO_QUESTIONS:
+        assert "<summary>" + question + "</summary>" in page
+    assert page.count('<a href="/dpo">Открыть раздел →</a>') == len(DPO_QUESTIONS)
 
 
 async def test_news_dates_are_machine_readable():
