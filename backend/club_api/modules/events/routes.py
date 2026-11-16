@@ -18,6 +18,7 @@ from club_api.core.models import (
     partial,
     query_page,
     record_key,
+    touched,
     web_url,
     with_slug,
 )
@@ -332,7 +333,7 @@ async def create_event(request: HttpRequest):
     admin = await require_admin(request)
     body = parse_body(request, EventBody)
     store = request.services.store
-    row = await store.create("events", await with_slug(store, "events", body.model_dump()))
+    row = await store.create("events", touched(await with_slug(store, "events", body.model_dump())))
     await audit(
         request,
         "event.create",
@@ -351,7 +352,7 @@ async def patch_event(request: HttpRequest, id: str):
     body = parse_body(request, EventPatch)
     store = request.services.store
     data = await with_slug(store, "events", body.model_dump(exclude_unset=True), guid(id))
-    await store.update("events", data, id=guid(id))
+    await store.update("events", touched(data), id=guid(id))
     await audit(request, "event.patch", actor="admin:" + admin["userId"], subject="event:" + id, detail=data)
     return {"ok": True}
 

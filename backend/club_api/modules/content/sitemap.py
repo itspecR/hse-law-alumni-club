@@ -44,6 +44,7 @@ SECTIONS = (
     ("/podcasts", "podcasts", "0.7", "weekly"),
     ("/merch", "products", "0.7", "monthly"),
 )
+DAY_LENGTH = 10
 RECORD_PRIORITY = "0.6"
 RECORD_FREQUENCY = "monthly"
 
@@ -63,12 +64,12 @@ async def robots(request: HttpRequest):
 
 async def records(store):
     news, portfolio, events, podcasts, products, campaigns = await asyncio.gather(
-        store.read("news", filters=PUBLISHED, fields=("slug", "published_at", "origin"), limit=-1),
-        store.read("programs", filters=PUBLISHED_PORTFOLIO, fields=("slug",), limit=-1),
-        store.read("events", filters=SHOWN_EVENTS, fields=("id", "slug"), limit=-1),
-        store.read("podcasts", filters=PUBLISHED, fields=("id", "slug"), limit=-1),
-        store.read("products", filters=PUBLISHED, fields=("slug",), limit=-1),
-        store.read(CAMPAIGN_TABLE, filters=PUBLISHED, fields=("slug",), limit=-1),
+        store.read("news", filters=PUBLISHED, fields=("slug", "published_at", "origin", "updated_at"), limit=-1),
+        store.read("programs", filters=PUBLISHED_PORTFOLIO, fields=("slug", "updated_at"), limit=-1),
+        store.read("events", filters=SHOWN_EVENTS, fields=("id", "slug", "updated_at"), limit=-1),
+        store.read("podcasts", filters=PUBLISHED, fields=("id", "slug", "updated_at"), limit=-1),
+        store.read("products", filters=PUBLISHED, fields=("slug", "updated_at"), limit=-1),
+        store.read(CAMPAIGN_TABLE, filters=PUBLISHED, fields=("slug", "updated_at"), limit=-1),
     )
     return {
         "news": news,
@@ -84,18 +85,24 @@ def address(item):
     return str(item.get("slug") or item["id"])
 
 
+def changed(item):
+    return str(item.get("updated_at") or item.get("published_at") or "")[:DAY_LENGTH]
+
+
 def record_urls(found):
     own_news = [item for item in found["news"] if item.get("origin") != FACULTY_ORIGIN]
-    dated = [("/news/" + quote(item["slug"], safe=""), (item["published_at"] or "")[:10]) for item in own_news]
-    plain = [
-        *("/portfolio/" + quote(item["slug"], safe="") for item in found["portfolio"]),
-        *("/events/" + quote(address(item), safe="") for item in found["events"]),
-        *("/podcasts/" + quote(address(item), safe="") for item in found["podcasts"]),
-        *("/merch/" + quote(item["slug"], safe="") for item in found["products"]),
-        *("/give/" + quote(item["slug"], safe="") for item in found["campaigns"]),
-    ]
-    return [(path, RECORD_PRIORITY, RECORD_FREQUENCY, modified) for path, modified in dated] + [
-        (path, RECORD_PRIORITY, RECORD_FREQUENCY, "") for path in plain
+    sections = (
+        ("/news/", own_news),
+        ("/portfolio/", found["portfolio"]),
+        ("/events/", found["events"]),
+        ("/podcasts/", found["podcasts"]),
+        ("/merch/", found["products"]),
+        ("/give/", found["campaigns"]),
+    )
+    return [
+        (prefix + quote(address(item), safe=""), RECORD_PRIORITY, RECORD_FREQUENCY, changed(item))
+        for prefix, items in sections
+        for item in items
     ]
 
 

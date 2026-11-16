@@ -316,6 +316,7 @@ class Campaigns(models.Model):
     invite_body = models.TextField(null=True)
     cover = models.CharField(max_length=255, null=True)
     created_at = models.DateTimeField(db_default=Now())
+    updated_at = models.DateTimeField(null=True)
 
     class Meta:
         db_table = "club_campaigns"
@@ -617,6 +618,7 @@ class Events(models.Model):
     status = models.CharField(max_length=255, null=True, db_default="published")
     created_at = models.DateTimeField(null=True, db_default=Now())
     slug = models.CharField(max_length=255, unique=True, null=True)
+    updated_at = models.DateTimeField(null=True)
 
     class Meta:
         db_table = "events"
@@ -646,6 +648,7 @@ class News(models.Model):
     status = models.CharField(max_length=255, null=True, db_default="draft")
     cover = models.CharField(max_length=500, null=True)
     origin = models.CharField(max_length=32, db_default="club")
+    updated_at = models.DateTimeField(null=True)
 
     class Meta:
         db_table = "news"
@@ -760,6 +763,7 @@ class Podcasts(models.Model):
     status = models.CharField(max_length=255, null=True, db_default="draft")
     created_at = models.DateTimeField(null=True, db_default=Now())
     slug = models.CharField(max_length=255, unique=True, null=True)
+    updated_at = models.DateTimeField(null=True)
 
     class Meta:
         db_table = "podcasts"
@@ -801,6 +805,7 @@ class Products(models.Model):
     stock = models.IntegerField(null=True, db_default=0)
     description = models.TextField(null=True)
     status = models.CharField(max_length=255, null=True, db_default="draft")
+    updated_at = models.DateTimeField(null=True)
 
     class Meta:
         db_table = "products"
@@ -860,6 +865,7 @@ class Programs(models.Model):
     competencies = models.JSONField(null=True)
     communication = models.JSONField(null=True)
     cover_source = models.CharField(max_length=500, null=True)
+    updated_at = models.DateTimeField(null=True)
 
     class Meta:
         db_table = "programs"

@@ -59,6 +59,10 @@ def guid(value):
         raise ApiError(400, "Некорректный идентификатор.") from None
 
 
+def touched(data):
+    return {**data, "updated_at": datetime.now(UTC)}
+
+
 def readable(value):
     return isinstance(value, str) and len(value) <= SLUG_LIMIT and bool(SLUG_FORMAT.fullmatch(value))
 
