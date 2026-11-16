@@ -30,6 +30,7 @@
 .lux-split { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 48px; align-items: end; }
 .lux-split .lux-lede { margin-top: 0; }
 .lux-split .lux-lede + .lux-lede { margin-top: 16px; }
+.lux-lede > p { margin: 0; }
 .lux-frame { overflow: clip; border-radius: var(--r-tile); background: var(--c-bg-sunken); }
 .lux-frame img { display: block; width: 100%; height: auto; }
 
