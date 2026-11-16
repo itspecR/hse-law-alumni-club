@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Клуб выпускников факультета права НИУ ВШЭ",
   "short_name": "Клуб выпускников",
-  "description": "Сообщество выпускников факультета права НИУ ВШЭ. Встречи, программы клуба, подкасты и личный кабинет выпускника.",
+  "description": "Сообщество выпускников факультета права НИУ ВШЭ. Встречи, тренинги клуба, подкасты и личный кабинет выпускника.",
   "lang": "ru",
   "dir": "ltr",
   "start_url": "./?source=pwa",
@@ -22,7 +22,7 @@
   ],
   "shortcuts": [
     { "name": "Личный кабинет", "short_name": "Кабинет", "url": "./lk?source=pwa", "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }] },
-    { "name": "Программы клуба", "short_name": "Программы", "url": "./portfolio?source=pwa", "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }] },
+    { "name": "Тренинги", "short_name": "Тренинги", "url": "./portfolio?source=pwa", "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }] },
     { "name": "Подкасты", "short_name": "Подкасты", "url": "./podcasts?source=pwa", "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }] },
     { "name": "Мерч", "short_name": "Мерч", "url": "./merch?source=pwa", "icons": [{ "src": "./icon-192.png", "sizes": "192x192" }] }
   ]

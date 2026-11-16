@@ -509,7 +509,7 @@ async def test_failed_home_data_is_not_saved_offline():
     assert response.status_code == 200
     assert response.headers.get("X-Club-Offline") is None
     assert response.headers["cache-control"] == "no-store"
-    assert "Программы не&nbsp;загрузились" in response.text
+    assert "Тренинги не&nbsp;загрузились" in response.text
     assert "Программ в&nbsp;каталоге" not in response.text
     assert "data-starts-empty" not in response.text
 
@@ -543,7 +543,9 @@ async def test_home_hero_line_comes_from_the_office():
             transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
         ) as client:
             page = (await client.get("/")).text
-    assert '<p class="lux-hero__lede">Строка &lt;из&gt; панели</p>' in page and "тренинги" not in page
+    assert (
+        '<p class="lux-hero__lede">Строка &lt;из&gt; панели</p>' in page and "тренинги и&nbsp;курсы клуба" not in page
+    )
 
 
 async def test_home_uses_only_sourced_photos(browser_client):
@@ -554,7 +556,7 @@ async def test_home_uses_only_sourced_photos(browser_client):
 
 async def test_home_texts_follow_glossary(browser_client, dpo):
     page = (await browser_client.get("/")).text
-    assert '<a href="/portfolio" class="foc lux-more">Программы клуба' in page
+    assert '<a href="/portfolio" class="foc lux-more">Тренинги <span' in page
     assert '<a href="/events" class="foc lux-more">Все события' in page
     assert (
         '<p class="lux-hero__lede">Встречи выпускников, тренинги и&nbsp;курсы клуба, подкасты и&nbsp;новости факультета.</p>'
@@ -565,7 +567,7 @@ async def test_home_texts_follow_glossary(browser_client, dpo):
         in page
     )
     assert "<h3>Проверка</h3><p>Мы подтверждаем статус выпускника факультета.</p>" in page
-    assert "Программы клуба, ДПО по&nbsp;цене выпускника, события и&nbsp;подкасты.</p>" in page
+    assert "Тренинги, ДПО по&nbsp;цене выпускника, события и&nbsp;подкасты.</p>" in page
     assert "Скидка 15% с&nbsp;уровня «Знаток», от&nbsp;500&nbsp;баллов. Личная скидка" in page
     assert "Амбассадор" not in page
     home = (Path(club_web.__file__).parent / "templates/home.html").read_text()
@@ -589,23 +591,24 @@ async def test_home_shows_club_programs_after_join_steps(browser_client, dpo):
     page = (await browser_client.get("/")).text
     assert page.index('id="join-steps"') < page.index('id="club-programs"') < page.index('id="dpo-prices"')
     block = page[page.index('id="club-programs"') : page.index('id="dpo-prices"')]
-    assert '<h2 class="lux-h2 lux-reveal" id="lux-portfolio-title">Программы клуба.</h2>' in block
-    assert "Курсы дополнительного образования, которые проводит клуб.</p>" in block
+    assert '<h2 class="lux-h2 lux-reveal" id="lux-portfolio-title">Тренинги.</h2>' in block
+    assert '<p class="lux-lede">Тренинги по&nbsp;развитию навыков.</p>' in block
+    assert "Наши тренинги проходят как практикумы. Участники отрабатывают реальные кейсы" in block
     assert '<h3><a href="/portfolio/club-one">Переговоры для юристов</a></h3>' in block
     assert "Набор открыт · старт 1 декабря 2026" in block and "<dd>Смешанный</dd>" in block
     assert "45\u00a0000 ₽" in block and "Цена выпускника" not in block
-    assert '<a href="/portfolio" class="foc lux-more">Все программы клуба <span' in block
+    assert '<a href="/portfolio" class="foc lux-more">Все тренинги <span' in block
     assert '<h2><a href="/portfolio/club-one">' in (await browser_client.get("/portfolio")).text
 
 
 @pytest.mark.parametrize(
     "status,payload,text,link",
     [
-        (200, [], '<p class="lux-portfolio__note">Программы скоро появятся.</p>', False),
+        (200, [], '<p class="lux-portfolio__note">Тренинги скоро появятся.</p>', False),
         (
             503,
             {"error": "Сервис временно недоступен"},
-            "Программы не&nbsp;загрузились. Обновите страницу или откройте портфель программ.",
+            "Тренинги не&nbsp;загрузились. Обновите страницу или откройте раздел тренингов.",
             True,
         ),
     ],
@@ -622,7 +625,7 @@ async def test_home_club_programs_empty_and_failed_states(status, payload, text,
         ) as client:
             page = (await client.get("/")).text
     assert text in page and "site-catalog-card" not in page
-    assert ('class="foc lux-more">Все программы клуба' in page) is link
+    assert ('class="foc lux-more">Все тренинги' in page) is link
 
 
 async def test_full_club_name_and_merch_text(browser_client):
@@ -637,7 +640,7 @@ async def test_hidden_changes_section_shows_stub_and_leaves_menus_and_search(bro
     home = (await browser_client.get("/")).text
     assert 'href="/changes"' not in home and "Изменения в&nbsp;праве</h3>" in home
     assert '<p class="lux-tile__lede">Раздел в&nbsp;разработке.</p>' in home
-    assert "<p>Программы клуба и ДПО, события, подкасты и новости.</p>" in home
+    assert "<p>Тренинги, программы ДПО, события, подкасты и новости.</p>" in home
     for path in ("/changes", "/changes/tg-18"):
         page = await browser_client.get(path)
         assert page.status_code == 200 and "<h1>Изменения в праве</h1>\n<p>Раздел в разработке.</p>" in page.text
@@ -650,7 +653,7 @@ async def test_hidden_changes_section_shows_stub_and_leaves_menus_and_search(bro
 async def test_changes_section_returns_with_one_switch(changes_section, browser_client, dpo):
     home = (await browser_client.get("/")).text
     assert 'href="/changes"' in home and "Все изменения" in home
-    assert "<p>Программы клуба и ДПО, события, подкасты и изменения в праве.</p>" in home
+    assert "<p>Тренинги, программы ДПО, события, подкасты и изменения в праве.</p>" in home
     assert "Раздел в разработке" not in (await browser_client.get("/changes")).text
 
 
@@ -748,8 +751,8 @@ async def test_unavailable_changes_source_keeps_saved_materials_and_status(
 async def test_global_search_finds_club_programs_first(browser_client):
     response = await browser_client.get("/search", params={"q": "переговоры"})
     assert 'href="/portfolio/club-one"' in response.text
-    assert response.text.index("Портфель программ</h2>") < response.text.index('href="/portfolio/club-one"')
-    assert "Портфель программ</h2>" not in (await browser_client.get("/search", params={"q": "нет такого"})).text
+    assert response.text.index("Тренинги</h2>") < response.text.index('href="/portfolio/club-one"')
+    assert "Тренинги</h2>" not in (await browser_client.get("/search", params={"q": "нет такого"})).text
 
 
 async def test_search_survives_unexpected_portfolio_payload(monkeypatch):
@@ -1294,7 +1297,7 @@ async def test_join_cabinet_and_profile_texts_follow_glossary(browser_client):
 async def test_portfolio_texts_follow_glossary(browser_client):
     listing = (await browser_client.get("/portfolio")).text
     card = (await browser_client.get("/portfolio/club-one")).text
-    assert "<p>Программы дополнительного образования, которые проводит клуб.</p>" in listing
+    assert "<p>Наши тренинги проходят как практикумы. Участники отрабатывают реальные кейсы" in listing
     assert '<span class="lux-sr"> о программе «' in listing
     assert "Промокод на скидку вводится в заявке." in card and "из двух скидок" not in card
     assert "Платить на сайте не нужно. Мы свяжемся с вами" in card
@@ -1408,7 +1411,7 @@ def test_portfolio_price_without_amount_is_pending():
 
 
 async def test_portfolio_leads_the_navigation():
-    assert NAV[0] == ("/portfolio", "Портфель программ")
+    assert NAV[0] == ("/portfolio", "Тренинги")
 
 
 async def profile_page(profile):
@@ -2120,7 +2123,7 @@ async def test_closed_dpo_section_leads_home_and_leaves_links(browser_client):
     for path in ("/", "/cart", "/search?q=право"):
         page = (await browser_client.get(path)).text
         assert 'href="/dpo"' not in page and 'id="dpo-prices"' not in page
-    assert "Программы клуба, события" in (await browser_client.get("/")).text
+    assert "Тренинги, события" in (await browser_client.get("/")).text
 
 
 async def test_open_mini_app_page_is_served(browser_client, mini_app):

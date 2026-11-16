@@ -57,7 +57,7 @@ PUBLIC_PAGES = {
     "/": ("home.html", "Клуб выпускников факультета права"),
     "/tg": ("mini.html", "Клуб выпускников"),
     "/dpo": ("catalog.html", "Программы ДПО"),
-    "/portfolio": ("portfolio.html", "Портфель программ"),
+    "/portfolio": ("portfolio.html", "Тренинги по развитию навыков"),
     "/merch": ("catalog.html", "Мерч клуба"),
     "/events": ("events.html", "События клуба"),
     "/news": ("news.html", "Новости"),
@@ -83,7 +83,7 @@ PUBLIC_PAGES = {
     "/lk/profile": ("profile.html", "Профиль"),
 }
 NAV = [
-    ("/portfolio", "Портфель программ"),
+    ("/portfolio", "Тренинги"),
     ("/dpo", "ДПО"),
     ("/events", "События"),
     ("/news", "Новости"),

@@ -4,14 +4,14 @@
 <main id="main" class="site-container catalog-page portfolio-page">
 <header class="site-masthead">
 <h1>{{ title }}</h1>
-<p>Программы дополнительного образования, которые проводит клуб.</p>
+<p>{% include 'trainings-lede.html' %}</p>
 </header>
-{% if items %}<p role="status">Программ: {{ items|length }}</p>{% endif %}
+{% if items %}<p role="status">Тренингов: {{ items|length }}</p>{% endif %}
 <div class="site-catalog">
 {% for item in items %}
 {{ program_card(item) }}
 {% endfor %}
 </div>
-{% if not items and not load_errors %}{{ empty('Программы клуба пока не опубликованы.') }}{% endif %}
+{% if not items and not load_errors %}{{ empty('Тренинги пока не опубликованы.') }}{% endif %}
 </main>
 {% endblock %}

@@ -1,3 +1,4 @@
+import json
 import re
 from contextlib import asynccontextmanager
 
@@ -244,13 +245,13 @@ async def test_home_heading_names_the_club_and_skips_hidden_dpo():
     heading = re.search(r"<h1[^>]*>(.*?)</h1>", page, re.S)[1]
     assert '<span class="lux-hero__name">Клуб выпускников факультета права НИУ&nbsp;ВШЭ</span>' in heading
     assert "Свои" in heading and page.count("<h1") == 1
-    assert '<p class="lux-hero__next">Программы клуба, события и&nbsp;подкасты.</p>' in page
+    assert '<p class="lux-hero__next">Тренинги, события и&nbsp;подкасты.</p>' in page
 
 
 async def test_home_mentions_dpo_when_the_section_is_open(dpo):
     async with site(**{"/programs": []}) as client:
         page = (await client.get("/")).text
-    assert "Программы клуба, ДПО по&nbsp;цене выпускника, события и&nbsp;подкасты.</p>" in page
+    assert "Тренинги, ДПО по&nbsp;цене выпускника, события и&nbsp;подкасты.</p>" in page
 
 
 async def test_support_hides_answers_about_closed_sections():
@@ -423,3 +424,27 @@ async def test_about_page_takes_texts_from_the_office():
     assert "<b>абзац</b>" not in page and ABOUT_START not in page
     assert meta["title"] == "Клуб в поиске"
     assert meta["description"].startswith("Клуб объединяет выпускников факультета права НИУ ВШЭ.")
+
+
+async def test_section_of_club_programs_is_called_trainings():
+    async with site() as client:
+        listing = await client.get("/portfolio")
+        home = (await client.get("/")).text
+        program = (await client.get("/portfolio/club-one")).text
+    page, meta = listing.text, head(listing.text)
+    assert "<h1>Тренинги по развитию навыков</h1>" in page and '<a href="/portfolio"' in home
+    assert meta["title"] == "Тренинги по развитию навыков" + " - " + SITE_NAME
+    assert meta["description"].startswith("Тренинги по развитию навыков от клуба выпускников факультета права НИУ ВШЭ.")
+    crumbs = json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>', program, re.S)[1])
+    names = [item["name"] for node in crumbs["@graph"] for item in node.get("itemListElement", [])]
+    assert "</span> Тренинги</a>" in program and names[:2] == ["Главная", "Тренинги"]
+    for old in ("Портфель программ", "Программы клуба"):
+        assert old not in page and old not in home and old not in program
+
+
+async def test_home_tells_about_yearly_meetings():
+    async with site() as client:
+        home = (await client.get("/")).text
+    block = home.split('id="lux-meet-title"')[1].split("</section>")[0]
+    first = '<p class="lux-lede">Каждый год клуб собирает выпускников разных лет на&nbsp;традиционную встречу.</p>'
+    assert first in block and block.index(first) < block.index("27&nbsp;февраля 2026&nbsp;года")
