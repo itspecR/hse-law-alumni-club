@@ -3200,6 +3200,41 @@ SITE_CAMPAIGN = {
 }
 
 
+LONG_HIGHLIGHTS = [
+    {"value": "80 %", "label": "практика"},
+    {"value": "15 человек", "label": "группа"},
+    {"value": "100 %", "label": "эффективность"},
+    {"value": "круглосуточно", "label": "поддержка"},
+]
+HIGHLIGHT_BOXES = """() => [...document.querySelectorAll('.camp-numbers li')].map(card => {
+  const value = card.querySelector('b');
+  const inner = card.getBoundingClientRect().right - parseFloat(getComputedStyle(card).paddingRight);
+  return {
+    text: value.textContent,
+    fits: value.scrollWidth <= value.clientWidth + 1 && value.getBoundingClientRect().right <= inner + 1,
+    size: parseFloat(getComputedStyle(value).fontSize),
+    lines: Math.round(value.getBoundingClientRect().height / parseFloat(getComputedStyle(value).fontSize)),
+  };
+})"""
+
+
+@pytest.mark.parametrize(("width", "lines"), [(390, 2), (807, 1), (1440, 1)])
+def test_campaign_numbers_stay_inside_their_cards(chromium, site, width, lines):
+    site[1]["/campaigns/intensive"] = {**SITE_CAMPAIGN, "about": "О встрече", "highlights": LONG_HIGHLIGHTS}
+    context = chromium.new_context(base_url=site[0], viewport={"width": width, "height": 900})
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+    page = context.new_page()
+    page.goto("/give/intensive")
+    page.locator(".camp-numbers").scroll_into_view_if_needed()
+    boxes = page.evaluate(HIGHLIGHT_BOXES)
+    assert [box["text"] for box in boxes] == [item["value"] for item in LONG_HIGHLIGHTS]
+    assert all(box["fits"] for box in boxes), boxes
+    assert max(box["lines"] for box in boxes) <= lines
+    assert boxes[0]["size"] > boxes[1]["size"] >= boxes[3]["size"]
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    context.close()
+
+
 @pytest.mark.parametrize("width", [390, 1440])
 def test_campaign_page_requires_gift_confirmation_and_sends_campaign(chromium, site, width):
     site[1]["/campaigns/intensive"] = SITE_CAMPAIGN

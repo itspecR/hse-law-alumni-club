@@ -41,7 +41,7 @@
 {% if campaign.about %}<p class="camp-text lux-reveal">{{ campaign.about }}</p>{% endif %}
 {% if campaign.highlights %}
 <ul class="camp-numbers">
-{% for number in campaign.highlights %}<li class="lux-reveal" style="--d:{{ loop.index }}"><b>{{ number.value }}</b><span>{{ number.label }}</span></li>{% endfor %}
+{% for number in campaign.highlights %}<li class="lux-reveal" style="--d:{{ loop.index }}"><b style="--chars:{{ number.value|length }}">{{ number.value }}</b><span>{{ number.label }}</span></li>{% endfor %}
 </ul>
 {% endif %}
 </section>
