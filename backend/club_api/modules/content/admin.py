@@ -6,7 +6,7 @@ from django.urls import path
 from pydantic import Field, field_validator
 
 from club_api.core.errors import ApiError
-from club_api.core.models import club_moment, guid, partial, web_url, with_slug
+from club_api.core.models import club_moment, guid, partial, touched, web_url, with_slug
 from club_api.core.schemas import Body
 from club_api.core.views import api_view, endpoint, parse_body
 from club_api.modules.auth.service import require_admin
@@ -15,6 +15,7 @@ from club_api.observability.audit import audit
 
 HERO_SUBTITLE_LIMIT = 200
 SLUG_TABLES = ("programs", "products", "news", "podcasts")
+DATED_TABLES = (*SLUG_TABLES, "club_campaigns")
 DPO_ADMIN_FIELDS = (
     "id",
     "slug",
@@ -75,6 +76,8 @@ async def write_content(state, table, data, *, id=None, connection=None):
     data = dict(data)
     if table in SLUG_TABLES:
         data = await with_slug(state.store, table, data, id, connection)
+    if table in DATED_TABLES:
+        data = touched(data)
     if table == "news" and data.get("published_at") is None:
         data.pop("published_at", None)
     if table == "programs" and "start" in data:
