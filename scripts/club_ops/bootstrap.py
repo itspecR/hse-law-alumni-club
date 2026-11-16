@@ -14,6 +14,7 @@ from club_ops.campaigns import opening_campaign
 SITE_TITLE = "Клуб выпускников факультета права НИУ ВШЭ"
 SITE_DESCRIPTION = "Клуб выпускников факультета права НИУ ВШЭ: программы ДПО, мерч, подкасты и кабинет участника."
 SITE_LANGUAGE = "ru-RU"
+ABOUT_PAGE = {"slug": "about", "title": "О клубе", "status": "published"}
 HOME_HERO = {
     "badge": "Клуб выпускников факультета права",
     "title_pre": "Свои люди",
@@ -205,6 +206,7 @@ async def bootstrap(connection, config):
                     connection=connection,
                 )
             result["createdHome"] = True
+        result["createdRows"] += await seed_missing(connection, store, "pages", "slug", [ABOUT_PAGE])
         result["createdRows"] += await seed_missing(connection, store, "club_campaigns", "slug", [opening_campaign()])
         await ensure_site(connection, config.public_url)
         if config.seed_demo:

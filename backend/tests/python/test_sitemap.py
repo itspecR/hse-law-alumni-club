@@ -14,7 +14,7 @@ def paths(found):
 
 
 def test_empty_site_lists_only_pages_that_always_have_text():
-    assert paths(EMPTY) == ["/", "/join", "/give", "/support", "/documents", "/requisites"]
+    assert paths(EMPTY) == ["/", "/join", "/about", "/give", "/support", "/documents", "/requisites"]
 
 
 def test_records_bring_their_section_and_own_pages():

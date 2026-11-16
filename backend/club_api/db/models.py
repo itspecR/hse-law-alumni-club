@@ -722,6 +722,9 @@ class Pages(models.Model):
     title = models.CharField(max_length=255, null=True)
     status = models.CharField(max_length=255, null=True, db_default="draft")
     sort = models.IntegerField(null=True)
+    body = models.TextField(null=True)
+    meta_title = models.CharField(max_length=255, null=True)
+    meta_description = models.CharField(max_length=300, null=True)
 
     class Meta:
         db_table = "pages"

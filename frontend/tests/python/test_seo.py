@@ -380,3 +380,46 @@ async def test_giving_is_told_as_gratitude_and_growth():
         "Способ поблагодарить факультет права НИУ ВШЭ и поучаствовать в его развитии. "
         "Пожертвования помогают ему оставаться ведущим центром юридического образования."
     )
+
+
+ABOUT_TITLE = "О клубе - Клуб выпускников факультета права НИУ ВШЭ"
+ABOUT_START = "<p>Клуб выпускников факультета права НИУ ВШЭ объединяет выпускников в сообщество"
+
+
+async def test_about_page_shows_the_approved_text_until_the_office_changes_it():
+    async with site() as client:
+        response = await client.get("/about")
+        home = (await client.get("/")).text
+        guide = (await client.get("/llms.txt")).text
+    page, meta = response.text, head(response.text)
+    assert response.status_code == 200 and "<h1>О клубе</h1>" in page and ABOUT_START in page
+    assert '<a href="mailto:club@pravohse.ru"' in page and "оставаться ведущим центром юридического образования" in page
+    for removed in ("подкаст", "формы обучения", "стажировки"):
+        assert removed not in page.split('<main id="main"')[1].split("</main>")[0]
+    assert meta["title"] == ABOUT_TITLE and meta["canonical"] == SITE + "/about" and meta["robots"] == "index,follow"
+    assert meta["description"].startswith("Клуб объединяет выпускников факультета права НИУ ВШЭ.")
+    assert '"@type": "AboutPage"' in page and '<a href="/about">О клубе</a>' in home
+    assert "](https://pravohse.ru/about)" in guide
+
+
+@pytest.mark.parametrize("reply", [[], None, "текст"])
+async def test_about_page_survives_an_unexpected_reply(reply):
+    async with site(**{"/pages/about": reply}) as client:
+        response = await client.get("/about")
+    assert response.status_code == 200 and ABOUT_START in response.text
+
+
+async def test_about_page_takes_texts_from_the_office():
+    saved = {
+        "title": "Наш клуб",
+        "body": "Первый абзац.\n\n## Раздел\n\nВторой <b>абзац</b>.",
+        "meta_title": "Клуб в поиске",
+        "meta_description": "",
+    }
+    async with site(**{"/pages/about": saved}) as client:
+        page = (await client.get("/about")).text
+    meta = head(page)
+    assert "<h1>Наш клуб</h1>" in page and "<p>Первый абзац.</p>" in page and "<h2>Раздел</h2>" in page
+    assert "<b>абзац</b>" not in page and ABOUT_START not in page
+    assert meta["title"] == "Клуб в поиске"
+    assert meta["description"].startswith("Клуб объединяет выпускников факультета права НИУ ВШЭ.")

@@ -11,9 +11,13 @@ from club_api.core.schemas import Body
 from club_api.core.views import api_view, endpoint, parse_body
 from club_api.modules.auth.service import require_admin
 from club_api.modules.catalog.scope import DPO_PROGRAMS
+from club_api.modules.content.routes import PAGE_TEXTS
 from club_api.observability.audit import audit
 
 HERO_SUBTITLE_LIMIT = 200
+PAGE_TITLE_LIMIT = 255
+PAGE_BODY_LIMIT = 20000
+PAGE_META_DESCRIPTION_LIMIT = 300
 SLUG_TABLES = ("programs", "products", "news", "podcasts")
 DATED_TABLES = (*SLUG_TABLES, "club_campaigns")
 DPO_ADMIN_FIELDS = (
@@ -257,13 +261,25 @@ class CtaBody(Body):
 class PageBody(Body):
     hero: HeroBody = None
     cta: CtaBody = None
+    title: str = Field(default=None, max_length=PAGE_TITLE_LIMIT)
+    body: str = Field(default=None, max_length=PAGE_BODY_LIMIT)
+    meta_title: str = Field(default=None, max_length=PAGE_TITLE_LIMIT)
+    meta_description: str = Field(default=None, max_length=PAGE_META_DESCRIPTION_LIMIT)
 
 
 async def page(store, slug, *, connection=None):
     rows = await store.read(
         "pages",
         filters={"slug": {"_eq": slug}},
-        fields=("id", "slug", "title", "blocks.collection", "blocks.item:block_hero.*", "blocks.item:block_cta.*"),
+        fields=(
+            "id",
+            "slug",
+            "title",
+            *PAGE_TEXTS,
+            "blocks.collection",
+            "blocks.item:block_hero.*",
+            "blocks.item:block_cta.*",
+        ),
         limit=1,
         connection=connection,
     )
@@ -279,6 +295,7 @@ async def admin_page(request: HttpRequest, slug: str):
     return {
         "slug": row["slug"],
         "title": row["title"],
+        **{name: row[name] for name in PAGE_TEXTS},
         "blocks": {
             block["collection"].removeprefix("block_"): block["item"]
             for block in row["blocks"]
@@ -309,11 +326,14 @@ async def patch_page(request: HttpRequest, slug: str):
                     id=block["item"]["id"],
                     connection=connection,
                 )
+        texts = body.model_dump(exclude_unset=True, include={"title", *PAGE_TEXTS})
+        if texts:
+            await state.store.update("pages", texts, id=row["id"], connection=connection)
     await audit(
         request,
         "page.patch",
         actor="admin:" + admin["userId"],
         subject="page:" + slug,
-        detail={"hero": body.hero is not None, "cta": body.cta is not None},
+        detail={"hero": body.hero is not None, "cta": body.cta is not None, "texts": sorted(texts)},
     )
     return {"ok": True}

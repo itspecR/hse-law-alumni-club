@@ -25,6 +25,8 @@ PROGRAM_FIELDS = (
 PRODUCT_FIELDS = ("id", "slug", "title", "category", "price", "images", "variants_json", "stock", "description")
 PUBLISHED = {"status": {"_eq": "published"}}
 
+PAGE_TEXTS = ("body", "meta_title", "meta_description")
+
 
 @api_view
 async def news(request: HttpRequest):
@@ -81,6 +83,7 @@ async def page(request: HttpRequest, slug: str):
             "id",
             "slug",
             "title",
+            *PAGE_TEXTS,
             "blocks.collection",
             "blocks.sort",
             "blocks.item:block_hero.*",
@@ -95,4 +98,4 @@ async def page(request: HttpRequest, slug: str):
         for block in page["blocks"]
         if block["collection"] and block["item"]
     }
-    return {"slug": page["slug"], "title": page["title"], "blocks": blocks}
+    return {"slug": page["slug"], "title": page["title"], **{name: page[name] for name in PAGE_TEXTS}, "blocks": blocks}

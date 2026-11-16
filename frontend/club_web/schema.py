@@ -226,6 +226,17 @@ def questions(data):
     }
 
 
+def about(data, site_url, url):
+    return {
+        "@type": "AboutPage",
+        "name": data["about"]["title"],
+        "description": data["about"]["meta_description"],
+        "url": url,
+        "inLanguage": LANGUAGE,
+        "about": {"@id": organization_id(site_url)},
+    }
+
+
 def crumb(position, name, url):
     return {"@type": "ListItem", "position": position, "name": name, "item": url}
 
@@ -267,6 +278,8 @@ def page_nodes(data, site_url):
         return [series(site_url)]
     if data["path"] == "/support":
         return [questions(data)]
+    if data.get("about"):
+        return [about(data, site_url, url)]
     return []
 
 
