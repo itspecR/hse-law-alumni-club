@@ -27,9 +27,9 @@
 <div>
 <span class="club-caps">{{ 'Пробный выпуск' if item.is_free else 'По подписке' }} · {{ item.duration or '' }}</span>
 <h2>
-<a href="/podcasts/{{ item.id }}">{{ item.title }}</a>
+<a href="/podcasts/{{ item|address }}">{{ item.title }}</a>
 </h2>
-<p>{{ item.description or '' }}</p>{{ save('/podcasts/'+item.id,item.title,'podcasts') }}</div>
+<p>{{ item.description or '' }}</p>{{ save('/podcasts/'+(item|address),item.title,'podcasts') }}</div>
 </article>
 {% else %}{{ empty('Выпуски пока не опубликованы.') }}{% endfor %}
 </div>

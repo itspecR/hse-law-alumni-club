@@ -91,7 +91,7 @@ async def podcasts(request: HttpRequest):
         filters={"status": {"_eq": "published"}},
         sort=("sort",),
         limit=-1,
-        fields=("id", "title", "description", "cover", "duration", "is_free", "audio_url", "video_url"),
+        fields=("id", "slug", "title", "description", "cover", "duration", "is_free", "audio_url", "video_url"),
     )
     return {
         "items": [

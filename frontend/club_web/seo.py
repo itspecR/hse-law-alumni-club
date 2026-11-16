@@ -1,5 +1,5 @@
 from club_web import features
-from club_web.formatting import date, media, program_start, safe_url
+from club_web.formatting import address, date, media, program_start, safe_url
 
 SITE_NAME = "Клуб выпускников факультета права НИУ ВШЭ"
 PODCAST_NAME = "подкаст «Правовая грамотность»"
@@ -152,7 +152,7 @@ def robots(data):
 def page_path(data):
     item = data.get("item")
     if data["template"] == "events.html" and item:
-        return "/events/" + item["id"]
+        return "/events/" + address(item)
     return data["path"]
 
 

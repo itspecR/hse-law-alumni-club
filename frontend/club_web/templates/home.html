@@ -124,7 +124,7 @@
 {% if upcoming %}
 <ul class="lux-wrap lux-agenda">
 {% for event in upcoming %}
-<li class="lux-reveal" style="--d:{{ loop.index0 }}"><a class="foc" href="/events/{{ event.id }}"><time>{{ event.starts_at|date(true) }}</time><span>{{ event.title }}</span>{% if event.location %}<span class="lux-agenda__place">{{ event.location }}</span>{% endif %}</a></li>
+<li class="lux-reveal" style="--d:{{ loop.index0 }}"><a class="foc" href="/events/{{ event|address }}"><time>{{ event.starts_at|date(true) }}</time><span>{{ event.title }}</span>{% if event.location %}<span class="lux-agenda__place">{{ event.location }}</span>{% endif %}</a></li>
 {% endfor %}
 </ul>
 {% endif %}
@@ -175,7 +175,7 @@
 <p class="lux-tile__lede">Пробный выпуск открыт всем, остальные доступны по&nbsp;подписке за&nbsp;<span class="lux-nobr">{{ domain.limits.podcast_year_price|rub }}</span> на&nbsp;12&nbsp;месяцев.</p>
 <ul class="lux-eps">
 {% for episode in episodes %}
-<li><a class="foc" href="/podcasts/{{ episode.id }}"><span>{{ episode.title }}</span><span>{{ episode.duration or '' }}{% if episode.is_free %} · открыт{% endif %}</span></a></li>
+<li><a class="foc" href="/podcasts/{{ episode|address }}"><span>{{ episode.title }}</span><span>{{ episode.duration or '' }}{% if episode.is_free %} · открыт{% endif %}</span></a></li>
 {% endfor %}
 </ul>
 <a href="/podcasts" class="foc lux-btn lux-btn--ghost lux-tile__end">Все выпуски</a>

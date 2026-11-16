@@ -23,7 +23,7 @@
 {% if cell.day %}
 <span>{{ cell.day }}</span>
 {% for event in cell.events %}
-<a href="/events/{{ event.id }}">{{ event.title }}</a>
+<a href="/events/{{ event|address }}">{{ event.title }}</a>
 {% endfor %}
 {% endif %}
 </div>
@@ -40,7 +40,7 @@
 <div>
 <time>{{ event.starts_at|date(true) }}</time>
 <h2>
-<a href="/events/{{ event.id }}">{{ event.title }}</a>
+<a href="/events/{{ event|address }}">{{ event.title }}</a>
 </h2>
 <p>{{ event.location or format_labels.get(event.format,event.format) }}</p>
 <p class="site-prose">{{ event.description or '' }}</p>
@@ -54,7 +54,7 @@
 <button class="site-primary" data-api="/events/{{ event.id }}/rsvp" data-member-action>{{ 'Отменить запись' if event.my_rsvp else 'Записаться' }}</button>
 {% endif %}
 <a href="/api/events/{{ event.id }}.ics" download>Файл для календаря (.ics)</a>
-<a href="{{ event.calendar_url }}" target="_blank" rel="noopener noreferrer">Google Календарь ↗</a>{{ save('/events/'+event.id,event.title,'events') }}</div>
+<a href="{{ event.calendar_url }}" target="_blank" rel="noopener noreferrer">Google Календарь ↗</a>{{ save('/events/'+(event|address),event.title,'events') }}</div>
 </div>
 </article>
 {% else %}{{ empty('Ближайших событий пока нет.') }}{% endfor %}
