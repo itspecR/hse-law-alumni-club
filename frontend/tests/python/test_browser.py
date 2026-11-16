@@ -102,6 +102,7 @@ def chromium():
 def site():
     records = {
         "/pages/home": {"blocks": {}},
+        "/auth/registration": {"enabled": True},
         "/news": [NEWS],
         "/news/news-one": NEWS,
         "/programs": [PROGRAM],
@@ -2159,6 +2160,24 @@ def test_login_and_join_layout(page, width):
     photo = page.locator(".club-auth__aside img").bounding_box()
     copy = page.locator(".club-auth__aside-copy").bounding_box()
     assert copy["y"] >= photo["y"] + photo["height"] - 1
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_paused_join_page_keeps_card_layout(page, site, width):
+    site[1]["/auth/registration"] = {"enabled": False}
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/join")
+    notice = page.locator("[data-join-paused]")
+    expect(notice).to_contain_text("Раздел в разработке.")
+    expect(notice.get_by_role("link", name="нашем канале в Telegram")).to_have_attribute(
+        "href", "https://t.me/AlumniLawHSE"
+    )
+    expect(page.locator("form[data-registration]")).to_have_count(0)
+    expect(page.locator(".club-auth__aside")).to_have_count(0)
+    card = page.locator(".club-auth__card .site-panel").bounding_box()
+    assert card["width"] <= 480 and abs(card["x"] + card["width"] / 2 - width / 2) <= 1
+    expect(page.get_by_role("link", name="Войти в кабинет", exact=True)).to_be_visible()
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 

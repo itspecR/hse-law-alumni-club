@@ -9,6 +9,7 @@ SEPARATOR = " - "
 DESCRIPTION_LIMIT = 160
 INDEX = "index,follow"
 HIDDEN = "noindex,nofollow"
+JOIN_PATH = "/join"
 EMPTY_LIST = "noindex,follow"
 SHARE_IMAGE = {"path": "/og-card.png", "width": 1200, "height": 630}
 FACULTY_ORIGIN = "faculty"
@@ -147,6 +148,8 @@ def robots(data):
     if data["status"] != 200 or path.startswith(HIDDEN_PREFIXES) or not features.section_enabled(path):
         return HIDDEN
     if path in LIST_PATHS and not data.get("items") and not data.get("item"):
+        return EMPTY_LIST
+    if path == JOIN_PATH and not data.get("registration_open"):
         return EMPTY_LIST
     return INDEX
 

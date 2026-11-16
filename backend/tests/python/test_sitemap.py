@@ -10,11 +10,22 @@ EMPTY = {"news": [], "portfolio": [], "events": [], "podcasts": [], "products": 
 
 
 def paths(found):
-    return [path for path, *_ in site_urls(found)]
+    return [path for path, *_ in site_urls(found, True)]
 
 
 def test_empty_site_lists_only_pages_that_always_have_text():
     assert paths(EMPTY) == ["/", "/join", "/about", "/give", "/support", "/documents", "/requisites"]
+
+
+def test_closed_registration_keeps_the_join_page_out_of_the_map():
+    assert [path for path, *_ in site_urls(EMPTY, False)] == [
+        "/",
+        "/about",
+        "/give",
+        "/support",
+        "/documents",
+        "/requisites",
+    ]
 
 
 def test_records_bring_their_section_and_own_pages():
@@ -29,7 +40,7 @@ def test_records_bring_their_section_and_own_pages():
         "products": [{"slug": "bag"}],
         "campaigns": [{"slug": "intensive"}],
     }
-    urls = site_urls(found)
+    urls = site_urls(found, True)
     listed = [path for path, *_ in urls]
     for path in ("/portfolio", "/events", "/news", "/podcasts", "/merch"):
         assert path in listed

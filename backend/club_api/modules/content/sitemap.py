@@ -6,6 +6,7 @@ from xml.sax.saxutils import escape
 from django.http import HttpRequest, HttpResponse
 
 from club_api.core.views import api_view
+from club_api.modules.auth.service import registration_open
 from club_api.modules.campaigns.store import CAMPAIGN_TABLE
 from club_api.modules.catalog.scope import PUBLISHED, PUBLISHED_PORTFOLIO
 
@@ -29,9 +30,10 @@ HIDDEN_PATHS = (
 )
 OPEN_PATHS = ("/api/media/",)
 CLEAN_PARAMS = "utm_source&utm_medium&utm_campaign&utm_content&utm_term&source"
+JOIN_PATH = "/join"
 ALWAYS = (
     ("/", "1.0", "weekly"),
-    ("/join", "0.8", "monthly"),
+    (JOIN_PATH, "0.8", "monthly"),
     ("/about", "0.6", "monthly"),
     ("/give", "0.8", "monthly"),
     ("/support", "0.5", "monthly"),
@@ -107,9 +109,10 @@ def record_urls(found):
     ]
 
 
-def site_urls(found):
+def site_urls(found, joinable):
+    pages = [(path, priority, frequency, "") for path, priority, frequency in ALWAYS if joinable or path != JOIN_PATH]
     sections = [(path, priority, frequency, "") for path, kind, priority, frequency in SECTIONS if found[kind]]
-    return [*((path, priority, frequency, "") for path, priority, frequency in ALWAYS), *sections, *record_urls(found)]
+    return [*pages, *sections, *record_urls(found)]
 
 
 def entry(base, path, priority, frequency, modified):
@@ -138,6 +141,7 @@ async def sitemap(request: HttpRequest):
     now = time.monotonic()
     if cached and now - cached[0] < CACHE_SECONDS:
         return HttpResponse(cached[1], content_type="application/xml")
-    xml = sitemap_xml(state.settings.PUBLIC_URL.rstrip("/"), site_urls(await records(state.store)))
+    urls = site_urls(await records(state.store), registration_open(state.settings))
+    xml = sitemap_xml(state.settings.PUBLIC_URL.rstrip("/"), urls)
     state.sitemap_cache = (now, xml)
     return HttpResponse(xml, content_type="application/xml")

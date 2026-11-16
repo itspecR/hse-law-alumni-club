@@ -28,6 +28,7 @@ DPO_QUESTIONS = (
 OPEN_QUESTIONS = 8
 ENDPOINTS = {
     "/pages/home": {"blocks": {}},
+    "/auth/registration": {"enabled": True},
     "/news": [NEWS],
     "/news/news-one": {**NEWS, "excerpt": "Анонс новости клуба."},
     "/news/faculty-one": FACULTY_NEWS,

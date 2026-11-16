@@ -58,6 +58,7 @@ def prepare(config, destination):
         **context.runtime,
         "RATE_LIMIT_MAX": LIVE_RATE_LIMIT,
         "SUPPORT_ENABLED": "true",
+        "REGISTRATION_ENABLED": "true",
         "SUPPORT_OPERATOR_NAME": "Локальный тестовый оператор",
         "SUPPORT_OPERATOR_ADDRESS": "Локальный стенд без реального адреса",
         "SUPPORT_OPERATOR_CONTACT": "test@live.example.com",
