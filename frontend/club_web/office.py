@@ -296,7 +296,7 @@ FIELDS = {
         ("date_text", "Когда", "text"),
         ("time_text", "Время", "text"),
         ("place_text", "Где", "text"),
-        ("duration_text", "Длительность", "text"),
+        ("duration_text", "Формат", "text"),
         ("goal_title", "Цель сбора", "text"),
         ("goal_text", "Рассказ о цели", "textarea"),
         ("goal_amount", "Сумма цели, ₽", "rubles"),
