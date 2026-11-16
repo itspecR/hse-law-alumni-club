@@ -21,6 +21,7 @@ async def database_app(tmp_path, django_db_blocker):
         CHECKOUT_DATABASE_URL=url,
         UPLOADS_PATH=tmp_path,
         JOBS_ENABLED="false",
+        REGISTRATION_ENABLED="true",
     )
     app = create_app(settings)
     with django_db_blocker.unblock():

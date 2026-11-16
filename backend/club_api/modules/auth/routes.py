@@ -24,8 +24,10 @@ from club_api.modules.auth.service import (
     DUPLICATE_ACCOUNT,
     PASSWORD_MAX_LENGTH,
     PASSWORD_MIN_LENGTH,
+    REGISTRATION_CLOSED,
     alumni_profile,
     auth_service,
+    registration_open,
     require_admin,
 )
 from club_api.modules.notifications.mail import CLUB_NAME, EMAIL_CONFIRMATION_KIND, club_subject
@@ -296,8 +298,15 @@ async def admin_session(request: HttpRequest):
     return {"role": admin["role"]}
 
 
+@api_view
+async def registration(request: HttpRequest):
+    return {"enabled": registration_open(request.services.settings)}
+
+
 @api_view(body=RegisterBody)
 async def register(request: HttpRequest):
+    if not registration_open(request.services.settings):
+        raise ApiError(403, REGISTRATION_CLOSED)
     body = parse_body(request, RegisterBody)
     service = auth_service(request)
     email = body.email.lower().strip()

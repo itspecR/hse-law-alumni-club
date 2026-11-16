@@ -30,6 +30,8 @@ FULL_ROLES = frozenset(("admin", "Administrator"))
 LOGIN_STATUSES = frozenset(("active", "unverified"))
 USER_NAME_MAX = 50
 DUPLICATE_ACCOUNT = "Аккаунт с этой почтой уже есть. Войдите или восстановите пароль."
+REGISTRATION_CLOSED = "Раздел в разработке. Скоро здесь можно будет вступить в клуб и открыть личный кабинет."
+REGISTRATION_ON = "true"
 PDN_POLICY_VERSION = shared_data("legal-data.json")["version"]
 PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH = 8, 100
 PENDING, VERIFIED = "pending", "verified"
@@ -58,6 +60,10 @@ ALUMNI_FIELDS = (
     "telegram_id",
     "mailing_consent_at",
 )
+
+
+def registration_open(settings):
+    return settings.REGISTRATION_ENABLED == REGISTRATION_ON
 
 
 def local_account(user):

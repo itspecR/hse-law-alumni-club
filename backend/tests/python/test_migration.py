@@ -43,6 +43,7 @@ def test_all_legacy_routes_are_present():
         for method, suffix in (("GET", ""), ("POST", ""), ("PATCH", "/{id}"), ("DELETE", "/{id}"))
     }
     public = {
+        ("GET", "/auth/registration"),
         ("GET", "/portfolio"),
         ("GET", "/portfolio/{slug}"),
         ("POST", "/portfolio/{slug}/applications"),
@@ -98,7 +99,7 @@ def test_all_legacy_routes_are_present():
         ("POST", "/support/faq-event"),
     }
     inventory = (expected - retired) | added | portfolio | public | promo | office | education
-    assert actual == inventory and len(actual) == 154
+    assert actual == inventory and len(actual) == 155
 
 
 def test_sentry_privacy():

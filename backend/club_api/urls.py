@@ -60,6 +60,7 @@ routes = (
         path("auth/admin-logout", endpoint({"POST": auth_routes.admin_logout})),
         path("auth/admin-session", endpoint({"GET": auth_routes.admin_session})),
         path("auth/register", endpoint({"POST": auth_routes.register})),
+        path("auth/registration", endpoint({"GET": auth_routes.registration})),
         path("auth/resend-confirmation", endpoint({"POST": auth_routes.resend_confirmation})),
         path("auth/confirm", endpoint({"POST": auth_routes.confirm})),
         path("auth/forgot", endpoint({"POST": auth_routes.forgot})),

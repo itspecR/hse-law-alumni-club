@@ -284,6 +284,7 @@ async def browser_client():
             return httpx.Response(403, json={"error": "Нужен доступ администратора"})
         endpoints = {
             "/pages/home": {"blocks": {}},
+            "/auth/registration": {"enabled": True},
             "/news": [NEWS],
             "/news/news-one": NEWS,
             "/programs": [PROGRAM],
@@ -2129,3 +2130,31 @@ async def test_closed_dpo_section_leads_home_and_leaves_links(browser_client):
 async def test_open_mini_app_page_is_served(browser_client, mini_app):
     response = await browser_client.get("/tg")
     assert response.status_code == 200 and 'class="mini-home"' in response.text
+
+
+JOIN_PAUSED = "Раздел в&nbsp;разработке. Скоро здесь можно будет вступить в&nbsp;клуб и&nbsp;открыть личный кабинет."
+
+
+@pytest.mark.parametrize(
+    "reply",
+    [(200, {"enabled": False}), (200, []), (503, {"error": "Сервис временно недоступен"})],
+)
+async def test_join_shows_work_in_progress_while_registration_is_closed(reply):
+    page = (await rendered("/join", {"/auth/registration": reply})).text
+    assert JOIN_PAUSED in page and 'href="https://t.me/AlumniLawHSE"' in page
+    assert "data-registration" not in page and "Отправить заявку" not in page
+    assert "Как вступить <em>в клуб</em>" not in page and "Отправить код подтверждения еще раз" not in page
+    assert '<meta name="robots" content="noindex,follow">' in page
+    assert 'href="/lk"' in page
+
+
+async def test_join_shows_the_form_when_registration_is_open():
+    page = (await rendered("/join", {"/auth/registration": (200, {"enabled": True})})).text
+    assert "data-registration" in page and JOIN_PAUSED not in page
+    assert '<meta name="robots" content="index,follow">' in page
+
+
+async def test_about_page_says_that_joining_is_paused():
+    page = (await rendered("/about", {"/pages/about": (200, {})})).text
+    assert "Прием новых участников временно приостановлен, мы обновляем правила программы лояльности." in page
+    assert "Отправьте заявку на сайте" not in page
