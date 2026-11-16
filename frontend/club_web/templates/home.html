@@ -19,10 +19,10 @@
 <p class="lux-hero__lede">{% if hero.subtitle %}{{ hero.subtitle }}{% else %}Встречи выпускников, тренинги и&nbsp;курсы клуба, подкасты и&nbsp;новости факультета.{% endif %}</p>
 <div class="lux-hero__acts">
 <a href="/join" class="foc lux-btn" data-member-link>{{ hero.cta_primary or 'Вступить в клуб' }}</a>
-<a href="/portfolio" class="foc lux-more">Программы клуба <span class="lux-more__arrow" aria-hidden="true">›</span></a>
+<a href="/portfolio" class="foc lux-more">Тренинги <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </div>
 </div>
-<p class="lux-hero__next">Программы клуба{% if dpo_enabled %}, ДПО по&nbsp;цене выпускника{% endif %}, события и&nbsp;подкасты.</p>
+<p class="lux-hero__next">Тренинги{% if dpo_enabled %}, ДПО по&nbsp;цене выпускника{% endif %}, события и&nbsp;подкасты.</p>
 </div>
 </section>
 
@@ -45,12 +45,15 @@
 
 <section class="lux-section lux-portfolio" id="club-programs" aria-labelledby="lux-portfolio-title">
 <div class="lux-wrap lux-split">
-<h2 class="lux-h2 lux-reveal" id="lux-portfolio-title">Программы клуба.</h2>
-<p class="lux-lede lux-reveal" style="--d:1">Курсы дополнительного образования, которые проводит клуб.</p>
+<h2 class="lux-h2 lux-reveal" id="lux-portfolio-title">Тренинги.</h2>
+<div class="lux-reveal" style="--d:1">
+<p class="lux-lede">Тренинги по&nbsp;развитию навыков.</p>
+<p class="lux-lede">{% include 'trainings-lede.html' %}</p>
+</div>
 </div>
 <div class="lux-wrap">
 {% if 'portfolio' in load_errors %}
-<p class="lux-portfolio__note" role="status">Программы не&nbsp;загрузились. Обновите страницу или откройте портфель программ.</p>
+<p class="lux-portfolio__note" role="status">Тренинги не&nbsp;загрузились. Обновите страницу или откройте раздел тренингов.</p>
 {% elif club_programs %}
 <div class="site-catalog">
 {% for item in club_programs %}
@@ -58,9 +61,9 @@
 {% endfor %}
 </div>
 {% else %}
-<p class="lux-portfolio__note">Программы скоро появятся.</p>
+<p class="lux-portfolio__note">Тренинги скоро появятся.</p>
 {% endif %}
-{% if club_programs or 'portfolio' in load_errors %}<a href="/portfolio" class="foc lux-more">Все программы клуба <span class="lux-more__arrow" aria-hidden="true">›</span></a>{% endif %}
+{% if club_programs or 'portfolio' in load_errors %}<a href="/portfolio" class="foc lux-more">Все тренинги <span class="lux-more__arrow" aria-hidden="true">›</span></a>{% endif %}
 </div>
 </section>
 
@@ -114,6 +117,7 @@
 <div class="lux-wrap lux-split">
 <h2 class="lux-h2 lux-reveal" id="lux-meet-title">Встречи выпускников.</h2>
 <div class="lux-reveal" style="--d:1">
+<p class="lux-lede">Каждый год клуб собирает выпускников разных лет на&nbsp;традиционную встречу.</p>
 <p class="lux-lede">27&nbsp;февраля 2026&nbsp;года на&nbsp;традиционной встрече выпускников обсудили развитие клуба на&nbsp;ближайшие 5-10&nbsp;лет. Лучшие идеи выбрали общим голосованием.</p>
 <div class="lux-links">
 <a href="https://pravo.hse.ru/news/1133936920.html" class="foc lux-more" target="_blank" rel="noopener noreferrer">Репортаж на&nbsp;pravo.hse.ru <span class="lux-more__arrow" aria-hidden="true">↗</span><span class="lux-sr">, откроется в&nbsp;новой вкладке</span></a>

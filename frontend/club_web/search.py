@@ -4,7 +4,7 @@ from club_web.formatting import safe_url
 
 def search_sources(portfolio, programs, news, events, podcasts, changes):
     sources = [
-        ("portfolio", "Портфель программ", portfolio, ("title", "direction"), "slug"),
+        ("portfolio", "Тренинги", portfolio, ("title", "direction"), "slug"),
         ("dpo", "Программы ДПО", programs, ("title", "direction"), "slug"),
         ("news", "Новости", news, ("title", "excerpt"), "slug"),
         ("events", "События", events, ("title", "description", "location"), "id"),
