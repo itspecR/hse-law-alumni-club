@@ -1903,6 +1903,24 @@ def test_home_themis_animates_over_page_background(chromium, site):
     context.close()
 
 
+MOVING_RIGHT_AFTER_SCROLL = """() => new Promise(done => {
+  const themis = document.querySelector('.lux-hero .lux-themis');
+  addEventListener('scroll', () => done(themis.classList.contains('is-moving')), { once: true });
+  scrollBy(0, 40);
+})"""
+
+
+def test_home_themis_rests_while_the_page_scrolls(chromium, site):
+    context, page, errors = moving_themis_page(chromium, site, "/", {"width": 390, "height": 760})
+    themis = page.locator(".lux-hero .lux-themis")
+    expect(themis).to_have_class(re.compile("is-moving"))
+    assert page.evaluate(MOVING_RIGHT_AFTER_SCROLL) is False
+    expect(themis).to_have_class(re.compile("is-live"))
+    expect(themis).to_have_class(re.compile("is-moving"))
+    assert not errors
+    context.close()
+
+
 ZOOMS = [(960, 600, 1.5), (1800, 1125, 0.8), (480, 300, 3)]
 DRAWN_FIGURE_BYTES = 10_000
 FIGURE_CLIP = """() => {
