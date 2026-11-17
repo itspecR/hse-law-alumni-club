@@ -59,6 +59,7 @@ html.lux .club-caps { text-transform: none; letter-spacing: -0.01em; font-weight
 html.lux :focus-visible { outline-color: var(--lux-ink); }
 html.lux button { border-radius: 999px; }
 html.lux :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]), select, textarea) { border-radius: var(--r-sm); background: var(--lux-raised); border-color: var(--c-line-control); color: var(--c-text); }
+html.lux :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]), select, textarea)[aria-invalid="true"] { border-color: var(--c-danger-text); }
 
 html.lux .lux-disclosure > summary { list-style: none; }
 html.lux .lux-disclosure > summary::-webkit-details-marker { display: none; }

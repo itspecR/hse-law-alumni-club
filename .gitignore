@@ -49,4 +49,5 @@ frontend/public/assets/version.txt
 frontend/public/assets/boot.js
 frontend/public/assets/skeleton.js
 frontend/public/assets/focus.js
+frontend/public/assets/field-errors.js
 frontend/public/assets/themis.js

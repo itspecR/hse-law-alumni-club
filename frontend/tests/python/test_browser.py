@@ -169,6 +169,10 @@ def site():
             if path == "/orders":
                 if records.get("order_failure"):
                     return httpx.Response(503, json={"error": "Временно недоступно"})
+                if records.get("order_invalid"):
+                    return httpx.Response(
+                        400, json={"error": "Проверьте данные в форме.", "field": records["order_invalid"]}
+                    )
                 return httpx.Response(
                     200, json={"number": "ORD-QA", "total_estimate": 300000, "notified": {"ok": True}}
                 )
@@ -495,6 +499,32 @@ def test_checkout_error_keeps_contacts_and_replay_key(page, site):
     orders = [write for write in site[2] if write["path"] == "/orders"]
     assert len(orders) == 2 and orders[0]["headers"]["idempotency-key"] == orders[1]["headers"]["idempotency-key"]
     assert all(order["body"]["captcha"]["number"] == 7 for order in orders)
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_checkout_error_names_and_marks_the_field(page, site, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/merch/" + PRODUCT["slug"])
+    page.get_by_role("button", name="В корзину", exact=True).click()
+    page.goto("/cart")
+    page.get_by_label("ФИО", exact=True).fill("Тестовый выпускник")
+    page.get_by_label("Телефон", exact=True).fill("+7 000")
+    page.get_by_label("Почта", exact=True).fill("test@example.com")
+    page.locator("input[name=consent_pdn]").check()
+    site[1]["order_invalid"] = "contact_phone"
+    page.get_by_role("button", name="Отправить заявку", exact=True).click()
+    box = page.locator("form[data-checkout] [data-error]")
+    phone = page.get_by_label("Телефон", exact=True)
+    expect(box).to_have_text("Проверьте поле «Телефон».")
+    expect(phone).to_be_focused()
+    expect(phone).to_have_attribute("aria-invalid", "true")
+    expect(phone).to_have_attribute("aria-describedby", box.get_attribute("id"))
+    assert phone.evaluate("node => getComputedStyle(node).borderTopColor") == ERROR_COLOR
+    site[1]["order_invalid"] = "website"
+    page.get_by_role("button", name="Отправить заявку", exact=True).click()
+    expect(box).to_have_text("Проверьте данные в форме.")
+    expect(phone).not_to_have_attribute("aria-invalid", "true")
+    expect(phone).not_to_have_attribute("aria-describedby", re.compile("."))
 
 
 @pytest.mark.parametrize("width", [1440, 390])

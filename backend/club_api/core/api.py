@@ -7,7 +7,7 @@ from ninja.errors import ValidationError
 from ninja.parser import Parser
 
 from club_api.core.errors import ApiError
-from club_api.core.views import json_body
+from club_api.core.views import invalid_form, json_body
 
 
 class JsonParser(Parser):
@@ -42,11 +42,9 @@ def build_api(routes):
         openapi_url=None,
         parser=JsonParser(),
     )
+    api.add_exception_handler(ApiError, lambda request, error: JsonResponse(error.payload(), status=error.status))
     api.add_exception_handler(
-        ApiError, lambda request, error: JsonResponse({"error": error.message}, status=error.status)
-    )
-    api.add_exception_handler(
-        ValidationError, lambda request, error: JsonResponse({"error": "Проверьте данные в форме."}, status=400)
+        ValidationError, lambda request, error: JsonResponse(invalid_form(error.errors).payload(), status=400)
     )
     for route in routes:
         pattern = re.sub(r"<str:(\w+)>", r"{\1}", str(route.pattern))
