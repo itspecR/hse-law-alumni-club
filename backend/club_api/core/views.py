@@ -13,6 +13,23 @@ from club_api.core.errors import ApiError
 logger = logging.getLogger("club.api")
 DUPLICATE_ENTRY = 1062
 FOREIGN_KEY_ERRORS = (1451, 1452)
+INVALID_FORM = "Проверьте данные в форме."
+BODY_LOCATION = ("body", "payload")
+
+
+def error_field(error):
+    names = []
+    for part in error.get("loc", ()):
+        if not isinstance(part, str):
+            break
+        names.append(part)
+    names = names[len(BODY_LOCATION) :] if tuple(names[: len(BODY_LOCATION)]) == BODY_LOCATION else names
+    return ".".join(names) or None
+
+
+def invalid_form(errors):
+    fields = (error_field(error) for error in errors)
+    return ApiError(400, INVALID_FORM, next((field for field in fields if field), None))
 
 
 def json_body(request):
@@ -21,7 +38,7 @@ def json_body(request):
             raise ValueError
         return json.loads(request.body)
     except ValueError, UnicodeError:
-        raise ApiError(400, "Проверьте данные в форме.") from None
+        raise ApiError(400, INVALID_FORM) from None
 
 
 def parse_body(request, model):
@@ -29,8 +46,8 @@ def parse_body(request, model):
         return request.validated_body
     try:
         return model.model_validate(json_body(request))
-    except ValidationError:
-        raise ApiError(400, "Проверьте данные в форме.") from None
+    except ValidationError as error:
+        raise invalid_form(error.errors()) from None
 
 
 def query_integer(request, name, *, minimum, maximum):
@@ -67,7 +84,7 @@ def api_view(function=None, *, body=None, permission=None):
             return result if isinstance(result, HttpResponseBase) else JsonResponse(result, safe=False)
         except ApiError as error:
             request.background_tasks.clear()
-            return JsonResponse({"error": error.message}, status=error.status)
+            return JsonResponse(error.payload(), status=error.status)
         except SuspiciousOperation:
             request.background_tasks.clear()
             return JsonResponse({"error": "Некорректный запрос."}, status=400)

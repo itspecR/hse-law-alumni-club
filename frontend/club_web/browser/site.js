@@ -7,6 +7,7 @@ import { moduleAction, prepareCourse } from "./course.js";
 import { prepareProgramEditor } from "./program-editor.js";
 import { hideSkeleton, prepareSkeleton } from "./skeleton.js";
 import { focusHeading, focusMark, restoreFocus } from "./focus.js";
+import { clearInvalid, fieldMessage, invalidControl, markInvalid } from "./field-errors.js";
 
 const base = document.body.dataset.base || "/";
 const memberKey = "club_token";
@@ -105,7 +106,9 @@ async function request(path, method = "GET", body, extra = {}) {
       notice("Сессия завершилась. Войдите снова.");
       if (currentPath().startsWith("/admin") || currentPath().startsWith("/lk")) void refresh();
     }
-    throw new Error(data.error || "Не удалось выполнить действие. Попробуйте позже.");
+    const failure = new Error(data.error || "Не удалось выполнить действие. Попробуйте позже.");
+    failure.field = data.field;
+    throw failure;
   }
   return data;
 }
@@ -250,10 +253,13 @@ function filled(module) {
   return Object.values(module)[0];
 }
 
-function formError(form, message) {
+function formError(form, message, field) {
   const box = form.querySelector("[data-error]");
-  if (box) { box.textContent = message; box.hidden = false; }
-  else notice(message);
+  if (!box) { notice(message); return; }
+  const control = invalidControl(form, field);
+  box.textContent = control ? fieldMessage(control) : message;
+  box.hidden = false;
+  if (control) markInvalid(control, box);
 }
 
 async function refresh() {
@@ -709,10 +715,11 @@ document.addEventListener("submit", async event => {
   event.preventDefault();
   const errorBox = form.querySelector("[data-error]");
   if (errorBox) errorBox.hidden = true;
+  clearInvalid(form);
   try {
     if (form.hasAttribute("data-support-open")) { await supportThread(formBody(form)); return; }
     await perform(form, form.hasAttribute("data-file") ? new FormData(form) : formBody(form));
-  } catch (error) { formError(form, error.message); }
+  } catch (error) { formError(form, error.message, error.field); }
 });
 
 document.addEventListener("click", switchCabinetSection);

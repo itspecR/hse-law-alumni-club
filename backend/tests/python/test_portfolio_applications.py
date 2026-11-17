@@ -107,23 +107,25 @@ async def test_verified_member_pays_full_price_for_club_programs(database_app, m
 
 
 @pytest.mark.parametrize(
-    "body,message",
+    "body,message,field",
     [
-        ({**GROUP, "organization": " "}, "Укажите организацию"),
-        ({**GROUP, "participants": 1}, "от 2 до 20"),
-        ({**FORM, "participants": 2}, "на одного участника"),
-        ({**GROUP, "participants": 21}, "Проверьте данные в форме"),
-        ({**FORM, "consent_terms": False}, "Проверьте данные в форме"),
-        ({key: value for key, value in FORM.items() if key != "consent_pdn"}, "Проверьте данные в форме"),
-        ({**FORM, "website": "bot"}, "Проверьте данные в форме"),
+        ({**GROUP, "organization": " "}, "Укажите организацию", None),
+        ({**GROUP, "participants": 1}, "от 2 до 20", None),
+        ({**FORM, "participants": 2}, "на одного участника", None),
+        ({**GROUP, "participants": 21}, "Проверьте данные в форме", "participants"),
+        ({**FORM, "consent_terms": False}, "Проверьте данные в форме", "consent_terms"),
+        ({key: value for key, value in FORM.items() if key != "consent_pdn"}, "Проверьте данные в форме", "consent_pdn"),
+        ({**FORM, "website": "bot"}, "Проверьте данные в форме", "website"),
+        ({**FORM, "contact_phone": "12"}, "Проверьте данные в форме", "contact_phone"),
     ],
 )
-async def test_invalid_applications_are_rejected(database_app, mails, body, message):
+async def test_invalid_applications_are_rejected(database_app, mails, body, message, field):
     app = database_app
     item = await program(app)
     async with client_for(app) as client:
         response = await apply(client, item["slug"], body)
     assert response.status_code == 400 and message in response.json()["error"]
+    assert response.json().get("field") == field
     assert await app.state.store.read("orders", fields=("id",)) == [] and mails == []
 
 
