@@ -601,6 +601,18 @@ def test_tab_icon_is_club_themis(page):
     assert icon["blue"] > 100 and icon["corner"] == 0
 
 
+@pytest.mark.parametrize("width", [390, 1440])
+def test_browser_install_offer_is_suppressed_without_a_button(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/")
+    prevented = page.evaluate(
+        "() => { const offer = new Event('beforeinstallprompt', { cancelable: true }); window.dispatchEvent(offer); return offer.defaultPrevented; }"
+    )
+    assert prevented
+    expect(page.get_by_text("Установить приложение")).to_have_count(0)
+    assert page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--install-h')") == ""
+
+
 def test_pwa_uses_phone_layout_and_preserves_navigation(page):
     page.goto("/?pwa=1")
     assert page.locator("#site-stage").bounding_box()["width"] == 430
