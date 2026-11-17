@@ -781,7 +781,7 @@ def test_search_page_row_and_support_questions(page, width):
 def test_corrupt_reading_data_is_not_overwritten(page):
     page.add_init_script("localStorage.setItem('club-reading-v1','broken-json');")
     page.goto("/news/news-one")
-    expect(page.locator("#toast")).to_contain_text("Сохраненные материалы повреждены")
+    expect(page.locator("#toast-error")).to_contain_text("Сохраненные материалы повреждены")
     assert page.evaluate("localStorage.getItem('club-reading-v1')") == "broken-json"
     page.get_by_role("button", name="Сохранить", exact=True).click()
     assert page.evaluate("localStorage.getItem('club-reading-v1')") == "broken-json"
@@ -3523,17 +3523,18 @@ def test_office_campaign_editor_adds_a_new_person_with_photo(page, site):
     adding.get_by_label("Фото").set_input_files(
         {"name": "big.png", "mimeType": "image/png", "buffer": b"0" * 6_000_000}
     )
-    expect(page.locator("#toast")).to_contain_text("Фото больше 5 МБ")
+    expect(page.locator("#toast-error")).to_contain_text("Фото больше 5 МБ")
     adding.get_by_label("Фото").set_input_files({"name": "doc.pdf", "mimeType": "application/pdf", "buffer": b"%PDF"})
-    expect(page.locator("#toast")).to_contain_text("JPEG, PNG или WebP")
+    expect(page.locator("#toast-error")).to_contain_text("JPEG, PNG или WebP")
     adding.get_by_role("button", name="Добавить", exact=True).click()
-    expect(page.locator("#toast")).to_contain_text("Укажите ФИО")
+    expect(page.locator("#toast-error")).to_contain_text("Укажите ФИО")
     adding.get_by_label("ФИО").fill("Дарья Новая")
     adding.get_by_label("Описание").fill("Ведущая интенсива")
     adding.get_by_label("Фото").set_input_files({"name": "photo.png", "mimeType": "image/png", "buffer": PHOTO_PNG})
     expect(adding.locator("[data-image-preview]")).to_be_visible()
     adding.get_by_role("button", name="Добавить", exact=True).click()
     expect(page.locator("#toast")).to_contain_text("«Дарья Новая» добавлен в список")
+    expect(page.locator("#toast-error")).to_be_hidden()
     expect(people.get_by_label("Дарья Новая", exact=True)).to_be_checked()
     people.get_by_label("Роль: Дарья Новая").select_option("host")
     expect(adding.get_by_label("ФИО")).to_have_value("")
