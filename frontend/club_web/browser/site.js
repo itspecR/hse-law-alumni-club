@@ -6,6 +6,7 @@ import { prepareGive } from "./give.js";
 import { moduleAction, prepareCourse } from "./course.js";
 import { prepareProgramEditor } from "./program-editor.js";
 import { hideSkeleton, prepareSkeleton } from "./skeleton.js";
+import { focusHeading, focusMark, restoreFocus } from "./focus.js";
 
 const base = document.body.dataset.base || "/";
 const memberKey = "club_token";
@@ -396,8 +397,9 @@ async function perform(target, body) {
   if (checkout && pendingCart) throw new Error("Дождитесь обновления корзины.");
   if (cart && pendingCheckout) throw new Error("Дождитесь отправки заявки.");
   const buttons = target.tagName === "FORM" ? [...target.querySelectorAll("button[type='submit'],button:not([type])")] : [target];
-  if (buttons.some(button => button.disabled)) return;
-  buttons.forEach(button => { button.disabled = true; });
+  if (buttons.some(unavailable)) return;
+  const mark = focusMark();
+  buttons.forEach(button => { button.setAttribute("aria-disabled", "true"); });
   const oldText = buttons.map(button => button.textContent);
   buttons.forEach(button => { button.textContent = "Подождите…"; });
   const fields = checkout || application ? [...target.querySelectorAll("input,select,textarea")].map(input => ({ input, disabled: input.disabled })) : [];
@@ -489,8 +491,13 @@ async function perform(target, body) {
     if (checkout) pendingCheckout = false;
     fields.forEach(({ input, disabled }) => { input.disabled = disabled; });
     if (cart) pendingCart--;
-    buttons.forEach((button, index) => { button.disabled = false; button.textContent = oldText[index]; });
+    buttons.forEach((button, index) => { button.removeAttribute("aria-disabled"); button.textContent = oldText[index]; });
+    restoreFocus(mark);
   }
+}
+
+function unavailable(button) {
+  return button.disabled || button.getAttribute("aria-disabled") === "true";
 }
 
 function reading(strict = false) {
@@ -580,7 +587,9 @@ function switchCabinetSection(event) {
   event.preventDefault();
   history.replaceState(history.state, "", link.hash);
   showCabinetSection(section);
-  if (!link.closest(".cabinet-tabs")) tabs.scrollIntoView({ block: "start", behavior: "instant" });
+  if (link.closest(".cabinet-tabs")) return;
+  tabs.scrollIntoView({ block: "start", behavior: "instant" });
+  focusHeading(document.getElementById(section));
 }
 
 function setupPage() {

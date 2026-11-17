@@ -473,6 +473,9 @@ def test_checkout_error_keeps_contacts_and_replay_key(page, site):
     site[1]["order_failure"] = True
     page.get_by_role("button", name="Отправить заявку", exact=True).click()
     expect(page.locator("form[data-checkout] [data-error]")).to_contain_text("Временно недоступно")
+    submit = page.get_by_role("button", name="Отправить заявку", exact=True)
+    expect(submit).to_be_focused()
+    expect(submit).not_to_have_attribute("aria-disabled", "true")
     expect(page.get_by_label("ФИО", exact=True)).to_have_value("Тестовый выпускник")
     site[1]["order_failure"] = False
     page.get_by_role("button", name="Отправить заявку", exact=True).click()
@@ -1579,6 +1582,7 @@ def test_cabinet_tabs_show_one_section_and_keep_deep_links(page, site, width):
     assert [panel.get_attribute("id") for panel in panels.all() if panel.is_visible()] == ["orders"]
     page.locator(".cabinet-metrics").get_by_role("link").click()
     expect(page.locator("#achievements")).to_be_visible()
+    expect(page.locator("#achievements").get_by_role("heading", name="Достижения", exact=True)).to_be_focused()
     expect(page.locator("#orders")).to_be_hidden()
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
@@ -2234,6 +2238,18 @@ def test_office_login_asks_for_code_from_mail(page, site, width):
 
 
 @pytest.mark.parametrize("width", [390, 1440])
+def test_member_login_moves_focus_to_cabinet_heading(page, site, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/lk")
+    page.get_by_label("Почта", exact=True).fill("member@example.test")
+    page.get_by_label("Пароль", exact=True).fill("synthetic-member-password")
+    page.get_by_label("Пароль", exact=True).press("Enter")
+    heading = page.get_by_role("heading", level=1, name=PROFILE["alumni"]["fio"])
+    expect(heading).to_be_focused()
+    expect(heading).to_have_attribute("tabindex", "-1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
 def test_member_login_asks_for_code_after_many_failures(page, site, width):
     site[1]["member_code"] = True
     page.set_viewport_size({"width": width, "height": 900})
@@ -2462,6 +2478,7 @@ def test_office_portfolio_form_sends_lists_trainers_and_limit(page, site, width)
     row.get_by_label("Лимит мест").fill("")
     row.get_by_role("button", name="Сохранить", exact=True).click()
     expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
+    expect(page.locator("[data-program-editor]").get_by_role("button", name="Сохранить", exact=True)).to_be_focused()
     write = site[2][-1]
     assert write["path"] == "/admin/portfolio/club-1" and write["method"] == "PATCH"
     assert write["body"]["trainer_ids"] == ["trainer-a"] and write["body"]["capacity"] is None
