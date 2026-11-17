@@ -362,6 +362,15 @@ def test_office_content_filters_preserve_editing(page, site, width):
     expect(alarm).to_contain_text("Не удалось обновить страницу")
     expect(page.locator("#toast")).to_be_hidden()
     assert alarm.evaluate("node => getComputedStyle(node).borderTopColor") == ERROR_COLOR
+    assert alarm.evaluate(
+        "node => { const box = node.querySelector('p').getBoundingClientRect();"
+        " return !node.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)); }"
+    )
+    close = alarm.get_by_role("button", name="Закрыть сообщение", exact=True)
+    assert close.evaluate(
+        "node => { const box = node.getBoundingClientRect();"
+        " return node.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)); }"
+    )
     page.clock.run_for(TOAST_MS + 1000)
     expect(alarm).to_be_visible()
     alarm.get_by_role("button", name="Закрыть сообщение", exact=True).click()

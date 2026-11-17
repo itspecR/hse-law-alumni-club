@@ -75,6 +75,8 @@ pre{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}
 #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);padding:14px 20px;z-index:1000;background:var(--c-bg-inverse);color:var(--c-text-inverse);border-radius:var(--r-md)}
 #toast-error{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);display:flex;align-items:flex-start;gap:12px;width:max-content;max-width:min(560px,calc(100% - 32px));padding:14px 8px 14px 18px;z-index:var(--layer-toast);background:var(--c-bg-raised);color:var(--c-text);border:1px solid var(--c-danger-text);border-radius:var(--r-md)}
 #toast-error[hidden]{display:none}
+#toast-error,#toast{pointer-events:none}
+#toast-error button{pointer-events:auto}
 #toast-error p{display:flex;gap:8px;margin:0;padding-top:2px;line-height:1.45}
 #toast-error p::before{content:"!" / "";flex:none;display:grid;place-items:center;width:18px;height:18px;margin-top:2px;border:1.5px solid var(--c-danger-text);border-radius:50%;color:var(--c-danger-text);font-size:12px;font-weight:600;line-height:1}
 #toast-error button{flex:none;min-width:44px;min-height:44px;margin:-10px 0;padding:0;border:0;background:none;color:var(--c-text-3);font-size:22px}
