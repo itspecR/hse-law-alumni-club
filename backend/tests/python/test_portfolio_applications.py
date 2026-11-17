@@ -114,7 +114,11 @@ async def test_verified_member_pays_full_price_for_club_programs(database_app, m
         ({**FORM, "participants": 2}, "на одного участника", None),
         ({**GROUP, "participants": 21}, "Проверьте данные в форме", "participants"),
         ({**FORM, "consent_terms": False}, "Проверьте данные в форме", "consent_terms"),
-        ({key: value for key, value in FORM.items() if key != "consent_pdn"}, "Проверьте данные в форме", "consent_pdn"),
+        (
+            {key: value for key, value in FORM.items() if key != "consent_pdn"},
+            "Проверьте данные в форме",
+            "consent_pdn",
+        ),
         ({**FORM, "website": "bot"}, "Проверьте данные в форме", "website"),
         ({**FORM, "contact_phone": "12"}, "Проверьте данные в форме", "contact_phone"),
     ],

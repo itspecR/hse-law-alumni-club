@@ -170,7 +170,9 @@ def site():
                 if records.get("order_failure"):
                     return httpx.Response(503, json={"error": "Временно недоступно"})
                 if records.get("order_invalid"):
-                    return httpx.Response(400, json={"error": "Проверьте данные в форме.", "field": records["order_invalid"]})
+                    return httpx.Response(
+                        400, json={"error": "Проверьте данные в форме.", "field": records["order_invalid"]}
+                    )
                 return httpx.Response(
                     200, json={"number": "ORD-QA", "total_estimate": 300000, "notified": {"ok": True}}
                 )
