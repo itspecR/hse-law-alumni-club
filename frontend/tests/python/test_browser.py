@@ -99,6 +99,7 @@ def chromium():
 
 
 ERROR_COLOR = "rgb(255, 122, 133)"
+TOAST_MS = 6000
 ERROR_LOOK = {"color": ERROR_COLOR, "size": "15px", "background": "rgba(0, 0, 0, 0)", "mark": "18px"}
 
 
@@ -325,6 +326,7 @@ def test_office_content_filters_preserve_editing(page, site, width):
     ]
     page.set_viewport_size({"width": width, "height": 900})
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.clock.install()
     page.goto("/admin/products")
     page.get_by_label("Поиск", exact=True).fill("ЕЛКА")
     page.locator("form.site-filters").get_by_label("Статус", exact=True).select_option("draft")
@@ -355,7 +357,15 @@ def test_office_content_filters_preserve_editing(page, site, width):
     row.get_by_text("Редактировать", exact=True).click()
     page.route("**/views/admin/products", lambda route: route.fulfill(status=503))
     row.get_by_role("button", name="Сохранить", exact=True).click()
-    expect(page.locator("#toast")).to_contain_text("Не удалось обновить страницу")
+    alarm = page.locator("#toast-error")
+    expect(alarm).to_have_attribute("role", "alert")
+    expect(alarm).to_contain_text("Не удалось обновить страницу")
+    expect(page.locator("#toast")).to_be_hidden()
+    assert alarm.evaluate("node => getComputedStyle(node).borderTopColor") == ERROR_COLOR
+    page.clock.run_for(TOAST_MS + 1000)
+    expect(alarm).to_be_visible()
+    alarm.get_by_role("button", name="Закрыть сообщение", exact=True).click()
+    expect(alarm).to_be_hidden()
     expect(row.get_by_role("button", name="Сохранить", exact=True)).to_be_enabled()
 
 
@@ -610,7 +620,7 @@ def test_reading_write_failure_has_no_false_success(page):
     page.goto("/news/news-one")
     page.get_by_role("button", name="Сохранить", exact=True).click()
     expect(page.get_by_role("button", name="Сохранить", exact=True)).to_have_attribute("aria-pressed", "false")
-    expect(page.locator("#toast")).to_contain_text("Хранилище браузера недоступно")
+    expect(page.locator("#toast-error")).to_contain_text("Хранилище браузера недоступно")
 
 
 def test_a11y_keeps_previous_storage_format(page):
