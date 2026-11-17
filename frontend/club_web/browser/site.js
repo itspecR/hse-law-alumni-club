@@ -14,6 +14,7 @@ const memberKey = "club_token";
 const officeKey = "club_admin_token";
 const readingKey = "club-reading-v1";
 const KOPECKS = 100;
+const TOAST_MS = 6000;
 const notNotifiedText = "Заявка сохранена, но мы не получили уведомление. Сообщите номер заявки в поддержку.";
 let pendingCart = 0;
 let pendingCheckout = false;
@@ -26,7 +27,7 @@ function stored(key, fallback = null) {
 
 function store(key, value) {
   try { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); return true; }
-  catch { notice("Хранилище браузера недоступно. Проверьте настройки приватности."); return false; }
+  catch { warn("Хранилище браузера недоступно. Проверьте настройки приватности."); return false; }
 }
 
 const authEmailKey = "club-auth-email";
@@ -69,13 +70,24 @@ function cartSession() {
   return key;
 }
 
-function notice(message) {
-  const box = document.querySelector("#toast");
-  if (!box) return;
-  box.textContent = message;
-  box.hidden = false;
+function notice(message, tone = "info") {
+  const status = document.querySelector("#toast");
+  const alarm = document.querySelector("#toast-error");
+  if (!status || !alarm) return;
   clearTimeout(notice.timer);
-  notice.timer = setTimeout(() => { box.hidden = true; }, 6000);
+  status.hidden = alarm.hidden = true;
+  if (tone === "error") {
+    alarm.querySelector("[data-toast-text]").textContent = message;
+    alarm.hidden = false;
+    return;
+  }
+  status.textContent = message;
+  status.hidden = false;
+  notice.timer = setTimeout(() => { status.hidden = true; }, TOAST_MS);
+}
+
+function warn(message) {
+  notice(message, "error");
 }
 
 function safeLink(value, payment = false) {
@@ -103,7 +115,7 @@ async function request(path, method = "GET", body, extra = {}) {
   if (!response.ok) {
     if (response.status === 401 && session) {
       store(currentPath().startsWith("/admin") ? officeKey : memberKey, null);
-      notice("Сессия завершилась. Войдите снова.");
+      warn("Сессия завершилась. Войдите снова.");
       if (currentPath().startsWith("/admin") || currentPath().startsWith("/lk")) void refresh();
     }
     const failure = new Error(data.error || "Не удалось выполнить действие. Попробуйте позже.");
@@ -123,7 +135,7 @@ function element(tag, text, attributes = {}) {
 async function copyText(text, trigger) {
   try {
     await navigator.clipboard.writeText(text);
-    notice("Скопировано");
+    notice("Скопировано.");
   } catch {
     const dialog = document.querySelector("#site-dialog");
     const content = document.querySelector("#dialog-content");
@@ -157,7 +169,7 @@ async function uploadPhoto(input) {
     preview.hidden = false;
   } catch (error) {
     input.value = "";
-    notice(error.message);
+    warn(error.message);
   }
 }
 
@@ -255,7 +267,7 @@ function filled(module) {
 
 function formError(form, message, field) {
   const box = form.querySelector("[data-error]");
-  if (!box) { notice(message); return; }
+  if (!box) { warn(message); return; }
   const control = invalidControl(form, field);
   box.textContent = control ? fieldMessage(control) : message;
   box.hidden = false;
@@ -291,7 +303,7 @@ async function refresh() {
     setupPage();
     void updateCartCount();
     return true;
-  } catch (error) { notice(error.message); return false; }
+  } catch (error) { warn(error.message); return false; }
 }
 
 async function refreshLiveView() {
@@ -491,7 +503,7 @@ async function perform(target, body) {
       if (cart && currentPath() !== "/cart") {
         void updateCartCount();
         notice("Корзина обновлена.");
-      } else if (await refresh()) notice(cart ? "Корзина обновлена." : "Изменения сохранены");
+      } else if (await refresh()) notice(cart ? "Корзина обновлена." : "Изменения сохранены.");
     }
   } finally {
     if (checkout) pendingCheckout = false;
@@ -614,7 +626,7 @@ function setupPage() {
       const path = currentPath();
       data.recent = [{ kind: ({ dpo: "program", podcasts: "podcast", events: "event", changes: "change" })[recent.dataset.readingKind] || recent.dataset.readingKind, id: path.split("/").pop(), title: recent.dataset.readingTitle, path, at: Date.now() }, ...data.recent.filter(item => item.path !== path)].slice(0, 12);
       store(readingKey, JSON.stringify(data));
-    } catch (error) { notice(error.message); }
+    } catch (error) { warn(error.message); }
   }
   renderReading();
   prefillEmail();
@@ -685,7 +697,7 @@ async function supportThread(access) {
       const button = form.querySelector("button");
       button.disabled = true;
       try { await request("/support/" + access.id + "/messages", "POST", { message: textarea.value }, { "x-support-key": access.key }); await supportThread(access); }
-      catch (error) { notice(error.message); } finally { button.disabled = false; }
+      catch (error) { warn(error.message); } finally { button.disabled = false; }
     });
     section.append(form);
   }
@@ -693,7 +705,7 @@ async function supportThread(access) {
   remove.addEventListener("click", async () => {
     if (!window.confirm("Удалить переписку по этому обращению?")) return;
     try { await request("/support/" + access.id, "DELETE", undefined, { "x-support-key": access.key }); section.replaceChildren(element("p", "Обращение удалено.")); sessionStorage.removeItem("club-support-access"); }
-    catch (error) { notice(error.message); }
+    catch (error) { warn(error.message); }
   });
   section.append(remove);
 }
@@ -732,6 +744,7 @@ document.addEventListener("click", async event => {
     if (target.dataset.api) { await perform(target, target.dataset.method === "GET" || target.dataset.method === "DELETE" ? undefined : target.dataset.body ? JSON.parse(target.dataset.body) : {}); return; }
     const action = target.dataset.action;
     if (action === "refresh") await refresh();
+    else if (action === "close-toast") target.closest("#toast-error").hidden = true;
     else if (action.startsWith("module-")) moduleAction(target, action);
     else if (action === "add-person") await addPerson(target);
     else if (action === "quote") await quotePromo(target);
@@ -827,7 +840,7 @@ document.addEventListener("click", async event => {
       if (!response.token || !store(memberKey, response.token)) throw new Error("Не удалось сохранить вход. Разрешите хранилище браузера.");
       location.href = url("lk");
     } else if (action === "push-subscribe") await subscribePush();
-  } catch (error) { notice(error.message); }
+  } catch (error) { warn(error.message); }
 });
 
 function vision(action) {
@@ -856,7 +869,7 @@ async function subscribePush() {
   const padded = config.key.replace(/-/g, "+").replace(/_/g, "/");
   const key = Uint8Array.from(atob(padded), character => character.charCodeAt(0));
   const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
-  await request("/me/push/subscribe", "POST", subscription.toJSON()); notice("Уведомления включены");
+  await request("/me/push/subscribe", "POST", subscription.toJSON()); notice("Уведомления включены.");
 }
 
 document.addEventListener("input", event => {

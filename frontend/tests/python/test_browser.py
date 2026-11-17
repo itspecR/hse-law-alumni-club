@@ -99,6 +99,7 @@ def chromium():
 
 
 ERROR_COLOR = "rgb(255, 122, 133)"
+TOAST_MS = 6000
 ERROR_LOOK = {"color": ERROR_COLOR, "size": "15px", "background": "rgba(0, 0, 0, 0)", "mark": "18px"}
 
 
@@ -325,6 +326,7 @@ def test_office_content_filters_preserve_editing(page, site, width):
     ]
     page.set_viewport_size({"width": width, "height": 900})
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.clock.install()
     page.goto("/admin/products")
     page.get_by_label("Поиск", exact=True).fill("ЕЛКА")
     page.locator("form.site-filters").get_by_label("Статус", exact=True).select_option("draft")
@@ -355,7 +357,24 @@ def test_office_content_filters_preserve_editing(page, site, width):
     row.get_by_text("Редактировать", exact=True).click()
     page.route("**/views/admin/products", lambda route: route.fulfill(status=503))
     row.get_by_role("button", name="Сохранить", exact=True).click()
-    expect(page.locator("#toast")).to_contain_text("Не удалось обновить страницу")
+    alarm = page.locator("#toast-error")
+    expect(alarm).to_have_attribute("role", "alert")
+    expect(alarm).to_contain_text("Не удалось обновить страницу")
+    expect(page.locator("#toast")).to_be_hidden()
+    assert alarm.evaluate("node => getComputedStyle(node).borderTopColor") == ERROR_COLOR
+    assert alarm.evaluate(
+        "node => { const box = node.querySelector('p').getBoundingClientRect();"
+        " return !node.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)); }"
+    )
+    close = alarm.get_by_role("button", name="Закрыть сообщение", exact=True)
+    assert close.evaluate(
+        "node => { const box = node.getBoundingClientRect();"
+        " return node.contains(document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)); }"
+    )
+    page.clock.run_for(TOAST_MS + 1000)
+    expect(alarm).to_be_visible()
+    alarm.get_by_role("button", name="Закрыть сообщение", exact=True).click()
+    expect(alarm).to_be_hidden()
     expect(row.get_by_role("button", name="Сохранить", exact=True)).to_be_enabled()
 
 
@@ -610,7 +629,7 @@ def test_reading_write_failure_has_no_false_success(page):
     page.goto("/news/news-one")
     page.get_by_role("button", name="Сохранить", exact=True).click()
     expect(page.get_by_role("button", name="Сохранить", exact=True)).to_have_attribute("aria-pressed", "false")
-    expect(page.locator("#toast")).to_contain_text("Хранилище браузера недоступно")
+    expect(page.locator("#toast-error")).to_contain_text("Хранилище браузера недоступно")
 
 
 def test_a11y_keeps_previous_storage_format(page):
@@ -771,7 +790,7 @@ def test_search_page_row_and_support_questions(page, width):
 def test_corrupt_reading_data_is_not_overwritten(page):
     page.add_init_script("localStorage.setItem('club-reading-v1','broken-json');")
     page.goto("/news/news-one")
-    expect(page.locator("#toast")).to_contain_text("Сохраненные материалы повреждены")
+    expect(page.locator("#toast-error")).to_contain_text("Сохраненные материалы повреждены")
     assert page.evaluate("localStorage.getItem('club-reading-v1')") == "broken-json"
     page.get_by_role("button", name="Сохранить", exact=True).click()
     assert page.evaluate("localStorage.getItem('club-reading-v1')") == "broken-json"
@@ -3513,17 +3532,18 @@ def test_office_campaign_editor_adds_a_new_person_with_photo(page, site):
     adding.get_by_label("Фото").set_input_files(
         {"name": "big.png", "mimeType": "image/png", "buffer": b"0" * 6_000_000}
     )
-    expect(page.locator("#toast")).to_contain_text("Фото больше 5 МБ")
+    expect(page.locator("#toast-error")).to_contain_text("Фото больше 5 МБ")
     adding.get_by_label("Фото").set_input_files({"name": "doc.pdf", "mimeType": "application/pdf", "buffer": b"%PDF"})
-    expect(page.locator("#toast")).to_contain_text("JPEG, PNG или WebP")
+    expect(page.locator("#toast-error")).to_contain_text("JPEG, PNG или WebP")
     adding.get_by_role("button", name="Добавить", exact=True).click()
-    expect(page.locator("#toast")).to_contain_text("Укажите ФИО")
+    expect(page.locator("#toast-error")).to_contain_text("Укажите ФИО")
     adding.get_by_label("ФИО").fill("Дарья Новая")
     adding.get_by_label("Описание").fill("Ведущая интенсива")
     adding.get_by_label("Фото").set_input_files({"name": "photo.png", "mimeType": "image/png", "buffer": PHOTO_PNG})
     expect(adding.locator("[data-image-preview]")).to_be_visible()
     adding.get_by_role("button", name="Добавить", exact=True).click()
     expect(page.locator("#toast")).to_contain_text("«Дарья Новая» добавлен в список")
+    expect(page.locator("#toast-error")).to_be_hidden()
     expect(people.get_by_label("Дарья Новая", exact=True)).to_be_checked()
     people.get_by_label("Роль: Дарья Новая").select_option("host")
     expect(adding.get_by_label("ФИО")).to_have_value("")

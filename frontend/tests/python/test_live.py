@@ -178,7 +178,7 @@ def media(office, request, token, name):
     ) as blocked:
         row.get_by_role("button", name="Удалить", exact=True).click()
     assert blocked.value.status == 409
-    expect(office.locator("#toast")).to_contain_text("Файл используется")
+    expect(office.locator("#toast-error")).to_contain_text("Файл используется")
     expect(row).to_be_visible()
     result(request.delete("/api/admin/news/" + news["id"], headers=headers))
     office.once("dialog", lambda dialog: dialog.accept())

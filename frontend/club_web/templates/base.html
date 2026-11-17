@@ -215,6 +215,9 @@
 </div>
 <div id="toast" role="status" aria-live="polite" hidden>
 </div>
+<div id="toast-error" role="alert" hidden>
+<p data-toast-text></p><button type="button" data-action="close-toast" aria-label="Закрыть сообщение">×</button>
+</div>
 <dialog id="search-dialog" class="discovery-dialog" aria-labelledby="search-title">
 <div class="discovery-dialog-head"><h2 id="search-title">Поиск по сайту</h2><button type="button" data-search-close aria-label="Закрыть поиск">×</button></div>
 <form data-search-dialog-form><label>Программы, события, новости, подкасты{{ ', изменения в праве' if changes_enabled }}<input type="search" name="q" minlength="2" maxlength="200" autocomplete="off"></label><button>Найти</button></form>
