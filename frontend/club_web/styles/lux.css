@@ -110,6 +110,10 @@ html.lux :is(.site-event .site-actions > a:not(.site-primary), .mini-membership 
 }
 
 html.lux .site-container { max-width: var(--container); }
+html.lux [data-error]:not([hidden]) { display: flex; gap: 8px; align-items: flex-start; padding: 0; background: none; color: var(--c-danger-text); font-size: 15px; line-height: 1.45; }
+html.lux [data-error]:not([hidden])::before { content: "!" / ""; flex: none; display: grid; place-items: center; width: 18px; height: 18px; margin-top: 2px; border: 1.5px solid currentColor; border-radius: 50%; font-size: 12px; font-weight: 600; line-height: 1; }
+html.lux .site-errors { box-sizing: border-box; width: min(100% - 2 * var(--page-gutter), var(--container) - 2 * var(--page-gutter)); margin: 16px auto; padding: 16px 20px; border-radius: var(--r-tile); background: var(--c-bg-raised); color: var(--c-danger-text); }
+html.lux .site-errors p { margin: 0 0 12px; }
 html.lux .club-header { background: var(--lux-black); border-bottom: 0; backdrop-filter: none; -webkit-backdrop-filter: none; animation: none; box-shadow: none; }
 html.lux .club-header__inner { max-width: var(--container); height: var(--lux-header); padding: 0 var(--page-gutter); gap: 28px; }
 html.lux .club-header__brand { gap: 12px; min-height: 44px; }

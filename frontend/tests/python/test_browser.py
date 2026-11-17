@@ -98,6 +98,17 @@ def chromium():
         instance.close()
 
 
+ERROR_COLOR = "rgb(255, 122, 133)"
+ERROR_LOOK = {"color": ERROR_COLOR, "size": "15px", "background": "rgba(0, 0, 0, 0)", "mark": "18px"}
+
+
+def error_look(locator):
+    return locator.evaluate(
+        "node => { const style = getComputedStyle(node); return { color: style.color, size: style.fontSize,"
+        " background: style.backgroundColor, mark: getComputedStyle(node, '::before').width }; }"
+    )
+
+
 @pytest.fixture
 def site():
     records = {
@@ -473,6 +484,7 @@ def test_checkout_error_keeps_contacts_and_replay_key(page, site):
     site[1]["order_failure"] = True
     page.get_by_role("button", name="Отправить заявку", exact=True).click()
     expect(page.locator("form[data-checkout] [data-error]")).to_contain_text("Временно недоступно")
+    assert error_look(page.locator("form[data-checkout] [data-error]")) == ERROR_LOOK
     submit = page.get_by_role("button", name="Отправить заявку", exact=True)
     expect(submit).to_be_focused()
     expect(submit).not_to_have_attribute("aria-disabled", "true")
@@ -1145,6 +1157,10 @@ def test_home_retry_recovers_after_api_failure(page, site, width):
     records["unavailable_home"] = True
     page.goto("/")
     expect(page.get_by_role("button", name="Повторить", exact=True)).to_be_visible()
+    banner = page.locator(".site-errors").bounding_box()
+    gutter = 16 if width <= 600 else 28
+    assert round(banner["x"]) == max(gutter, (width - 1180) // 2 + gutter)
+    assert page.locator(".site-errors").evaluate("node => getComputedStyle(node).color") == ERROR_COLOR
     records["unavailable_home"] = False
     with page.expect_response(lambda response: response.url.endswith("/views/")) as refreshed:
         page.get_by_role("button", name="Повторить", exact=True).click()
@@ -2517,6 +2533,7 @@ def test_office_portfolio_form_edits_course_modules(page, site, width):
     added.get_by_label("Часы").fill("2 ак. ч.")
     row.get_by_role("button", name="Сохранить", exact=True).click()
     expect(row.locator("[data-error]")).to_have_text("Укажите тему каждого модуля.")
+    assert error_look(row.locator("[data-error]")) == ERROR_LOOK
     added.get_by_label("Тема").fill("Самостоятельная работа")
     added.get_by_label("Содержание, каждый пункт с новой строки").fill("Домашнее задание\n\n")
     added.get_by_label("Формат").fill("Самостоятельно")
