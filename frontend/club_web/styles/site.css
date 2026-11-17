@@ -5,6 +5,7 @@ a{color:var(--c-link);text-underline-offset:3px}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;min-height:44px;padding:10px 18px;background:var(--c-bg);border:1px solid var(--c-line-control);border-radius:var(--r-sm)}
 button:disabled{cursor:default;opacity:.5}
+:is(h1,h2)[tabindex="-1"]:focus{outline:none}
 input:not([type=checkbox]):not([type=hidden]):not([type=file]),select,textarea{max-width:100%;min-height:44px;width:100%;padding:11px 13px;border:1px solid var(--c-line-control);border-radius:var(--r-md);background:var(--c-bg)}
 textarea{min-height:120px;resize:vertical}
 h1{font-family:var(--f-display);font-size:var(--t-h1-page);font-weight:400;line-height:1.12;overflow-wrap:anywhere}
