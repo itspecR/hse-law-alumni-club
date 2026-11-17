@@ -2247,6 +2247,7 @@ def test_member_login_moves_focus_to_cabinet_heading(page, site, width):
     heading = page.get_by_role("heading", level=1, name=PROFILE["alumni"]["fio"])
     expect(heading).to_be_focused()
     expect(heading).to_have_attribute("tabindex", "-1")
+    assert heading.evaluate("node => getComputedStyle(node).outlineStyle") == "none"
 
 
 @pytest.mark.parametrize("width", [390, 1440])
