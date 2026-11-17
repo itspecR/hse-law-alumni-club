@@ -2226,3 +2226,9 @@ async def test_campaign_page_groups_people_by_role(browser_client):
     for role, name in (("speaker", "Вера Спикер"), ("trainer", "Борис Тренер"), ("host", "Анна Ведущая")):
         block = page[page.index(f'id="camp-{role}-title"') :].split("</section>")[0]
         assert name in block and sum(other in block for other in ("Вера Спикер", "Борис Тренер", "Анна Ведущая")) == 1
+
+
+async def test_site_offers_no_install_button(browser_client):
+    for path in ("/", "/about", "/give"):
+        page = (await browser_client.get(path)).text
+        assert "Установить приложение" not in page and 'id="install-app"' not in page, path

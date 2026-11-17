@@ -15,7 +15,6 @@ const KOPECKS = 100;
 const notNotifiedText = "Заявка сохранена, но мы не получили уведомление. Сообщите номер заявки в поддержку.";
 let pendingCart = 0;
 let pendingCheckout = false;
-let installPrompt = null;
 let readingPageSaved = false;
 let removedReading = null;
 
@@ -805,8 +804,6 @@ document.addEventListener("click", async event => {
       target.replaceWith(element("iframe", undefined, { src: href, title: "Видео подкаста", allow: "fullscreen", allowfullscreen: "", loading: "lazy", class: "site-video" }));
     } else if (action === "leave-mini") {
       sessionStorage.removeItem("club_telegram_preview"); sessionStorage.removeItem("club_pwa"); location.href = url("");
-    } else if (action === "install" && installPrompt) {
-      await installPrompt.prompt(); installPrompt = null; target.hidden = true;
     } else if (action === "telegram-login") {
       const initData = window.Telegram?.WebApp?.initData;
       if (!initData) throw new Error("Откройте мини-приложение клуба в Telegram или войдите по почте.");
@@ -886,7 +883,7 @@ document.addEventListener("keydown", event => {
 });
 document.addEventListener("club-reading-refresh", renderReading);
 window.addEventListener("storage", event => { if (event.key === readingKey) renderReading(); });
-window.addEventListener("beforeinstallprompt", event => { event.preventDefault(); installPrompt = event; document.querySelector("#install-app").hidden = false; });
+window.addEventListener("beforeinstallprompt", event => event.preventDefault());
 
 try {
   const settings = JSON.parse(stored("club_vision", "{}"));
@@ -898,7 +895,7 @@ try {
 } catch {}
 document.querySelector("#cookie-banner").hidden = ["all", "essential", "0", "1"].includes(stored("club_cookie_consent"));
 prepareMini(currentPath(), url);
-const chromeSizes = [[".mobile-tabs", "--tabs-h", 0], ["#cookie-banner", "--cookie-h", 32], ["#install-app", "--install-h", 32]];
+const chromeSizes = [[".mobile-tabs", "--tabs-h", 0], ["#cookie-banner", "--cookie-h", 32]];
 const measureChrome = () => {
   for (const [selector, property, gap] of chromeSizes) {
     const node = document.querySelector(selector);
