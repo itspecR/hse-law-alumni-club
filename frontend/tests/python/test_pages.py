@@ -1139,7 +1139,7 @@ async def test_events_podcasts_news_search_saved_texts_follow_glossary(browser_c
     pages = {
         path: (await browser_client.get(path)).text for path in ("/events", "/podcasts", "/news", "/search", "/saved")
     }
-    assert "<p>Баллы за участие: 60</p>" in pages["/events"] and "Файл для календаря (.ics)</a>" in pages["/events"]
+    assert "<p>Баллы за участие: 60</p>" in pages["/events"] and "Файл для календаря (.ics)</a>" not in pages["/events"]
     assert "Подкаст клуба. Пробный выпуск открыт всем, остальные доступны по подписке на год." in pages["/podcasts"]
     assert '<span class="club-caps">Пробный выпуск · 30:00</span>' in pages["/podcasts"]
     assert "<p>Новости факультета и клуба.</p>" in pages["/news"]
@@ -1411,7 +1411,7 @@ async def test_login_search_and_mini_texts_follow_glossary(browser_client, mini_
     note = "Скидка выпускника и все разделы кабинета откроются, когда мы подтвердим ваш статус."
     assert note in login and "Войти можно после того" not in login
     search = (await browser_client.get("/search")).text
-    assert search.count("<label>Программы, события, новости, подкасты<input") == 2
+    assert search.count("<label>Тренинги, события, новости, подкасты<input") == 2
     assert "<p>Баллы, заявки и скидка выпускника.</p>" in (await browser_client.get("/tg")).text
 
 

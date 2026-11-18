@@ -7,6 +7,7 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import httpx
 import pytest
@@ -861,7 +862,7 @@ def test_mini_home_sections_and_photo(page, mini_app):
 def test_feed_calendar_events_and_headings(page, width):
     page.set_viewport_size({"width": width, "height": 900})
     page.goto("/events?month=2026-11")
-    day = page.get_by_role("link", name=EVENT["title"], exact=True).first
+    day = page.locator(".site-calendar-grid").get_by_role("link", name="1 ноября: " + EVENT["title"], exact=True)
     box = day.bounding_box()
     assert box["width"] >= 44 and box["height"] >= 44
     event = page.locator(".site-event").first
@@ -2067,6 +2068,65 @@ def test_vision_panel_shows_values_and_moves_focus(page):
 
 
 TAB_MIN_HEIGHT = 44
+
+
+def test_calendar_marks_today_and_event_card_reads_once(page):
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.goto("/events")
+    today = page.locator(".site-calendar-grid [aria-current=date]")
+    expect(today).to_have_count(1)
+    assert today.locator("span").inner_text() == str(datetime.now(ZoneInfo("Europe/Moscow")).day)
+    page.goto("/events/" + EVENT["id"])
+    expect(page.locator("#main .lux-back")).to_have_attribute("href", "/events")
+    expect(page.get_by_role("heading", name=EVENT["title"], exact=True)).to_have_count(1)
+    expect(page.get_by_text("Файл для календаря (.ics)", exact=True)).to_have_count(0)
+
+
+ARTICLE_TITLE_MAX = 48
+
+
+@pytest.mark.parametrize("width", [390, 620, 768])
+def test_page_edges_follow_one_gutter(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    for path in ("/news", "/merch", "/lk"):
+        page.goto(path)
+        brand = page.locator(".club-header__brand").bounding_box()["x"]
+        assert round(
+            page.locator("main").first.evaluate("node => node.firstElementChild.getBoundingClientRect().left")
+        ) >= round(brand)
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), path
+    page.goto("/news")
+    assert round(page.locator("main h1").bounding_box()["x"]) == round(
+        page.locator(".club-header__brand").bounding_box()["x"]
+    )
+
+
+def test_news_title_stays_compact_on_desktop(page):
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.goto("/news/" + NEWS["slug"])
+    assert (
+        float(page.locator("main h1").evaluate("node => parseFloat(getComputedStyle(node).fontSize)"))
+        <= ARTICLE_TITLE_MAX
+    )
+
+
+BUTTON_LOOK = (
+    "node => { const s = getComputedStyle(node); return [s.borderRadius, s.fontSize, s.fontWeight, s.minHeight]; }"
+)
+
+
+def test_primary_buttons_share_one_look_and_links_keep_touch_size(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto("/about")
+    reference = page.locator("#main .lux-btn").first.evaluate(BUTTON_LOOK)
+    page.goto("/no-such-page")
+    home = page.get_by_role("link", name="На главную", exact=True)
+    assert home.evaluate(BUTTON_LOOK) == reference
+    assert home.bounding_box()["y"] - page.locator("#main header p").bounding_box()["y"] > TAB_MIN_HEIGHT
+    page.goto("/podcasts")
+    assert page.locator("#main .site-primary").first.evaluate(BUTTON_LOOK) == reference
+    assert page.get_by_role("link", name="Войти в кабинет", exact=True).bounding_box()["height"] >= TAB_MIN_HEIGHT
 
 
 @pytest.mark.parametrize("width", [390, 900, 1100])

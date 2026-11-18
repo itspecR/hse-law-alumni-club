@@ -27,7 +27,7 @@
 .club-header__inner {
   max-width: var(--container);
   margin: 0 auto;
-  padding: 0 28px;
+  padding: 0 var(--page-gutter);
   height: 64px;
   display: flex;
   align-items: center;
@@ -199,8 +199,7 @@ html.pwa-shell .club-header__inner { padding-inline: 16px; }
   .club-header__burger { display: inline-flex; }
 }
 @media (max-width: 480px) {
-  .club-header__inner { padding: 0 16px; }
-  .club-menu { padding: 8px 16px 20px; }
+  .club-menu { padding: 8px var(--page-gutter) 20px; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .club-menu[data-open="true"] { animation: club-menu-open 220ms cubic-bezier(.16, 1, .3, 1); }
@@ -247,7 +246,7 @@ html.pwa-shell .club-header__inner { padding-inline: 16px; }
 
 .club-footer {
   margin-top: var(--rh-section);
-  padding: 56px 28px 40px;
+  padding: 56px var(--page-gutter) 40px;
   padding-bottom: calc(40px + var(--tabs-h, 0px) + var(--cookie-h, 0px));
 }
 .club-footer__inner {
@@ -292,7 +291,7 @@ html.pwa-shell .club-header__inner { padding-inline: 16px; }
   .club-footer__brand { grid-column: 1 / -1; }
 }
 @media (max-width: 480px) {
-  .club-footer { padding: 44px 16px 32px; padding-bottom: calc(32px + var(--tabs-h, 0px) + var(--cookie-h, 0px)); }
+  .club-footer { padding-top: 44px; padding-bottom: calc(32px + var(--tabs-h, 0px) + var(--cookie-h, 0px)); }
 }
 
 .club-masthead {
