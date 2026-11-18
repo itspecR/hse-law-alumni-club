@@ -23,3 +23,7 @@ html.lux .site-office input[type=file]::file-selector-button { min-height: 44px;
 @media (hover: hover) and (pointer: fine) {
   html.lux .site-office :is(.site-office-content, .office-sidebar) a:not([class]):hover { text-decoration-color: currentColor; }
 }
+html.lux .site-office .office-create > summary::after { color: inherit; }
+@media (hover: hover) and (pointer: fine) {
+  html.lux .site-office .office-create > summary:hover { background: var(--p-ohra-hover); }
+}

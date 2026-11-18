@@ -8,7 +8,7 @@
 <time>{{ entry.created_at|date(true) }}</time>
 <strong>{{ audit_label(entry.event) }}</strong>
 <p class="office-meta">{{ [entry.actor, entry.subject]|select|join(' · ') }}</p>
-{% if entry.detail %}<details><summary>Подробности</summary><pre>{{ entry.detail|tojson }}</pre><p class="office-meta">{{ entry.event }}</p></details>{% endif %}
+{% if entry.detail %}<details class="lux-disclosure"><summary>Подробности</summary><pre>{{ entry.detail|tojson }}</pre><p class="office-meta">{{ entry.event }}</p></details>{% endif %}
 </article>
-{% else %}{{ empty('Записей пока нет.') }}{% endfor %}
+{% else %}{{ empty('В журнале пока нет действий.') }}{% endfor %}
 </div>

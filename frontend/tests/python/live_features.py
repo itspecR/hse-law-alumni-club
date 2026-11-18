@@ -20,6 +20,12 @@ def submit(page, form, path, method="POST", status=200):
     return response.value.json()
 
 
+def accept_confirm(page):
+    dialog = page.locator("#site-dialog")
+    dialog.locator("[data-confirm-accept]").click()
+    expect(dialog).to_be_hidden()
+
+
 def content_forms(office, request, headers, name):
     definitions = {
         "products": {"category": "Одежда", "price": "0", "stock": "5", "images": "", "variants_json": "[]"},
@@ -31,7 +37,7 @@ def content_forms(office, request, headers, name):
         path = "/admin/" + section
         title = f"Проверка формы {section} {name}"
         office.goto(path)
-        office.get_by_text("Создать запись", exact=True).click()
+        office.locator(".office-create > summary").click()
         form = office.locator(f'form[data-api="{path}"]')
         form.locator('[name="title"]').fill(title)
         for field, value in fields.items():
@@ -57,7 +63,6 @@ def content_forms(office, request, headers, name):
         assert saved["title"] == edited
         row = office.locator("article.site-panel").filter(has_text=edited)
         expect(row).to_be_visible()
-        office.once("dialog", lambda dialog: dialog.accept())
         with office.expect_response(
             lambda response, endpoint=path + "/" + record["id"]: (
                 response.url.endswith("/api" + endpoint) and response.request.method == "DELETE"
@@ -65,6 +70,7 @@ def content_forms(office, request, headers, name):
         ) as deleted:
             row.locator(".office-more").evaluate("node => { node.open = true; }")
             row.get_by_role("button", name=re.compile(r"^Удалить «")).click()
+            accept_confirm(office)
         assert deleted.value.status == 200
         expect(row).to_have_count(0)
         assert all(item["id"] != record["id"] for item in request.get("/api" + path, headers=headers).json())
@@ -394,10 +400,10 @@ def support_conversation(page, office, request, headers, name):
     assert request.get("/api/admin/support", headers=headers).status == 200
     page.get_by_role("button", name="Открыть переписку", exact=True).click()
     expect(page.locator("[data-support-message]")).to_have_count(0)
-    page.once("dialog", lambda dialog: dialog.accept())
     with page.expect_response(
         lambda response: response.url.endswith("/api/support/" + ticket["id"]) and response.request.method == "DELETE"
     ) as deleted:
         page.get_by_role("button", name="Удалить обращение", exact=True).click()
+        accept_confirm(page)
     assert deleted.value.status == 200
     expect(page.locator("#support-thread")).to_contain_text("Обращение удалено")
