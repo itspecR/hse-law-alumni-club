@@ -2069,6 +2069,24 @@ def test_vision_panel_shows_values_and_moves_focus(page):
 TAB_MIN_HEIGHT = 44
 
 
+BUTTON_LOOK = (
+    "node => { const s = getComputedStyle(node); return [s.borderRadius, s.fontSize, s.fontWeight, s.minHeight]; }"
+)
+
+
+def test_primary_buttons_share_one_look_and_links_keep_touch_size(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto("/about")
+    reference = page.locator("#main .lux-btn").first.evaluate(BUTTON_LOOK)
+    page.goto("/no-such-page")
+    home = page.get_by_role("link", name="На главную", exact=True)
+    assert home.evaluate(BUTTON_LOOK) == reference
+    assert home.bounding_box()["y"] - page.locator("#main header p").bounding_box()["y"] > TAB_MIN_HEIGHT
+    page.goto("/podcasts")
+    assert page.locator("#main .site-primary").first.evaluate(BUTTON_LOOK) == reference
+    assert page.get_by_role("link", name="Войти в кабинет", exact=True).bounding_box()["height"] >= TAB_MIN_HEIGHT
+
+
 @pytest.mark.parametrize("width", [390, 900, 1100])
 def test_bottom_tabs_share_width_and_mark_current_tab(page, width):
     page.set_viewport_size({"width": width, "height": 900})

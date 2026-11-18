@@ -55,7 +55,7 @@
 </select>
 </label>
 <button>Показать</button>
-<a href="{{ path }}">Сбросить</a>
+<a href="{{ path }}" class="foc lux-link">Сбросить фильтры</a>
 </form>
 {% endif %}
 {% if kind=='dpo' %}<aside id="program-compare" class="dpo-compare-bar site-panel" aria-label="Выбранные программы" hidden>
@@ -96,7 +96,7 @@
 </div>
 </article>
 {% endfor %}
-<div data-catalog-empty {% if items %}hidden{% endif %}><p>По выбранным фильтрам ничего не найдено.</p><a href="{{ path }}">Сбросить фильтры</a></div>
+<div data-catalog-empty {% if items %}hidden{% endif %}><p>По выбранным фильтрам ничего не найдено.</p><a href="{{ path }}" class="foc lux-link">Сбросить фильтры</a></div>
 </div>
 {% if kind=='dpo' %}
 
