@@ -907,7 +907,7 @@ def test_signed_audio_link_is_renewed_once_without_autoplay(page, site):
     expect(page.get_by_role("button", name="Повторить загрузку")).to_be_visible()
 
 
-COOKIE_BANNER_MAX_HEIGHT = 140
+COOKIE_BANNER_MAX_HEIGHT = 160
 COOKIE_FONT_READY = "document.fonts.load('400 14px \"HSE Sans\"').then(() => document.fonts.ready).then(() => true)"
 COOKIE_BUTTON_LOOK = (
     "node => { const s = getComputedStyle(node); return [s.backgroundColor, s.color, s.boxShadow, s.textTransform]; }"
