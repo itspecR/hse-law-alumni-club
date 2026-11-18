@@ -612,7 +612,10 @@ async def test_empty_sections_show_tile_with_next_step():
         async with httpx.AsyncClient(
             transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
         ) as client:
-            pages = {path: (await client.get(path)).text for path in ("/portfolio", "/news", "/podcasts", "/events", "/merch")}
+            pages = {
+                path: (await client.get(path)).text
+                for path in ("/portfolio", "/news", "/podcasts", "/events", "/merch")
+            }
     assert '<p class="site-empty__title">Тренингов пока нет</p>' in pages["/portfolio"]
     assert (
         'href="https://t.me/AlumniLawHSE" target="_blank" rel="noopener noreferrer">Канал клуба в Telegram'
