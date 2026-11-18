@@ -907,6 +907,43 @@ def test_signed_audio_link_is_renewed_once_without_autoplay(page, site):
     expect(page.get_by_role("button", name="Повторить загрузку")).to_be_visible()
 
 
+COOKIE_BANNER_MAX_HEIGHT = 160
+COOKIE_FONT_READY = "document.fonts.load('400 14px \"HSE Sans\"').then(() => document.fonts.ready).then(() => true)"
+COOKIE_BUTTON_LOOK = (
+    "node => { const s = getComputedStyle(node); return [s.backgroundColor, s.color, s.boxShadow, s.textTransform]; }"
+)
+
+
+@pytest.mark.parametrize("width,height", [(360, 640), (1440, 900)])
+def test_cookie_banner_is_compact_neutral_and_keeps_focus(page, width, height):
+    page.set_viewport_size({"width": width, "height": height})
+    page.add_init_script("localStorage.removeItem('club_cookie_consent');")
+    page.goto("/")
+    banner = page.get_by_role("dialog", name="Согласие на использование cookies")
+    essential = banner.get_by_role("button", name="Только необходимые", exact=True)
+    accept = banner.get_by_role("button", name="Принять все", exact=True)
+    expect(banner).to_be_visible()
+    page.evaluate(COOKIE_FONT_READY)
+    assert essential.evaluate(COOKIE_BUTTON_LOOK) == accept.evaluate(COOKIE_BUTTON_LOOK)
+    assert essential.evaluate(COOKIE_BUTTON_LOOK)[3] == "none"
+    assert essential.bounding_box()["y"] == accept.bounding_box()["y"]
+    assert banner.bounding_box()["height"] <= COOKIE_BANNER_MAX_HEIGHT
+    padding = page.evaluate("parseFloat(getComputedStyle(document.documentElement).scrollPaddingBottom)")
+    assert padding >= banner.bounding_box()["height"]
+    for _ in range(3):
+        page.keyboard.press("Tab")
+    expect(essential).to_be_focused()
+    page.keyboard.press("Enter")
+    expect(banner).to_be_hidden()
+    expect(page.locator("main h1")).to_be_focused()
+    opener = page.locator(".club-footer").get_by_role("button", name="Cookies", exact=True)
+    opener.click()
+    expect(essential).to_be_focused()
+    accept.click()
+    expect(opener).to_be_focused()
+    assert page.evaluate("localStorage.getItem('club_cookie_consent')") == "all"
+
+
 @pytest.mark.parametrize("width", [1440, 390])
 def test_legal_pages_and_separate_form_consent(page, width):
     page.set_viewport_size({"width": width, "height": 900})

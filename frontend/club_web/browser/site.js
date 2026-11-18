@@ -6,7 +6,7 @@ import { prepareGive } from "./give.js";
 import { moduleAction, prepareCourse } from "./course.js";
 import { prepareProgramEditor } from "./program-editor.js";
 import { hideSkeleton, prepareSkeleton } from "./skeleton.js";
-import { focusHeading, focusMark, restoreFocus } from "./focus.js";
+import { focusHeading, focusMark, focusPageStart, restoreFocus } from "./focus.js";
 import { clearInvalid, fieldMessage, invalidControl, markInvalid } from "./field-errors.js";
 
 const base = document.body.dataset.base || "/";
@@ -778,12 +778,9 @@ document.addEventListener("click", async event => {
       if (action === "logout") store("club_cart", null);
       await refresh();
       if (failure) throw failure;
-    } else if (action === "cookies") document.querySelector("#cookie-banner").hidden = false;
-    else if (action.startsWith("cookies-")) {
-      store("club_cookie_consent", action === "cookies-all" ? "all" : "essential");
-      document.querySelector("#cookie-banner").hidden = true;
-      if (action === "cookies-all") void pageview();
-    } else if (action.startsWith("vision")) vision(action);
+    } else if (action === "cookies") openCookies(target);
+    else if (action.startsWith("cookies-")) chooseCookies(action === "cookies-all" ? "all" : "essential");
+    else if (action.startsWith("vision")) vision(action);
     else if (action === "save") {
       const data = reading(true);
       const path = target.dataset.href;
@@ -867,6 +864,25 @@ function vision(action) {
   document.dispatchEvent(new Event("club-vision-change"));
 }
 
+let cookieOpener = null;
+
+function openCookies(trigger) {
+  const banner = document.querySelector("#cookie-banner");
+  if (!banner) return;
+  cookieOpener = trigger;
+  banner.hidden = false;
+  banner.querySelector("button").focus();
+}
+
+function chooseCookies(choice) {
+  store("club_cookie_consent", choice);
+  document.querySelector("#cookie-banner").hidden = true;
+  if (cookieOpener?.isConnected) cookieOpener.focus();
+  else focusPageStart();
+  cookieOpener = null;
+  if (choice === "all") void pageview();
+}
+
 async function pageview() {
   if (!["all", "1"].includes(stored("club_cookie_consent")) || currentPath().startsWith("/admin")) return;
   try { await fetch(url("api/analytics/pageview"), { method: "POST", credentials: "omit", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: currentPath() }) }); } catch {}
@@ -934,7 +950,8 @@ try {
   for (const [key, css] of [["images", "vis-noimg"], ["serif", "vis-serif"], ["spacing", "vis-spacing"]]) html.classList.toggle(css, key === "images" ? settings.images === false : !!settings[key]);
   document.querySelector("#vision").hidden = !settings.on;
 } catch {}
-document.querySelector("#cookie-banner").hidden = ["all", "essential", "0", "1"].includes(stored("club_cookie_consent"));
+const cookieBanner = document.querySelector("#cookie-banner");
+if (cookieBanner) cookieBanner.hidden = ["all", "essential", "0", "1"].includes(stored("club_cookie_consent"));
 prepareMini(currentPath(), url);
 const chromeSizes = [[".mobile-tabs", "--tabs-h", 0], ["#cookie-banner", "--cookie-h", 32]];
 const measureChrome = () => {
