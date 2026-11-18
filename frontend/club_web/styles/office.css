@@ -232,6 +232,7 @@
 .office-support-bot summary h2 { margin:0; }
 .office-filter-toggle { display:none; }
 @media(max-width:640px) {
+  .site-office .site-filters > * { order:3; }
   .site-office .site-filters .office-filter-toggle { display:inline-flex; order:2; }
   .site-office .site-filters:not(.is-open) > label:has(select) { display:none; }
   .site-office .site-filters > label:has(input[type=search], input[name=q]) { order:1; flex:1 1 100%; }

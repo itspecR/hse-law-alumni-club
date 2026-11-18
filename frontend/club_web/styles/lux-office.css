@@ -15,3 +15,11 @@ html.lux .site-office input[type="file"] { background: var(--c-bg-sunken); }
 @media (hover: hover) and (pointer: fine) {
   html.lux .office-nav-group a:not([aria-current]):hover { background: var(--lux-hover); color: var(--c-text); }
 }
+html.lux .site-office :is(.site-office-content, .office-sidebar) a:not([class]) { color: var(--c-text); text-decoration-color: var(--lux-hairline); text-underline-offset: 4px; }
+html.lux .site-office input[type=checkbox], html.lux .site-office input[type=radio] { width: 20px; height: 20px; accent-color: var(--c-accent); }
+html.lux .site-office label:has(> input[type=checkbox]), html.lux .site-office label:has(> input[type=radio]) { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
+html.lux .site-office input[type=file] { border: 0; padding: 0; background: none; color: var(--c-text-3); font-size: 15px; }
+html.lux .site-office input[type=file]::file-selector-button { min-height: 44px; margin-right: 12px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--lux-control); color: var(--c-text); font: 500 15px/1 var(--f-body); cursor: pointer; }
+@media (hover: hover) and (pointer: fine) {
+  html.lux .site-office :is(.site-office-content, .office-sidebar) a:not([class]):hover { text-decoration-color: currentColor; }
+}
