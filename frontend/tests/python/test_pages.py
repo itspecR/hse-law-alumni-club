@@ -1818,6 +1818,8 @@ async def test_editor_has_no_donations_section(browser_client):
     donations = (await browser_client.get("/views/admin/donations", headers=EDITOR)).text
     assert "Нужен доступ администратора" in donations and "DON-2026" not in donations
     assert 'class="site-errors"' not in donations
+    assert 'class="office-refresh"' not in donations and 'class="site-empty office-access"' in donations
+    assert 'role="alert"><h2>Нужен доступ' not in donations
 
 
 def test_rubles_input_keeps_exact_kopecks():

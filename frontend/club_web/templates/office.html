@@ -30,11 +30,11 @@
 <main id="main" class="site-office-content">
 <div class="office-topbar"><nav aria-label="Путь к разделу"><a href="/admin">Панель управления</a><span aria-hidden="true">/</span>{% if office_parent %}<a href="/admin/{{ section }}">{{ office_parent }}</a><span aria-hidden="true">/</span>{% endif %}<span>{{ title }}</span></nav><a href="/" class="office-site-link">На сайт {{ icon('arrow') }}</a></div>
 <header class="office-page-header{{ ' office-page-header--record' if office_parent }}">
-<div><h1>{{ title }}</h1><p>{{ office_lede or office_descriptions.get(section,'') }}</p></div>
-{% if not office_parent %}<button data-action="refresh" class="office-refresh">{{ icon('refresh') }}Обновить</button>{% endif %}
+<div><h1>{{ title }}</h1>{% if access_error!=403 %}<p>{{ office_lede or office_descriptions.get(section,'') }}</p>{% endif %}</div>
+{% if not office_parent and access_error!=403 %}<button data-action="refresh" class="office-refresh">{{ icon('refresh') }}Обновить</button>{% endif %}
 </header>
 {% if access_error==403 %}
-<div class="office-access" role="alert"><h2>Нужен доступ администратора</h2><p>Этот раздел доступен администратору клуба.</p><a href="/admin">К обзору панели</a></div>
+<section class="site-empty office-access" aria-labelledby="office-access-title"><h2 id="office-access-title" class="site-empty__title">Нужен доступ администратора</h2><p>Этот раздел доступен администратору клуба.</p><a class="foc lux-more" href="/admin">К обзору панели <span class="lux-more__arrow" aria-hidden="true">›</span></a></section>
 {% else %}
 {% include office_template %}
 {% endif %}

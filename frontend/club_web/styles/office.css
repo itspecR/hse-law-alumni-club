@@ -107,8 +107,7 @@
 .office-health-row .office-status { align-self:start; flex:none; }
 .office-metric-details { border:0; padding:0; margin:0 0 24px; }
 .office-metric-details summary { margin-bottom:12px; color:var(--c-text-2); }
-.office-access { padding:32px; background:var(--c-bg); border:1px solid var(--c-line); border-radius:var(--r-lg); }
-.office-access h2 { margin-top:0; }
+.office-access h2 { margin:0; }
 .office-pagination { justify-content:space-between; padding:16px 0; border-top:1px solid var(--c-line); }
 .office-pagination a { min-height:44px; display:inline-flex; align-items:center; }
 .office-edit-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 20px; align-items:end; padding:16px 0; }
