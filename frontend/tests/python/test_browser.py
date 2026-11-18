@@ -1824,6 +1824,42 @@ def test_cabinet_achievements_fit_in_strip_and_grid(page, site, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
+PHONE_METRICS_MAX_HEIGHT = 220
+
+
+@pytest.mark.parametrize("width", [390, 768])
+def test_cabinet_head_keeps_profile_beside_name_and_even_tiles(page, site, width):
+    goal = {"title": "Первое событие", "description": "Придите на событие", "current": 0, "target": 1, "earned": False}
+    site[1]["/me"] = {**PROFILE, "achievements": [goal]}
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk#points")
+    head = page.locator(".cabinet-head")
+    expect(head.get_by_role("button", name="Выйти")).to_have_count(0)
+    name = head.locator("h1").bounding_box()
+    profile = head.get_by_role("link", name="Профиль").bounding_box()
+    assert profile["y"] < name["y"] + name["height"]
+    tiles = [tile.bounding_box() for tile in page.locator(".cabinet-metric").all()]
+    assert len({round(tile["width"]) for tile in tiles}) == 1
+    if width == 390:
+        assert page.locator(".cabinet-metrics").bounding_box()["height"] <= PHONE_METRICS_MAX_HEIGHT
+    strip = page.locator(".cabinet-tabs").bounding_box()
+    current = page.locator(".cabinet-tabs a[aria-current=true]").bounding_box()
+    assert strip["x"] <= current["x"] and current["x"] + current["width"] <= strip["x"] + strip["width"] + 1
+    expect(page.locator(".cabinet-badges")).to_have_attribute("tabindex", "0")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+def test_profile_ends_with_logout(page, site):
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk/profile")
+    logout = page.locator(".profile-logout").get_by_role("button", name="Выйти", exact=True)
+    assert page.locator(".profile-page > section").last.get_attribute("class") == "profile-logout"
+    logout.click()
+    expect(page.get_by_role("heading", name="Вход для выпускников", exact=True)).to_be_visible()
+    assert page.evaluate("localStorage.getItem('club_token')") is None
+
+
 @pytest.mark.parametrize("width", [390, 1440])
 def test_catalog_styles_stay_on_catalog_pages(page, site, width):
     site[1]["/admin/programs"] = [{**PROGRAM, "status": "published"}]

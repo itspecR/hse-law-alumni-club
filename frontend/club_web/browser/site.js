@@ -585,10 +585,17 @@ function cabinetTabs() {
   return currentPath() === "/lk" ? document.querySelector(".cabinet-tabs") : null;
 }
 
+function revealTab(link) {
+  const strip = link.parentElement;
+  const left = link.offsetLeft - strip.offsetLeft;
+  if (left < strip.scrollLeft || left + link.offsetWidth > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = left - (strip.clientWidth - link.offsetWidth) / 2;
+}
+
 function showCabinetSection(section) {
   for (const link of cabinetTabs()?.querySelectorAll("a[href^='#']") || []) {
-    if (link.hash.slice(1) === section) link.setAttribute("aria-current", "true");
-    else link.removeAttribute("aria-current");
+    if (link.hash.slice(1) !== section) { link.removeAttribute("aria-current"); continue; }
+    link.setAttribute("aria-current", "true");
+    revealTab(link);
   }
   for (const panel of document.querySelectorAll(".cabinet-panel")) panel.hidden = panel.id !== section;
 }

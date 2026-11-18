@@ -16,7 +16,6 @@
 <div class="cabinet-head__actions">
 <a href="/lk/profile" class="lux-btn lux-btn--ghost lux-btn--sm" aria-label="Профиль">{{ icon('profile', 18) }}<span class="cabinet-head__label">Профиль</span></a>
 {% if verified and push_enabled %}<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="push-subscribe" aria-label="Включить уведомления">{{ icon('bell', 18) }}<span class="cabinet-head__label">Включить уведомления</span></button>{% endif %}
-<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="logout" aria-label="Выйти">{{ icon('logout', 18) }}<span class="cabinet-head__label">Выйти</span></button>
 </div>
 </header>
 {% if not verified %}
@@ -130,7 +129,7 @@
 <h3>{{ icon('achievements', 18) }}Ближайшие достижения</h3>
 <a href="#achievements">Все достижения</a>
 </div>
-<ul class="cabinet-badges" aria-label="Ближайшие достижения">
+<ul class="cabinet-badges" tabindex="0" aria-label="Ближайшие достижения">
 {% for achievement in achievement_strip %}
 <li class="cabinet-badge{{ ' is-earned' if achievement.earned else '' }}"><span class="cabinet-badge__title"><span aria-hidden="true">{{ '★' if achievement.earned else '○' }}</span>{{ achievement.title }}</span><small>{{ achievement.current }}/{{ achievement.target }}</small></li>
 {% endfor %}

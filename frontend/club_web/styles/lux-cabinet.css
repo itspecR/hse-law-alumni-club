@@ -94,9 +94,10 @@ html.lux .cabinet-chart li { display: grid; grid-template-rows: auto 1fr auto; j
 html.lux .cabinet-chart i { align-self: end; width: 100%; max-width: 40px; height: max(var(--share), 3px); border-radius: 8px 8px 2px 2px; background: var(--c-accent); }
 html.lux .cabinet-chart :is(span, small) { color: var(--c-text-3); font-size: 13px; font-variant-numeric: tabular-nums; }
 
-html.lux .cabinet-badges__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+html.lux .cabinet-badges__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
 html.lux .cabinet-badges__head h3 { margin: 0; }
 html.lux .cabinet-badges__head a { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; }
+html.lux .cabinet-badges:focus-visible { outline: 3px solid var(--c-text); outline-offset: 2px; }
 html.lux .cabinet-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
 html.lux .cabinet-badge { display: grid; flex: 1 1 140px; align-content: space-between; gap: 6px; max-width: 240px; padding: 12px 14px; border-radius: 16px; background: var(--c-bg-sunken); }
 html.lux .cabinet-badge__title { font: 500 14px/1.3 var(--f-body); }
@@ -120,21 +121,22 @@ html.lux .cabinet-achievement[open] .cabinet-achievement__text { display: block;
 }
 @media (max-width: 1000px) {
   html.lux .cabinet-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  html.lux .cabinet-metric--level { grid-column: 1 / -1; }
 }
 @media (max-width: 700px) {
   html.lux .cabinet-gate { margin: 16px 0 32px; }
   html.lux .cabinet-gate__form { border-radius: var(--r-lg); }
-  html.lux .cabinet-head { padding-top: 24px; }
+  html.lux .cabinet-head { flex-wrap: nowrap; align-items: flex-start; gap: 12px; padding-top: 24px; }
+  html.lux .cabinet-head__actions { flex-wrap: nowrap; }
   html.lux .cabinet-head__person { gap: 16px; }
   html.lux .cabinet-avatar { width: 56px; height: 56px; font-size: 19px; }
   html.lux .cabinet-avatar--small { width: 44px; height: 44px; font-size: 15px; }
   html.lux .cabinet-head__actions .lux-btn { width: 44px; min-width: 44px; height: 44px; padding: 0; justify-content: center; }
   html.lux .cabinet-head__label { display: none; }
-  html.lux .cabinet-metric--level { grid-column: auto; }
-  html.lux .cabinet-metric { gap: 10px; padding: 16px; }
-  html.lux .cabinet-metric dd { font-size: 26px; }
-  html.lux .cabinet-metric dt { font-size: 13px; }
+  html.lux .cabinet-metrics { gap: 8px; }
+  html.lux .cabinet-metric { gap: 8px; padding: 12px 14px; }
+  html.lux .cabinet-metric dd { gap: 6px; font-size: 22px; }
+  html.lux .cabinet-metric dt { font-size: 12px; }
+  html.lux .cabinet-metric__note { font-size: 12px; }
   html.lux .cabinet-tabs { width: auto; max-width: none; margin-inline: calc(-1 * var(--page-gutter)); padding: 8px var(--page-gutter); border-radius: 0; background: none; scroll-padding-inline: var(--page-gutter); }
   html.lux .cabinet-tabs a { background: var(--lux-control); }
   html.lux .cabinet-overview, html.lux .cabinet-callout { grid-template-columns: 1fr; }
@@ -177,6 +179,10 @@ html.lux .profile-page form > button { justify-self: start; }
 html.lux .profile-page input[readonly] { color: var(--c-text-2); cursor: default; }
 html.lux .profile-page .profile-fio-note { margin: -8px 0 0; font-size: 13px; line-height: 1.4; color: var(--c-text-3); }
 html.lux .profile-page section { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--c-line); }
+html.lux .profile-logout { display: grid; justify-items: start; gap: 12px; }
+html.lux .profile-page .profile-logout > :is(h2, p) { margin: 0; }
+html.lux .profile-logout p { color: var(--c-text-3); }
+html.lux .profile-logout .lux-btn { gap: 8px; }
 html.lux .profile-page section > h2 { margin: 0 0 12px; }
 html.lux .profile-page section > p { color: var(--c-text-3); }
 html.lux .profile-page details summary { margin-top: 20px; color: var(--c-danger-text); }
