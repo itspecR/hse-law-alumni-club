@@ -24,7 +24,7 @@ async def build_health(state):
             "detail": "Контрольный запрос не выполнен",
         }
     storage["latency_ms"] = round((time.monotonic() - start) * 1000)
-    database = {"id": "database", "name": "База сайта · MariaDB"}
+    database = {"id": "database", "name": "База данных"}
     if state.database.pool:
         start = time.monotonic()
         try:
@@ -36,25 +36,25 @@ async def build_health(state):
         database["latency_ms"] = round((time.monotonic() - start) * 1000)
     else:
         database.update(status="disabled", detail="Подключение не настроено; оформление недоступно")
-    checks = [{"id": "api", "name": "API сайта", "status": "ok", "detail": "Обработал этот запрос"}, storage, database]
+    checks = [{"id": "api", "name": "Сайт", "status": "ok", "detail": "Работает"}, storage, database]
     for id, name, configured, text in (
         (
             "telegram",
             "Telegram-бот",
             bool(state.settings.secret("TELEGRAM_BOT_TOKEN")),
-            "Токен задан; работа обработчика и доставка не проверены",
+            "Бот настроен, работа не проверялась",
         ),
         (
             "email",
             "Электронная почта",
             bool(state.settings.SMTP_HOST),
-            "SMTP задан; соединение и доставка не проверены",
+            "Почта настроена, отправка не проверялась",
         ),
         (
             "push",
             "Push-уведомления",
             bool(state.settings.VAPID_PUBLIC_KEY and state.settings.secret("VAPID_PRIVATE_KEY")),
-            "Ключи заданы; доставка на устройства не проверена",
+            "Уведомления настроены, доставка не проверялась",
         ),
     ):
         checks.append(

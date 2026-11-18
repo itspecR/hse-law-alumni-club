@@ -392,7 +392,7 @@ async def attend(request: HttpRequest, rsvpId: str):
             return {"ok": True, "already": True}
         event = await state.store.one("events", row["event_id"], connection=connection)
         if not event_day_started(event):
-            raise ApiError(400, "Отметить участие можно с дня события.")
+            raise ApiError(400, "Отметить участие можно со дня события.")
         undos = (await state.gamification.event_entries(connection, row["alumni_id"], row["event_id"]))["undos"]
         await state.gamification.add_in_transaction(
             connection,

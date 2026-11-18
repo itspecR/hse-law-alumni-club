@@ -21,7 +21,7 @@
 <label>Ссылка на файл<input readonly value="/api/media/{{ file.id }}">
 </label>
 <div class="site-actions"><button data-action="media-preview" data-file-id="{{ file.id }}" data-file-type="{{ file.type }}" data-title="{{ file.title or file.filename_download }}">Предпросмотр</button>
-<button data-action="copy" data-value="{{ file.id }}">Скопировать ID</button>
+<button data-action="copy" data-value="{{ file.id }}">Скопировать номер файла</button>
 <button data-download="/admin/media/{{ file.id }}/content" data-filename="{{ file.filename_download }}">Скачать</button>
 </div>
 </article>
