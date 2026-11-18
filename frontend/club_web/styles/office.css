@@ -170,6 +170,7 @@
   .office-workspace { grid-template-columns:1fr; gap:0; }
 }
 @media(max-width:900px) {
+  .site-office { grid-template-rows:auto 1fr; align-content:start; }
   .site-office { grid-template-columns:minmax(0,1fr); }
   .office-sidebar { position:sticky; height:auto; z-index:150; border-right:0; border-bottom:1px solid var(--c-line); }
   .office-brand-row { justify-content:space-between; padding:12px 20px; }
@@ -225,3 +226,13 @@
 .office-chart-days { margin:12px 0 24px; }
 .office-chart-days table { border-collapse:collapse; font-variant-numeric:tabular-nums; }
 .office-chart-days :is(th,td) { padding:4px 16px 4px 0; text-align:left; font-weight:400; color:var(--c-text-2); }
+
+.office-support-bot { margin-top:24px; }
+.office-support-bot summary { display:flex; align-items:center; min-height:44px; cursor:pointer; }
+.office-support-bot summary h2 { margin:0; }
+.office-filter-toggle { display:none; }
+@media(max-width:640px) {
+  .site-office .site-filters .office-filter-toggle { display:inline-flex; order:2; }
+  .site-office .site-filters:not(.is-open) > label:has(select) { display:none; }
+  .site-office .site-filters > label:has(input[type=search], input[name=q]) { order:1; flex:1 1 100%; }
+}

@@ -1,7 +1,8 @@
 {% set priority=['new_orders','pending_verifications','alumni_count','podcast_subscribers'] %}
+{% set queued=['new_orders','pending_verifications'] %}
 {% set destinations={'new_orders':'/admin/orders?status=new','pending_verifications':'/admin/members?status=pending','alumni_count':'/admin/members','podcast_subscribers':'/admin/subs'} %}
 <div class="site-metrics office-primary-metrics">
-{% for key in priority if key in records %}
+{% for key in priority if key in records and key not in queued %}
 <article><a class="office-metric-link" href="{{ destinations[key] }}"><strong>{{ records[key] }}</strong><span>{{ metrics[key] }}</span></a></article>
 {% endfor %}
 </div>
@@ -13,7 +14,7 @@
 {% else %}{{ empty('Сведения о заявках и проверке не получены.') }}{% endfor %}
 </section>
 <section class="site-panel"><h2>Перейти к работе</h2><div class="office-shortcuts">
-{% for key,title in [('news','Новости'),('events','События'),('programs','Программы ДПО'),('media','Загрузить файл')] %}<a href="/admin/{{ key }}">{{ icon(key) }}{{ title }}</a>{% endfor %}
+{% for key,title in [('portfolio','Тренинги'),('news','Новости'),('events','События')] + ([('programs','Программы ДПО')] if dpo_enabled else []) + [('media','Загрузить файл')] %}<a href="/admin/{{ key }}">{{ icon(key) }}{{ title }}</a>{% endfor %}
 </div></section>
 </div>
 <section class="site-panel"><h2>Работа системы</h2>

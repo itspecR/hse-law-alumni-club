@@ -342,6 +342,8 @@ def test_office_content_filters_preserve_editing(page, site, width):
     page.clock.install()
     page.goto("/admin/products")
     page.get_by_label("Поиск", exact=True).fill("ЕЛКА")
+    if width == 390:
+        page.locator("form.site-filters").get_by_role("button", name="Фильтры", exact=True).click()
     page.locator("form.site-filters").get_by_label("Статус", exact=True).select_option("draft")
     page.get_by_role("button", name="Показать", exact=True).click()
     expect(page.locator("[data-office-count]")).to_have_text("Показано: 1 из 2")
@@ -4441,3 +4443,19 @@ def test_product_price_is_entered_in_rubles(page, site):
     with page.expect_response("**/api/admin/products/" + PRODUCT["id"]):
         row.get_by_role("button", name="Сохранить", exact=True).click()
     assert site[2][-1]["body"]["price"] == 450050
+
+
+def test_office_filters_fold_behind_button_on_phone(page, site):
+    page.set_viewport_size({"width": 390, "height": 800})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/orders?status=new")
+    filters = page.locator("form.site-filters")
+    toggle = filters.get_by_role("button", name="Фильтры · 1", exact=True)
+    expect(toggle).to_have_attribute("aria-expanded", "false")
+    expect(filters.get_by_label("Поиск")).to_be_visible()
+    expect(filters.locator("select[name=status]")).to_be_hidden()
+    toggle.click()
+    expect(toggle).to_have_attribute("aria-expanded", "true")
+    expect(filters.locator("select[name=status]")).to_be_visible()
+    page.set_viewport_size({"width": 1440, "height": 900})
+    expect(toggle).to_be_hidden()

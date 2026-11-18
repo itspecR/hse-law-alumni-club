@@ -161,7 +161,7 @@ async function copyText(text, trigger) {
     const dialog = document.querySelector("#site-dialog");
     const content = document.querySelector("#dialog-content");
     const field = element("input", undefined, { type: "text", value: text, readonly: "", "aria-label": "Текст для копирования" });
-    content.replaceChildren(element("h2", "Копирование"), element("p", "Браузер запретил автоматическое копирование. Скопируйте выделенный текст вручную."), field);
+    content.replaceChildren(element("h2", "Копирование", { id: "dialog-title" }), element("p", "Браузер запретил автоматическое копирование. Скопируйте выделенный текст вручную."), field);
     dialog.addEventListener("close", () => { content.replaceChildren(); trigger.focus(); }, { once: true });
     dialog.showModal();
     field.focus();
@@ -360,6 +360,21 @@ function rubles(value) {
 
 function estimateText(form, total) {
   return total ? "Предварительная сумма " + rubles(total) : form.querySelector("[data-quote]").dataset.pricePending;
+}
+
+function prepareOfficeFilters() {
+  for (const form of document.querySelectorAll(".site-office form.site-filters")) {
+    const selects = [...form.querySelectorAll("select")];
+    if (!selects.length || form.querySelector("[data-action='office-filters']")) continue;
+    const chosen = selects.filter(select => select.value).length;
+    const toggle = element("button", chosen ? "Фильтры · " + chosen : "Фильтры", { type: "button", class: "office-filter-toggle", "data-action": "office-filters", "aria-expanded": "false" });
+    form.prepend(toggle);
+  }
+}
+
+function toggleOfficeFilters(button) {
+  const open = button.closest("form").classList.toggle("is-open");
+  button.setAttribute("aria-expanded", String(open));
 }
 
 let dockWatch;
@@ -695,6 +710,7 @@ function setupPage() {
   prefillEmail();
   void prefillContacts();
   watchApplicationDock();
+  prepareOfficeFilters();
   document.querySelectorAll("[data-member-link]").forEach(link => {
     link.dataset.guestLabel ||= link.textContent;
     link.dataset.guestHref ||= link.getAttribute("href");
@@ -827,6 +843,7 @@ document.addEventListener("click", async event => {
     else if (action === "quote") await quotePromo(target);
     else if (action === "office-menu") { if (toggleMenu(target)) alignOfficeNavigation(); }
     else if (action === "menu") toggleMenu(target);
+    else if (action === "office-filters") toggleOfficeFilters(target);
     else if (action === "logout" || action === "logout-office") {
       let failure;
       try { if (action === "logout-office" && token(true)) await request("/auth/admin-logout", "POST", {}); }
@@ -883,7 +900,7 @@ document.addEventListener("click", async event => {
       if (!response.ok) throw new Error("Не удалось открыть файл. Проверьте доступ и повторите.");
       const blob = URL.createObjectURL(await response.blob());
       const content = document.querySelector("#dialog-content");
-      content.replaceChildren(element("h2", target.dataset.title));
+      content.replaceChildren(element("h2", target.dataset.title, { id: "dialog-title" }));
       const type = target.dataset.fileType.startsWith("image/") ? "img" : "audio";
       content.append(element(type, undefined, { src: blob, ...(type === "img" ? { alt: target.dataset.title } : { controls: "" }) }));
       const dialog = document.querySelector("#site-dialog");
