@@ -20,6 +20,20 @@ MONTHS = (
     "Ноябрь",
     "Декабрь",
 )
+MONTHS_OF = (
+    "января",
+    "февраля",
+    "марта",
+    "апреля",
+    "мая",
+    "июня",
+    "июля",
+    "августа",
+    "сентября",
+    "октября",
+    "ноября",
+    "декабря",
+)
 MONTHS_WITHIN = (
     "январе",
     "феврале",
@@ -123,6 +137,9 @@ def month_view(events, selected, now=None):
         "selected": f"{year:04}-{month:02}",
         "current": (year, month) == (now.year, now.month),
         "within": f"{MONTHS_WITHIN[month - 1]} {year} года",
+        "of": MONTHS_OF[month - 1],
+        "today": now.day if (year, month) == (now.year, now.month) else 0,
+        "past_month": (year, month) < (now.year, now.month),
         "previous": previous.strftime("%Y-%m"),
         "next": following.strftime("%Y-%m"),
         "weeks": [
