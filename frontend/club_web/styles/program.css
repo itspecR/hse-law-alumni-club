@@ -3,7 +3,7 @@
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
   align-items: center;
   min-height: clamp(360px, 48vh, 520px);
-  background: radial-gradient(55% 70% at 28% 50%, rgb(236 90 19 / 0.18), transparent 70%), var(--p-ink);
+  background: radial-gradient(55% 70% at 28% 50%, color-mix(in oklab, var(--c-accent) 18%, transparent), transparent 70%), var(--p-ink);
 }
 .club-program-mast__art {
   display: flex; align-items: center; justify-content: center;
@@ -13,7 +13,7 @@
 .club-program-mast__art picture, .club-program-mast__art img {
   display: block; width: 100%; max-width: 560px; aspect-ratio: 16 / 9; object-fit: cover;
   border-radius: var(--r-lg);
-  box-shadow: 0 40px 90px -30px rgb(236 90 19 / 0.5), var(--shadow-ambient-lift);
+  box-shadow: 0 40px 90px -30px color-mix(in oklab, var(--c-accent) 50%, transparent), var(--shadow-ambient-lift);
 }
 .club-program-mast__copy {
   display: flex; flex-direction: column; justify-content: center;
