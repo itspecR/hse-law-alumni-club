@@ -17,7 +17,7 @@
 </div>
 <aside class="site-panel">
 <p class="site-price">{{ item.price|rub }}</p>
-<p class="site-prose">{{ item.description or '' }}</p>{{ add_cart(item,'merch') }}{{ save(path,item.title,'merch') }}<p>Скидка выпускника на мерч не распространяется.</p>
+<div class="site-prose site-rich">{{ item.description|rich_text }}</div>{{ add_cart(item,'merch') }}{{ save(path,item.title,'merch') }}<p>Скидка выпускника на мерч не распространяется.</p>
 </aside>
 </div>
 </main>

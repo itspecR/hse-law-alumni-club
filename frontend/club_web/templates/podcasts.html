@@ -32,7 +32,7 @@
 <h2>
 <a href="/podcasts/{{ item|address }}">{{ item.title }}</a>
 </h2>
-<p>{{ item.description or '' }}</p>{{ save('/podcasts/'+(item|address),item.title,'podcasts') }}</div>
+<p>{{ item.description|plain_text }}</p>{{ save('/podcasts/'+(item|address),item.title,'podcasts') }}</div>
 </article>
 {% else %}{{ empty('Выпусков пока нет', 'Первый выпуск появится на этой странице. Анонсы публикуем в Telegram-канале клуба.', telegram_channel, 'Канал клуба в Telegram') }}{% endfor %}
 </div>

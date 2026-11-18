@@ -1,4 +1,4 @@
-{% from 'office/components.html' import icon with context %}
+{% from 'office/components.html' import icon,rich_area with context %}
 {% macro choices(name,label,selected,source) %}
 <fieldset class="office-choices"><legend>{{ label }}</legend>
 {% for option in office_options.get(source) or [] %}
@@ -46,7 +46,7 @@
 <details class="office-new-person lux-disclosure" data-new-person>
 <summary>Добавить нового</summary>
 <label class="site-field">ФИО<input data-new-field="fio" maxlength="255" autocomplete="off"></label>
-<label class="site-field">Описание<textarea data-new-field="bio"></textarea></label>
+{{ rich_area('Описание',new='bio') }}
 <label class="site-field">Фото{{ image_input('Фото','',field='photo') }}</label>
 <button type="button" data-action="add-person">Добавить</button>
 <template data-person-row><div class="office-person" data-person><label><input type="checkbox" name="{{ name }}" data-list checked><span data-person-name></span></label>{{ role_select('','',office_roles[0][0],false) }}</div></template>
@@ -65,7 +65,9 @@
 </div>
 <div class="office-module__body"{% if not open %} hidden{% endif %}>
 {% for key,title,kind,wide,hint in shape.fields %}
-<label class="site-field{{ ' office-module__wide' if wide }}">{{ title }}{% if kind=='lines' %}<textarea data-module-field="{{ key }}" data-module-lines>{{ (row[key] or [])|join('\n') }}</textarea>{% elif kind=='textarea' %}<textarea data-module-field="{{ key }}">{{ row[key] or '' }}</textarea>{% elif kind=='number' %}<input type="number" min="0" step="1" inputmode="numeric" data-module-field="{{ key }}" data-module-number value="{{ row[key] if row[key] is not none else '' }}" placeholder="{{ hint }}">{% else %}<input data-module-field="{{ key }}" value="{{ row[key] or '' }}"{% if key in shape.meta %} data-module-meta{% endif %}{% if hint %} placeholder="{{ hint }}"{% endif %}>{% endif %}</label>
+{% if kind=='textarea' %}{{ rich_area(title,row[key],field=key,wide=wide) }}{% else %}
+<label class="site-field{{ ' office-module__wide' if wide }}">{{ title }}{% if kind=='lines' %}<textarea data-module-field="{{ key }}" data-module-lines>{{ (row[key] or [])|join('\n') }}</textarea>{% elif kind=='number' %}<input type="number" min="0" step="1" inputmode="numeric" data-module-field="{{ key }}" data-module-number value="{{ row[key] if row[key] is not none else '' }}" placeholder="{{ hint }}">{% else %}<input data-module-field="{{ key }}" value="{{ row[key] or '' }}"{% if key in shape.meta %} data-module-meta{% endif %}{% if hint %} placeholder="{{ hint }}"{% endif %}>{% endif %}</label>
+{% endif %}
 {% endfor %}
 <button type="button" class="site-danger" data-action="module-remove">{{ shape.remove }}</button>
 </div>
@@ -108,6 +110,10 @@
 {{ single(name,label,value,office_single[kind]) }}
 {% elif kind in office_row_editors %}
 {{ row_editor(name,label,value or [],office_row_editors[kind]) }}
+{% elif kind=='textarea' %}
+{{ rich_area(label,value,name=name) }}
+{% elif kind=='rich' %}
+{{ rich_area(label,value,name=name,big=true) }}
 {% else %}
 <label class="site-field">{{ label }}{% if '|' in kind %}
 <select name="{{ name }}" aria-label="{{ label }}">
@@ -119,7 +125,7 @@
 <textarea name="{{ name }}" aria-label="{{ label }}" data-lines>{{ (value or [])|join('\n') }}</textarea>
 {% elif kind=='ruble-lines' %}
 <textarea name="{{ name }}" aria-label="{{ label }}" data-kopecks-lines>{{ (value or [])|map('rubles_input')|join('\n') }}</textarea>
-{% elif kind in ('textarea','json') %}
+{% elif kind in ('plain','json') %}
 <textarea name="{{ name }}" aria-label="{{ label }}" {% if kind=='json' %}data-json{% endif %}>{{ (value|tojson) if kind=='json' and value else value or '' }}</textarea>
 {% elif kind=='checkbox' %}
 <input type="checkbox" name="{{ name }}" {% if value %}checked{% endif %}>
@@ -127,9 +133,6 @@
 <input name="{{ name }}" type="datetime-local" value="{{ value|local_datetime }}" required>
 {% elif kind=='datetime-optional' %}
 <input name="{{ name }}" type="datetime-local" value="{{ value|local_datetime }}">
-{% elif kind=='rich' %}
-<textarea name="{{ name }}" aria-label="{{ label }}" class="office-rich">{{ value or '' }}</textarea>
-<small class="office-hint">Пустая строка начинает новый абзац. ## Подзаголовок · **жирный** · *курсив* · - пункт списка · [текст ссылки](https://адрес) · ![подпись](номер файла из «Медиа»)</small>
 {% elif kind in ('limit','optional') %}
 <input name="{{ name }}" type="number" min="{{ 1 if kind=='limit' else 0 }}" data-nullable value="{{ value if value is not none else '' }}">
 {% elif kind=='image' %}

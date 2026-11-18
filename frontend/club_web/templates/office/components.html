@@ -9,3 +9,12 @@
 {% macro filters() %}
 <form class="site-filters" method="get"><label>Поиск<input name="q" type="search" value="{{ query.get('q','') }}" placeholder="{{ 'Заголовок' if section=='news' else 'ФИО' if section=='trainers' else 'Код или заметка' if section=='promo-codes' else 'Программа' if section=='cohorts' else 'Название' if section=='campaigns' else 'Название или направление' }}"></label><label>Статус<select name="status" aria-label="Статус"><option value="">Все</option>{% for value in office_statuses %}<option value="{{ value }}" {% if query.get('status')==value %}selected{% endif %}>{{ labels.get(value,value) }}</option>{% endfor %}</select></label>{% for key,title,values in office_filters %}<label>{{ title }}<select name="{{ key }}" aria-label="{{ title }}"><option value="">Все</option>{% for value in values %}<option value="{{ value }}" {% if query.get(key)==value %}selected{% endif %}>{{ labels.get(value,value) }}</option>{% endfor %}</select></label>{% endfor %}<button>Показать</button><a href="/admin/{{ section }}">Сбросить</a></form>
 {% endmacro %}
+{% macro format_bar() %}
+<div class="format-bar" role="group" aria-label="Оформление текста">
+{% for kind,label,text in [('bold','Жирный','Ж'),('italic','Курсив','К'),('h2','Крупный заголовок','Заголовок'),('h3','Подзаголовок','Подзаголовок'),('quote','Цитата','Цитата'),('bullets','Маркированный список','Список'),('numbers','Нумерованный список','1. 2. 3.'),('outdent','Уменьшить отступ','←'),('indent','Увеличить отступ','→'),('link','Ссылка','Ссылка')] %}<button type="button" class="format-bar__btn format-bar__btn--{{ kind }}" data-action="format" data-format="{{ kind }}" aria-label="{{ label }}" title="{{ label }}">{{ text }}</button>{% endfor %}
+</div>
+{% endmacro %}
+{% macro rich_area(label,value='',name='',field='',new='',wide=false,big=false) %}
+<div class="site-field format-field{{ ' office-module__wide' if wide }}" data-format-field><span class="format-field__label">{{ label }}</span>{{ format_bar() }}<textarea{% if name %} name="{{ name }}"{% endif %}{% if field %} data-module-field="{{ field }}"{% endif %}{% if new %} data-new-field="{{ new }}"{% endif %} aria-label="{{ label }}" data-rich{% if big %} class="office-rich"{% endif %}>{{ value or '' }}</textarea>
+<small class="office-hint">Tab в строке списка делает вложенный пункт, Shift+Tab возвращает уровень. Пустая строка начинает новый абзац.{% if big %} Фото в тексте: ![подпись](номер файла из «Медиа»).{% endif %}</small></div>
+{% endmacro %}

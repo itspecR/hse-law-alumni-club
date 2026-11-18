@@ -4671,3 +4671,31 @@ def test_trainer_and_speaker_cards_show_large_photo_one_per_row(page, site, widt
         assert len(cards) == 2 and all(card["photo"] == pytest.approx(120, abs=1) for card in cards), cards
         assert all(card["card"] == pytest.approx(card["list"], abs=1) for card in cards), cards
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_office_text_fields_format_with_buttons_and_tab(page, site, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/news")
+    page.locator(".office-create > summary").click()
+    field = page.locator(".office-create [data-format-field]").filter(has=page.get_by_label("Текст", exact=True))
+    area = field.get_by_label("Текст", exact=True)
+    area.fill("Важно")
+    area.evaluate("node => node.setSelectionRange(0, node.value.length)")
+    field.get_by_role("button", name="Жирный").click()
+    expect(area).to_have_value("**Важно**")
+    area.fill("Первый\nВторой")
+    area.evaluate("node => node.setSelectionRange(0, node.value.length)")
+    field.get_by_role("button", name="Маркированный список").click()
+    expect(area).to_have_value("- Первый\n- Второй")
+    area.evaluate("node => { const start = node.value.indexOf('- Второй'); node.setSelectionRange(start, start); }")
+    page.keyboard.press("Tab")
+    expect(area).to_have_value("- Первый\n    - Второй")
+    expect(area).to_be_focused()
+    page.keyboard.press("Shift+Tab")
+    expect(area).to_have_value("- Первый\n- Второй")
+    area.fill("Абзац")
+    area.press("Tab")
+    expect(area).not_to_be_focused()
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
