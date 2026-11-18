@@ -602,10 +602,34 @@ async def test_home_shows_club_programs_after_join_steps(browser_client, dpo):
     assert '<h2><a href="/portfolio/club-one">' in (await browser_client.get("/portfolio")).text
 
 
+async def test_empty_sections_show_tile_with_next_step():
+    async def upstream(request):
+        if request.url.path == "/podcasts":
+            return httpx.Response(200, json={"items": [], "subscribed": False})
+        return httpx.Response(200, json={"blocks": {}} if request.url.path.startswith("/pages/") else [])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            pages = {path: (await client.get(path)).text for path in ("/portfolio", "/news", "/podcasts", "/events", "/merch")}
+    assert '<p class="site-empty__title">Тренингов пока нет</p>' in pages["/portfolio"]
+    assert (
+        'href="https://t.me/AlumniLawHSE" target="_blank" rel="noopener noreferrer">Канал клуба в Telegram'
+        in pages["/portfolio"]
+    )
+    assert '<p class="site-empty__title">Новостей пока нет</p>' in pages["/news"]
+    assert '<p class="site-empty__title">Выпусков пока нет</p>' in pages["/podcasts"]
+    assert '<p class="site-empty__title">Ближайших событий пока нет</p>' in pages["/events"]
+    assert "site-calendar-grid" not in pages["/events"]
+    assert '<p class="site-empty__title">Товаров пока нет</p>' in pages["/merch"]
+    assert 'class="site-filters"' not in pages["/merch"] and "Найдено:" not in pages["/merch"]
+
+
 @pytest.mark.parametrize(
     "status,payload,text,link",
     [
-        (200, [], '<p class="lux-portfolio__note">Тренинги скоро появятся.</p>', False),
+        (200, [], '<p class="site-empty__title">Тренингов пока нет</p>', False),
         (
             503,
             {"error": "Сервис временно недоступен"},

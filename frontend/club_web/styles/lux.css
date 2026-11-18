@@ -90,7 +90,7 @@ html.lux .lux-disclosure[open] > summary::after { transform: rotate(45deg); }
 .lux-more__arrow { display: inline-block; font-size: 20px; line-height: 1; transition: transform 160ms var(--ease-out); }
 .lux-back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 16px; color: var(--c-text-3); font-size: 15px; text-decoration: none; transition: color 160ms ease; }
 html.lux .lux-back + .site-masthead { padding-top: clamp(24px, 3cqi, 40px); }
-html.lux.vis :is(h1, h2, h3, .cabinet-metric dd, .lux-hero__next, .lux-voice blockquote p, .club-menu a) { font-weight: 400 !important; }
+html.lux.vis :is(h1, h2, h3, .cabinet-metric dd, .lux-hero__next, .lux-voice blockquote p, .club-menu a, .give-amount, .camp-meter__sum b, .camp-numbers b) { font-weight: 400 !important; }
 html.vis .lux-disclosure > summary::after { color: var(--vis-fg); font-weight: 400; }
 html.lux.vis .lux-btn.lux-btn--ghost[aria-pressed="true"] { background-color: var(--vis-fg) !important; color: var(--vis-bg) !important; }
 html.lux.vis :is(.dpo-starts-grid article:has(a:focus-visible), .site-checkbox:has(input:focus-visible)) { outline-color: var(--vis-fg); }
@@ -129,7 +129,7 @@ html.lux .club-header__nav { gap: 26px; }
 html.lux .club-header__link { display: inline-flex; align-items: center; min-height: 44px; padding: 0; font-size: 14px; color: var(--lux-mute); text-decoration: none; transition: color 160ms ease; }
 html.lux .club-header__link[aria-current="page"] { color: var(--lux-ink); text-decoration: none; }
 html.lux .club-header__tools { gap: 0; margin-left: 4px; }
-html.lux .club-header__tools .club-chrome-icon-btn { width: 40px; height: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--lux-mute); transition: color 160ms ease; }
+html.lux .club-header__tools .club-chrome-icon-btn { width: 44px; height: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--lux-mute); transition: color 160ms ease; }
 html.lux .club-header__cta { position: relative; min-height: 32px; margin-left: 4px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--c-accent); color: var(--c-on-accent); font: 600 14px/1 var(--f-body); letter-spacing: -0.01em; text-transform: none; box-shadow: none; transition: transform 160ms var(--ease-out), background-color 160ms ease; }
 html.lux .club-header__cta::after { content: ""; position: absolute; inset: -6px -2px; }
 html.lux .club-header__cta:active { transform: scale(0.97); }
@@ -184,3 +184,7 @@ html.lux #toast { border-radius: 999px; background: var(--lux-ink); color: var(-
   html.lux:not(.pwa-shell):not(.telegram-mini) .club-header__nav { display: flex; }
   html.lux:not(.pwa-shell):not(.telegram-mini) .club-header__burger { display: none; }
 }
+
+html.lux .site-empty { display: grid; gap: 8px; justify-items: start; margin: 0; padding: 24px; border-radius: var(--r-lg); background: var(--c-bg-raised); color: var(--c-text-2); }
+html.lux .site-empty p { margin: 0; }
+html.lux .site-empty .site-empty__title { color: var(--c-text); font: 400 21px/1.25 var(--f-body); letter-spacing: -0.01em; }

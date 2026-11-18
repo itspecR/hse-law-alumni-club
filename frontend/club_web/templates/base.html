@@ -1,4 +1,4 @@
-{% if not fragment %}
+{% from 'macros.html' import icon as tab_icon %}{% if not fragment %}
 <!doctype html>
 <html lang="ru" class="lux" data-live="{{ live.kind }}"{% if live.veiled %} data-veil{% endif %}>
 <head>
@@ -58,13 +58,13 @@
 <span data-offline-message>Нет подключения к интернету. Открытые раньше страницы можно читать, вход и отправка заявок недоступны.</span>
 <button type="button" data-action="reload-online" hidden>Обновить</button>
 </aside>
-<div class="vis-bar" id="vision" hidden>
+<div class="vis-bar" id="vision" role="group" aria-label="Настройки для слабовидящих" hidden>
 <strong>Версия для слабовидящих</strong>
-<button data-action="vision-size">Размер текста</button>
-<button data-action="vision-scheme">Цвета</button>
-<button data-action="vision-images">Изображения</button>
-<button data-action="vision-serif">Шрифт</button>
-<button data-action="vision-spacing">Интервалы</button>
+<button data-action="vision-size">Размер текста: 100%</button>
+<button data-action="vision-scheme">Цвета: черный на белом</button>
+<button data-action="vision-images">Скрыть изображения</button>
+<button data-action="vision-serif" aria-pressed="false">Шрифт с засечками</button>
+<button data-action="vision-spacing" aria-pressed="false">Широкие интервалы</button>
 <button data-action="vision">Обычная версия</button>
 </div>
 {% if not path.startswith('/admin') %}
@@ -91,7 +91,7 @@
 <path d="M6 3h12v18l-6-4-6 4z"/>
 </svg>
 </a>
-<button data-action="vision" class="foc club-chrome-icon-btn" aria-label="Версия для слабовидящих"><span aria-hidden="true">Аа</span></button>
+<button data-action="vision" class="foc club-chrome-icon-btn" aria-label="Аа, версия для слабовидящих"><span aria-hidden="true">Аа</span></button>
 <a href="/cart" class="foc club-chrome-icon-btn" aria-label="Корзина">
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
 <path d="M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 0 1 6 0v2"/>
@@ -106,7 +106,7 @@
 <a href="/lk" class="foc club-header__login" data-guest-only>Войти</a>
 </div>
 </nav>
-<button class="foc club-header__burger" data-action="menu" aria-expanded="false" aria-controls="club-menu" aria-label="Открыть меню">☰</button>
+<button class="foc club-header__burger" data-action="menu" aria-expanded="false" aria-controls="club-menu" aria-label="Открыть меню">{{ tab_icon('menu', 22, 'site-icon menu-icon menu-icon--open') }}{{ tab_icon('close', 22, 'site-icon menu-icon menu-icon--close') }}</button>
 </div>
 <nav id="club-menu" class="club-menu" data-open="false" aria-label="Меню">
 <a href="/search">Поиск по сайту</a>
@@ -214,11 +214,9 @@
 </div>
 </footer>
 <nav class="mobile-tabs" aria-label="Основные разделы">
-<a href="/">Клуб</a>
-<a href="/news">Новости</a>
-{% if dpo_enabled %}<a href="/dpo">ДПО</a>{% endif %}
-<a href="/merch">Мерч</a>
-<a href="/lk">Кабинет</a>
+{% for href,label,name,current in tabs %}
+<a href="{{ href }}"{% if current %} aria-current="page"{% endif %}>{{ tab_icon(name) }}<span>{{ label }}</span></a>
+{% endfor %}
 </nav>
 {% endif %}
 </div>

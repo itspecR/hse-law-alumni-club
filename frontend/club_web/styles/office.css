@@ -5,7 +5,7 @@
 .office-brand { display:flex; align-items:center; gap:12px; min-width:0; color:var(--c-text); font-size:15px; font-weight:600; line-height:1.25; text-decoration:none; }
 .office-brand img { flex:none; border-radius:var(--r-sm); }
 .office-brand small { display:block; margin-top:4px; font-size:12px; font-weight:400; color:var(--c-text-3); }
-.office-menu-toggle { display:none; align-items:center; justify-content:center; padding:10px; }
+.office-menu-toggle { display:none; align-items:center; justify-content:center; width:44px; height:44px; padding:0; }
 .office-navigation { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:0 12px 16px; }
 .office-nav-group { margin-bottom:20px; }
 .office-nav-group:last-child { margin-bottom:0; }

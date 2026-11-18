@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros.html' import program_card %}
+{% from 'macros.html' import empty,program_card %}
 {% block content %}
 {% set title_pre = hero.title_pre or 'Свои люди' %}
 {% set title_accent = hero.title_accent or 'после выпуска.' %}
@@ -73,7 +73,7 @@
 {% endfor %}
 </div>
 {% else %}
-<p class="lux-portfolio__note">Тренинги скоро появятся.</p>
+{{ empty('Тренингов пока нет', 'Когда откроется набор, программа появится в разделе тренингов.') }}
 {% endif %}
 {% if club_programs or 'portfolio' in load_errors %}<a href="/portfolio" class="foc lux-more">Все тренинги <span class="lux-more__arrow" aria-hidden="true">›</span></a>{% endif %}
 </div>

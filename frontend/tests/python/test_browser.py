@@ -296,15 +296,19 @@ def test_office_navigation_keyboard_and_screen_sizes(page, width):
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
     page.goto("/admin/news")
     navigation = page.get_by_role("navigation", name="Панель управления", exact=True)
-    button = page.get_by_role("button", name="Разделы панели", exact=True)
+    button = page.locator("[data-action=office-menu]")
     if width <= 900:
         expect(navigation).to_be_hidden()
         expect(page.get_by_role("heading", name="Новости", exact=True)).to_be_in_viewport()
         button.focus()
         page.keyboard.press("Enter")
         expect(button).to_have_attribute("aria-expanded", "true")
+        expect(button).to_have_attribute("aria-label", "Закрыть разделы")
         expect(navigation).to_be_visible()
+        expect(navigation.locator("a[aria-current=page]")).to_be_focused()
+        assert page.locator(".site-office-content").evaluate("node => node.inert")
         page.keyboard.press("Escape")
+        assert not page.locator(".site-office-content").evaluate("node => node.inert")
         expect(navigation).to_be_hidden()
         expect(button).to_be_focused()
         button.click()
@@ -549,6 +553,7 @@ def test_cabinet_order_chips_show_status_and_payment_tones(page, site, width):
     page.add_init_script("localStorage.setItem('club_token','member-qa');")
     page.goto("/lk#orders")
     orders = page.locator("#orders article")
+    expect(orders.locator(".cabinet-chip")).to_have_count(6)
     chips = [
         [(chip.text_content(), chip.get_attribute("data-tone")) for chip in order.locator(".cabinet-chip").all()]
         for order in orders.all()
@@ -1418,7 +1423,7 @@ def test_cart_changes_include_type_when_slugs_match(page, site, width):
     records["/cart"] = {"items": items, "subtotal": 20000, "count": 2}
     page.goto("/cart")
     with page.expect_response(is_cart_change):
-        row.get_by_role("button", name="Удалить", exact=True).click()
+        row.get_by_role("button", name="Удалить из корзины: " + PRODUCT["title"], exact=True).click()
     assert writes[-1]["body"] == {"type": "merch", "ref_id": PROGRAM["slug"], "variant_sku": None, "qty": 0}
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
@@ -1980,6 +1985,113 @@ def test_event_roster_undoes_attendance_after_confirmation(page, site, width):
     assert dialogs == ["Снять отметку участия? Баллы за событие будут списаны."]
     assert any(row["path"] == "/admin/events/rsvp/rsvp-1/unattend" for row in site[2])
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+HEADER_TARGET = 44
+
+
+def test_phone_menu_holds_focus_and_returns_it_to_the_button(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto("/news")
+    burger = page.locator("[data-action=menu]")
+    burger.focus()
+    page.keyboard.press("Enter")
+    expect(burger).to_have_attribute("aria-label", "Закрыть меню")
+    expect(burger.locator(".menu-icon--close")).to_be_visible()
+    expect(burger.locator(".menu-icon--open")).to_be_hidden()
+    expect(page.locator("#club-menu").get_by_role("link", name="Поиск по сайту", exact=True)).to_be_focused()
+    assert page.evaluate(
+        "['#page', '.club-footer', '.mobile-tabs'].every(selector => document.querySelector(selector).inert)"
+    )
+    for _ in range(20):
+        page.keyboard.press("Tab")
+        assert not page.evaluate("Boolean(document.activeElement.closest('#page, .club-footer, .mobile-tabs'))")
+    page.keyboard.press("Escape")
+    expect(page.locator("#club-menu")).to_be_hidden()
+    expect(burger).to_be_focused()
+    expect(burger).to_have_attribute("aria-label", "Открыть меню")
+    assert not page.evaluate("document.querySelector('#page').inert")
+
+
+def test_header_tools_are_full_size_and_login_hint_closes_on_escape(page):
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.goto("/news")
+    tools = page.locator(".club-header__tools .club-chrome-icon-btn")
+    assert all(tools.nth(index).bounding_box()["width"] >= HEADER_TARGET for index in range(tools.count()))
+    expect(page.get_by_role("button", name="Аа, версия для слабовидящих", exact=True)).to_be_visible()
+    login = page.locator(".club-header__login")
+    page.locator(".club-header__cta").focus()
+    expect(login).to_be_visible()
+    page.keyboard.press("Escape")
+    expect(login).to_be_hidden()
+
+
+def test_phone_footer_lists_sit_in_two_columns(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto("/news")
+    lists = page.locator(".club-footer ul")
+    assert lists.nth(0).bounding_box()["x"] < lists.nth(1).bounding_box()["x"]
+    assert lists.nth(0).bounding_box()["y"] == lists.nth(1).bounding_box()["y"]
+
+
+def test_header_keeps_menu_button_on_screen_when_zoomed(page):
+    page.set_viewport_size({"width": 187, "height": 600})
+    page.goto("/news")
+    assert page.locator("[data-action=menu]").bounding_box()["x"] + HEADER_TARGET <= 187
+
+
+def test_vision_panel_shows_values_and_moves_focus(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto("/news")
+    page.locator("[data-action=menu]").click()
+    page.locator("#club-menu [data-action=vision]").click()
+    panel = page.get_by_role("group", name="Настройки для слабовидящих")
+    size = panel.get_by_role("button", name="Размер текста: 100%", exact=True)
+    expect(page.locator("#club-menu")).to_be_hidden()
+    expect(size).to_be_focused()
+    assert panel.evaluate("node => getComputedStyle(node).position") != "sticky"
+    size.click()
+    expect(panel.get_by_role("button", name="Размер текста: 120%", exact=True)).to_be_visible()
+    panel.get_by_role("button", name="Скрыть изображения", exact=True).click()
+    expect(panel.get_by_role("button", name="Показать изображения", exact=True)).to_be_visible()
+    serif = panel.get_by_role("button", name="Шрифт с засечками", exact=True)
+    serif.click()
+    expect(serif).to_have_attribute("aria-pressed", "true")
+    expect(serif).to_have_css("background-color", "rgb(0, 0, 0)")
+    assert (
+        page.locator(".mobile-tabs").evaluate("node => getComputedStyle(node).backgroundColor") == "rgb(255, 255, 255)"
+    )
+    panel.get_by_role("button", name="Обычная версия", exact=True).click()
+    expect(panel).to_be_hidden()
+    expect(page.locator("[data-action=menu]")).to_be_focused()
+
+
+TAB_MIN_HEIGHT = 44
+
+
+@pytest.mark.parametrize("width", [390, 900, 1100])
+def test_bottom_tabs_share_width_and_mark_current_tab(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/merch")
+    tabs = page.get_by_role("navigation", name="Основные разделы")
+    links = tabs.get_by_role("link")
+    expect(page.locator(".club-header__burger")).to_be_visible()
+    expect(links).to_have_text(["Клуб", "Тренинги", "Мерч", "Кабинет"])
+    expect(tabs.get_by_role("link", name="Мерч", exact=True)).to_have_attribute("aria-current", "page")
+    expect(tabs.locator("[aria-current]")).to_have_count(1)
+    boxes = [links.nth(index).bounding_box() for index in range(links.count())]
+    assert len({round(box["width"]) for box in boxes}) == 1
+    assert all(box["height"] >= TAB_MIN_HEIGHT for box in boxes)
+    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+    legal = page.locator(".club-footer__legal").bounding_box()
+    assert legal["y"] + legal["height"] <= tabs.bounding_box()["y"]
+
+
+def test_bottom_tabs_give_way_to_header_sections_on_wide_screen(page):
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.goto("/merch")
+    expect(page.get_by_role("navigation", name="Основные разделы")).to_be_hidden()
+    expect(page.locator(".club-header__burger")).to_be_hidden()
 
 
 def test_program_dock_is_only_for_phone(page):

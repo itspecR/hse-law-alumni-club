@@ -146,7 +146,7 @@ html[data-vis-scheme="wb"] { --vis-bg: #000000; --vis-fg: #ffffff; --vis-link: #
 html[data-vis-scheme="bb"] { --vis-bg: #f2e9c9; --vis-fg: #0a2a66; --vis-link: #0a2a66; }
 
 html.vis, html.vis body, html.vis #root { background: var(--vis-bg) !important; color: var(--vis-fg) !important; }
-html.vis *:not(svg):not(path):not(.vis-active):not([role="dialog"]):not(.vis-bar):not(header) {
+html.vis *:not(svg):not(path):not(.vis-active):not([role="dialog"]):not(.vis-bar):not(header):not(.mobile-tabs):not([aria-pressed="true"]) {
   background-color: transparent !important;
   background-image: none !important;
   color: var(--vis-fg) !important;
@@ -164,7 +164,14 @@ html.vis .vis-btn {
 html.vis .vis-btn.vis-active { background: var(--vis-fg) !important; color: var(--vis-bg) !important; }
 html.vis header, html.vis .vis-bar { background: var(--vis-bg) !important; border-bottom: 2px solid var(--vis-fg) !important; }
 html.vis header { position: static !important; }
-.vis-bar { position: sticky; top: 0; z-index: 9999; font-size: 16px; }
+html.vis .mobile-tabs { background: var(--vis-bg) !important; border-top: 2px solid var(--vis-fg) !important; }
+html.vis .mobile-tabs a { color: var(--vis-fg) !important; }
+.vis-bar { position: relative; z-index: 9999; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px var(--page-gutter, 16px); font-size: 16px; }
+.vis-bar strong { flex-basis: 100%; }
+html.vis :is(a.lux-btn, .lux-btn) { min-height: 44px; border: 2px solid var(--vis-fg) !important; text-decoration: none !important; }
+html.vis [aria-pressed="true"] { background: var(--vis-fg) !important; color: var(--vis-bg) !important; }
+html.vis .club-menu button[data-action="vision"] { padding-inline: 16px; }
+html.vis .camp-wave__bar { animation: none !important; }
 html.vis img, html.vis video { filter: grayscale(1); }
 html.vis-noimg img, html.vis-noimg video, html.vis-noimg [style*="url("] { display: none !important; }
 html.vis :focus-visible,
@@ -347,15 +354,10 @@ html.vis .club-cookie-banner__btn {
   }
 }
 
-@media (max-width: 768px) {
-  :root {
-    --tabs-h: 0px;
-  }
-  .club-cookie-banner,
-  [role="dialog"][aria-label="Согласие на использование cookies"],
-  [role="dialog"][aria-label="Установка приложения"] {
-    bottom: calc(16px + var(--tabs-h, 0px)) !important;
-  }
+.club-cookie-banner,
+[role="dialog"][aria-label="Согласие на использование cookies"],
+[role="dialog"][aria-label="Установка приложения"] {
+  bottom: calc(16px + max(var(--tabs-h, 0px), env(safe-area-inset-bottom, 0px))) !important;
 }
 html { scroll-padding-bottom: calc(var(--tabs-h, 0px) + var(--cookie-h, 0px)); }
 @media (min-width: 481px) {

@@ -14,7 +14,7 @@
 <a href="/news/{{ item.slug }}">{{ item.title }}</a>
 </h2>
 <p>{{ item.excerpt or '' }}</p>{{ save('/news/'+item.slug,item.title,'news') }}{% if item.cover|media %}<img class="news-thumb" src="{{ item.cover|media }}" alt="" width="240" height="160" loading="lazy">{% endif %}</article>
-{% else %}{{ empty('Новостей пока нет.') }}{% endfor %}
+{% else %}{{ empty('Новостей пока нет', 'Здесь появятся новости клуба и факультета права.') }}{% endfor %}
 </div>
 </main>
 {% endblock %}

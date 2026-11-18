@@ -12,6 +12,6 @@
 {{ program_card(item) }}
 {% endfor %}
 </div>
-{% if not items and not load_errors %}{{ empty('Тренинги пока не опубликованы.') }}{% endif %}
+{% if not items and not load_errors %}{{ empty('Тренингов пока нет', 'Когда откроется набор, программа появится здесь. Анонсы публикуем в Telegram-канале клуба.', telegram_channel, 'Канал клуба в Telegram') }}{% endif %}
 </main>
 {% endblock %}
