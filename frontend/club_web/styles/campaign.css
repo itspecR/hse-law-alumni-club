@@ -6,7 +6,7 @@
 .camp-hero::before { content: ""; position: absolute; inset: -20% -10% auto 35%; height: 120%; background: radial-gradient(closest-side, rgb(234 104 6 / 0.2), rgb(46 111 174 / 0.1) 55%, transparent 75%); pointer-events: none; }
 .camp-hero__grid { position: relative; display: grid; gap: 40px; align-items: center; }
 .camp-hero__title { margin: 0; font: 200 clamp(52px, 9cqi, 124px)/0.96 var(--f-display); letter-spacing: -0.05em; text-wrap: balance; }
-.camp-hero__sub { margin: 18px 0 0; font: 200 clamp(24px, 3.2cqi, 44px)/1.1 var(--f-display); letter-spacing: -0.03em; color: var(--c-text-3); }
+.camp-hero__sub { margin: 18px 0 0; font: 300 clamp(24px, 3.2cqi, 44px)/1.1 var(--f-display); letter-spacing: -0.03em; color: var(--c-text-2); }
 .camp-hero .camp-hero__lede { max-width: 44ch; margin-top: 28px; color: var(--c-text-2); }
 .camp-hero__cta { margin-top: 32px; }
 .camp-hero__art { min-width: 0; }
@@ -39,8 +39,8 @@
 
 .camp-numbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 36px 0 0; padding: 0; list-style: none; }
 .camp-numbers li { container-type: inline-size; display: grid; grid-template: 1fr auto / minmax(0, 1fr); gap: 8px; padding: 24px 20px; border-radius: var(--r-lg); background: var(--c-bg-raised); }
-.camp-numbers b { align-self: end; overflow-wrap: anywhere; font: 200 clamp(14px, calc(170cqi / max(var(--chars, 4), 3)), 72px)/1 var(--f-display); letter-spacing: -0.05em; background: linear-gradient(120deg, var(--camp-warm), var(--camp-glow)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.camp-numbers span { font-size: 14px; line-height: 1.3; color: var(--c-text-3); }
+.camp-numbers b { align-self: end; overflow-wrap: anywhere; font: 200 clamp(28px, calc(170cqi / max(var(--chars, 4), 3)), 72px)/1 var(--f-display); letter-spacing: -0.05em; background: linear-gradient(120deg, var(--camp-warm), var(--camp-glow)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.camp-numbers span { overflow-wrap: anywhere; hyphens: auto; font-size: 14px; line-height: 1.3; color: var(--c-text-3); }
 
 .camp-day { display: grid; margin: 0; padding: 0; list-style: none; }
 .camp-day__item { position: relative; display: grid; gap: 4px; padding: 0 0 0 28px; }
@@ -60,7 +60,7 @@ div.camp-day__body { padding-top: 4px; }
 .camp-day__pause::before { content: ""; position: absolute; left: 4px; top: -8px; bottom: -30px; border-left: 1px dashed var(--lux-hairline); }
 
 .camp-game { position: relative; overflow: clip; margin-top: 36px; padding: clamp(24px, 3.4cqi, 44px); border-radius: var(--r-tile); background: linear-gradient(135deg, rgb(234 104 6 / 0.22), rgb(46 111 174 / 0.16)), var(--c-bg-raised); }
-.camp-game h3 { margin: 0 0 14px; font: 200 clamp(28px, 3cqi, 40px)/1.06 var(--f-display); letter-spacing: -0.035em; text-wrap: balance; }
+.camp-game h3 { margin: 0 0 14px; font: 400 clamp(28px, 3cqi, 40px)/1.06 var(--f-display); letter-spacing: -0.035em; text-wrap: balance; }
 .camp-game p:last-child { max-width: 58ch; margin: 0; font-size: 16px; line-height: 1.5; color: var(--c-text-2); }
 
 .camp-results { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; counter-reset: camp; }
@@ -89,7 +89,7 @@ img.camp-speakers__photo { object-fit: cover; }
 .camp-teaser-section { padding-block: 0 clamp(40px, 5cqi, 72px); }
 .lux-tile.camp-teaser { position: relative; display: grid; gap: 32px; background: radial-gradient(120% 140% at 100% 0%, rgb(234 104 6 / 0.2), rgb(46 111 174 / 0.1) 45%, transparent 70%), var(--c-bg-raised); }
 .camp-teaser__title { margin: 0; font: 200 clamp(40px, 6cqi, 84px)/0.98 var(--f-display); letter-spacing: -0.045em; text-wrap: balance; }
-.camp-teaser__sub { margin: 12px 0 0; font: 200 clamp(20px, 2.4cqi, 30px)/1.15 var(--f-display); letter-spacing: -0.025em; color: var(--c-text-3); }
+.camp-teaser__sub { margin: 12px 0 0; font: 300 clamp(20px, 2.4cqi, 30px)/1.15 var(--f-display); letter-spacing: -0.025em; color: var(--c-text-2); }
 .camp-teaser .camp-teaser__lede { max-width: 46ch; margin: 24px 0 32px; font-size: clamp(16px, 1.4cqi, 18px); color: var(--c-text-2); }
 .camp-teaser__act { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; margin-top: 32px; }
 .camp-teaser__facts { font-size: 14px; color: var(--c-text-3); }

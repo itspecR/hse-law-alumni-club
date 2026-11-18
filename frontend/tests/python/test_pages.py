@@ -2200,6 +2200,14 @@ async def test_home_tells_about_the_club_right_after_themis():
     assert page.index('class="lux-hero"') < page.index('id="about-club"') < page.index("camp-teaser-section")
 
 
+async def test_campaign_tile_leads_with_goal_until_first_donation():
+    waiting = {**PUBLIC_CAMPAIGN, "raised": 0, "percent": 0}
+    routes = {"/pages/home": (200, {"blocks": {}}), "/campaigns/current": (200, {"campaign": waiting})}
+    block = (await rendered("/", routes)).text.split("camp-teaser-section")[1]
+    assert '<span class="camp-meter__label">Цель</span>' in block and "Собрано" not in block
+    assert 'role="progressbar"' not in block
+
+
 async def test_home_takes_the_first_paragraph_saved_in_the_panel():
     saved = {"body": "Свой первый абзац.\n\nВторой абзац не нужен на главной."}
     page = (await rendered("/", {"/pages/home": (200, {"blocks": {}}), "/pages/about": (200, saved)})).text

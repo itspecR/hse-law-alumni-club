@@ -6,7 +6,8 @@
 {% endmacro %}
 {% macro meter(campaign,id) %}
 <div class="camp-meter" role="group" aria-labelledby="{{ id }}">
-<p class="camp-meter__sum" id="{{ id }}"><span class="camp-meter__label">Собрано</span><b>{{ campaign.raised|rub }}</b>{% if campaign.goal_amount %}<span class="camp-meter__goal">из {{ campaign.goal_amount|rub }}</span>{% endif %}</p>
-{% if campaign.goal_amount %}<div class="camp-meter__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ campaign.percent }}" aria-label="Собрано {{ campaign.percent }}% цели"><span style="--camp-fill:{{ campaign.percent }}%"></span></div>{% endif %}
+{% set waiting = campaign.goal_amount and not campaign.raised %}
+<p class="camp-meter__sum" id="{{ id }}">{% if waiting %}<span class="camp-meter__label">Цель</span><b>{{ campaign.goal_amount|rub }}</b>{% else %}<span class="camp-meter__label">Собрано</span><b>{{ campaign.raised|rub }}</b>{% if campaign.goal_amount %}<span class="camp-meter__goal">из {{ campaign.goal_amount|rub }}</span>{% endif %}{% endif %}</p>
+{% if campaign.goal_amount and not waiting %}<div class="camp-meter__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ campaign.percent }}" aria-label="Собрано {{ campaign.percent }}% цели"><span style="--camp-fill:{{ campaign.percent }}%"></span></div>{% endif %}
 </div>
 {% endmacro %}
