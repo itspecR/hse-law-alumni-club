@@ -68,8 +68,8 @@ div.camp-day__body { padding-top: 4px; }
 .camp-results li::before { content: counter(camp, decimal-leading-zero); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--c-accent-text); }
 
 .camp-speakers { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
-.camp-speakers li { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 20px; align-items: center; padding: 24px; border-radius: var(--r-tile); background: var(--c-bg-raised); }
-.camp-speakers__photo { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: var(--lux-control); color: var(--c-text-3); }
+.camp-speakers li { --speaker-photo: 120px; display: grid; grid-template-columns: var(--speaker-photo) minmax(0, 1fr); gap: 24px; align-items: center; padding: 24px; border-radius: var(--r-tile); background: var(--c-bg-raised); }
+.camp-speakers__photo { display: grid; place-items: center; width: var(--speaker-photo); height: var(--speaker-photo); border-radius: 50%; background: var(--lux-control); color: var(--c-text-3); }
 img.camp-speakers__photo { object-fit: cover; }
 .camp-speakers h3 { margin: 0; font: 400 20px/1.2 var(--f-display); letter-spacing: -0.015em; }
 .camp-speakers p { margin: 6px 0 0; font-size: 15px; line-height: 1.4; color: var(--c-text-3); }
@@ -103,14 +103,12 @@ img.camp-speakers__photo { object-fit: cover; }
   .camp-day__body, div.camp-day__body { padding-top: 12px; }
   .camp-day__pause { padding-left: 180px; }
   .camp-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .camp-speakers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (min-width: 901px) {
   .camp-hero__grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 56px; }
   .camp-goal .camp-meter { display: none; }
   .camp-steps { grid-template-columns: 1fr; }
-  .camp-speakers { grid-template-columns: 1fr; }
 }
 
 @media (min-width: 1181px) {
@@ -125,8 +123,7 @@ img.camp-speakers__photo { object-fit: cover; }
 @media (max-width: 600px) {
   .camp-numbers { gap: 8px; }
   .camp-numbers li { padding: 18px 14px; }
-  .camp-speakers li { grid-template-columns: 56px minmax(0, 1fr); gap: 16px; padding: 20px; }
-  .camp-speakers__photo { width: 56px; height: 56px; }
+  .camp-speakers li { grid-template-columns: 1fr; gap: 16px; padding: 20px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
