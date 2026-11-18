@@ -13,6 +13,14 @@ function hours(row) {
   return match ? Number(match[1].replace(",", ".")) : null;
 }
 
+function title(row) {
+  return row.querySelector('[data-module-summary="title"]').textContent;
+}
+
+function announce(editor, text) {
+  editor.querySelector("[data-modules-status]").textContent = text;
+}
+
 function summarize(row, editor) {
   row.querySelector('[data-module-summary="title"]').textContent = inputs(row)[0].value.trim() || editor.dataset.modulesNew;
   row.querySelector('[data-module-summary="meta"]').textContent = [...row.querySelectorAll("[data-module-meta]")].map(input => input.value.trim()).filter(Boolean).join(" · ");
@@ -36,8 +44,12 @@ function total(editor) {
 function refresh(editor) {
   const modules = rows(editor);
   modules.forEach((row, index) => {
-    row.querySelector('[data-action="module-up"]').disabled = index === 0;
-    row.querySelector('[data-action="module-down"]').disabled = index === modules.length - 1;
+    const up = row.querySelector('[data-action="module-up"]');
+    const down = row.querySelector('[data-action="module-down"]');
+    up.disabled = index === 0;
+    down.disabled = index === modules.length - 1;
+    up.setAttribute("aria-label", "Поднять «" + title(row) + "»");
+    down.setAttribute("aria-label", "Опустить «" + title(row) + "»");
   });
   total(editor);
 }
@@ -62,16 +74,31 @@ function move(row, step) {
   else sibling.after(row);
 }
 
+function remove(editor, row) {
+  const next = [row.nextElementSibling, row.previousElementSibling].find(node => node?.matches("[data-module]"));
+  const name = title(row);
+  row.remove();
+  refresh(editor);
+  (next?.querySelector('[data-action="module-toggle"]') || editor.querySelector('[data-action="module-add"]')).focus();
+  announce(editor, "Удалено: «" + name + "».");
+}
+
+function shift(editor, row, button, step) {
+  move(row, step);
+  refresh(editor);
+  const other = row.querySelector(step < 0 ? '[data-action="module-down"]' : '[data-action="module-up"]');
+  (button.disabled ? other : button).focus();
+  const modules = rows(editor);
+  announce(editor, "«" + title(row) + "»: место " + (modules.indexOf(row) + 1) + " из " + modules.length + ".");
+}
+
 export function moduleAction(button, action) {
   const editor = button.closest("[data-modules]");
   const row = button.closest("[data-module]");
+  if (action === "module-remove") return remove(editor, row);
+  if (action === "module-up" || action === "module-down") return shift(editor, row, button, action === "module-up" ? -1 : 1);
   if (action === "module-add") add(editor, button);
-  else if (action === "module-remove") row.remove();
   else if (action === "module-toggle") toggle(row);
-  else if (action === "module-up" || action === "module-down") {
-    move(row, action === "module-up" ? -1 : 1);
-    button.focus();
-  }
   refresh(editor);
 }
 
