@@ -1,3 +1,4 @@
+const MIN_QUERY = 2;
 let searchReady = false;
 const CHANGES_RETURN = "club-changes-return";
 
@@ -28,7 +29,7 @@ function prepareSearch(url) {
     const turn = ++sequence;
     const q = input.value.trim();
     results.replaceChildren();
-    if (q.length < 2) { results.removeAttribute("aria-busy"); status.textContent = "Введите хотя бы две буквы."; return; }
+    if (q.length < MIN_QUERY) { results.removeAttribute("aria-busy"); status.textContent = q ? "Введите хотя бы две буквы." : ""; return; }
     controller = new AbortController();
     status.textContent = "Ищем материалы…";
     results.setAttribute("aria-busy", "true");
@@ -42,7 +43,7 @@ function prepareSearch(url) {
       if (turn !== sequence || !dialog.open) return;
       results.append(document.importNode(groups, true));
       const count = [...results.querySelectorAll("[data-search-row]")].filter(row => !row.hidden).length;
-      status.textContent = count ? "Найдено: " + count : "Ничего не найдено. Попробуйте другое слово.";
+      status.textContent = count ? "Найдено: " + count : "По запросу «" + q + "» ничего не найдено. Проверьте написание или выберите раздел в меню.";
       if (pendingDirection && document.activeElement === input) focusResult(pendingDirection);
     } catch (error) {
       if (error.name !== "AbortError" && turn === sequence) status.textContent = "Не удалось выполнить поиск. Проверьте подключение и нажмите «Найти» снова.";

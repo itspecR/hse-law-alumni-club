@@ -82,3 +82,5 @@ html.lux main.club-search > form input { height: 48px; margin: 0; font-size: 17p
 html.lux main.club-search > p { color: var(--c-text-3); }
 html.lux main.club-search section h2 { margin: 32px 0 4px; font: 500 15px/1.3 var(--f-body); color: var(--c-text-3); }
 html.lux main.club-search .site-reading-item { display: flex; align-items: center; min-height: 56px; padding: 12px 0; border-color: var(--c-line); color: var(--c-text); text-decoration: none; }
+html.lux .site-calendar-grid > .is-today > span { display: inline-grid; place-items: center; min-width: 28px; height: 28px; color: var(--c-text); font-weight: 600; box-shadow: inset 0 0 0 1px var(--c-text); border-radius: 999px; }
+html.lux .site-calendar-grid > .is-past > span { color: var(--lux-quiet); }

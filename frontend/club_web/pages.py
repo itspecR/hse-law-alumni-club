@@ -512,7 +512,7 @@ async def search_page(page):
     data["groups"] = groups
     data["sections"] = [
         (href, label)
-        for href, label in navigation() + [("/lk", "Личный кабинет"), ("/support", "Поддержка")]
+        for href, label in navigation() + [("/lk", "Кабинет"), ("/support", "Поддержка")]
         if not needle or needle in label.casefold().replace("ё", "е")
     ]
     data["found"] = sum(len(group["items"]) for group in groups) + len(data["sections"])
