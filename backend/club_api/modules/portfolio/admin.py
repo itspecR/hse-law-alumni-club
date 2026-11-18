@@ -78,7 +78,7 @@ class PortfolioBody(Body):
     communication: list[Item] = Field(default_factory=list, max_length=MAX_LIST_ITEMS)
     modules: list[ModuleBody] = Field(default_factory=list, max_length=MAX_MODULES)
     capacity: int | None = Field(default=None, ge=1, le=MAX_CAPACITY)
-    enrollment: Literal["actual", "nonactual"] = "actual"
+    enrollment: Literal["actual", "nonactual", "soon"] = "actual"
     trainer_ids: list[str] = Field(default_factory=list, max_length=MAX_PROGRAM_TRAINERS)
     status: Literal["draft", "published", "archived"] = "published"
 

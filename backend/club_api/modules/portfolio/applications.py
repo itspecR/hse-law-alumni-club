@@ -34,6 +34,10 @@ MIN_GROUP = 2
 PROMO_CODE_LENGTH = 32
 PROMO_SOURCE = "promo"
 SELF_MESSAGE = "Заявка для себя подается на одного участника."
+ENROLLMENT_CLOSED = {
+    "nonactual": "Набор на эту программу закрыт.",
+    "soon": "Программа готовится к запуску, набор откроется позже.",
+}
 CONSENTS = shared_data("legal-data.json")["portfolio_consents"]
 logger = logging.getLogger("club.portfolio")
 
@@ -118,8 +122,8 @@ async def open_program(state, slug):
     )
     if not rows:
         raise ApiError(404, "Программа не найдена.")
-    if rows[0]["enrollment"] == "nonactual":
-        raise ApiError(400, "Набор на эту программу закрыт.")
+    if rows[0]["enrollment"] in ENROLLMENT_CLOSED:
+        raise ApiError(400, ENROLLMENT_CLOSED[rows[0]["enrollment"]])
     return rows[0]
 
 

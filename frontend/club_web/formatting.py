@@ -21,6 +21,12 @@ MONTHS = (
     "декабря",
 )
 FORMAT_LABELS = {"online": "онлайн", "offline": "очно", "blended": "смешанный"}
+OPEN_ENROLLMENT, CLOSED_ENROLLMENT, SOON_ENROLLMENT = "actual", "nonactual", "soon"
+ENROLLMENT_LABELS = {
+    OPEN_ENROLLMENT: "Набор открыт",
+    CLOSED_ENROLLMENT: "Набор закрыт",
+    SOON_ENROLLMENT: "Готовится к запуску",
+}
 PORTFOLIO_ORDER = "portfolio"
 ORDER_STATUS_LABELS = {
     "new": "Новая",
@@ -54,6 +60,14 @@ def rub(value):
 def open_cohorts(item):
     cohorts = item.get("cohorts")
     return cohorts if isinstance(cohorts, list) else []
+
+
+def enrollment_open(item):
+    return (item.get("enrollment") or OPEN_ENROLLMENT) == OPEN_ENROLLMENT
+
+
+def enrollment_label(item):
+    return ENROLLMENT_LABELS.get(item.get("enrollment") or OPEN_ENROLLMENT, ENROLLMENT_LABELS[CLOSED_ENROLLMENT])
 
 
 def program_start(item):

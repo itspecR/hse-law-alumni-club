@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 from club_web.calendar import instant
 from club_web.campaigns import PERSON_ROLES
-from club_web.formatting import date, rub
+from club_web.formatting import ENROLLMENT_LABELS, date, rub
 
 GROUPS = [
     ("Работа клуба", ("overview", "orders", "donations", "campaigns", "promo-codes", "members", "subs", "support")),
@@ -339,7 +339,7 @@ FIELDS = {
         ("price", "Цена, ₽", "rubles"),
         ("start", "Начало", "text"),
         ("capacity", "Лимит мест", "limit"),
-        ("enrollment", "Набор", "actual|nonactual"),
+        ("enrollment", "Набор", "actual|soon|nonactual"),
         ("direction", "Направление", "text"),
         ("description", "Описание", "textarea"),
         ("audience", "Для кого, каждый пункт с новой строки", "lines"),
@@ -470,8 +470,7 @@ LABELS = {
     "online": "Онлайн",
     "offline": "Очно",
     "blended": "Смешанный",
-    "actual": "Набор открыт",
-    "nonactual": "Набор закрыт",
+    **ENROLLMENT_LABELS,
     "published": "Опубликовано",
     "draft": "Черновик",
     "archived": "В архиве",

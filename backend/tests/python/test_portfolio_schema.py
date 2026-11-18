@@ -1,3 +1,4 @@
+from typing import get_args
 from uuid import uuid4
 
 import httpx
@@ -7,6 +8,7 @@ from django.db import IntegrityError
 from test_community_integration import account, png
 
 from club_api.db.schema import DATA_COLUMNS
+from club_api.modules.portfolio.admin import PortfolioBody
 
 
 def model_columns():
@@ -106,3 +108,7 @@ async def test_trainer_photo_is_protected_and_public_only_when_published(databas
         assert (await client.delete(f"/admin/media/{id}", headers=editor)).status_code == 409
         await app.state.store.update("trainers", {"photo": None}, id=person["id"])
         assert (await client.delete(f"/admin/media/{id}", headers=editor)).status_code == 200
+
+
+def test_program_enrollment_can_be_open_closed_or_coming():
+    assert get_args(PortfolioBody.model_fields["enrollment"].annotation) == ("actual", "nonactual", "soon")
