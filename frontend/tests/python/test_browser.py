@@ -908,6 +908,7 @@ def test_signed_audio_link_is_renewed_once_without_autoplay(page, site):
 
 
 COOKIE_BANNER_MAX_HEIGHT = 140
+COOKIE_FONT_READY = "document.fonts.load('400 14px \"HSE Sans\"').then(() => document.fonts.ready).then(() => true)"
 COOKIE_BUTTON_LOOK = (
     "node => { const s = getComputedStyle(node); return [s.backgroundColor, s.color, s.boxShadow, s.textTransform]; }"
 )
@@ -922,6 +923,7 @@ def test_cookie_banner_is_compact_neutral_and_keeps_focus(page, width, height):
     essential = banner.get_by_role("button", name="Только необходимые", exact=True)
     accept = banner.get_by_role("button", name="Принять все", exact=True)
     expect(banner).to_be_visible()
+    page.evaluate(COOKIE_FONT_READY)
     assert essential.evaluate(COOKIE_BUTTON_LOOK) == accept.evaluate(COOKIE_BUTTON_LOOK)
     assert essential.evaluate(COOKIE_BUTTON_LOOK)[3] == "none"
     assert essential.bounding_box()["y"] == accept.bounding_box()["y"]
