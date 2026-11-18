@@ -13,6 +13,7 @@
 <h2>{{ calendar.title }}</h2>
 <a href="?month={{ calendar.next }}" data-calendar-month="next" aria-label="Следующий месяц">→</a>
 </header>
+{% if not items %}{{ empty('Ближайших событий пока нет' if calendar.current else 'В ' + calendar.within + ' событий нет', 'Анонсы публикуем в Telegram-канале клуба.', telegram_channel, 'Канал клуба в Telegram') }}{% else %}
 <div class="site-calendar-grid">
 {% for label in ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'] %}
 <strong>{{ label }}</strong>
@@ -30,6 +31,7 @@
 {% endfor %}
 {% endfor %}
 </div>
+{% endif %}
 </section>
 {% endif %}
 {% for event in ([item] if item else items) %}
@@ -57,6 +59,6 @@
 <a href="{{ event.calendar_url }}" target="_blank" rel="noopener noreferrer">Google Календарь ↗</a>{{ save('/events/'+(event|address),event.title,'events') }}</div>
 </div>
 </article>
-{% else %}{{ empty('Ближайших событий пока нет.') }}{% endfor %}
+{% endfor %}
 </main>
 {% endblock %}

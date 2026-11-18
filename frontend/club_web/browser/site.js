@@ -8,6 +8,8 @@ import { prepareProgramEditor } from "./program-editor.js";
 import { hideSkeleton, prepareSkeleton } from "./skeleton.js";
 import { focusHeading, focusMark, focusPageStart, restoreFocus } from "./focus.js";
 import { clearInvalid, fieldMessage, invalidControl, markInvalid } from "./field-errors.js";
+import { closeMenus, dismissLoginHint, restoreLoginHint, toggleMenu } from "./menus.js";
+import { focusVision, renderVision } from "./vision.js";
 
 const base = document.body.dataset.base || "/";
 const memberKey = "club_token";
@@ -532,6 +534,12 @@ function writeReading(data) {
   renderReading();
 }
 
+function emptyState(title) {
+  const box = element("div", undefined, { class: "site-empty", role: "status" });
+  box.append(element("p", title, { class: "site-empty__title" }));
+  return box;
+}
+
 function renderReading() {
   const data = reading();
   document.querySelectorAll("[data-action='save']").forEach(button => {
@@ -549,7 +557,7 @@ function renderReading() {
     const kind = document.querySelector("[data-reading-kind]")?.value;
     const query = (document.querySelector("[data-reading-search]")?.value || "").toLocaleLowerCase("ru").replace(/ё/g, "е").trim();
     const items = list.dataset.readingList === "recent" ? data.recent.slice(0, 4) : data.saved.filter(item => (!kind || item.kind === kind) && item.title.toLocaleLowerCase("ru").replace(/ё/g, "е").includes(query));
-    if (!items.length) list.append(element("p", list.dataset.readingList === "saved" && data.saved.length ? "По выбранным условиям ничего не найдено." : "Материалов пока нет.", { role: "status" }));
+    if (!items.length) list.append(emptyState(list.dataset.readingList === "saved" && data.saved.length ? "По выбранным условиям ничего не найдено" : "Материалов пока нет"));
     for (const item of items) {
       const row = element("div", undefined, { class: "site-actions" });
       row.append(element("a", item.title, { href: url(item.path), class: "site-reading-item" }));
@@ -760,17 +768,9 @@ document.addEventListener("click", async event => {
     else if (action.startsWith("module-")) moduleAction(target, action);
     else if (action === "add-person") await addPerson(target);
     else if (action === "quote") await quotePromo(target);
-    else if (action === "office-menu") {
-      const open = target.getAttribute("aria-expanded") !== "true";
-      target.setAttribute("aria-expanded", String(open));
-      document.querySelector("#office-navigation").dataset.open = String(open);
-      if (open) alignOfficeNavigation();
-    } else if (action === "menu") {
-      const on = target.getAttribute("aria-expanded") !== "true";
-      target.setAttribute("aria-expanded", String(on));
-      target.setAttribute("aria-label", on ? "Закрыть меню" : "Открыть меню");
-      document.querySelector("#club-menu").dataset.open = String(on);
-    } else if (action === "logout" || action === "logout-office") {
+    else if (action === "office-menu") { if (toggleMenu(target)) alignOfficeNavigation(); }
+    else if (action === "menu") toggleMenu(target);
+    else if (action === "logout" || action === "logout-office") {
       let failure;
       try { if (action === "logout-office" && token(true)) await request("/auth/admin-logout", "POST", {}); }
       catch (error) { failure = error; }
@@ -854,13 +854,19 @@ document.addEventListener("click", async event => {
 
 function vision(action) {
   const html = document.documentElement;
-  if (action === "vision") { html.classList.toggle("vis"); document.querySelector("#vision").hidden = !html.classList.contains("vis"); }
+  if (action === "vision") {
+    const on = html.classList.toggle("vis");
+    document.querySelector("#vision").hidden = !on;
+    closeMenus();
+    focusVision(on);
+  }
   else if (action === "vision-size") { const current = Number(html.style.getPropertyValue("--vis-zoom") || "1"); html.style.setProperty("--vis-zoom", String(current >= 1.4 ? 1 : Math.round((current + 0.2) * 10) / 10)); }
   else if (action === "vision-scheme") { const schemes = ["bw", "wb", "bb"]; html.dataset.visScheme = schemes[(schemes.indexOf(html.dataset.visScheme || "bw") + 1) % 3]; }
   else if (action === "vision-images") html.classList.toggle("vis-noimg");
   else if (action === "vision-serif") html.classList.toggle("vis-serif");
   else if (action === "vision-spacing") html.classList.toggle("vis-spacing");
   store("club_vision", JSON.stringify({ on: html.classList.contains("vis"), zoom: html.style.getPropertyValue("--vis-zoom") || "1", scheme: html.dataset.visScheme || "bw", images: !html.classList.contains("vis-noimg"), serif: html.classList.contains("vis-serif"), spacing: html.classList.contains("vis-spacing") }));
+  renderVision(html);
   document.dispatchEvent(new Event("club-vision-change"));
 }
 
@@ -932,12 +938,14 @@ document.addEventListener("change", event => {
   }
 });
 document.addEventListener("keydown", event => {
-  if (event.key === "Escape") {
-    const button = document.querySelector("[data-action='office-menu']");
-    if (button?.getAttribute("aria-expanded") === "true") { button.click(); button.focus(); }
-  }
-  if (event.key === "Escape") { const button = document.querySelector("[data-action='menu']"); if (button?.getAttribute("aria-expanded") === "true") button.click(); }
+  if (event.key !== "Escape") return;
+  closeMenus();
+  dismissLoginHint(event.target);
 });
+for (const join of document.querySelectorAll(".club-header__join")) {
+  join.addEventListener("focusout", restoreLoginHint);
+  join.addEventListener("mouseleave", restoreLoginHint);
+}
 document.addEventListener("club-reading-refresh", renderReading);
 window.addEventListener("storage", event => { if (event.key === readingKey) renderReading(); });
 window.addEventListener("beforeinstallprompt", event => event.preventDefault());
@@ -950,6 +958,7 @@ try {
   for (const [key, css] of [["images", "vis-noimg"], ["serif", "vis-serif"], ["spacing", "vis-spacing"]]) html.classList.toggle(css, key === "images" ? settings.images === false : !!settings[key]);
   document.querySelector("#vision").hidden = !settings.on;
 } catch {}
+renderVision();
 const cookieBanner = document.querySelector("#cookie-banner");
 if (cookieBanner) cookieBanner.hidden = ["all", "essential", "0", "1"].includes(stored("club_cookie_consent"));
 prepareMini(currentPath(), url);
