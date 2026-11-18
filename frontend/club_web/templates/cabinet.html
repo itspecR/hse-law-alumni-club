@@ -151,9 +151,10 @@
 <article class="cabinet-card cabinet-order">
 <div class="cabinet-order__head">
 <h3>Заявка {{ order.number }}</h3>
-<span class="cabinet-chip{{ ' is-paid' if order.payment_status=='succeeded' else '' }}">{{ order_status_labels.get(order.status,order.status) }}</span>
+{% set payment = payment_chip(order.payment_status) %}
+<span class="cabinet-order__chips"><span class="cabinet-chip" data-tone="{{ order.status|order_tone }}">{{ order_status_labels.get(order.status,order.status) }}</span><span class="cabinet-chip" data-tone="{{ payment[1] }}">{{ payment[0] }}</span></span>
 </div>
-<p>{{ order.created_at|date }} · {{ order.total_estimate|price_or_pending if order.type=='portfolio' else order.total_estimate|rub }} · {{ 'Оплачено' if order.payment_status=='succeeded' else 'Не оплачено' }}</p>
+<p>{{ order.created_at|date }} · {{ order.total_estimate|price_or_pending if order.type=='portfolio' else order.total_estimate|rub }}</p>
 {% if order.type=='portfolio' %}
 <p>До скидки: {{ order.subtotal|price_or_pending|lower }} · {{ order|discount_label }} · участников: {{ order.participants }}{% if order.organization %} · {{ order.organization }}{% endif %}{% if order.starts_on %} · старт потока {{ order.starts_on|date }}{% endif %}.</p>
 {% else %}

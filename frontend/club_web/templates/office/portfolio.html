@@ -8,7 +8,7 @@
 {% if program.cover|media %}<img src="{{ program.cover|media }}" alt="" loading="lazy" decoding="async" width="560" height="320">{% else %}<span class="office-program__mark">{{ icon('portfolio') }}{% if program.direction %}<small>{{ program.direction }}</small>{% endif %}</span>{% endif %}
 </a>
 <div class="office-program__body">
-<div class="office-program__tags">{{ status(program.status) }}<span class="office-status" data-status="{{ 'active' if program.enrollment=='actual' else 'canceled' }}">{{ labels.get(program.enrollment,program.enrollment) }}</span></div>
+<div class="office-program__tags">{{ status(program.status) }}<span class="office-status" data-status="{{ program.enrollment }}" data-tone="{{ program.enrollment|office_tone }}">{{ labels.get(program.enrollment,program.enrollment) }}</span></div>
 <h2><a href="{{ editor }}">{{ program.title }}</a></h2>
 <dl class="office-program__facts">
 <div><dt>Формат</dt><dd>{{ format_labels.get(program.format,program.format)|capitalize }}</dd></div>

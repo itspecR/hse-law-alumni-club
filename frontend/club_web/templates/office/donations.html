@@ -43,7 +43,7 @@
 <article class="site-panel office-record">
 <div class="office-record-head">
 <h2>{{ donation.number }} · {{ donation.amount|rub }}</h2>
-<span class="office-status" data-status="{{ donation.status }}">{{ statuses.get(donation.status,donation.status) }}</span>
+<span class="office-status" data-status="{{ donation.status }}" data-tone="{{ donation.status|office_tone }}">{{ statuses.get(donation.status,donation.status) }}</span>
 </div>
 <p>{{ donation.name or 'Без имени' }} · {{ donation.email }}{% if donation.alumni_id %} · выпускник{% endif %}</p>
 <p class="office-meta">Создано {{ donation.created_at|date(true) }}{% if donation.method == 'transfer' %} · перевод по реквизитам{% endif %}{% if donation.paid_at %} · оплачено {{ donation.paid_at|date(true) }}{% endif %}{% if donation.payment_id %} · платеж {{ donation.payment_id }}{% endif %}{% if donation.campaign_id %} · сбор «{{ campaigns.get(donation.campaign_id,'удален') }}»{% endif %}{% if donation.invited_at %} · приглашение отправлено {{ donation.invited_at|date(true) }}{% endif %}</p>
