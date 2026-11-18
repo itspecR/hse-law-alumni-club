@@ -562,7 +562,9 @@ async function perform(target, body) {
       sessionStorage.setItem("club-support-access", JSON.stringify({ id: result.id, key: body.key }));
       sessionStorage.removeItem("club-support-pending");
       const receipt = element("div", undefined, { role: "status", class: "site-panel" });
-      receipt.append(element("p", "Обращение отправлено. Сохраните номер и код доступа."), element("p", "Номер: " + result.id), element("p", "Код: " + body.key));
+      const access = "Номер: " + result.id + "\nКод: " + body.key;
+      const copy = element("button", "Скопировать номер и код", { type: "button", class: "lux-btn lux-btn--ghost lux-btn--sm", "data-action": "copy", "data-value": access });
+      receipt.append(element("p", "Обращение отправлено. Скопируйте номер и код доступа: без них переписку не открыть, мы их не восстанавливаем."), element("p", "Номер: " + result.id), element("p", "Код: " + body.key), copy);
       target.replaceWith(receipt);
       await supportThread({ id: result.id, key: body.key });
     } else if (result.payment_url) {

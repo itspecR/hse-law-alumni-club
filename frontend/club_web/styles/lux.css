@@ -42,12 +42,17 @@ html.lux, html.lux .club-dark {
   --r-md: 12px;
   --r-lg: 20px;
   --r-tile: 28px;
+  --r-mark: 14px;
+  --lux-tile-pad: clamp(24px, 3.4cqi, 44px);
   --shadow-ambient: none;
   --shadow-ambient-lift: none;
   --shadow-accent: none;
   --container: 1180px;
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   background: var(--c-bg);
+}
+@media (max-width: 760px) {
+  html.lux, html.lux .club-dark { --r-tile: 22px; }
 }
 html.lux { scroll-padding-top: calc(var(--lux-header) + 20px); }
 html.lux body { background: var(--c-bg); color: var(--c-text); -webkit-font-smoothing: antialiased; }

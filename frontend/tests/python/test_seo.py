@@ -261,7 +261,10 @@ async def test_support_hides_answers_about_closed_sections():
     for question in DPO_QUESTIONS:
         assert question not in page
     assert 'href="/dpo"' not in page and page.count('"@type": "Question"') == OPEN_QUESTIONS
-    assert '<a href="/join" class="foc lux-more">Открыть раздел <span' in page
+    assert '<a href="/join" class="foc lux-more">Перейти к вступлению <span' in page
+    assert '<a href="/privacy" class="foc lux-more">Открыть политику (PDF) <span' in page
+    assert "Открыть раздел" not in page
+    assert "откройте переписку по номеру и коду доступа" in page
 
 
 async def test_support_shows_dpo_answers_when_the_section_is_open(dpo):
@@ -269,7 +272,7 @@ async def test_support_shows_dpo_answers_when_the_section_is_open(dpo):
         page = (await client.get("/support")).text
     for question in DPO_QUESTIONS:
         assert "<summary>" + question + "</summary>" in page
-    assert page.count('<a href="/dpo" class="foc lux-more">Открыть раздел <span') == len(DPO_QUESTIONS)
+    assert page.count('<a href="/dpo" class="foc lux-more">Перейти в «Программы ДПО» <span') == len(DPO_QUESTIONS)
 
 
 async def test_news_dates_are_machine_readable():

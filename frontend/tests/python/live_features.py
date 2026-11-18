@@ -378,6 +378,7 @@ def support_conversation(page, office, request, headers, name):
     form.locator('[name="consent"]').check()
     ticket = submit(page, form, "/support")
     expect(page.locator("#support-thread")).to_contain_text("Тестовое обращение " + name)
+    expect(page.get_by_role("button", name="Скопировать номер и код", exact=True)).to_be_visible()
     access = page.evaluate("JSON.parse(sessionStorage.getItem('club-support-access'))")
     assert request.get("/api/support/" + ticket["id"]).status == 400
     assert request.get("/api/support/" + ticket["id"], headers={"x-support-key": "0" * 64}).status == 404

@@ -20,7 +20,7 @@ html.lux.vis-spacing .site-calendar { --lux-month-fit: 7.5cqi; }
 html.lux .site-calendar-grid { --lux-dot: var(--c-accent); gap: 4px; border: 0; }
 html.vis .site-calendar-grid { --lux-dot: var(--vis-fg); }
 html.lux .site-calendar-grid > strong { padding: 6px 8px; background: none; font-size: 13px; font-weight: 500; color: var(--c-text-3); }
-html.lux .site-calendar-grid > div { min-height: 72px; padding: 8px; border: 0; border-radius: 12px; background: var(--c-bg-raised); }
+html.lux .site-calendar-grid > div { min-height: 72px; padding: 8px; border: 0; border-radius: var(--r-sm); background: var(--c-bg-raised); }
 html.lux .site-calendar-grid > div:not(:has(span)) { background: none; }
 html.lux .site-calendar-grid span { font-size: 14px; color: var(--c-text-3); font-variant-numeric: tabular-nums; }
 html.lux .site-calendar-grid a { display: flex; align-items: center; min-height: 44px; margin-top: 8px; padding: 4px 8px; border-radius: 8px; background: var(--c-accent); color: var(--c-on-accent); font-weight: 500; text-decoration: none; }
