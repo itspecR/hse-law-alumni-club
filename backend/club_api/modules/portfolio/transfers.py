@@ -7,7 +7,7 @@ from club_api.core.schemas import Body
 from club_api.core.views import api_view, defer, parse_body
 from club_api.domain import applied_discount, order_totals
 from club_api.modules.auth.service import require_admin
-from club_api.modules.notifications.mail import club_subject
+from club_api.modules.notifications.mail import CLUB_NAME, club_subject
 from club_api.modules.portfolio.cohorts import canonical_id, cohort_price
 from club_api.modules.portfolio.dates import display_date
 from club_api.modules.portfolio.orders import (
@@ -75,7 +75,10 @@ async def notify_move(state, order, cohort, total):
         order["contact_email"],
         club_subject(f"Заявка {order['number']} перенесена в другой поток"),
         f"Здравствуйте, {order['contact_fio']}!\n\nВаша заявка {order['number']} перенесена в поток "
-        f"со стартом {display_date(cohort['starts_on'])}.\n{estimate_line(total)}\n\n" + CONTACT_LINE,
+        f"со стартом {display_date(cohort['starts_on'])}.\n{estimate_line(total)}\n\n"
+        + CONTACT_LINE
+        + "\n\n"
+        + CLUB_NAME,
     )
 
 

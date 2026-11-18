@@ -8,6 +8,7 @@ from test_community_integration import account
 
 from club_api.core.errors import ApiError
 from club_api.domain import order_totals
+from club_api.modules.notifications.mail import CLUB_NAME
 from club_api.modules.portfolio.orders import CONTACT_LINE
 
 PRICE = 4500000
@@ -88,7 +89,7 @@ async def test_guest_application_is_priced_on_server_and_confirmed_by_mail(datab
     assert mails[0]["to"] == "applicant@example.test"
     assert mails[0]["subject"] == f"Заявка {receipt['number']} принята - Клуб выпускников факультета права НИУ ВШЭ"
     assert "Переговоры" in mails[0]["text"] and f"Ваша заявка {receipt['number']} принята." in mails[0]["text"]
-    assert mails[0]["text"].endswith("Платить на сайте не нужно. " + CONTACT_LINE)
+    assert mails[0]["text"].endswith("Платить на сайте не нужно. " + CONTACT_LINE + "\n\n" + CLUB_NAME)
 
 
 async def test_verified_member_pays_full_price_for_club_programs(database_app, mails):

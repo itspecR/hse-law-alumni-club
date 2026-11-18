@@ -55,7 +55,9 @@ async def test_confirmation_letter_follows_style():
     assert letter["subject"] == "Код подтверждения почты - " + CLUB_NAME
     assert f"Вы подали заявку на вступление в {CLUB_NAME}. Код подтверждения почты: 012345" in letter["text"]
     assert f"Код действует 15 минут. Введите его на странице {PUBLIC_URL}/confirm" in letter["text"]
-    assert letter["text"].endswith("Если заявку подавали не Вы, проигнорируйте письмо, аккаунт останется неактивным.")
+    assert letter["text"].endswith(
+        "Если заявку подавали не Вы, проигнорируйте письмо, аккаунт останется неактивным.\n\n" + CLUB_NAME
+    )
     assert re.findall("[ёЁ–—]", letter["subject"] + letter["text"]) == []
 
 
@@ -72,3 +74,10 @@ def test_reset_letter_names_code_and_page():
     assert "Вы запросили восстановление пароля. Код: 654321" in letter
     assert f"Код действует 15 минут и срабатывает один раз. Введите его на странице {PUBLIC_URL}/reset" in letter
     assert re.findall("[ёЁ–—]", letter) == []
+
+
+@pytest.mark.parametrize(
+    "letter", [routes.reset_letter("123456", PUBLIC_URL), routes.member_letter("123456"), routes.staff_letter("123456")]
+)
+def test_code_letters_end_with_club_signature(letter):
+    assert letter.startswith("Здравствуйте!") and letter.endswith("\n\n" + CLUB_NAME)

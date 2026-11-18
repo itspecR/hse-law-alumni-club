@@ -17,7 +17,7 @@ from club_api.modules.catalog.lookup import lookup_catalog, variant_label
 from club_api.modules.checkout.cart import cart_session, load_cart
 from club_api.modules.checkout.payments import secure_payment_url
 from club_api.modules.checkout.store import digest
-from club_api.modules.notifications.mail import club_subject
+from club_api.modules.notifications.mail import CLUB_NAME, club_subject
 from club_api.modules.portfolio.captcha import RETRY_MESSAGE, CaptchaBody, require_captcha
 from club_api.modules.portfolio.cohorts import with_starts
 from club_api.observability.audit import audit
@@ -150,6 +150,14 @@ async def start_payment(state, number, total, email, receipt):
         logger.error("Не удалось создать платёж по заявке")
 
 
+def receipt_line(body, priced):
+    if not any(item["type"] == "merch" for item in priced):
+        return ""
+    if body.fulfillment == "delivery":
+        return f"Получение: доставка по адресу {body.address.strip()}.\n"
+    return "Получение: самовывоз.\n"
+
+
 async def notify_order(state, body, number, priced, totals, discount):
     summary = order_summary(priced)
     notified = await state.notifications.order_notice(number, summary, totals["total"], discount)
@@ -157,7 +165,8 @@ async def notify_order(state, body, number, priced, totals, discount):
         body.contact_email,
         club_subject(f"Заявка {number} принята"),
         f"Здравствуйте, {body.contact_fio}!\n\nВаша заявка {number} принята.\n{summary}\n"
-        f"Предварительная сумма {rubles(totals['total'])}.\n\nМы свяжемся с Вами, чтобы подтвердить детали.",
+        f"Предварительная сумма {rubles(totals['total'])}.\n{receipt_line(body, priced)}"
+        f"\nМы свяжемся с Вами, чтобы подтвердить детали.\n\n{CLUB_NAME}",
     )
     return notified
 

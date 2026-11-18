@@ -228,7 +228,8 @@ class Notifications:
             logger.warning("Уведомление сотрудникам не доставлено; проверьте канал и очередь")
 
     async def order_notice(self, number, summary, total, discount):
-        text = f"Новая заявка {number}\n{summary}\nСумма (справочно): {rubles(total)} (скидка −{discount}%)\nКонтакты и подробности в панели управления, раздел «Заявки»."
+        discount_note = f" (скидка {discount}%)" if discount else ""
+        text = f"Новая заявка {number}\n{summary}\nСумма (справочно): {rubles(total)}{discount_note}\nКонтакты и подробности в панели управления, раздел «Заявки»."
         results = []
         if self.settings.OFFICE_NOTIFY_CHANNEL in ("email", "both"):
             if self.settings.OFFICE_EMAIL:
