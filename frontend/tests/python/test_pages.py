@@ -601,6 +601,22 @@ async def test_home_shows_club_programs_after_join_steps(browser_client, dpo):
     assert '<h2><a href="/portfolio/club-one">' in (await browser_client.get("/portfolio")).text
 
 
+async def test_podcast_subscription_waits_below_empty_list():
+    async def upstream(request):
+        if request.url.path == "/podcasts":
+            return httpx.Response(200, json={"items": [], "subscribed": False})
+        return httpx.Response(200, json={"blocks": {}} if request.url.path.startswith("/pages/") else [])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            page = (await client.get("/podcasts")).text
+    assert page.index("Выпусков пока нет") < page.index('id="podcast-subscription"')
+    assert 'class="lux-btn lux-btn--ghost" data-api="/podcasts/subscribe"' in page
+    assert ">Отправить заявку на подписку</button>" in page and "Первые выпуски готовятся" in page
+
+
 async def test_empty_sections_show_tile_with_next_step():
     async def upstream(request):
         if request.url.path == "/podcasts":
