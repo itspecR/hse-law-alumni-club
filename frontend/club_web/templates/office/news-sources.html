@@ -7,7 +7,7 @@
 <p role="alert" data-error hidden>
 </p>
 </form>
-<div class="office-toolbar"><p>{% if not plan.allowed %}Автоматическая проверка запрещена на сервере переменной NEWS_SYNC_ENABLED.{% elif plan.next_check %}Следующая проверка {{ plan.next_check|date(true) }}{% else %}Автоматическая проверка выключена.{% endif %}</p>
+<div class="office-toolbar"><p>{% if not plan.allowed %}Автоматическая проверка выключена в настройках сервера. Включить ее может администратор сайта.{% elif plan.next_check %}Следующая проверка {{ plan.next_check|date(true) }}{% else %}Автоматическая проверка выключена.{% endif %}</p>
 <form data-api="/admin/news-sources/refresh" data-success="Проверка запущена. Новости появятся через несколько минут, обновите страницу."><button>Проверить сейчас</button></form></div>
 <div class="office-list">
 {% for source in records.sources or [] %}

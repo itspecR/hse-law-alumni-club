@@ -19,7 +19,7 @@ STATUS_LABELS = {
     "awaiting": "Ожидает перевода",
     "review": "На проверке",
     "canceled": "Отменено",
-    "failed": "Не создан платеж",
+    "failed": "Платеж не создан",
     "new": "Новое",
 }
 PAID = "succeeded"

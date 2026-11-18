@@ -47,7 +47,7 @@ async def test_event_attendance_replay_and_server_points(database_app):
             assert next(row for row in rows if row["id"] == event_id)["rsvp_count"] == 1, listing
         roster = (await client.get(f"/admin/events/{event_id}/rsvps", headers=editor_headers)).json()
         early = await client.post(f"/admin/events/rsvp/{roster[0]['id']}/attend", headers=editor_headers)
-        assert early.status_code == 400 and early.json()["error"] == "Отметить участие можно с дня события."
+        assert early.status_code == 400 and early.json()["error"] == "Отметить участие можно со дня события."
         calendar = await client.get(f"/events/{event_id}.ics")
         assert calendar.status_code == 200 and "DTSTART:" + later.strftime("%Y%m%dT%H%M%SZ") in calendar.text
         today = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")

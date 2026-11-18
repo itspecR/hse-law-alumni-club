@@ -129,7 +129,7 @@ async def test_office_news_form_has_all_fields_and_formatting_hint(client):
     create = page.split("</details>")[0]
     names = re.findall(r'name="(\w+)"', create)
     assert names == ["title", "published_at", "excerpt", "body", "cover", "origin", "source_url", "status"]
-    assert "## Подзаголовок" in create and "ID файла из «Медиа»" in create
+    assert "## Подзаголовок" in create and "номер файла из «Медиа»" in create
     assert '<option value="archived" >Снята с публикации</option>' in create
     assert '<option value="faculty" >Факультет права</option>' in create
     assert '<select name="origin" aria-label="Откуда">' in page
@@ -166,7 +166,7 @@ async def test_news_sources_panel_shows_checks_states_and_actions(client):
 @pytest.mark.parametrize(
     "plan,text",
     [
-        ({"allowed": False, "enabled": True}, "запрещена на сервере переменной NEWS_SYNC_ENABLED."),
+        ({"allowed": False, "enabled": True}, "выключена в настройках сервера. Включить ее может администратор сайта."),
         ({"allowed": True, "enabled": False}, "Автоматическая проверка выключена."),
     ],
 )

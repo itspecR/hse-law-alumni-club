@@ -127,11 +127,13 @@
 <input name="{{ name }}" type="datetime-local" value="{{ value|local_datetime }}">
 {% elif kind=='rich' %}
 <textarea name="{{ name }}" aria-label="{{ label }}" class="office-rich">{{ value or '' }}</textarea>
-<small class="office-hint">Пустая строка начинает новый абзац. ## Подзаголовок · **жирный** · *курсив* · - пункт списка · [текст ссылки](https://адрес) · ![подпись](ID файла из «Медиа»)</small>
+<small class="office-hint">Пустая строка начинает новый абзац. ## Подзаголовок · **жирный** · *курсив* · - пункт списка · [текст ссылки](https://адрес) · ![подпись](номер файла из «Медиа»)</small>
 {% elif kind in ('limit','optional') %}
 <input name="{{ name }}" type="number" min="{{ 1 if kind=='limit' else 0 }}" data-nullable value="{{ value if value is not none else '' }}">
 {% elif kind=='image' %}
 {{ image_input(label,value,name=name) }}
+{% elif kind=='rubles-optional' %}
+<input name="{{ name }}" type="number" min="0" step="0.01" inputmode="decimal" data-kopecks data-nullable value="{{ value|rubles_input if value is not none else '' }}">
 {% elif kind=='rubles' %}
 <input name="{{ name }}" type="number" min="0" step="0.01" inputmode="decimal" data-kopecks value="{{ value|rubles_input }}">
 {% else %}
