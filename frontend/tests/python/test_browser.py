@@ -4567,6 +4567,33 @@ def test_product_price_is_entered_in_rubles(page, site):
     assert site[2][-1]["body"]["price"] == 450050
 
 
+@pytest.mark.parametrize("width", [1440, 390])
+def test_product_variants_are_edited_as_rows(page, site, width):
+    variant = {"sku": "HOODIE-M", "size": "M", "color": "черный", "stock": 2}
+    site[1]["/admin/products"] = [{**PRODUCT, "stock": 0, "variants_json": [variant], "images": []}]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/products")
+    row = page.locator(".office-record").first
+    row.get_by_text("Изменить", exact=True).click()
+    editor = row.get_by_role("group", name="Размеры, цвета и остатки")
+    expect(editor.locator("[data-modules-total]")).to_have_text("Вариантов: 1")
+    expect(editor.locator(".office-module__title")).to_have_text("HOODIE-M")
+    expect(editor.locator(".office-module__meta")).to_have_text("M · черный")
+    editor.get_by_role("button", name="Добавить вариант", exact=True).click()
+    added = editor.locator("[data-module]").nth(1)
+    added.get_by_label("Артикул", exact=True).fill("HOODIE-L")
+    added.get_by_label("Размер", exact=True).fill("L")
+    added.get_by_label("Остаток, шт.", exact=True).fill("4")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    with page.expect_response("**/api/admin/products/" + PRODUCT["id"]):
+        row.get_by_role("button", name="Сохранить", exact=True).click()
+    assert site[2][-1]["body"]["variants_json"] == [
+        variant,
+        {"sku": "HOODIE-L", "size": "L", "color": None, "stock": 4},
+    ]
+
+
 def test_office_filters_fold_behind_button_on_phone(page, site):
     page.set_viewport_size({"width": 390, "height": 800})
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")

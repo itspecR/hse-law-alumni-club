@@ -299,6 +299,7 @@ function lines(text) {
 function moduleValue(input, primary) {
   const text = input.value.trim();
   if (input.hasAttribute("data-module-lines")) return lines(text);
+  if (input.hasAttribute("data-module-number")) return Number(text || 0);
   return primary ? text : text || null;
 }
 
