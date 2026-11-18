@@ -120,6 +120,10 @@
 .office-order-items { margin:16px 0; padding:12px 16px; background:var(--c-bg-sunken); border-radius:var(--r-sm); }
 .office-order-items p { margin:4px 0; font-size:14px; }
 .office-order-total { font-size:24px; font-variant-numeric:tabular-nums; }
+.office-order-total small { display:block; font-size:13px; color:var(--c-text-3); }
+.office-record-head > div { flex:1; min-width:160px; }
+.office-order-who { margin:4px 0 0; color:var(--c-text-2); }
+.office-conditions { margin-top:12px; }
 .office-source-error { color:var(--c-danger-text); font-size:14px; }
 .office-upload { margin-bottom:24px; }
 .office-upload .site-field { margin-top:0; }
