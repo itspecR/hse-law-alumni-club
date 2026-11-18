@@ -2703,6 +2703,24 @@ def test_block_spacing_follows_grid(dpo, page, site, path, selector):
         assert value == "normal" or float(value.removesuffix("px")) % SPACING_STEP == 0
 
 
+@pytest.mark.parametrize("width", [390, 1440])
+def test_join_for_signed_in_member_points_to_cabinet(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/join")
+    tile = page.locator("[data-member-only]")
+    expect(tile.get_by_role("heading", name="Вы уже в клубе", exact=True)).to_be_visible()
+    expect(tile.get_by_role("link", name="Открыть кабинет", exact=True)).to_have_attribute("href", "/lk")
+    expect(page.locator("form[data-registration]")).to_be_hidden()
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+def test_join_for_guest_keeps_form(page):
+    page.goto("/join")
+    expect(page.locator("[data-member-only]")).to_be_hidden()
+    expect(page.locator("form[data-registration]")).to_be_visible()
+
+
 def test_login_error_hides_when_fields_change(page):
     page.goto("/lk")
     form = page.locator("form[data-api='/auth/login']")
@@ -3659,6 +3677,7 @@ def test_profile_uploads_photo_on_choice_and_names_interest_limit(page, site):
             {"name": "photo.png", "mimeType": "image/png", "buffer": PHOTO_PNG}
         )
     assert sent.value.method == "POST"
+    page.wait_for_load_state("networkidle")
     form = page.locator('form[data-api="/me/profile"]')
     fieldset = form.locator("fieldset[data-max-interests]")
     limit = int(fieldset.get_attribute("data-max-interests"))
@@ -4520,25 +4539,23 @@ def test_office_program_list_shows_cards_with_key_facts(page, site, width):
 
 
 @pytest.mark.parametrize("width", [390, 1440])
-def test_audit_log_speaks_in_words_and_hides_reads(page, site, width):
-    site[1]["/admin/audit"] = [
-        {
-            "id": "a1",
-            "event": "support.read",
-            "actor": "admin:1",
-            "subject": "ticket:1",
-            "detail": None,
-            "created_at": "2026-11-18T10:00:00Z",
-        },
-        {
-            "id": "a2",
-            "event": "order.created",
-            "actor": "web",
-            "subject": "order:ALU-1",
-            "detail": {"total": 4500000},
-            "created_at": "2026-11-18T11:00:00Z",
-        },
-    ]
+def test_audit_log_speaks_in_words_and_filters_on_server(page, site, width):
+    entry = {
+        "id": "a2",
+        "event": "order.created",
+        "actor": "web",
+        "subject": "order:ALU-1",
+        "detail": {"total": 4500000},
+        "created_at": "2026-11-18T11:00:00Z",
+    }
+    site[1]["/admin/audit"] = {
+        "items": [entry],
+        "total": 120,
+        "page": 1,
+        "limit": 50,
+        "staff": [{"actor": "admin:1", "label": "staff@example.test"}],
+        "events": ["news.delete", "order.created", "support.read"],
+    }
     page.set_viewport_size({"width": width, "height": 900})
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
     page.goto("/admin/audit")
@@ -4548,8 +4565,16 @@ def test_audit_log_speaks_in_words_and_hides_reads(page, site, width):
     expect(rows.first.locator("pre")).to_be_hidden()
     rows.first.get_by_text("Подробности", exact=True).click()
     expect(rows.first.locator("pre")).to_contain_text("4500000")
-    page.goto("/admin/audit?reads=1")
-    expect(rows).to_have_count(2)
+    expect(page.locator("[data-office-count]")).to_have_text("Показано: 1 из 120")
+    expect(page.get_by_role("link", name="Следующая страница →")).to_have_attribute("href", "?page=2")
+    filters = page.locator("form.site-filters")
+    if width < 641:
+        filters.get_by_role("button", name=re.compile("^Фильтры")).click()
+    filters.get_by_label("Действие", exact=True).select_option(label="Новость удалена")
+    filters.get_by_label("Сотрудник", exact=True).select_option(label="staff@example.test")
+    filters.get_by_role("button", name="Показать", exact=True).click()
+    expect(page).to_have_url(re.compile(r"event=news\.delete&actor=admin%3A1"))
+    expect(page.get_by_role("link", name="Сбросить", exact=True)).to_have_attribute("href", "/admin/audit")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 

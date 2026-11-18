@@ -23,7 +23,7 @@ from club_web.formatting import (
 )
 from club_web.icons import ICONS
 from club_web.main import create_app
-from club_web.office import audit_label, audit_rows, filter_content
+from club_web.office import audit_label, filter_content
 from club_web.pages import (
     ACHIEVEMENT_STRIP,
     NAV,
@@ -839,7 +839,11 @@ async def test_event_month_and_detail_query_upstream_explicitly():
         ) as client:
             assert (await client.get("/events?month=2026-11")).status_code == 200
             assert (await client.get("/events/event-1")).status_code == 200
-    assert requests == ["http://api.test/events?month=2026-11", "http://api.test/events?id=event-1"]
+    assert requests == [
+        "http://api.test/auth/registration",
+        "http://api.test/events?month=2026-11",
+        "http://api.test/events?id=event-1",
+    ]
 
 
 @pytest.mark.parametrize(
@@ -1866,10 +1870,12 @@ TEASER = {
 } | {"raised": 41200000, "percent": 27}
 
 
-async def home_with_campaign(reply):
+async def home_with_campaign(reply, registration=True):
     async def upstream(request):
         if request.url.path == "/campaigns/current":
             return reply
+        if request.url.path == "/auth/registration":
+            return httpx.Response(200, json={"enabled": registration})
         if request.url.path == "/pages/home":
             return httpx.Response(200, json={"blocks": {}})
         return httpx.Response(200, json=[])
@@ -1908,6 +1914,20 @@ async def test_home_without_campaign_stays_as_is(reply):
     status, page = await home_with_campaign(reply)
     assert status == 200 and "camp-" not in page and 'id="join-steps"' in page
     assert 'class="site-errors"' not in page and "Временно недоступно" not in page
+
+
+async def test_closed_registration_leads_to_give_and_login():
+    status, page = await home_with_campaign(httpx.Response(404, json={}), registration=False)
+    assert status == 200 and 'id="join-steps"' not in page and 'href="/join"' not in page
+    hero = page.split('<div class="lux-hero__acts">', 1)[1].split("</div>", 1)[0]
+    assert '<a href="/give" class="foc lux-btn">Поддержать факультет</a>' in hero
+    assert '<a href="/lk" class="foc club-header__cta club-header__cta--ghost" data-member-link>Войти</a>' in page
+
+
+async def test_open_registration_keeps_join_buttons():
+    status, page = await home_with_campaign(httpx.Response(404, json={}))
+    assert status == 200 and 'id="join-steps"' in page
+    assert '<a href="/join" class="foc club-header__cta" data-member-link>Вступить</a>' in page
 
 
 async def test_campaign_page_shows_story_meter_and_campaign_form(browser_client):
@@ -2300,8 +2320,6 @@ def test_audit_labels_name_events_in_words():
     assert audit_label("order.created") == "Новая заявка"
     assert audit_label("news.delete") == "Новость удалена" and audit_label("event.patch") == "Событие изменено"
     assert audit_label("unknown.thing") == "unknown.thing"
-    rows = [{"event": "support.read"}, {"event": "login.ok"}]
-    assert audit_rows(rows, False) == [{"event": "login.ok"}] and audit_rows(rows, True) == rows
 
 
 async def test_office_overview_lists_queues_once_and_hides_closed_dpo(browser_client):

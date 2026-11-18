@@ -598,7 +598,6 @@ AUDIT_SUBJECTS = {
 }
 AUDIT_ACTIONS = {"create": "создан", "patch": "изменен", "delete": "удален"}
 AUDIT_ENDINGS = {"m": "", "f": "а", "n": "о"}
-AUDIT_READ_SUFFIX = ".read"
 
 
 def audit_label(event):
@@ -609,7 +608,3 @@ def audit_label(event):
         name, gender = AUDIT_SUBJECTS[subject]
         return f"{name} {AUDIT_ACTIONS[action]}{AUDIT_ENDINGS[gender]}"
     return event or ""
-
-
-def audit_rows(rows, show_reads):
-    return [row for row in rows if show_reads or not str(row.get("event") or "").endswith(AUDIT_READ_SUFFIX)]

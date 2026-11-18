@@ -18,7 +18,7 @@
 <div class="lux-hero__foot">
 <p class="lux-hero__lede">{% if hero.subtitle %}{{ hero.subtitle }}{% else %}Встречи выпускников, тренинги клуба, подкасты и&nbsp;новости факультета.{% endif %}</p>
 <div class="lux-hero__acts">
-<a href="/join" class="foc lux-btn" data-member-link>{{ hero.cta_primary or 'Вступить в клуб' }}</a>
+{% if registration_open %}<a href="/join" class="foc lux-btn" data-member-link>{{ hero.cta_primary or 'Вступить в клуб' }}</a>{% else %}<a href="/give" class="foc lux-btn">Поддержать факультет</a>{% endif %}
 <a href="/portfolio" class="foc lux-more">Тренинги <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </div>
 </div>
@@ -39,6 +39,7 @@
 </section>
 
 {% if campaign %}{% include 'campaign-teaser.html' %}{% endif %}
+{% if registration_open %}
 <section class="lux-section lux-join" id="join-steps" aria-labelledby="lux-join-title">
 <div class="lux-wrap lux-join__head">
 <h2 class="lux-h2 lux-reveal" id="lux-join-title">{{ cta.title or 'Три шага, и вы в клубе.' }}</h2>
@@ -54,6 +55,7 @@
 </ol>
 <div class="lux-wrap lux-join__cta lux-reveal"><a href="/join" class="foc lux-btn" data-member-link>{{ join_label }}</a></div>
 </section>
+{% endif %}
 
 <section class="lux-section lux-portfolio" id="club-programs" aria-labelledby="lux-portfolio-title">
 <div class="lux-wrap lux-split">
@@ -218,7 +220,7 @@
 <img class="lux-last__mark lux-reveal" src="{{ base }}assets/themis-club.svg" width="64" height="64" alt="">
 <h2 class="lux-h2 lux-reveal" id="lux-last-title" style="--d:1">{{ title_pre }} {{ title_accent }}</h2>
 <p class="lux-lede lux-reveal" style="--d:2">В&nbsp;кабинете скидка выпускника, запись на&nbsp;события и&nbsp;подписка на&nbsp;подкасты.</p>
-<div class="lux-reveal" style="--d:3"><a href="/join" class="foc lux-btn" data-member-link>{{ join_label }}</a></div>
+<div class="lux-reveal" style="--d:3">{% if registration_open %}<a href="/join" class="foc lux-btn" data-member-link>{{ join_label }}</a>{% else %}<a href="/lk" class="foc lux-btn lux-btn--ghost" data-member-link>Войти в кабинет</a>{% endif %}</div>
 </div>
 </section>
 </main>

@@ -753,6 +753,7 @@ function setupPage() {
     link.textContent = token(false) ? "Кабинет" : link.dataset.guestLabel;
   });
   document.querySelectorAll("[data-guest-only]").forEach(link => { link.hidden = Boolean(token(false)); });
+  document.querySelectorAll("[data-member-only]").forEach(node => { node.hidden = !token(false); });
   document.querySelectorAll("[data-reveal]").forEach(node => { node.setAttribute("data-revealed", "true"); node.classList.add("is-visible", "is-in"); });
   document.querySelectorAll("audio").forEach(audio => {
     const id = audio.closest("[data-episode]")?.dataset.episode;
