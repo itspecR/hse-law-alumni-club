@@ -230,3 +230,9 @@
 .office-support-bot { margin-top:24px; }
 .office-support-bot summary { display:flex; align-items:center; min-height:44px; cursor:pointer; }
 .office-support-bot summary h2 { margin:0; }
+.office-filter-toggle { display:none; }
+@media(max-width:640px) {
+  .site-office .site-filters .office-filter-toggle { display:inline-flex; order:2; }
+  .site-office .site-filters:not(.is-open) > label:has(select) { display:none; }
+  .site-office .site-filters > label:has(input[type=search], input[name=q]) { order:1; flex:1 1 100%; }
+}

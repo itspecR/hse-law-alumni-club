@@ -362,6 +362,21 @@ function estimateText(form, total) {
   return total ? "Предварительная сумма " + rubles(total) : form.querySelector("[data-quote]").dataset.pricePending;
 }
 
+function prepareOfficeFilters() {
+  for (const form of document.querySelectorAll(".site-office form.site-filters")) {
+    const selects = [...form.querySelectorAll("select")];
+    if (!selects.length || form.querySelector("[data-action='office-filters']")) continue;
+    const chosen = selects.filter(select => select.value).length;
+    const toggle = element("button", chosen ? "Фильтры · " + chosen : "Фильтры", { type: "button", class: "office-filter-toggle", "data-action": "office-filters", "aria-expanded": "false" });
+    form.prepend(toggle);
+  }
+}
+
+function toggleOfficeFilters(button) {
+  const open = button.closest("form").classList.toggle("is-open");
+  button.setAttribute("aria-expanded", String(open));
+}
+
 let dockWatch;
 
 function watchApplicationDock() {
@@ -695,6 +710,7 @@ function setupPage() {
   prefillEmail();
   void prefillContacts();
   watchApplicationDock();
+  prepareOfficeFilters();
   document.querySelectorAll("[data-member-link]").forEach(link => {
     link.dataset.guestLabel ||= link.textContent;
     link.dataset.guestHref ||= link.getAttribute("href");
@@ -827,6 +843,7 @@ document.addEventListener("click", async event => {
     else if (action === "quote") await quotePromo(target);
     else if (action === "office-menu") { if (toggleMenu(target)) alignOfficeNavigation(); }
     else if (action === "menu") toggleMenu(target);
+    else if (action === "office-filters") toggleOfficeFilters(target);
     else if (action === "logout" || action === "logout-office") {
       let failure;
       try { if (action === "logout-office" && token(true)) await request("/auth/admin-logout", "POST", {}); }
