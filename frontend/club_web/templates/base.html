@@ -1,4 +1,4 @@
-{% if not fragment %}
+{% from 'macros.html' import icon as tab_icon %}{% if not fragment %}
 <!doctype html>
 <html lang="ru" class="lux" data-live="{{ live.kind }}"{% if live.veiled %} data-veil{% endif %}>
 <head>
@@ -214,11 +214,9 @@
 </div>
 </footer>
 <nav class="mobile-tabs" aria-label="Основные разделы">
-<a href="/">Клуб</a>
-<a href="/news">Новости</a>
-{% if dpo_enabled %}<a href="/dpo">ДПО</a>{% endif %}
-<a href="/merch">Мерч</a>
-<a href="/lk">Кабинет</a>
+{% for href,label,name,current in tabs %}
+<a href="{{ href }}"{% if current %} aria-current="page"{% endif %}>{{ tab_icon(name) }}<span>{{ label }}</span></a>
+{% endfor %}
 </nav>
 {% endif %}
 </div>

@@ -40,6 +40,7 @@ from club_web.office import (
 from club_web.pricing import discount_tiers, member_prices
 from club_web.schema import TELEGRAM_CHANNEL
 from club_web.search import search_groups
+from club_web.tabs import mobile_tabs
 
 HOME_EPISODES = 4
 PARAGRAPH_BREAK = re.compile(r"\n\s*\n")
@@ -806,6 +807,7 @@ async def context(api, path, params, authorized=False):
         "changes_enabled": features.CHANGES_ENABLED,
         "push_enabled": features.PUSH_ENABLED,
         "dpo_enabled": features.DPO_ENABLED,
+        "tabs": mobile_tabs(path),
         "live": live_view(path),
         "office_nav": OFFICE_NAV,
         "office_groups": GROUPS,

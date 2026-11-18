@@ -1982,6 +1982,34 @@ def test_event_roster_undoes_attendance_after_confirmation(page, site, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
+TAB_MIN_HEIGHT = 44
+
+
+@pytest.mark.parametrize("width", [390, 900, 1100])
+def test_bottom_tabs_share_width_and_mark_current_tab(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/merch")
+    tabs = page.get_by_role("navigation", name="Основные разделы")
+    links = tabs.get_by_role("link")
+    expect(page.locator(".club-header__burger")).to_be_visible()
+    expect(links).to_have_text(["Клуб", "Тренинги", "Мерч", "Кабинет"])
+    expect(tabs.get_by_role("link", name="Мерч", exact=True)).to_have_attribute("aria-current", "page")
+    expect(tabs.locator("[aria-current]")).to_have_count(1)
+    boxes = [links.nth(index).bounding_box() for index in range(links.count())]
+    assert len({round(box["width"]) for box in boxes}) == 1
+    assert all(box["height"] >= TAB_MIN_HEIGHT for box in boxes)
+    page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+    legal = page.locator(".club-footer__legal").bounding_box()
+    assert legal["y"] + legal["height"] <= tabs.bounding_box()["y"]
+
+
+def test_bottom_tabs_give_way_to_header_sections_on_wide_screen(page):
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.goto("/merch")
+    expect(page.get_by_role("navigation", name="Основные разделы")).to_be_hidden()
+    expect(page.locator(".club-header__burger")).to_be_hidden()
+
+
 def test_program_dock_is_only_for_phone(page):
     page.goto("/portfolio/" + PORTFOLIO["slug"])
     expect(page.locator(".portfolio-dock")).to_be_hidden()

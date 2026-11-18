@@ -241,7 +241,7 @@ html.pwa-shell .club-header__inner { padding-inline: 16px; }
 .club-footer {
   margin-top: var(--rh-section);
   padding: 56px 28px 40px;
-  padding-bottom: calc(40px + var(--cookie-h, 0px));
+  padding-bottom: calc(40px + var(--tabs-h, 0px) + var(--cookie-h, 0px));
 }
 .club-footer__inner {
   max-width: var(--container);
@@ -285,7 +285,7 @@ html.pwa-shell .club-header__inner { padding-inline: 16px; }
   .club-footer__brand { grid-column: 1 / -1; }
 }
 @media (max-width: 480px) {
-  .club-footer { padding: 44px 16px 32px; padding-bottom: calc(32px + var(--cookie-h, 0px)); }
+  .club-footer { padding: 44px 16px 32px; padding-bottom: calc(32px + var(--tabs-h, 0px) + var(--cookie-h, 0px)); }
   .club-footer__inner { grid-template-columns: 1fr; }
 }
 

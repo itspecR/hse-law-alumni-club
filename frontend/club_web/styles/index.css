@@ -347,15 +347,10 @@ html.vis .club-cookie-banner__btn {
   }
 }
 
-@media (max-width: 768px) {
-  :root {
-    --tabs-h: 0px;
-  }
-  .club-cookie-banner,
-  [role="dialog"][aria-label="Согласие на использование cookies"],
-  [role="dialog"][aria-label="Установка приложения"] {
-    bottom: calc(16px + var(--tabs-h, 0px)) !important;
-  }
+.club-cookie-banner,
+[role="dialog"][aria-label="Согласие на использование cookies"],
+[role="dialog"][aria-label="Установка приложения"] {
+  bottom: calc(16px + max(var(--tabs-h, 0px), env(safe-area-inset-bottom, 0px))) !important;
 }
 html { scroll-padding-bottom: calc(var(--tabs-h, 0px) + var(--cookie-h, 0px)); }
 @media (min-width: 481px) {
