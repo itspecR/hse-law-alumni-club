@@ -88,7 +88,7 @@ html.lux .cabinet-chip { display: inline-flex; align-items: center; }
 html.lux .cabinet-order__chips { display: flex; flex-wrap: wrap; gap: 8px; }
 html.lux .cabinet-people { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
 html.lux .cabinet-people > li { display: grid; min-width: 0; }
-html.lux .cabinet-person { grid-template-columns: auto minmax(0, 1fr); align-items: start; column-gap: 16px; }
+html.lux .cabinet-person { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: 1fr auto; align-items: start; column-gap: 16px; }
 html.lux .cabinet-person h3 { margin: 0 0 4px; }
 html.lux .cabinet-person > button { grid-column: 2; justify-self: start; }
 html.lux .cabinet-chart { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: end; gap: 12px; height: 160px; margin: 8px 0 0; padding: 0; list-style: none; }

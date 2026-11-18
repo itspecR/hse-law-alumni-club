@@ -177,7 +177,7 @@ def member_points_discount(office, request, headers, member_headers, member_id):
 def friends_after_restart(page, name, other_id):
     page.goto("/lk?section=community")
     row = page.locator("#community article").filter(has=page.locator(f'[data-body*="{other_id}"]'))
-    action = "Добавить в друзья" if name == "desktop" else "Принять приглашение"
+    action = "Добавить в друзья" if name == "desktop" else "Принять заявку в друзья"
     with page.expect_response(
         lambda response: response.url.endswith("/api/me/friends") and response.request.method == "POST"
     ) as sent:
@@ -186,7 +186,9 @@ def friends_after_restart(page, name, other_id):
     assert sent.value.json()["status"] == ("pending" if name == "desktop" else "accepted")
     row = page.locator("#community article").filter(has=page.locator(f'[data-body*="{other_id}"]'))
     expect(
-        row.get_by_role("button", name="Отменить приглашение" if name == "desktop" else "Убрать из друзей", exact=True)
+        row.get_by_role(
+            "button", name="Отменить заявку в друзья" if name == "desktop" else "Убрать из друзей", exact=True
+        )
     ).to_be_visible()
     if name == "mobile":
         with page.expect_response(

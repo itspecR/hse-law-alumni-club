@@ -1112,7 +1112,10 @@ async def test_office_member_point_history_shows_reasons_and_closes():
             page = (await client.get("/views/admin/members?id=member-1", headers=headers)).text
             plain = (await client.get("/views/admin/members", headers=headers)).text
     assert "История баллов: Вымышленный Выпускник" in page and "Сейчас 140 баллов." in page
-    assert "Наставничество младшего потока</span><span>Наставничество: Поток 2024</span><strong>+120</strong>" in page
+    assert (
+        "Наставничество выпускника младшего курса</span><span>Наставничество: Поток 2024</span><strong>+120</strong>"
+        in page
+    )
     assert "Начисление клуба</span><span></span><strong>+30</strong>" in page
     assert "Списание за неактивность</span><span></span><strong>-10</strong>" in page
     assert '<a href="/admin/members?id=member-1">История баллов</a>' in plain and "office-history" not in plain

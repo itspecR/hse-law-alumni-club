@@ -3435,6 +3435,44 @@ def test_cabinet_names_club_application_discount(page, site, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
+def test_cabinet_overview_names_next_steps_and_friend_requests(page, site):
+    alumni = {**PROFILE["alumni"], "contacts": {"email": "graduate@example.test"}}
+    site[1]["/me"] = {**PROFILE, "alumni": alumni}
+    site[1]["/events"] = [{**EVENT, "starts_at": "2027-03-01T12:00:00Z", "reg_url": "https://reg.example.test/a"}]
+    site[1]["/me/events"] = [
+        {"kind": "friend_request", "from_id": "alumni-2", "from_fio": "Вымышленная Коллега"},
+        {"kind": "friend_accepted", "by_fio": "Вымышленный Друг"},
+        {"kind": "podcast_expiring", "days_left": 5, "until": "2026-11-22T12:00:00Z"},
+    ]
+    site[1]["/me/classmates"] = [
+        {"id": "alumni-3", "fio": "Вымышленный Однокурсник", "cohort": 2020, "friend_status": "incoming"},
+        {"id": "alumni-4", "fio": "Вымышленная Однокурсница", "cohort": 2020, "friend_status": "pending"},
+    ]
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk")
+    notices = page.locator(".cabinet-notices")
+    expect(notices).to_contain_text("Заявка в друзья от Вымышленная Коллега.")
+    expect(notices).to_contain_text("Вымышленный Друг теперь у вас в друзьях.")
+    expect(notices).to_contain_text("Подписка на подкасты закончится 22 ноября 2026.")
+    expect(page.locator(".cabinet-callout")).to_contain_text("Добавьте телефон или Telegram")
+    expect(page.get_by_role("link", name="Подробнее и регистрация", exact=True)).to_be_visible()
+    page.locator(".cabinet-tabs").get_by_role("link", name="Однокурсники").click()
+    people = page.locator(".cabinet-person")
+    expect(people.first).to_contain_text("Выпуск 2020")
+    expect(people.first.get_by_role("button")).to_have_text("Принять заявку в друзья")
+    expect(people.nth(1).get_by_role("button")).to_have_text("Отменить заявку в друзья")
+
+
+def test_cabinet_pending_review_names_what_opens(page, site):
+    alumni = {**PROFILE["alumni"], "verification_status": "pending"}
+    site[1]["/me"] = {**PROFILE, "alumni": alumni}
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk")
+    expect(page.locator(".cabinet-status")).to_contain_text(
+        "Мы проверяем, что вы выпускник факультета. О решении напишем на почту."
+    )
+
+
 PODCAST_ORDER = {
     **CLUB_ORDER,
     "number": "ALU-2026-000105",
