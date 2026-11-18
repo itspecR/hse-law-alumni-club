@@ -560,8 +560,7 @@ async def test_home_texts_follow_glossary(browser_client, dpo):
     assert '<a href="/portfolio" class="foc lux-more">Тренинги <span' in page
     assert '<a href="/events" class="foc lux-more">Все события' in page
     assert (
-        '<p class="lux-hero__lede">Встречи выпускников, тренинги и&nbsp;курсы клуба, подкасты и&nbsp;новости факультета.</p>'
-        in page
+        '<p class="lux-hero__lede">Встречи выпускников, тренинги клуба, подкасты и&nbsp;новости факультета.</p>' in page
     )
     assert (
         "Подайте заявку, а&nbsp;мы подтвердим ваш статус выпускника и&nbsp;предоставим доступ к&nbsp;новым возможностям."

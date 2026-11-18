@@ -942,8 +942,9 @@ def test_cookie_banner_is_compact_neutral_and_keeps_focus(page, width, height):
     page.keyboard.press("Enter")
     expect(banner).to_be_hidden()
     expect(page.locator("main h1")).to_be_focused()
-    opener = page.locator(".club-footer").get_by_role("button", name="Cookies", exact=True)
+    opener = page.locator(".club-footer").get_by_role("button", name="Настройки cookies", exact=True)
     opener.click()
+    expect(banner.locator("[data-cookie-choice]")).to_have_text("Сейчас выбрано: только необходимые.")
     expect(essential).to_be_focused()
     accept.click()
     expect(opener).to_be_focused()
@@ -962,7 +963,7 @@ def test_legal_pages_and_separate_form_consent(page, width):
     expect(page.locator(".club-footer").get_by_role("link", name="Документы", exact=True)).to_have_attribute(
         "href", "/documents"
     )
-    page.get_by_role("button", name="Cookies", exact=True).click()
+    page.get_by_role("button", name="Настройки cookies", exact=True).click()
     banner = page.get_by_role("dialog", name="Согласие на использование cookies")
     expect(banner).to_be_visible()
     expect(banner.get_by_role("link", name="Подробнее", exact=True)).to_have_attribute("href", "/docs/politika-pdn.pdf")
