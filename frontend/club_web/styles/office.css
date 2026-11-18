@@ -39,7 +39,8 @@
 .site-office input:not([type=checkbox]),.site-office select,.site-office textarea { font-size:16px; }
 .site-office input[type=file] { width:100%; padding:12px; border:1px dashed var(--c-line-control); border-radius:var(--r-sm); background:var(--c-bg-sunken); }
 .site-office input[type=file]::file-selector-button { padding:8px 12px; border:1px solid var(--c-line-control); border-radius:var(--r-sm); background:var(--c-bg); color:var(--c-text); font:inherit; margin-right:12px; }
-.site-office .site-admin-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 20px; padding-top:12px; }
+.site-office .site-admin-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px 20px; padding-top:12px; }
+.site-office .site-admin-form .site-field { margin:0; }
 .site-office .site-field:has(textarea) { grid-column:1/-1; }
 .site-office .site-field:has(input[type=checkbox]) { display:flex; align-items:center; gap:12px; }
 .site-office .site-field input[type=checkbox] { margin:0; width:20px; height:20px; }

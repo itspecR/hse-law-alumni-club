@@ -258,6 +258,11 @@ html.vis-spacing *:not(svg) { letter-spacing: 0.1em !important; word-spacing: 0.
   min-width: 0;
   margin: 0;
 }
+.club-cookie-banner__choice {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--c-text-3);
+}
 .club-cookie-banner__actions {
   flex: 1 1 280px;
   min-width: 0;

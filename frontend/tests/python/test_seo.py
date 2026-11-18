@@ -7,7 +7,7 @@ import pytest
 from test_pages import EPISODE, EVENT, NEWS, PORTFOLIO, PRODUCT, PUBLIC_CAMPAIGN
 
 from club_web.main import create_app
-from club_web.seo import DESCRIPTION_LIMIT, PAGES, SITE_NAME, brief
+from club_web.seo import DESCRIPTION_LIMIT, PAGES, SITE_NAME, brief, heading
 
 SITE = "http://web.test"
 FACULTY_NEWS = {
@@ -457,3 +457,16 @@ async def test_home_tells_about_yearly_meetings():
     block = home.split('id="lux-meet-title"')[1].split("</section>")[0]
     first = '<p class="lux-lede">Каждый год клуб собирает выпускников разных лет на&nbsp;традиционную встречу.</p>'
     assert first in block and block.index(first) < block.index("27&nbsp;февраля 2026&nbsp;года")
+
+
+async def test_tab_titles_follow_one_order():
+    async with site() as client:
+        podcasts = (await client.get("/podcasts")).text
+        give = (await client.get("/give")).text
+    assert "<title>Подкасты - Клуб выпускников факультета права НИУ ВШЭ</title>" in podcasts
+    assert "<title>Поддержать факультет - Клуб выпускников факультета права НИУ ВШЭ</title>" in give
+
+
+def test_heading_drops_trailing_dot():
+    assert heading("Искусство влияния.") == "Искусство влияния"
+    assert heading(None) == ""

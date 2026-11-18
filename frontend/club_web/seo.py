@@ -45,7 +45,7 @@ PAGES = {
     ),
     "/news": ("Новости" + SEPARATOR + SITE_NAME, "Новости клуба выпускников и факультета права НИУ ВШЭ."),
     "/podcasts": (
-        "Подкаст «Правовая грамотность»" + SEPARATOR + SITE_NAME,
+        "Подкасты" + SEPARATOR + SITE_NAME,
         "Подкаст клуба выпускников факультета права НИУ ВШЭ. "
         "Пробный выпуск открыт всем, остальные доступны по подписке на год.",
     ),
@@ -54,7 +54,7 @@ PAGES = {
         "Вещи с символикой клуба выпускников факультета права НИУ ВШЭ. Каталог и заявка на заказ.",
     ),
     "/give": (
-        "Поддержать факультет права НИУ ВШЭ" + SEPARATOR + "Клуб выпускников",
+        "Поддержать факультет" + SEPARATOR + SITE_NAME,
         "Способ поблагодарить факультет права НИУ ВШЭ и поучаствовать в его развитии. "
         "Пожертвования помогают ему оставаться ведущим центром юридического образования.",
     ),
@@ -78,6 +78,10 @@ PAGES = {
 }
 
 
+def heading(title):
+    return (title or "").rstrip(" .")
+
+
 def brief(*parts):
     text = " ".join(" ".join(str(part).split()) for part in parts if part)
     if len(text) <= DESCRIPTION_LIMIT:
@@ -91,33 +95,35 @@ def sentence(text):
 
 
 def news_texts(item):
-    return item["title"] + SEPARATOR + SITE_NAME, brief(item.get("excerpt"))
+    return heading(item["title"]) + SEPARATOR + SITE_NAME, brief(item.get("excerpt"))
 
 
 def event_texts(item):
     day = date(item.get("starts_at"))
-    title = ", ".join(part for part in (item["title"], day) if part)
+    title = ", ".join(part for part in (heading(item["title"]), day) if part)
     place = "Место: " + item["location"] if item.get("location") else ""
     return title + SEPARATOR + SITE_NAME, brief(sentence(item.get("description")), sentence(day), sentence(place))
 
 
 def program_texts(item):
     start = date(program_start(item))
-    return item["title"] + SEPARATOR + PROGRAM_SUFFIX, brief(
+    return heading(item["title"]) + SEPARATOR + PROGRAM_SUFFIX, brief(
         sentence(item.get("description")), sentence("Старт " + start if start else "")
     )
 
 
 def episode_texts(item):
-    return item["title"] + SEPARATOR + PODCAST_NAME, brief(item.get("description"))
+    return heading(item["title"]) + SEPARATOR + PODCAST_NAME, brief(item.get("description"))
 
 
 def product_texts(item):
-    return item["title"] + SEPARATOR + MERCH_SUFFIX, brief(item.get("description"))
+    return heading(item["title"]) + SEPARATOR + MERCH_SUFFIX, brief(item.get("description"))
 
 
 def campaign_texts(item):
-    return item["title"] + SEPARATOR + SITE_NAME, brief(sentence(item.get("subtitle")), sentence(item.get("lede")))
+    return heading(item["title"]) + SEPARATOR + SITE_NAME, brief(
+        sentence(item.get("subtitle")), sentence(item.get("lede"))
+    )
 
 
 ITEM_TEXTS = {

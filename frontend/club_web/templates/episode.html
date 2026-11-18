@@ -25,11 +25,13 @@
 </p>
 <button data-audio-retry hidden>Повторить загрузку</button>
 </section>
+{% elif item.is_free %}
+{% if item.video_url %}<p>Этот выпуск доступен в видео.</p>{% endif %}
 {% else %}
 <div class="site-panel">
 <p>Выпуск доступен по подписке клуба.</p>
-<a href="/podcasts#podcast-subscription" class="site-primary">Условия подписки</a>
-<a href="/lk?next=/podcasts%23podcast-subscription">Войти</a>
+<div class="site-actions"><a href="/podcasts#podcast-subscription" class="site-primary">Условия подписки</a>
+<a href="/lk?next=/podcasts%23podcast-subscription" class="foc lux-link" data-guest-only>Войти</a></div>
 </div>
 {% endif %}
 

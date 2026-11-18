@@ -560,8 +560,7 @@ async def test_home_texts_follow_glossary(browser_client, dpo):
     assert '<a href="/portfolio" class="foc lux-more">Тренинги <span' in page
     assert '<a href="/events" class="foc lux-more">Все события' in page
     assert (
-        '<p class="lux-hero__lede">Встречи выпускников, тренинги и&nbsp;курсы клуба, подкасты и&nbsp;новости факультета.</p>'
-        in page
+        '<p class="lux-hero__lede">Встречи выпускников, тренинги клуба, подкасты и&nbsp;новости факультета.</p>' in page
     )
     assert (
         "Подайте заявку, а&nbsp;мы подтвердим ваш статус выпускника и&nbsp;предоставим доступ к&nbsp;новым возможностям."
@@ -600,6 +599,22 @@ async def test_home_shows_club_programs_after_join_steps(browser_client, dpo):
     assert "45\u00a0000 ₽" in block and "Цена выпускника" not in block
     assert '<a href="/portfolio" class="foc lux-more">Все тренинги <span' in block
     assert '<h2><a href="/portfolio/club-one">' in (await browser_client.get("/portfolio")).text
+
+
+async def test_podcast_subscription_waits_below_empty_list():
+    async def upstream(request):
+        if request.url.path == "/podcasts":
+            return httpx.Response(200, json={"items": [], "subscribed": False})
+        return httpx.Response(200, json={"blocks": {}} if request.url.path.startswith("/pages/") else [])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            page = (await client.get("/podcasts")).text
+    assert page.index("Выпусков пока нет") < page.index('id="podcast-subscription"')
+    assert 'class="lux-btn lux-btn--ghost" data-api="/podcasts/subscribe"' in page
+    assert ">Отправить заявку на подписку</button>" in page and "Первые выпуски готовятся" in page
 
 
 async def test_empty_sections_show_tile_with_next_step():
@@ -2198,6 +2213,14 @@ async def test_home_tells_about_the_club_right_after_themis():
     assert 'href="/about" class="foc lux-more">Подробнее о клубе' in block
     assert "откроем личный кабинет" not in block.split("</section>")[0]
     assert page.index('class="lux-hero"') < page.index('id="about-club"') < page.index("camp-teaser-section")
+
+
+async def test_campaign_tile_leads_with_goal_until_first_donation():
+    waiting = {**PUBLIC_CAMPAIGN, "raised": 0, "percent": 0}
+    routes = {"/pages/home": (200, {"blocks": {}}), "/campaigns/current": (200, {"campaign": waiting})}
+    block = (await rendered("/", routes)).text.split("camp-teaser-section")[1]
+    assert '<span class="camp-meter__label">Цель</span>' in block and "Собрано" not in block
+    assert 'role="progressbar"' not in block
 
 
 async def test_home_takes_the_first_paragraph_saved_in_the_panel():
