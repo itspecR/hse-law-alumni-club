@@ -15,32 +15,45 @@
 </select></label>
 <button>Показать</button>
 </form>
-<div class="office-toolbar"><p>Заявок на странице: {{ rows|length }}</p><button data-download="/admin/orders/export.csv" data-filename="orders.csv">Скачать CSV</button></div>
+<div class="office-toolbar"><p data-office-count>Показано: {{ rows|length }}{% if office_records_total %} из {{ office_records_total }}{% endif %}</p><button data-download="/admin/orders/export.csv" data-filename="orders.csv">Скачать CSV</button></div>
 <div class="office-list">
 {% for order in rows %}
 <article class="site-panel office-record">
 <div class="office-record-head">
-<h2>{{ order.number }} · {{ order.contact_fio }}</h2>
-{{ status(order.status) }}</div>
-<div class="office-order-details"><div><p>{{ order.contact_email }}</p><p>{{ order.contact_phone }}</p><p class="office-meta">{% if order.type=='portfolio' %}{{ labels.portfolio }} · {{ order.organization or 'для себя' }} · участников: {{ order.participants }} · {{ order|discount_label }}{% if order.starts_on %} · старт потока {{ order.starts_on|date }}{% endif %}{% if order.transfer_sent_at %} · реквизиты отправлены {{ order.transfer_sent_at|date(true) }}{% endif %}{% else %}{{ order.address or 'Самовывоз' }}{% endif %}</p>{% if order.office_discount is not none %}<p class="office-meta">Причина: {{ order.office_reason }} · до этого {{ order|discount_label(true) }}</p>{% endif %}{% if order.comment %}<p class="office-meta">{{ order.comment }}</p>{% endif %}</div><div><p class="office-order-total">{{ order.total_estimate|rub }}</p>{{ status(order.payment_status,true) }}</div></div>
-<div class="office-order-items">
-{% for line in order.items_json or [] %}
-<p>{{ line.title }} × {{ line.qty }} · {{ line.variant_sku or '' }}</p>
-{% endfor %}
+<div>
+<h2>{{ order_title(order) }}</h2>
+<p class="office-order-who">{{ order.number }} · {{ order.contact_fio }}</p>
 </div>
+{{ status(order.status) }}</div>
+<div class="office-order-details"><div><p>{{ order.contact_email }}</p><p>{{ order.contact_phone }}</p><p class="office-meta">{% if order.type=='portfolio' %}{{ labels.portfolio }} · {{ order.organization or 'для себя' }} · участников: {{ order.participants }} · {{ order|discount_label }}{% if order.starts_on %} · старт потока {{ order.starts_on|date }}{% endif %}{% if order.transfer_sent_at %} · реквизиты отправлены {{ order.transfer_sent_at|date(true) }}{% endif %}{% else %}{{ order.address or 'Самовывоз' }}{% endif %}</p>{% if order.office_discount is not none %}<p class="office-meta">Причина: {{ order.office_reason }} · до этого {{ order|discount_label(true) }}</p>{% endif %}{% if order.comment %}<p class="office-meta">{{ order.comment }}</p>{% endif %}</div><div><p class="office-order-total"><small>Сумма</small>{{ order.total_estimate|rub }}</p>{{ status(order.payment_status,true) }}</div></div>
+{% if order.type!='portfolio' %}<div class="office-order-items">
+{% for line in order.items_json or [] %}
+<p>{{ [line.title ~ ' × ' ~ line.qty, line.variant_label or line.variant_sku]|select|join(' · ') }}</p>
+{% endfor %}
+</div>{% endif %}
+{% set can_send = order.type=='portfolio' and order.status in ('new','in_progress','confirmed') and order.payment_status in (none,'','awaiting') and order.total_estimate %}
+{% set can_receive = order.payment_status=='awaiting' and full_admin %}
+{% if can_send or can_receive %}
+<div class="site-actions">
+{% if can_send %}<button class="site-primary" data-api="/admin/orders/{{ order.id }}/transfer" data-confirm="{{ 'Отправить реквизиты повторно? Прежняя ссылка на оплату перестанет работать.' if order.transfer_sent_at else 'Отправить заявителю реквизиты для оплаты ' ~ order.total_estimate|rub ~ '?' }}">{{ 'Отправить реквизиты повторно' if order.transfer_sent_at else 'Отправить реквизиты' }}</button>{% endif %}
+{% if can_receive %}<button class="site-primary" data-api="/admin/orders/{{ order.id }}/transfer-received" data-confirm="Оплата {{ order.total_estimate|rub }} по заявке {{ order.number }} поступила на счет клуба? Заявителю уйдет письмо об оплате.">Оплата получена</button>{% endif %}
+</div>
+{% endif %}
 <form class="office-edit-grid" data-api="/admin/orders/{{ order.id }}" data-method="PATCH">
-<label>Статус<select aria-label="Статус" name="status">
+<label>Статус<select aria-label="Статус" name="status" data-auto-submit>
 {% for status in ['new','confirmed','in_progress','done','canceled','expired'] %}
 <option value="{{ status }}" {% if order.status==status %}selected{% endif %}>{{ labels.get(status,status) }}</option>
 {% endfor %}
 </select>
 </label>
-<button>Сохранить</button>
 <p role="alert" data-error hidden>
 </p>
 </form>
 {% set moves=(office_cohorts.get(order.program_id) or [])|rejectattr('id','equalto',order.cohort_id)|list %}
-{% if order.type=='portfolio' and order.status in ('new','in_progress','confirmed') and moves %}
+{% if order.type=='portfolio' and order.status in ('new','in_progress','confirmed') %}
+<details class="office-conditions">
+<summary>Изменить условия</summary>
+{% if moves %}
 <form class="office-edit-grid" data-api="/admin/orders/{{ order.id }}/cohort" data-method="PATCH" data-confirm="Перенести заявку в другой поток? Сумма пересчитается по цене потока, заявителю уйдет письмо.">
 <label>Перенести в поток<select name="cohort_id" aria-label="Перенести в поток" required>
 <option value="">Выберите поток</option>
@@ -51,7 +64,6 @@
 </p>
 </form>
 {% endif %}
-{% if order.type=='portfolio' and order.status in ('new','in_progress','confirmed') %}
 <form class="office-edit-grid" data-api="/admin/orders/{{ order.id }}/discount" data-method="PATCH" data-confirm="Сохранить индивидуальную скидку? Если сумма изменится, заявителю уйдет письмо.">
 <label>Индивидуальная скидка, %<input name="discount" type="number" min="0" max="100" data-nullable value="{{ order.office_discount if order.office_discount is not none else '' }}"></label>
 <label>Причина скидки<input name="reason" maxlength="300" value="{{ order.office_reason or '' }}"></label>
@@ -60,14 +72,7 @@
 <p role="alert" data-error hidden>
 </p>
 </form>
-{% endif %}
-{% set can_send = order.type=='portfolio' and order.status in ('new','in_progress','confirmed') and order.payment_status in (none,'','awaiting') and order.total_estimate %}
-{% set can_receive = order.payment_status=='awaiting' and full_admin %}
-{% if can_send or can_receive %}
-<div class="site-actions">
-{% if can_send %}<button data-api="/admin/orders/{{ order.id }}/transfer" data-confirm="{{ 'Отправить реквизиты повторно? Прежняя ссылка на оплату перестанет работать.' if order.transfer_sent_at else 'Отправить заявителю реквизиты для оплаты ' ~ order.total_estimate|rub ~ '?' }}">{{ 'Отправить реквизиты повторно' if order.transfer_sent_at else 'Отправить реквизиты' }}</button>{% endif %}
-{% if can_receive %}<button data-api="/admin/orders/{{ order.id }}/transfer-received" data-confirm="Оплата {{ order.total_estimate|rub }} по заявке {{ order.number }} поступила на счет клуба? Заявителю уйдет письмо об оплате.">Оплата получена</button>{% endif %}
-</div>
+</details>
 {% endif %}
 </article>
 {% else %}{{ empty('Заявок по выбранным фильтрам нет.') }}{% endfor %}

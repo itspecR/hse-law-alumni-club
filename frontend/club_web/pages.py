@@ -688,6 +688,7 @@ def office_pagination(data, params, section):
     current = pagination_page(params.get("page", "1"))
     limit = (records.get("limit") or records.get("page_size") or 30) if isinstance(records, dict) else 30
     total = records.get("total", 0) if isinstance(records, dict) else 0
+    data["office_records_total"] = total
     data["office_previous"] = "?" + urlencode({**params, "page": current - 1}) if current > 1 else ""
     data["office_next"] = (
         "?" + urlencode({**params, "page": current + 1})

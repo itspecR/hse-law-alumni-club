@@ -25,7 +25,7 @@
 </ul>
 </section>
 {% endif %}
-<div class="office-toolbar"><p>Выпускников на странице: {{ rows|length }}</p></div>
+<div class="office-toolbar"><p data-office-count>Показано: {{ rows|length }}{% if office_records_total %} из {{ office_records_total }}{% endif %}</p></div>
 {% if role not in ('admin','Administrator') %}<p class="office-meta">Проверку статуса, скидку и баллы меняет администратор клуба.</p>{% endif %}
 {% if point_programs %}<template id="point-programs">{% for label, programs in point_programs %}{% if programs %}<optgroup label="{{ label }}">{% for program in programs %}<option value="{{ program.id }}">{{ program.title }}</option>{% endfor %}</optgroup>{% endif %}{% endfor %}</template>{% endif %}
 <div class="office-list">

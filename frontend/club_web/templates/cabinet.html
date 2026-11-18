@@ -226,7 +226,7 @@
 <ul class="cabinet-list">
 {% for entry in ledger or [] %}
 <li><span>{{ entry.comment or reason_labels.get(entry.reason,entry.reason) }}</span><span>{{ entry.created_at|date }} · <strong>{{ '+' if entry.delta > 0 else '' }}{{ entry.delta }}</strong></span></li>
-{% else %}<li>Начислений пока нет.</li>{% endfor %}
+{% else %}<li>Баллов пока нет. Их начисляют за участие в событиях, завершенные программы, наставничество и приглашенных выпускников. <a href="/events">Ближайшие события</a></li>{% endfor %}
 </ul>
 </div>
 </section>

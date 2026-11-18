@@ -1880,6 +1880,8 @@ def test_cabinet_head_keeps_profile_beside_name_and_even_tiles(page, site, width
     current = page.locator(".cabinet-tabs a[aria-current=true]").bounding_box()
     assert strip["x"] <= current["x"] and current["x"] + current["width"] <= strip["x"] + strip["width"] + 1
     expect(page.locator(".cabinet-badges")).to_have_attribute("tabindex", "0")
+    expect(page.locator("#points")).to_contain_text("Баллов пока нет. Их начисляют за участие в событиях")
+    expect(page.locator("#points").get_by_role("link", name="Ближайшие события")).to_have_attribute("href", "/events")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
@@ -1983,6 +1985,7 @@ def test_pending_members_lead_with_review_buttons(page, site, width):
     page.set_viewport_size({"width": width, "height": 900})
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
     page.goto("/admin/members")
+    expect(page.locator(".office-toolbar [data-office-count]")).to_have_text("Показано: 2 из 2")
     rows = page.locator("article.office-record")
     expect(rows.first.locator("h2")).to_have_text(pending["fio"])
     expect(rows.first.locator(".office-meta").first).to_have_text("Выпуск 2024")
@@ -3281,7 +3284,12 @@ def test_office_sets_discount_on_club_application(page, site, width):
     shop = {**CLUB_ORDER, "id": "order-3", "number": "ALU-2026-000103", "type": "merch"}
     rows = office_orders(page, site, width, CLUB_ORDER, closed, shop)
     row = rows.first
+    expect(row.locator("h2")).to_have_text("Переговоры для юристов")
+    expect(row.locator(".office-order-who")).to_have_text("ALU-2026-000101 · Вымышленный Заявитель")
+    expect(row.locator(".office-order-items")).to_have_count(0)
+    expect(row.locator("form[data-api$='/discount']")).to_be_hidden()
     expect(row.locator(".office-meta").first).to_contain_text("участников: 3 · промокод SPRING-15: 15%")
+    row.get_by_text("Изменить условия", exact=True).click()
     form = row.locator("form[data-api$='/discount']")
     expect(form.get_by_role("button", name="Сбросить", exact=True)).to_have_count(0)
     form.get_by_label("Индивидуальная скидка, %").fill("20")
@@ -3320,6 +3328,17 @@ def test_office_sends_requisites_and_marks_program_payment(page, site, width):
     assert dialogs[1].startswith("Оплата 114") and "по заявке ALU-2026-000102 поступила на счет клуба?" in dialogs[1]
     paths = [write["path"] for write in site[2] if write["method"] == "POST"]
     assert "/admin/orders/order-1/transfer" in paths and "/admin/orders/order-2/transfer-received" in paths
+
+
+def test_office_order_status_saves_on_choice(page, site):
+    shop = {**CLUB_ORDER, "type": "merch", "items_json": [{"title": "Худи", "qty": 1, "variant_label": "Размер M"}]}
+    row = office_orders(page, site, 1440, shop).first
+    expect(row.locator(".office-order-items")).to_have_text("Худи × 1 · Размер M")
+    expect(row.locator("form[data-api='/admin/orders/order-1'] button")).to_have_count(0)
+    with page.expect_response(lambda response: response.url.endswith("/api/admin/orders/order-1")):
+        row.get_by_label("Статус", exact=True).select_option("in_progress")
+    write = site[2][-1]
+    assert write["method"] == "PATCH" and write["body"] == {"status": "in_progress"}
 
 
 PAY_TOKEN = "A" * 43
@@ -3362,6 +3381,7 @@ def test_office_discount_shows_reason_and_resets(page, site):
     expect(row.locator(".office-meta").nth(1)).to_have_text(
         "Причина: Корпоративный договор · до этого промокод SPRING-15: 15%"
     )
+    row.get_by_text("Изменить условия", exact=True).click()
     form = row.locator("form[data-api$='/discount']")
     expect(form.get_by_label("Индивидуальная скидка, %")).to_have_value("20")
     form.get_by_role("button", name="Сбросить", exact=True).click()
@@ -3471,6 +3491,7 @@ def test_office_moves_club_application_to_another_cohort(page, site, width):
     rows = office_orders(page, site, width, placed, finished)
     row = rows.first
     expect(row.locator(".office-meta").first).to_contain_text("промокод SPRING-15: 15% · старт потока 1 декабря 2026")
+    row.get_by_text("Изменить условия", exact=True).click()
     form = row.locator("form[data-api$='/cohort']")
     expect(form).to_have_attribute(
         "data-confirm", "Перенести заявку в другой поток? Сумма пересчитается по цене потока, заявителю уйдет письмо."
