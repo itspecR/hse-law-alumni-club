@@ -2721,6 +2721,19 @@ def test_join_for_guest_keeps_form(page):
     expect(page.locator("form[data-registration]")).to_be_visible()
 
 
+def test_low_window_does_not_pin_header_and_tabs(page):
+    page.set_viewport_size({"width": 844, "height": 390})
+    page.goto("/")
+    page.evaluate("document.documentElement.scrollTop = 1200")
+    page.wait_for_function("scrollY > 1000")
+    assert page.evaluate("document.querySelector('.club-header').getBoundingClientRect().bottom") <= 0
+    assert page.evaluate("getComputedStyle(document.querySelector('.mobile-tabs')).position") == "static"
+    assert page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--tabs-h').trim()") == "0px"
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.wait_for_function("getComputedStyle(document.documentElement).getPropertyValue('--tabs-h').trim() !== '0px'")
+    assert page.evaluate("getComputedStyle(document.querySelector('.mobile-tabs')).position") == "fixed"
+
+
 def test_login_error_hides_when_fields_change(page):
     page.goto("/lk")
     form = page.locator("form[data-api='/auth/login']")

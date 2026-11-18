@@ -1091,7 +1091,8 @@ const chromeSizes = [[".mobile-tabs", "--tabs-h", 0], ["#cookie-banner", "--cook
 const measureChrome = () => {
   for (const [selector, property, gap] of chromeSizes) {
     const node = document.querySelector(selector);
-    document.documentElement.style.setProperty(property, (node?.getClientRects().length ? node.getBoundingClientRect().height + gap : 0) + "px");
+    const pinned = node?.getClientRects().length && getComputedStyle(node).position === "fixed";
+    document.documentElement.style.setProperty(property, (pinned ? node.getBoundingClientRect().height + gap : 0) + "px");
   }
 };
 const chromeObserver = new ResizeObserver(measureChrome);

@@ -205,3 +205,9 @@ html.lux .site-empty .site-empty__title { color: var(--c-text); font: 400 21px/1
 html.lux .site-primary { min-height: 48px; padding: 0 26px; border: 0; border-radius: 999px; font: 600 17px/1 var(--f-body); letter-spacing: -0.01em; text-decoration: none; transition: transform 160ms var(--ease-out), background-color 160ms ease; }
 html.lux .site-primary:active { transform: scale(0.97); }
 html.lux .lux-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--c-text-2); text-decoration: underline 1px; text-decoration-color: var(--lux-hairline); text-underline-offset: 4px; }
+
+@media (max-height: 420px) {
+  html.lux .club-header { position: relative; }
+  html.lux .mobile-tabs { position: static; }
+  html.lux { scroll-padding-top: 20px; }
+}
