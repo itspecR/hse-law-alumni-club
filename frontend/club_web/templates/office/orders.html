@@ -15,7 +15,7 @@
 </select></label>
 <button>Показать</button>
 </form>
-<div class="office-toolbar"><p>Заявок на странице: {{ rows|length }}</p><button data-download="/admin/orders/export.csv" data-filename="orders.csv">Скачать CSV</button></div>
+<div class="office-toolbar"><p data-office-count>Показано: {{ rows|length }}{% if office_records_total %} из {{ office_records_total }}{% endif %}</p><button data-download="/admin/orders/export.csv" data-filename="orders.csv">Скачать CSV</button></div>
 <div class="office-list">
 {% for order in rows %}
 <article class="site-panel office-record">

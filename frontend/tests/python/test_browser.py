@@ -1985,6 +1985,7 @@ def test_pending_members_lead_with_review_buttons(page, site, width):
     page.set_viewport_size({"width": width, "height": 900})
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
     page.goto("/admin/members")
+    expect(page.locator(".office-toolbar [data-office-count]")).to_have_text("Показано: 2 из 2")
     rows = page.locator("article.office-record")
     expect(rows.first.locator("h2")).to_have_text(pending["fio"])
     expect(rows.first.locator(".office-meta").first).to_have_text("Выпуск 2024")
