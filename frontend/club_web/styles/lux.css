@@ -80,6 +80,9 @@ html.lux .lux-disclosure[open] > summary::after { transform: rotate(45deg); }
 .lux-btn:active { transform: scale(0.97); }
 .lux-btn--ghost { background: transparent; color: var(--c-text); box-shadow: inset 0 0 0 1px var(--c-line-control); }
 .lux-btn--sm { min-height: 44px; padding: 0 18px; font-size: 15px; font-weight: 500; }
+.lux-btn--danger { background: var(--c-danger-text); color: var(--c-text-inverse); }
+html.lux #site-dialog:has(.dialog-confirm) { max-width: 480px; padding: 32px 28px 28px; }
+.dialog-confirm { margin-top: 24px; gap: 12px; }
 .save-material.lux-btn { align-self: flex-start; justify-self: start; }
 .lux-btn--ghost[aria-pressed="true"] { background: var(--c-text); color: var(--c-text-inverse); box-shadow: none; }
 .lux-more {
@@ -175,6 +178,7 @@ html.lux #toast { border-radius: 999px; background: var(--lux-ink); color: var(-
   .lux-btn:hover, html.lux .site-primary:hover { background: var(--p-ohra-hover); }
   html.lux .lux-link:hover { color: var(--c-text); text-decoration-color: currentColor; }
   .lux-btn--ghost:hover { background: var(--lux-hover); }
+  .lux-btn--danger:hover { background: var(--c-danger-text); opacity: 0.9; }
   .lux-btn--ghost[aria-pressed="true"]:hover { background: var(--c-text); }
   .lux-more:hover { text-decoration-color: currentColor; }
   .lux-more:hover .lux-more__arrow { transform: translateX(3px); }

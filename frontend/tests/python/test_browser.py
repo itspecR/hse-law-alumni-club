@@ -573,6 +573,41 @@ def test_cabinet_order_chips_show_status_and_payment_tones(page, site, width):
 
 
 @pytest.mark.parametrize("width", [390, 1440])
+def test_office_delete_asks_in_site_dialog_with_record_name(page, site, width):
+    site[1]["/admin/news"] = [{**NEWS, "id": "news-1", "status": "published", "slug": "news-one"}]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/news")
+    expect(page.locator(".office-create > summary")).to_have_text("Новая новость")
+    row = page.locator("article.office-record").first
+    row.locator(".office-more > summary").click()
+    row.get_by_role("button", name="Удалить «Новость клуба»").click()
+    dialog = page.locator("#site-dialog")
+    expect(dialog.locator("h2")).to_have_text("Удалить новость «Новость клуба»?")
+    expect(dialog.locator("#dialog-content p")).to_have_text("Восстановить ее нельзя.")
+    expect(dialog.get_by_role("button", name="Удалить", exact=True)).to_have_class(re.compile("lux-btn--danger"))
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    page.keyboard.press("Escape")
+    expect(dialog).to_be_hidden()
+    assert not any(write["method"] == "DELETE" for write in site[2])
+    row.locator(".office-more").evaluate("node => { node.open = true; }")
+    row.get_by_role("button", name="Удалить «Новость клуба»").click()
+    with page.expect_response(lambda response: response.url.endswith("/api/admin/news/news-1")):
+        confirm_action(page, "Удалить")
+    expect(page.locator("#toast")).to_contain_text("Новость удалена.")
+
+
+def test_office_empty_list_names_section_and_create_button(page, site):
+    site[1]["/admin/promo-codes"] = []
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/promo-codes")
+    expect(page.locator(".office-list .site-empty")).to_contain_text(
+        "Промокодов пока нет. Добавьте кнопкой «Новый промокод»."
+    )
+    expect(page.locator(".office-create > summary")).to_have_text("Новый промокод")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
 def test_office_row_keeps_rare_actions_in_more_menu(page, site, width):
     site[1]["/admin/news"] = [{**NEWS, "id": "news-1", "status": "published", "slug": "news-one"}]
     page.set_viewport_size({"width": width, "height": 900})
@@ -2058,10 +2093,9 @@ def test_office_marks_awaiting_transfer_received_after_confirmation(page, site, 
     page.goto("/admin/donations")
     record = page.locator("article.office-record").filter(has_text="DON-2026-000008")
     expect(record).to_contain_text("перевод по реквизитам")
-    dialogs = []
-    page.on("dialog", lambda dialog: (dialogs.append(dialog.message), dialog.accept()))
     with page.expect_response(lambda response: response.url.endswith("/api/admin/donations/DON-2026-000008/received")):
         record.get_by_role("button", name="Перевод получен", exact=True).click()
+        dialogs = [confirm_action(page, "Перевод получен")]
     assert len(dialogs) == 1 and dialogs[0].startswith("Перевод 3")
     assert dialogs[0].endswith(
         "по пожертвованию DON-2026-000008 поступил на счет клуба? Дарителю уйдет письмо с благодарностью."
@@ -2082,10 +2116,9 @@ def test_event_roster_undoes_attendance_after_confirmation(page, site, width):
     page.goto("/admin/events?id=event-1")
     roster = page.locator("section.site-panel").filter(has_text="Участники события")
     expect(roster.get_by_role("button", name="Отметить участие", exact=True)).to_have_count(1)
-    dialogs = []
-    page.on("dialog", lambda dialog: (dialogs.append(dialog.message), dialog.accept()))
     with page.expect_response(lambda response: response.url.endswith("/api/admin/events/rsvp/rsvp-1/unattend")):
         roster.get_by_role("button", name="Снять отметку", exact=True).click()
+        dialogs = [confirm_action(page, "Снять отметку")]
     assert dialogs == ["Снять отметку участия? Баллы за событие будут списаны."]
     assert any(row["path"] == "/admin/events/rsvp/rsvp-1/unattend" for row in site[2])
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
@@ -3054,7 +3087,7 @@ def test_office_trainers_list_and_delete_warning(page, site):
     expect(page.get_by_role("heading", name="Анна Вымышленная", exact=True)).to_be_visible()
     expect(page.locator("article.office-record").last).to_contain_text("Справка не заполнена")
     delete = open_more(page.locator("article.office-record").first).get_by_role("button", name=DELETE_NAME)
-    expect(delete).to_have_attribute("data-confirm", "Удалить тренера? Он исчезнет из всех программ.")
+    expect(delete).to_have_attribute("data-confirm", "Удалить «Анна Вымышленная»? Он исчезнет из всех программ.")
 
 
 PROMO = {
@@ -3088,7 +3121,7 @@ def test_office_promo_codes_list_edit_and_create_defaults(page, site, width):
     )
     expect(row.locator("p.office-meta").nth(1)).to_have_text("Весенняя акция")
     expect(open_more(row).get_by_role("button", name=DELETE_NAME)).to_have_attribute(
-        "data-confirm", "Удалить промокод? В отправленных заявках код сохранится."
+        "data-confirm", "Удалить промокод «SPRING-15»? В отправленных заявках код сохранится."
     )
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     row.get_by_text("Изменить", exact=True).click()
@@ -3271,11 +3304,19 @@ CLUB_ORDER = {
 }
 
 
+def confirm_action(page, label):
+    dialog = page.locator("#site-dialog")
+    expect(dialog.get_by_role("button", name="Отмена", exact=True)).to_be_focused()
+    question = " ".join(dialog.locator("#dialog-content").locator("h2, p").all_inner_texts())
+    dialog.get_by_role("button", name=label, exact=True).click()
+    expect(dialog).to_be_hidden()
+    return question
+
+
 def office_orders(page, site, width, *orders):
     site[1]["/admin/orders"] = {"items": list(orders), "total": len(orders)}
     page.set_viewport_size({"width": width, "height": 900})
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
-    page.on("dialog", lambda dialog: dialog.accept())
     page.goto("/admin/orders")
     return page.locator("article.office-record")
 
@@ -3298,6 +3339,7 @@ def test_office_sets_discount_on_club_application(page, site, width):
     form.get_by_label("Причина скидки").fill("Корпоративный договор")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     form.get_by_role("button", name="Применить скидку", exact=True).click()
+    confirm_action(page, "Применить скидку")
     expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
     write = site[2][-1]
     assert write["path"] == "/admin/orders/order-1/discount" and write["method"] == "PATCH"
@@ -3316,16 +3358,16 @@ def test_office_sends_requisites_and_marks_program_payment(page, site, width):
         "transfer_sent_at": "2026-11-08T10:00:00Z",
     }
     shop = {**CLUB_ORDER, "id": "order-3", "number": "ALU-2026-000103", "type": "merch"}
-    dialogs = []
-    page.on("dialog", lambda dialog: dialogs.append(dialog.message))
     rows = office_orders(page, site, width, CLUB_ORDER, awaiting, shop)
     expect(rows.nth(1).locator(".office-meta").first).to_contain_text("реквизиты отправлены")
     expect(rows.nth(2).get_by_role("button", name=re.compile("реквизиты|Оплата получена"))).to_have_count(0)
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     with page.expect_response(lambda response: response.url.endswith("/api/admin/orders/order-1/transfer")):
         rows.first.get_by_role("button", name="Отправить реквизиты", exact=True).click()
+        dialogs = [confirm_action(page, "Отправить реквизиты")]
     with page.expect_response(lambda response: response.url.endswith("/api/admin/orders/order-2/transfer-received")):
         rows.nth(1).get_by_role("button", name="Оплата получена", exact=True).click()
+        dialogs.append(confirm_action(page, "Оплата получена"))
     assert dialogs[0].startswith("Отправить заявителю реквизиты для оплаты 114")
     assert dialogs[1].startswith("Оплата 114") and "по заявке ALU-2026-000102 поступила на счет клуба?" in dialogs[1]
     paths = [write["path"] for write in site[2] if write["method"] == "POST"]
@@ -3387,6 +3429,7 @@ def test_office_discount_shows_reason_and_resets(page, site):
     form = row.locator("form[data-api$='/discount']")
     expect(form.get_by_label("Индивидуальная скидка, %")).to_have_value("20")
     form.get_by_role("button", name="Сбросить", exact=True).click()
+    confirm_action(page, "Сбросить")
     expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
     write = site[2][-1]
     assert write["path"] == "/admin/orders/order-1/discount" and write["body"] == {"discount": None}
@@ -3445,7 +3488,8 @@ def test_office_cohorts_list_edit_and_create(page, site, width):
         "39\u00a0000 ₽ · без лимита мест, подтверждено: 2 · старт прошел"
     )
     expect(open_more(rows.first).get_by_role("button", name=DELETE_NAME)).to_have_attribute(
-        "data-confirm", "Удалить поток? Поток с заявками удалить нельзя, вместо этого закройте набор."
+        "data-confirm",
+        "Удалить поток «Переговоры для юристов · старт 1 декабря 2026»? Поток с заявками удалить нельзя, вместо этого закройте набор.",
     )
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     rows.first.get_by_text("Изменить", exact=True).click()
@@ -3505,6 +3549,7 @@ def test_office_moves_club_application_to_another_cohort(page, site, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     choice.select_option("cohort-2")
     form.get_by_role("button", name="Перенести", exact=True).click()
+    confirm_action(page, "Перенести")
     expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
     write = site[2][-1]
     assert write["path"] == "/admin/orders/order-1/cohort" and write["method"] == "PATCH"
@@ -4255,11 +4300,10 @@ def test_office_sends_campaign_invitation_after_confirmation(page, site, width):
     page.goto("/admin/campaigns?id=camp-1")
     block = page.locator("#campaign-invitations")
     expect(block).to_contain_text("DON-2026-000011 · donor@example.test")
-    dialogs = []
-    page.on("dialog", lambda dialog: (dialogs.append(dialog.message), dialog.accept()))
     target = "/api/admin/campaigns/camp-1/donors/DON-2026-000011/invite"
     with page.expect_response(lambda response: response.url.endswith(target)):
         block.get_by_role("button", name="Отправить приглашение", exact=True).click()
+        dialogs = [confirm_action(page, "Отправить приглашение")]
     assert dialogs == ["Отправить приглашение на donor@example.test? Письмо уйдет один раз."]
     write = site[2][-1]
     assert (write["path"], write["method"]) == ("/admin/campaigns/camp-1/donors/DON-2026-000011/invite", "POST")
@@ -4359,8 +4403,8 @@ def test_office_program_editor_deletes_and_returns_to_list(page, site):
     site[1]["/admin/portfolio"] = [PORTFOLIO_PROGRAM]
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
     page.goto("/admin/portfolio?id=club-1")
-    page.once("dialog", lambda dialog: dialog.accept())
     page.get_by_role("button", name="Удалить программу", exact=True).click()
+    confirm_action(page, "Удалить программу")
     expect(page).to_have_url(re.compile(r"/admin/portfolio$"))
     write = site[2][-1]
     assert write["path"] == "/admin/portfolio/club-1" and write["method"] == "DELETE"

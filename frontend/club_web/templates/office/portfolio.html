@@ -17,7 +17,7 @@
 <div><dt>Модулей</dt><dd>{{ (program.modules or [])|length }}</dd></div>
 </dl>
 <p class="office-meta">{% for id in program.trainer_ids or [] %}{{ '' if loop.first else ', ' }}{{ office_names.trainers.get(id,'') }}{% else %}Тренеры не выбраны{% endfor %}</p>
-<div class="office-program__actions"><a class="site-primary" href="{{ editor }}">Открыть</a>{% if program.status=='published' and program.slug %}<a href="/portfolio/{{ program.slug }}" target="_blank" rel="noopener noreferrer">На сайте ↗</a>{% endif %}</div>
+<div class="office-program__actions"><a class="lux-btn lux-btn--ghost lux-btn--sm" href="{{ editor }}">Открыть</a>{% if program.status=='published' and program.slug %}<a href="/portfolio/{{ program.slug }}" target="_blank" rel="noopener noreferrer">На сайте ↗</a>{% endif %}</div>
 </div>
 </article>
 {% else %}{{ empty('По выбранным фильтрам программ нет.' if query.get('q') or query.get('status') else 'Программ пока нет.') }}{% endfor %}

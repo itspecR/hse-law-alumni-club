@@ -34,6 +34,7 @@ from club_web.office import (
     cohort_options,
     editor_blocks,
     filter_content,
+    record_copy,
     section_records,
     status_values,
     visible_groups,
@@ -704,6 +705,7 @@ async def office_page(page):
     data["section"] = section
     data["labels"] = {**LABELS, **SECTION_LABELS.get(section, {})}
     data["office_template"] = "office/" + ("content" if section in FIELDS else section) + ".html"
+    data["office_copy"] = record_copy(section)
     data["office_statuses"] = status_values(section)
     data["office_filters"] = SECTION_FILTERS.get(section, ())
     if not page.authorized or page.template == "not-found.html":

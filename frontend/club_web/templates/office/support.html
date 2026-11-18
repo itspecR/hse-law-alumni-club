@@ -26,7 +26,7 @@
 
 {% else %}<p>Переписку поддержки обрабатывает администратор клуба.</p>{% endif %}
 {% if bot %}
-<details class="site-panel office-support-bot">
+<details class="site-panel office-support-bot lux-disclosure">
 <summary><h2>Бот и вопросы сайта</h2></summary>
 {% if bot.telegram %}<p>Telegram: {{ bot.telegram.username }} · {{ 'подключен' if bot.telegram.tokenConfigured else 'не подключен' }} · {{ 'получение сообщений включено' if bot.telegram.polling else 'получение сообщений выключено' }}</p>{% if bot.telegram.link|safe_url %}<a href="{{ bot.telegram.link|safe_url }}" target="_blank" rel="noopener noreferrer">Открыть бота ↗</a>{% endif %}{% endif %}
 {% if bot.siteFaq %}<p>Ответов FAQ: {{ bot.siteFaq.answers }} · Вопросов без готового ответа: {{ bot.siteFaq.gaps }}</p><p>{{ bot.siteFaq.note }}</p>{% if bot.siteFaq.hits %}<p>Обращений к незаполненным темам: {{ bot.siteFaq.hits.gap_hits }} · Нераспознанных вопросов: {{ bot.siteFaq.hits.none_hits }}</p>{% for channel in bot.siteFaq.hits.by_channel or [] %}<p>{{ {'site':'Сайт','telegram':'Telegram'}.get(channel.channel,channel.channel) }}: {{ channel.count }}</p>{% endfor %}{% endif %}{% endif %}

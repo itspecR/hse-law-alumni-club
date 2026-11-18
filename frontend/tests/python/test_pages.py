@@ -1150,7 +1150,7 @@ async def test_office_dpo_section_is_read_only_with_sync_status():
             page = (await client.get("/views/admin/programs", headers={"authorization": "Bearer admin-test"})).text
             sync["address"] = False
             off = (await client.get("/views/admin/programs", headers={"authorization": "Bearer admin-test"})).text
-    assert "Создать запись" not in page and "Изменить" not in page and 'data-method="DELETE"' not in page
+    assert "office-create" not in page and "Изменить" not in page and 'data-method="DELETE"' not in page
     assert "Каталог обновляется с сайта Центра ДПО каждый час, вручную программы не меняются." in page
     assert "программ: 34." in page and f'<p class="office-source-error">{error}</p>' in page
     assert (

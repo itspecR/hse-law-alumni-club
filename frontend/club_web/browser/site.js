@@ -169,6 +169,33 @@ async function copyText(text, trigger) {
   }
 }
 
+const CONFIRM_FALLBACK = "Подтвердить";
+
+function confirmLabel(target) {
+  if (target.dataset.confirmLabel) return target.dataset.confirmLabel;
+  const button = target.tagName === "FORM" ? target.querySelector("button[type='submit'],button:not([type])") : target;
+  return button?.textContent.trim() || CONFIRM_FALLBACK;
+}
+
+function confirmAction(question, label, danger) {
+  const dialog = document.querySelector("#site-dialog");
+  const content = document.querySelector("#dialog-content");
+  const [title, ...details] = question.split(/(?<=\?)\s+/);
+  const accept = element("button", label, { type: "button", class: danger ? "lux-btn lux-btn--danger" : "lux-btn", "data-confirm-accept": "" });
+  const cancel = element("button", "Отмена", { type: "button", class: "lux-btn lux-btn--ghost" });
+  const actions = element("div", undefined, { class: "site-actions dialog-confirm" });
+  actions.append(accept, cancel);
+  content.replaceChildren(element("h2", title, { id: "dialog-title" }), ...(details.length ? [element("p", details.join(" "))] : []), actions);
+  return new Promise(resolve => {
+    let accepted = false;
+    accept.addEventListener("click", () => { accepted = true; dialog.close(); });
+    cancel.addEventListener("click", () => dialog.close());
+    dialog.addEventListener("close", () => { content.replaceChildren(); resolve(accepted); }, { once: true });
+    dialog.showModal();
+    cancel.focus();
+  });
+}
+
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 
@@ -460,7 +487,7 @@ async function perform(target, body) {
     location.href = url("lk?next=" + encodeURIComponent(currentPath() + location.hash));
     return;
   }
-  if (target.dataset.confirm && !window.confirm(target.dataset.confirm)) return;
+  if (target.dataset.confirm && !(await confirmAction(target.dataset.confirm, confirmLabel(target), target.classList.contains("site-danger")))) return;
   const path = target.dataset.api;
   const method = target.dataset.method || "POST";
   const cart = target.hasAttribute("data-cart");
@@ -558,7 +585,7 @@ async function perform(target, body) {
       if (cart && currentPath() !== "/cart") {
         void updateCartCount();
         notice("Корзина обновлена.");
-      } else if (await refresh()) notice(cart ? "Корзина обновлена." : "Изменения сохранены.");
+      } else if (await refresh()) notice(cart ? "Корзина обновлена." : target.dataset.done || "Изменения сохранены.");
     }
   } finally {
     if (checkout) pendingCheckout = false;
@@ -784,7 +811,7 @@ async function supportThread(access) {
   }
   const remove = element("button", "Удалить обращение", { class: "site-danger" });
   remove.addEventListener("click", async () => {
-    if (!window.confirm("Удалить переписку по этому обращению?")) return;
+    if (!(await confirmAction("Удалить переписку по этому обращению? Восстановить ее нельзя.", "Удалить", true))) return;
     try { await request("/support/" + access.id, "DELETE", undefined, { "x-support-key": access.key }); section.replaceChildren(element("p", "Обращение удалено.")); sessionStorage.removeItem("club-support-access"); }
     catch (error) { warn(error.message); }
   });

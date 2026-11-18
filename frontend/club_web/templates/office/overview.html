@@ -24,13 +24,13 @@
 {% else %}{{ empty('Результаты проверки сервисов не получены.') }}{% endfor %}
 </section>
 </div>
-<details class="office-metric-details"><summary>Показатели клуба</summary><div class="site-metrics">
+<details class="office-metric-details lux-disclosure"><summary>Показатели клуба</summary><div class="site-metrics">
 {% for key,label in metrics.items() if key in records and key not in priority %}
 <article><strong>{{ records[key] }}</strong><span>{{ label }}</span></article>
 {% else %}{{ empty('Дополнительных показателей нет.') }}{% endfor %}
 </div></details>
 {% if push_enabled and role in ('admin','Administrator') %}
-<details class="office-create">
+<details class="site-panel office-push lux-disclosure">
 <summary>Отправить уведомление участникам</summary>
 <form class="site-admin-form" data-api="/admin/push/broadcast" data-confirm="Отправить уведомление всем подписчикам?">{{ field('title','Заголовок') }}{{ field('body','Текст') }}{{ field('url','Раздел сайта','/') }}<button class="site-primary">Отправить</button>
 <p role="alert" data-error hidden>
