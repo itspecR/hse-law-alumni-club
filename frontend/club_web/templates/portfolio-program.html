@@ -29,7 +29,7 @@
 {% if item.description %}
 <section>
 <h2>О программе</h2>
-<p class="site-prose">{{ item.description }}</p>
+<div class="site-prose site-rich">{{ item.description|rich_text }}</div>
 </section>
 {% endif %}
 {% if item.modules %}{{ course_modules(item.modules,'Программа курса') }}{% endif %}
@@ -42,7 +42,7 @@
 {% if trainer.photo|media %}<img class="site-teacher-photo" src="{{ trainer.photo|media }}" alt="{{ trainer.fio }}" width="200" height="200" loading="lazy">{% else %}<span class="portfolio-trainer__initials" aria-hidden="true">{{ trainer.fio|initials }}</span>{% endif %}
 <div>
 <h3>{{ trainer.fio }}</h3>
-{% if trainer.bio %}<p>{{ trainer.bio }}</p>{% endif %}
+{% if trainer.bio %}<div class="site-rich">{{ trainer.bio|rich_text }}</div>{% endif %}
 </div>
 </article>
 {% endfor %}

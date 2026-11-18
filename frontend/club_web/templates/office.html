@@ -2,7 +2,7 @@
 {% from 'macros.html' import login,field,empty,unavailable %}
 {% from 'macros.html' import icon as site_icon %}
 {% from 'office/forms.html' import content_form with context %}
-{% from 'office/components.html' import icon,status,filters,more with context %}
+{% from 'office/components.html' import icon,status,filters,more,rich_area with context %}
 {% block content %}
 {% if session_unavailable %}
 <main id="main" class="site-container">{{ unavailable('Не удалось загрузить панель','панели') }}</main>

@@ -30,7 +30,7 @@
 <section class="camp-block camp-goal lux-tile lux-reveal" aria-labelledby="camp-goal-title">
 <p class="camp-eyebrow">На что собираем</p>
 <h2 class="give-h2" id="camp-goal-title">{{ campaign.goal_title or 'Цель сбора' }}</h2>
-{% if campaign.goal_text %}<p class="camp-text">{{ campaign.goal_text }}</p>{% endif %}
+{% if campaign.goal_text %}<div class="camp-text site-rich">{{ campaign.goal_text|rich_text }}</div>{% endif %}
 {{ meter(campaign,'camp-goal-meter') }}
 </section>
 {% endif %}
@@ -38,7 +38,7 @@
 {% if campaign.about or campaign.highlights %}
 <section class="camp-block" aria-labelledby="camp-about-title">
 <h2 class="give-h2 lux-reveal" id="camp-about-title">{{ campaign.about_title or 'О мероприятии' }}</h2>
-{% if campaign.about %}<p class="camp-text lux-reveal">{{ campaign.about }}</p>{% endif %}
+{% if campaign.about %}<div class="camp-text site-rich lux-reveal">{{ campaign.about|rich_text }}</div>{% endif %}
 {% if campaign.highlights %}
 <ul class="camp-numbers">
 {% for number in campaign.highlights %}<li class="lux-reveal" style="--d:{{ loop.index }}"><b style="--chars:{{ number.value|length }}">{{ number.value }}</b><span>{{ number.label }}</span></li>{% endfor %}
@@ -52,7 +52,7 @@
 <h2 class="give-h2 lux-reveal" id="camp-{{ role }}-title">{{ role_title }}</h2>
 <ul class="camp-speakers">
 {% for speaker in people %}
-<li class="lux-reveal" style="--d:{{ loop.index0 }}">{% if speaker.photo|media %}<img class="camp-speakers__photo" src="{{ speaker.photo|media }}" alt="" width="144" height="144" loading="lazy">{% else %}<span class="camp-speakers__photo" aria-hidden="true">{{ icon('members',32) }}</span>{% endif %}<div><h3>{{ speaker.fio }}</h3>{% if speaker.bio %}<p>{{ speaker.bio }}</p>{% endif %}</div></li>
+<li class="lux-reveal" style="--d:{{ loop.index0 }}">{% if speaker.photo|media %}<img class="camp-speakers__photo" src="{{ speaker.photo|media }}" alt="" width="144" height="144" loading="lazy">{% else %}<span class="camp-speakers__photo" aria-hidden="true">{{ icon('members',32) }}</span>{% endif %}<div><h3>{{ speaker.fio }}</h3>{% if speaker.bio %}<div class="site-rich">{{ speaker.bio|rich_text }}</div>{% endif %}</div></li>
 {% endfor %}
 </ul>
 </section>
@@ -86,7 +86,7 @@
 <article class="camp-game lux-reveal" aria-labelledby="camp-game-title">
 {% if campaign.feature_note %}<p class="camp-eyebrow">{{ campaign.feature_note }}</p>{% endif %}
 <h3 id="camp-game-title">{{ campaign.feature_title }}</h3>
-{% if campaign.feature_text %}<p>{{ campaign.feature_text }}</p>{% endif %}
+{% if campaign.feature_text %}<div class="site-rich">{{ campaign.feature_text|rich_text }}</div>{% endif %}
 </article>
 {% endif %}
 </section>
@@ -105,7 +105,7 @@
 <section class="camp-block" aria-labelledby="camp-steps-title">
 <h2 class="give-h2 lux-reveal" id="camp-steps-title">Как устроен сбор</h2>
 <ol class="camp-steps">
-{% for step in campaign.steps %}<li class="lux-reveal" style="--d:{{ loop.index0 }}"><span class="camp-steps__n" aria-hidden="true">{{ loop.index }}</span><h3>{{ step.title }}</h3><p>{{ step.text }}</p></li>{% endfor %}
+{% for step in campaign.steps %}<li class="lux-reveal" style="--d:{{ loop.index0 }}"><span class="camp-steps__n" aria-hidden="true">{{ loop.index }}</span><h3>{{ step.title }}</h3><div class="site-rich">{{ step.text|rich_text }}</div></li>{% endfor %}
 </ol>
 </section>
 {% endif %}
@@ -115,7 +115,7 @@
 <h2 class="give-h2 lux-reveal" id="camp-faq-title">Вопросы и ответы</h2>
 <div class="camp-faq">
 {% for entry in campaign.faq %}
-<details class="lux-disclosure lux-reveal"><summary class="foc">{{ entry.question }}</summary><p>{{ entry.answer }}</p></details>
+<details class="lux-disclosure lux-reveal"><summary class="foc">{{ entry.question }}</summary><div class="site-rich">{{ entry.answer|rich_text }}</div></details>
 {% endfor %}
 </div>
 </section>
@@ -123,7 +123,7 @@
 </div>
 <aside class="give-panel" id="camp-support" aria-labelledby="give-form-title">
 {% include 'give-form.html' %}
-{% if campaign.note %}<p class="camp-panel-note">{{ campaign.note }}</p>{% endif %}
+{% if campaign.note %}<div class="camp-panel-note site-rich">{{ campaign.note|rich_text }}</div>{% endif %}
 </aside>
 </div>
 </main>

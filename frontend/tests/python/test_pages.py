@@ -747,7 +747,7 @@ async def test_office_home_form_switches_slogans_and_edits_goals(browser_client)
     options = re.findall(r'<option value="([^"]+)"', form)
     assert options[-4:] == resource("home-data.json")["slogans"]
     assert '<input type="hidden" name="hero.title_accent" value="">' in form
-    assert 'aria-label="Цели клуба" class="office-rich">Объединение выпускников' in form
+    assert 'aria-label="Цели клуба" data-rich class="office-rich">Объединение выпускников' in form
 
 
 async def test_office_uses_dark_theme(browser_client):
@@ -1975,9 +1975,9 @@ async def test_campaign_page_shows_story_meter_and_campaign_form(browser_client)
     assert page.count('<details class="lux-disclosure camp-day__body"') == 1
     assert '<div class="camp-day__body"><span class="camp-day__head"><b>Разбор</b></span></div>' in page
     assert '<h3 id="camp-game-title">Деловая игра</h3>' in page and ">Чему учит день</h2>" in page
-    assert "<h3>Вымышленный Спикер</h3><p>Тренер</p>" in page
-    assert '<summary class="foc">Это плата за участие?</summary><p>Нет.</p>' in page
-    assert '<p class="camp-panel-note">Участие в интенсиве бесплатное.</p>' in page
+    assert '<h3>Вымышленный Спикер</h3><div class="site-rich"><p>Тренер</p>' in page
+    assert '<summary class="foc">Это плата за участие?</summary><div class="site-rich"><p>Нет.</p>' in page
+    assert '<div class="camp-panel-note site-rich"><p>Участие в интенсиве бесплатное.</p>' in page
     form = page.split("<form", 1)[1].split("</form>", 1)[0]
     assert '<p class="camp-panel-head__goal">Оснащение аудитории</p>' in form
     assert re.findall(r'name="preset" value="(\d+)"( checked)?', form) == [
@@ -2056,7 +2056,7 @@ async def test_campaign_editor_pages_for_existing_new_and_missing_campaign(brows
         in existing
     )
     assert '<textarea data-module-field="points" data-module-lines>Цель\nФинал</textarea>' in existing
-    assert '<textarea data-module-field="answer">Нет.</textarea>' in existing
+    assert '<textarea data-module-field="answer" aria-label="Ответ" data-rich>Нет.</textarea>' in existing
     assert 'data-modules="faq" data-modules-count="Вопросов"' in existing and "data-modules-hours" not in existing
     assert "<strong>52 000 ₽</strong> из 1 500 000 ₽ · 3%" in existing
     assert 'data-method="DELETE" data-next="/admin/campaigns"' in existing

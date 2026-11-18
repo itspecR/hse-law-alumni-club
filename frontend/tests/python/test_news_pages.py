@@ -5,7 +5,7 @@ import pytest
 
 from club_web.main import create_app
 from club_web.office import filter_content
-from club_web.rich_text import rich_text
+from club_web.rich_text import plain_text, rich_text
 
 MEDIA_ID = "3f2a1b4c-1111-2222-3333-444455556666"
 FACULTY = {
@@ -97,10 +97,21 @@ async def client():
         ("[ссылка](javascript:alert(1))", "<p>[ссылка](javascript:alert(1))</p>"),
         ("![фото](" + MEDIA_ID + ")", '<img src="/api/media/' + MEDIA_ID + '" alt="фото">'),
         ("`код`", "<p>`код`</p>"),
+        ("- раз\n    - вложенный", "<li>раз\n<ul>\n<li>вложенный</li>"),
+        ("1. раз\n    1. вложенный", "<li>раз\n<ol>\n<li>вложенный</li>"),
+        ("> цитата", "<blockquote>\n<p>цитата</p>\n</blockquote>"),
     ],
 )
 def test_rich_text_renders_safe_formatting(source, expected):
     assert expected in str(rich_text(source))
+
+
+def test_plain_text_keeps_words_without_markup():
+    assert (
+        str(plain_text("## Тема\n\n**Жирный** текст\n- пункт <b>x</b>"))
+        == "Тема Жирный текст пункт &lt;b&gt;x&lt;/b&gt;"
+    )
+    assert str(plain_text(None)) == ""
 
 
 def test_rich_text_drops_foreign_images_and_empty_text():
@@ -129,7 +140,7 @@ async def test_office_news_form_has_all_fields_and_formatting_hint(client):
     create = page.split("</details>")[0]
     names = re.findall(r'name="(\w+)"', create)
     assert names == ["title", "published_at", "excerpt", "body", "cover", "origin", "source_url", "status"]
-    assert "## Подзаголовок" in create and "номер файла из «Медиа»" in create
+    assert 'data-format="h3" aria-label="Подзаголовок"' in create and "номер файла из «Медиа»" in create
     assert '<option value="archived" >Снята с публикации</option>' in create
     assert '<option value="faculty" >Факультет права</option>' in create
     assert '<select name="origin" aria-label="Откуда">' in page

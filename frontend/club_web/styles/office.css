@@ -236,3 +236,11 @@
   .site-office .site-filters:not(.is-open) > label:has(select) { display:none; }
   .site-office .site-filters > label:has(input[type=search], input[name=q]) { order:1; flex:1 1 100%; }
 }
+
+.format-field { display: grid; gap: 7px; }
+.format-field textarea { margin-top: 0; }
+.format-bar { display: flex; flex-wrap: wrap; gap: 4px; }
+.format-bar__btn { min-width: 36px; min-height: 36px; padding: 0 10px; border: 0; border-radius: var(--r-sm); background: var(--lux-control); color: var(--c-text); font: 500 14px/1 var(--f-body); cursor: pointer; }
+.format-bar__btn:hover { background: color-mix(in oklab, var(--lux-control) 70%, var(--c-text) 12%); }
+.format-bar__btn--bold { font-weight: 700; }
+.format-bar__btn--italic { font-style: italic; }

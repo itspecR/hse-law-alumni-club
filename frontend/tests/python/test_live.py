@@ -29,9 +29,13 @@ from playwright.sync_api import TimeoutError as BrowserTimeout
 from playwright.sync_api import expect, sync_playwright
 from test_browser import wait_for_offline_page
 
+from club_web.registration import STATUS_TTL_SECONDS
+
 pytestmark = pytest.mark.skipif(
     os.environ.get("E2E_LIVE_AUTHORIZED") != "club-ci-live", reason="Требуется отдельный live-стенд"
 )
+REGISTRATION_WAIT_SECONDS = STATUS_TTL_SECONDS + 15
+REGISTRATION_RETRY_MS = 3000
 IMAGE = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jN1sAAAAASUVORK5CYII=")
 AUDIO = b"ID3\x04\x00\x00\x00\x00\x00\x00" + bytes(1024)
 
@@ -205,6 +209,20 @@ def media(office, request, token, name):
     )
 
 
+def open_join_form(page, pending_requests):
+    deadline = time.monotonic() + REGISTRATION_WAIT_SECONDS
+    while True:
+        try:
+            page.goto("/join")
+        except BrowserTimeout:
+            pytest.fail("Не завершена загрузка страницы вступления: " + ", ".join(sorted(pending_requests)))
+        if page.locator("form[data-api='/auth/register']").count():
+            return
+        if time.monotonic() > deadline:
+            pytest.fail("Форма вступления не появилась: сайт считает прием закрытым")
+        page.wait_for_timeout(REGISTRATION_RETRY_MS)
+
+
 @pytest.mark.parametrize("name,width,height", [("desktop", 1440, 1000), ("mobile", 390, 844)])
 def test_live_system(name, width, height):
     state_path = Path(value("E2E_STATE_DIR")) / (name + ".json")
@@ -254,10 +272,7 @@ def test_live_system(name, width, height):
         assert value("E2E_LIVE_PHASE") == "write"
         email = f"graduate-{name}@live.example.com"
         person = "Тест Выпускник " + name
-        try:
-            page.goto("/join")
-        except BrowserTimeout:
-            pytest.fail("Не завершена загрузка страницы вступления: " + ", ".join(sorted(pending_requests)))
+        open_join_form(page, pending_requests)
         page.get_by_label("ФИО", exact=True).fill(person)
         page.get_by_label("Почта", exact=True).fill(email)
         page.get_by_label("Год выпуска", exact=True).fill("2020")

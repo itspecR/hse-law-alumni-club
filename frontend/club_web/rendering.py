@@ -32,7 +32,7 @@ from club_web.formatting import (
 )
 from club_web.icons import ICONS
 from club_web.office import audit_label
-from club_web.rich_text import rich_text
+from club_web.rich_text import plain_text, rich_text
 from club_web.status_tones import office_tone, order_tone, payment_chip
 
 ROOT = Path(__file__).parent
@@ -75,6 +75,7 @@ def environment(**options):
         initials=initials,
         price_or_pending=price_or_pending,
         rich_text=rich_text,
+        plain_text=plain_text,
         campaign_pause=is_pause,
         office_tone=office_tone,
         order_tone=order_tone,

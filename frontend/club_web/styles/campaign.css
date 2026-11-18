@@ -61,7 +61,7 @@ div.camp-day__body { padding-top: 4px; }
 
 .camp-game { position: relative; overflow: clip; margin-top: 36px; padding: clamp(24px, 3.4cqi, 44px); border-radius: var(--r-tile); background: linear-gradient(135deg, var(--camp-warm), var(--camp-cool)), var(--c-bg-raised); }
 .camp-game h3 { margin: 0 0 14px; font: 400 clamp(28px, 3cqi, 40px)/1.06 var(--f-display); letter-spacing: -0.035em; text-wrap: balance; }
-.camp-game p:last-child { max-width: 58ch; margin: 0; font-size: 16px; line-height: 1.5; color: var(--c-text-2); }
+.camp-game .site-rich { max-width: 58ch; font-size: 16px; line-height: 1.5; color: var(--c-text-2); }
 
 .camp-results { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; counter-reset: camp; }
 .camp-results li { counter-increment: camp; display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: baseline; padding: 18px 0; border-top: 1px solid var(--c-line); font-size: clamp(17px, 1.5cqi, 19px); line-height: 1.35; }
@@ -72,18 +72,18 @@ div.camp-day__body { padding-top: 4px; }
 .camp-speakers__photo { display: grid; place-items: center; width: var(--speaker-photo); height: var(--speaker-photo); border-radius: 50%; background: var(--lux-control); color: var(--c-text-3); }
 img.camp-speakers__photo { object-fit: cover; }
 .camp-speakers h3 { margin: 0; font: 400 20px/1.2 var(--f-display); letter-spacing: -0.015em; }
-.camp-speakers p { margin: 6px 0 0; font-size: 15px; line-height: 1.4; color: var(--c-text-3); }
+.camp-speakers .site-rich { margin-top: 6px; font-size: 15px; line-height: 1.4; color: var(--c-text-3); }
 
 .camp-steps { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
 .camp-steps li { padding: 28px; border-radius: var(--r-tile); background: var(--c-bg-raised); }
 .camp-steps__n { display: block; margin-bottom: 20px; font: 200 44px/1 var(--f-display); letter-spacing: -0.04em; color: var(--c-text-3); }
 .camp-steps h3 { margin: 0; font: 400 21px/1.2 var(--f-display); letter-spacing: -0.015em; }
-.camp-steps p { margin: 10px 0 0; font-size: 15px; line-height: 1.45; color: var(--c-text-3); }
+.camp-steps .site-rich { margin-top: 10px; font-size: 15px; line-height: 1.45; color: var(--c-text-3); }
 
 .camp-faq details { border-top: 1px solid var(--c-line); }
 .camp-faq details:last-child { border-bottom: 1px solid var(--c-line); }
 .camp-faq summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; padding-block: 12px; font: 400 clamp(18px, 1.7cqi, 21px)/1.25 var(--f-display); letter-spacing: -0.015em; cursor: pointer; }
-.camp-faq p { max-width: 60ch; margin: 0 0 22px; font-size: 16px; line-height: 1.5; color: var(--c-text-2); }
+.camp-faq .site-rich { max-width: 60ch; margin: 0 0 22px; font-size: 16px; line-height: 1.5; color: var(--c-text-2); }
 
 
 .camp-teaser-section { padding-block: 0 clamp(40px, 5cqi, 72px); }

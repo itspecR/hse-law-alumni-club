@@ -18,10 +18,7 @@
 </fieldset>
 <fieldset>
 <legend>Цели клуба</legend>
-<label class="site-field">Текст
-<textarea name="body" aria-label="Цели клуба" class="office-rich">{{ record.body or home_defaults.goals }}</textarea>
-<small class="office-hint">Пустая строка начинает новый абзац. - пункт списка · **жирный** · *курсив*</small>
-</label>
+{{ rich_area('Цели клуба',record.body or home_defaults.goals,name='body',big=true) }}
 </fieldset>
 <fieldset>
 <legend>Вступление</legend>
@@ -39,10 +36,7 @@
 <legend>Страница «О клубе»</legend>
 <p class="office-hint">Пустое поле показывает на сайте текст по умолчанию.</p>
 {{ field('title','Заголовок',about_record.title or about_defaults.title,required=false) }}
-<label class="site-field">Текст
-<textarea name="body" aria-label="Текст" class="office-rich">{{ about_record.body or about_defaults.body }}</textarea>
-<small class="office-hint">Пустая строка начинает новый абзац. ## Подзаголовок · **жирный** · *курсив* · - пункт списка · [текст ссылки](https://адрес)</small>
-</label>
+{{ rich_area('Текст',about_record.body or about_defaults.body,name='body',big=true) }}
 {{ field('meta_title','Заголовок в поисковиках',about_record.meta_title or about_defaults.meta_title,required=false) }}
 {{ field('meta_description','Описание в поисковиках',about_record.meta_description or about_defaults.meta_description,type='textarea',required=false) }}
 </fieldset>
