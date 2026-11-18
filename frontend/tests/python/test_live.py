@@ -377,7 +377,9 @@ def test_live_system(name, width, height):
         with office.expect_response(
             lambda response: response.url.endswith(f"/api/admin/members/{member['id']}/podcast-sub")
         ) as granted:
-            office.locator(f'[data-api="/admin/members/{member["id"]}/podcast-sub"]').click()
+            grant = office.locator(f'[data-api="/admin/members/{member["id"]}/podcast-sub"]')
+            office.locator(".office-more", has=grant).evaluate("node => { node.open = true; }")
+            grant.click()
         result(granted.value)
         assert result(request.get("/api/podcasts", headers=auth(previous_token)))["subscribed"]
         editor = office_token(request, value("TEST_EDITOR_EMAIL"), value("TEST_EDITOR_PASSWORD"))
