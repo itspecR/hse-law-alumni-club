@@ -1,7 +1,17 @@
 <form class="site-filters">
+<label>Действие<select name="event" aria-label="Действие">
+<option value="">Все действия</option>
+{% for event in records.events or [] %}<option value="{{ event }}" {% if query.get('event')==event %}selected{% endif %}>{{ audit_label(event) }}</option>{% endfor %}
+</select></label>
+<label>Сотрудник<select name="actor" aria-label="Сотрудник">
+<option value="">Все сотрудники</option>
+{% for person in records.staff or [] %}<option value="{{ person.actor }}" {% if query.get('actor')==person.actor %}selected{% endif %}>{{ person.label }}</option>{% endfor %}
+</select></label>
 <label class="site-checkbox"><input type="checkbox" name="reads" value="1" {% if query.get('reads')=='1' %}checked{% endif %}>Показывать просмотры обращений</label>
 <button>Показать</button>
+{% if query.get('event') or query.get('actor') or query.get('reads') %}<a href="/admin/audit">Сбросить</a>{% endif %}
 </form>
+<div class="office-toolbar"><p data-office-count>Показано: {{ rows|length }} из {{ office_records_total }}</p></div>
 <div class="office-list">
 {% for entry in rows %}
 <article class="site-audit">
@@ -10,5 +20,5 @@
 <p class="office-meta">{{ [entry.actor, entry.subject]|select|join(' · ') }}</p>
 {% if entry.detail %}<details class="lux-disclosure"><summary>Подробности</summary><pre>{{ entry.detail|tojson }}</pre><p class="office-meta">{{ entry.event }}</p></details>{% endif %}
 </article>
-{% else %}{{ empty('В журнале пока нет действий.') }}{% endfor %}
+{% else %}{{ empty('По выбранным фильтрам действий нет.' if query.get('event') or query.get('actor') else 'В журнале пока нет действий.') }}{% endfor %}
 </div>

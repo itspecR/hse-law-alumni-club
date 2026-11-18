@@ -23,7 +23,7 @@ from club_web.formatting import (
 )
 from club_web.icons import ICONS
 from club_web.main import create_app
-from club_web.office import audit_label, audit_rows, filter_content
+from club_web.office import audit_label, filter_content
 from club_web.pages import (
     ACHIEVEMENT_STRIP,
     NAV,
@@ -2320,8 +2320,6 @@ def test_audit_labels_name_events_in_words():
     assert audit_label("order.created") == "Новая заявка"
     assert audit_label("news.delete") == "Новость удалена" and audit_label("event.patch") == "Событие изменено"
     assert audit_label("unknown.thing") == "unknown.thing"
-    rows = [{"event": "support.read"}, {"event": "login.ok"}]
-    assert audit_rows(rows, False) == [{"event": "login.ok"}] and audit_rows(rows, True) == rows
 
 
 async def test_office_overview_lists_queues_once_and_hides_closed_dpo(browser_client):

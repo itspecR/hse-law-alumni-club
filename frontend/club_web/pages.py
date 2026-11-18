@@ -28,7 +28,6 @@ from club_web.office import (
     SECTION_FILTERS,
     SECTION_LABELS,
     SINGLE_CHOICES,
-    audit_rows,
     choice_options,
     choice_sources,
     cohort_options,
@@ -675,7 +674,7 @@ async def campaign_page(page):
     )
 
 
-OFFICE_QUERY_KEYS = ("q", "status", "payment", "page", "range", "campaign")
+OFFICE_QUERY_KEYS = ("q", "status", "payment", "page", "range", "campaign", "event", "actor", "reads")
 
 
 def office_pagination(data, params, section):
@@ -754,10 +753,6 @@ async def office_extras(page, section):
         await load("point_history", "/admin/members/" + quote(params["id"], safe="") + "/points", {})
 
 
-AUDIT_SECTION = "audit"
-AUDIT_READS_PARAM = "reads"
-
-
 def office_rows(data, params, section):
     data["rows"] = section_records(section, page_items(data.get("records")), data["office_names"])
     if section in EDITORS:
@@ -765,8 +760,6 @@ def office_rows(data, params, section):
     if section in FIELDS:
         data["office_total"] = len(data["rows"])
         data["rows"] = filter_content(data["rows"], params)
-    if section == AUDIT_SECTION:
-        data["rows"] = audit_rows(data["rows"], params.get(AUDIT_READS_PARAM) == "1")
     office_pagination(data, params, section)
 
 
