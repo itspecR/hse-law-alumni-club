@@ -2159,7 +2159,7 @@ async def test_failed_session_check_keeps_sign_in_and_offers_retry(path, endpoin
     assert failed.status_code == 200
     block = failed.text.split('<section class="session-unavailable" role="status">')[1].split("</section>")[0]
     assert f"<h1>{title}</h1>" in block and '<button data-action="refresh">Повторить</button>' in block
-    assert "Вход сохранен, повторите через минуту." in block
+    assert "Не удалось связаться с сервером. Вы остаетесь в " in block and "повторите через минуту." in block
     assert 'class="cabinet-gate"' not in failed.text and 'class="site-errors"' not in failed.text
     expired = await page_with_session_reply(path, endpoint, 401, headers)
     assert expired.status_code == 401 and "session-unavailable" not in expired.text
@@ -2310,3 +2310,21 @@ async def test_office_overview_lists_queues_once_and_hides_closed_dpo(browser_cl
     assert 'class="office-metric-link" href="/admin/orders?status=new"' not in overview
     base = (await browser_client.get("/")).text
     assert '<dialog id="site-dialog" aria-labelledby="dialog-title">' in base
+
+
+async def test_password_pages_ask_for_new_password_and_six_digit_code():
+    forgot = (await rendered("/forgot", {})).text
+    reset = (await rendered("/reset", {})).text
+    confirm = (await rendered("/confirm", {})).text
+    assert "Пришлем на нее код для нового пароля." in forgot and "Сотрудники" not in forgot
+    assert reset.count('minlength="8" autocomplete="new-password"') == 2
+    assert 'title="Введите 6 цифр из письма."' in reset and "Код из письма, 6 цифр" in reset
+    assert "Код подтверждения не пришел?" not in reset + forgot
+    assert "<summary>Код подтверждения не пришел?</summary>" in confirm
+    assert 'data-replace-with="confirmed"' in confirm and '<template id="confirmed">' in confirm
+
+
+async def test_office_login_points_alumni_to_cabinet():
+    page = (await rendered("/admin", {})).text
+    assert '<a href="/lk">Я выпускник: войти в кабинет</a>' in page
+    assert '<p class="cabinet-gate__title">Панель <br>управления' in page

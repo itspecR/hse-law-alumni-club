@@ -77,6 +77,21 @@ EDITORS = {
     },
 }
 ROW_EDITORS = {
+    "variants": {
+        "new": "Новый вариант",
+        "add": "Добавить вариант",
+        "remove": "Удалить вариант",
+        "count": "Вариантов",
+        "required": "Укажите артикул каждого варианта.",
+        "hours": False,
+        "meta": ("size", "color"),
+        "fields": (
+            ("sku", "Артикул", "text", False, "Например, HOODIE-M-BLACK"),
+            ("size", "Размер", "text", False, "Например, M"),
+            ("color", "Цвет", "text", False, "Например, черный"),
+            ("stock", "Остаток, шт.", "number", False, "0"),
+        ),
+    },
     "modules": {
         "new": "Новый модуль",
         "add": "Добавить модуль",
@@ -401,7 +416,7 @@ FIELDS = {
         ("stock", "Остаток", "number"),
         ("description", "Описание", "textarea"),
         ("images", "Фотографии: ссылки, каждая с новой строки", "lines"),
-        ("variants_json", "Размеры, цвета и остатки, JSON", "json"),
+        ("variants_json", "Размеры, цвета и остатки", "variants"),
         ("status", "Статус", "published|draft|archived"),
     ],
     "news": [

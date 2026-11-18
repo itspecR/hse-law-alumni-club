@@ -11,6 +11,7 @@ from club_api.core.errors import ApiError
 from club_api.core.security import LoginAttempts
 from club_api.db.queries import acquire_lock
 from club_api.db.store import Store
+from club_api.domain import DOMAIN
 from club_api.modules.auth.codes import (
     ADMIN_PURPOSE,
     CONFIRM_PURPOSE,
@@ -33,7 +34,7 @@ DUPLICATE_ACCOUNT = "Аккаунт с этой почтой уже есть. В
 REGISTRATION_CLOSED = "Раздел в разработке. Скоро здесь можно будет вступить в клуб и открыть личный кабинет."
 REGISTRATION_ON = "true"
 PDN_POLICY_VERSION = shared_data("legal-data.json")["version"]
-PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH = 8, 100
+PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH = DOMAIN["limits"]["password_min"], 100
 PENDING, VERIFIED = "pending", "verified"
 SESSION_CHECK_ATTEMPTS = 2
 SESSION_CHECK_FAILED = "Не удалось проверить вход. Повторите через минуту."

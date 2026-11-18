@@ -5,7 +5,7 @@
 {% from 'office/components.html' import icon,status,filters,more with context %}
 {% block content %}
 {% if session_unavailable %}
-<main id="main" class="site-container">{{ unavailable('Не удалось загрузить панель') }}</main>
+<main id="main" class="site-container">{{ unavailable('Не удалось загрузить панель','панели') }}</main>
 {% elif not session or access_error==401 %}
 <main id="main" class="site-container">{{ login(true) }}</main>
 {% else %}

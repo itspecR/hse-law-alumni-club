@@ -67,7 +67,7 @@ function showStaffCode(form, email, sent) {
   const step = form.parentElement.querySelector("form[data-staff-code]");
   if (!step) throw new Error("Не удалось открыть ввод кода. Обновите страницу.");
   step.elements.email.value = email;
-  if (sent === false) step.querySelector("[data-staff-code-note]").textContent = "Письмо с кодом не отправилось. Попросите оператора сервера выдать код командой admin-code.";
+  if (sent === false) step.querySelector("[data-staff-code-note]").textContent = "Письмо с кодом не отправилось. Попросите код у администратора сайта.";
   form.hidden = true;
   step.hidden = false;
   step.querySelector("input[name=code]").focus();
@@ -286,7 +286,7 @@ function formBody(form) {
     } else body[input.name] = value;
   }
   for (const editor of form.querySelectorAll("[data-modules]")) body[editor.dataset.modules] = [...editor.querySelectorAll(":scope > [data-module]")].map(moduleBody).filter(filled);
-  if (body.repeat_password !== undefined) { if (body.password !== body.repeat_password) throw new Error("Пароли не совпадают."); delete body.repeat_password; }
+  if (body.repeat_password !== undefined) { if (body.password !== body.repeat_password) throw new Error("Пароли не совпадают. Введите новый пароль еще раз в оба поля."); delete body.repeat_password; }
   if (body.variant_sku === "") body.variant_sku = null;
   if (form.hasAttribute("data-registration")) body.ref = new URLSearchParams(location.search).get("ref") || null;
   return body;
@@ -299,6 +299,7 @@ function lines(text) {
 function moduleValue(input, primary) {
   const text = input.value.trim();
   if (input.hasAttribute("data-module-lines")) return lines(text);
+  if (input.hasAttribute("data-module-number")) return Number(text || 0);
   return primary ? text : text || null;
 }
 
@@ -577,6 +578,11 @@ async function perform(target, body) {
       location.href = url(target.dataset.openRecord + encodeURIComponent(result.id));
     } else if (target.dataset.next) {
       location.href = url(target.dataset.next);
+    } else if (target.dataset.replaceWith) {
+      const panel = document.getElementById(target.dataset.replaceWith).content.firstElementChild.cloneNode(true);
+      target.replaceWith(panel);
+      panel.querySelector("h2")?.setAttribute("tabindex", "-1");
+      panel.querySelector("h2")?.focus();
     } else if (target.dataset.success) {
       notice(target.dataset.success);
       target.reset();
@@ -842,6 +848,11 @@ document.addEventListener("submit", async event => {
     if (form.hasAttribute("data-support-open")) { await supportThread(formBody(form)); return; }
     await perform(form, form.hasAttribute("data-file") ? new FormData(form) : formBody(form));
   } catch (error) { formError(form, error.message, error.field); }
+});
+
+document.addEventListener("input", event => {
+  const box = event.target.closest?.("form")?.querySelector("[data-error]");
+  if (box && !box.hidden) box.hidden = true;
 });
 
 document.addEventListener("click", switchCabinetSection);

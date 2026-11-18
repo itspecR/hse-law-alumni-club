@@ -37,6 +37,8 @@ from club_api.observability.audit import audit
 CODE_INVALID = "Неверный или устаревший код. Запросите новый код."
 TOO_MANY_ATTEMPTS = "Слишком много неудачных попыток. Попробуйте позже."
 NOT_ALUMNI = "Этот аккаунт не связан с профилем выпускника."
+STAFF_ONLY = "Это вход для сотрудников клуба. Выпускники входят в кабинет."
+WRONG_CREDENTIALS = "Неверная почта или пароль. Проверьте раскладку клавиатуры или восстановите пароль."
 TELEGRAM_LOGIN_FAILED = "Не удалось проверить вход через Telegram."
 OFFICE_REVIEW = "Проверьте ее в панели управления, раздел «Выпускники»."
 ROUTE_LIMITS = {
@@ -202,8 +204,8 @@ async def login(request, body, scope):
                 403, "Почта не подтверждена. Введите код из письма на странице подтверждения, проверьте и папку «Спам»."
             )
         if status == "forbidden":
-            raise ApiError(403, "Доступ в панель управления закрыт." if scope == "admin" else NOT_ALUMNI)
-        raise ApiError(401, "Неверная почта или пароль.")
+            raise ApiError(403, STAFF_ONLY if scope == "admin" else NOT_ALUMNI)
+        raise ApiError(401, WRONG_CREDENTIALS)
     if scope == "admin":
         service.attempts.success(email, ip)
         return await staff_second_step(request, user)

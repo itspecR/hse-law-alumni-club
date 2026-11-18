@@ -11,12 +11,12 @@ def submit(page, form, path, method="POST", status=200):
     with page.expect_response(
         lambda response: response.url.endswith("/api" + path) and response.request.method == method
     ) as response:
-        form.locator("button").click()
+        form.locator("button:not([type=button])").click()
     assert response.value.status == status, f"{path}: {response.value.status}"
     if path == "/support":
         expect(form).to_have_count(0)
     else:
-        expect(form.locator("button")).to_be_enabled()
+        expect(form.locator("button:not([type=button])")).to_be_enabled()
     return response.value.json()
 
 
@@ -28,7 +28,7 @@ def accept_confirm(page):
 
 def content_forms(office, request, headers, name):
     definitions = {
-        "products": {"category": "Одежда", "price": "0", "stock": "5", "images": "", "variants_json": "[]"},
+        "products": {"category": "Одежда", "price": "0", "stock": "5", "images": ""},
         "news": {"excerpt": "Краткое описание", "body": "Текст новости для проверки"},
         "events": {"starts_at": (datetime.now(UTC) + timedelta(days=2)).strftime("%Y-%m-%dT%H:%M"), "points": "0"},
         "podcasts": {"duration": "15 минут", "sort": "0"},
