@@ -17,8 +17,7 @@ SITE_LANGUAGE = "ru-RU"
 ABOUT_PAGE = {"slug": "about", "title": "О клубе", "status": "published"}
 HOME_HERO = {
     "badge": "Клуб выпускников факультета права",
-    "title_pre": "Свои люди",
-    "title_accent": "после выпуска.",
+    "title_pre": "Традиции, проекты, люди.",
     "cta_primary": "Вступить в клуб",
 }
 HOME_CTA = {

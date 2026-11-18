@@ -1,6 +1,6 @@
 {% macro wave(bars,id) %}
 <svg class="camp-wave" viewBox="0 0 {{ bars|length * 10 }} 320" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
-<defs><linearGradient id="{{ id }}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="{{ bars|length * 10 }}" y2="0"><stop offset="0" stop-color="#ea6806"/><stop offset="0.5" stop-color="#ffb347"/><stop offset="0.78" stop-color="#6f9bd8"/><stop offset="1" stop-color="#2e6fae"/></linearGradient></defs>
+<defs><linearGradient id="{{ id }}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="{{ bars|length * 10 }}" y2="0"><stop offset="0" style="stop-color:var(--camp-wave-1)"/><stop offset="0.5" style="stop-color:var(--camp-wave-2)"/><stop offset="0.78" style="stop-color:var(--camp-wave-3)"/><stop offset="1" style="stop-color:var(--camp-wave-4)"/></linearGradient></defs>
 <g fill="url(#{{ id }})">{% for height in bars %}<rect class="camp-wave__bar" style="--i:{{ loop.index0 }}" x="{{ loop.index0 * 10 + 2.5 }}" y="{{ 160 - height }}" width="5" height="{{ height * 2 }}" rx="2.5"/>{% endfor %}</g>
 </svg>
 {% endmacro %}
