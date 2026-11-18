@@ -47,7 +47,7 @@
 </div>
 {% endif %}
 {% if role in ('admin','Administrator') %}
-<details class="office-member-edit">
+<details class="office-member-edit lux-disclosure">
 <summary>Изменить</summary>
 <form class="office-edit-grid" data-api="/admin/members/{{ member.id }}" data-method="PATCH">
 <label>Проверка<select aria-label="Проверка" name="verification_status">
@@ -58,21 +58,21 @@
 </label>
 <label>Персональная скидка, %<input name="personal_discount" type="number" value="{{ member.personal_discount or 0 }}" min="0" max="{{ domain.limits.personal_discount_max }}">
 </label>
-<button>Сохранить</button>
+<button class="lux-btn lux-btn--sm">Сохранить</button>
 <p role="alert" data-error hidden>
 </p>
 </form>
-<details>
+<details class="lux-disclosure">
 <summary>Исправить ФИО</summary>
 <form class="office-edit-grid" data-api="/admin/members/{{ member.id }}" data-method="PATCH">
 <label>ФИО<input name="fio" value="{{ member.fio or '' }}" required maxlength="{{ domain.limits.person_name_max }}" autocomplete="off">
 </label>
-<button>Сохранить ФИО</button>
+<button class="lux-btn lux-btn--sm">Сохранить ФИО</button>
 <p role="alert" data-error hidden>
 </p>
 </form>
 </details>
-<details>
+<details class="lux-disclosure">
 <summary>Начислить или списать баллы</summary>
 <form class="office-points" data-api="/admin/members/{{ member.id }}/points">
 <label class="site-field">Причина<select name="reason" data-points-reason>
@@ -87,7 +87,7 @@
 </label>
 <label class="site-field">Комментарий увидит выпускник<input name="comment" maxlength="{{ domain.limits.points_comment_max }}">
 </label>
-<button>Применить</button>
+<button class="lux-btn lux-btn--sm">Применить</button>
 <p role="alert" data-error hidden>
 </p>
 </form>

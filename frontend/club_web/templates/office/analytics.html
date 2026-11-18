@@ -78,7 +78,7 @@
 <li style="--share: {{ (point.count * 100 / peak)|round(1) }}%" title="{{ point.day|date }}: {{ point.count }}"><i aria-hidden="true"></i><span class="lux-sr">{{ point.day|date }}: {{ point.count }}</span></li>
 {% endfor %}
 </ul>
-<details class="office-chart-days">
+<details class="office-chart-days lux-disclosure">
 <summary>Показать по дням</summary>
 <table>
 <tbody>
