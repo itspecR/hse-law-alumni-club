@@ -2302,3 +2302,11 @@ def test_audit_labels_name_events_in_words():
     assert audit_label("unknown.thing") == "unknown.thing"
     rows = [{"event": "support.read"}, {"event": "login.ok"}]
     assert audit_rows(rows, False) == [{"event": "login.ok"}] and audit_rows(rows, True) == rows
+
+
+async def test_office_overview_lists_queues_once_and_hides_closed_dpo(browser_client):
+    overview = (await browser_client.get("/views/admin", headers=ADMIN)).text
+    assert 'href="/admin/programs"' not in overview.split('class="office-shortcuts"')[1].split("</div>")[0]
+    assert 'class="office-metric-link" href="/admin/orders?status=new"' not in overview
+    base = (await browser_client.get("/")).text
+    assert '<dialog id="site-dialog" aria-labelledby="dialog-title">' in base

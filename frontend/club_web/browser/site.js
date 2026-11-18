@@ -161,7 +161,7 @@ async function copyText(text, trigger) {
     const dialog = document.querySelector("#site-dialog");
     const content = document.querySelector("#dialog-content");
     const field = element("input", undefined, { type: "text", value: text, readonly: "", "aria-label": "Текст для копирования" });
-    content.replaceChildren(element("h2", "Копирование"), element("p", "Браузер запретил автоматическое копирование. Скопируйте выделенный текст вручную."), field);
+    content.replaceChildren(element("h2", "Копирование", { id: "dialog-title" }), element("p", "Браузер запретил автоматическое копирование. Скопируйте выделенный текст вручную."), field);
     dialog.addEventListener("close", () => { content.replaceChildren(); trigger.focus(); }, { once: true });
     dialog.showModal();
     field.focus();
@@ -883,7 +883,7 @@ document.addEventListener("click", async event => {
       if (!response.ok) throw new Error("Не удалось открыть файл. Проверьте доступ и повторите.");
       const blob = URL.createObjectURL(await response.blob());
       const content = document.querySelector("#dialog-content");
-      content.replaceChildren(element("h2", target.dataset.title));
+      content.replaceChildren(element("h2", target.dataset.title, { id: "dialog-title" }));
       const type = target.dataset.fileType.startsWith("image/") ? "img" : "audio";
       content.append(element(type, undefined, { src: blob, ...(type === "img" ? { alt: target.dataset.title } : { controls: "" }) }));
       const dialog = document.querySelector("#site-dialog");
