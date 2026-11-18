@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import login,field,unavailable %}
 {% from 'macros.html' import mailing_field with context %}
+{% from 'macros.html' import icon with context %}
 {% block content %}
 <main id="main" class="site-article profile-page">
 {% if session_unavailable %}{{ unavailable('Не удалось загрузить профиль') }}{% elif not me or access_error %}{{ login(next=query.get('next','')) }}{% else %}
@@ -40,6 +41,11 @@
 </p>
 </form>
 </details>
+</section>
+<section class="profile-logout">
+<h2>Выход</h2>
+<p>Корзина на этом устройстве очистится.</p>
+<button class="lux-btn lux-btn--ghost" data-action="logout">{{ icon('logout', 18) }}Выйти</button>
 </section>
 {% endif %}
 </main>

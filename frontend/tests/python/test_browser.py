@@ -1824,6 +1824,42 @@ def test_cabinet_achievements_fit_in_strip_and_grid(page, site, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
+PHONE_METRICS_MAX_HEIGHT = 220
+
+
+@pytest.mark.parametrize("width", [390, 768])
+def test_cabinet_head_keeps_profile_beside_name_and_even_tiles(page, site, width):
+    goal = {"title": "Первое событие", "description": "Придите на событие", "current": 0, "target": 1, "earned": False}
+    site[1]["/me"] = {**PROFILE, "achievements": [goal]}
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk#points")
+    head = page.locator(".cabinet-head")
+    expect(head.get_by_role("button", name="Выйти")).to_have_count(0)
+    name = head.locator("h1").bounding_box()
+    profile = head.get_by_role("link", name="Профиль").bounding_box()
+    assert profile["y"] < name["y"] + name["height"]
+    tiles = [tile.bounding_box() for tile in page.locator(".cabinet-metric").all()]
+    assert len({round(tile["width"]) for tile in tiles}) == 1
+    if width == 390:
+        assert page.locator(".cabinet-metrics").bounding_box()["height"] <= PHONE_METRICS_MAX_HEIGHT
+    strip = page.locator(".cabinet-tabs").bounding_box()
+    current = page.locator(".cabinet-tabs a[aria-current=true]").bounding_box()
+    assert strip["x"] <= current["x"] and current["x"] + current["width"] <= strip["x"] + strip["width"] + 1
+    expect(page.locator(".cabinet-badges")).to_have_attribute("tabindex", "0")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+def test_profile_ends_with_logout(page, site):
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk/profile")
+    logout = page.locator(".profile-logout").get_by_role("button", name="Выйти", exact=True)
+    assert page.locator(".profile-page > section").last.get_attribute("class") == "profile-logout"
+    logout.click()
+    expect(page.get_by_role("heading", name="Вход для выпускников", exact=True)).to_be_visible()
+    assert page.evaluate("localStorage.getItem('club_token')") is None
+
+
 @pytest.mark.parametrize("width", [390, 1440])
 def test_catalog_styles_stay_on_catalog_pages(page, site, width):
     site[1]["/admin/programs"] = [{**PROGRAM, "status": "published"}]
@@ -3386,13 +3422,91 @@ def test_cabinet_names_club_application_discount(page, site, width):
     page.add_init_script("localStorage.setItem('club_token','member-qa');")
     page.goto("/lk#orders")
     orders = page.locator("#orders article")
-    expect(orders.first).to_contain_text("промокод SPRING-15: 15% · участников: 3")
-    expect(orders.nth(1)).to_contain_text(
-        "индивидуальная скидка: 20% · участников: 3 · ООО «Пример» · старт потока 1 февраля 2027."
-    )
+    expect(orders.first.locator("h3")).to_have_text("Переговоры для юристов")
+    expect(orders.first.locator(".cabinet-order__number")).to_have_text("Заявка ALU-2026-000101")
+    expect(orders.first).to_contain_text("Сумма 114 750 ₽ · участников: 3 · ООО «Пример»")
+    expect(orders.first).to_contain_text("До скидки: 135 000 ₽ · промокод SPRING-15: 15%")
+    expect(orders.nth(1)).to_contain_text("Сумма 108 000 ₽ · старт потока 1 февраля 2027 · участников: 3")
+    expect(orders.nth(1)).to_contain_text("До скидки: 135 000 ₽ · индивидуальная скидка: 20%")
+    expect(orders.first).to_contain_text("Платить на сайте не нужно.")
+    expect(orders.first).not_to_contain_text("× 3")
     expect(orders.first).not_to_contain_text("скидка выпускника")
     expect(orders.first).not_to_contain_text("старт потока")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+def test_cabinet_overview_names_next_steps_and_friend_requests(page, site):
+    alumni = {**PROFILE["alumni"], "contacts": {"email": "graduate@example.test"}}
+    site[1]["/me"] = {**PROFILE, "alumni": alumni}
+    site[1]["/events"] = [{**EVENT, "starts_at": "2027-03-01T12:00:00Z", "reg_url": "https://reg.example.test/a"}]
+    site[1]["/me/events"] = [
+        {"kind": "friend_request", "from_id": "alumni-2", "from_fio": "Вымышленная Коллега"},
+        {"kind": "friend_accepted", "by_fio": "Вымышленный Друг"},
+        {"kind": "podcast_expiring", "days_left": 5, "until": "2026-11-22T12:00:00Z"},
+    ]
+    site[1]["/me/classmates"] = [
+        {"id": "alumni-3", "fio": "Вымышленный Однокурсник", "cohort": 2020, "friend_status": "incoming"},
+        {"id": "alumni-4", "fio": "Вымышленная Однокурсница", "cohort": 2020, "friend_status": "pending"},
+    ]
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk")
+    notices = page.locator(".cabinet-notices")
+    expect(notices).to_contain_text("Заявка в друзья от Вымышленная Коллега.")
+    expect(notices).to_contain_text("Вымышленный Друг теперь у вас в друзьях.")
+    expect(notices).to_contain_text("Подписка на подкасты закончится 22 ноября 2026.")
+    expect(page.locator(".cabinet-callout")).to_contain_text("Добавьте телефон или Telegram")
+    expect(page.get_by_role("link", name="Подробнее и регистрация", exact=True)).to_be_visible()
+    page.locator(".cabinet-tabs").get_by_role("link", name="Однокурсники").click()
+    people = page.locator(".cabinet-person")
+    expect(people.first).to_contain_text("Выпуск 2020")
+    expect(people.first.get_by_role("button")).to_have_text("Принять заявку в друзья")
+    expect(people.nth(1).get_by_role("button")).to_have_text("Отменить заявку в друзья")
+
+
+def test_cabinet_pending_review_names_what_opens(page, site):
+    alumni = {**PROFILE["alumni"], "verification_status": "pending"}
+    site[1]["/me"] = {**PROFILE, "alumni": alumni}
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk")
+    expect(page.locator(".cabinet-status")).to_contain_text(
+        "Мы проверяем, что вы выпускник факультета. О решении напишем на почту."
+    )
+
+
+PODCAST_ORDER = {
+    **CLUB_ORDER,
+    "number": "ALU-2026-000105",
+    "type": "podcast",
+    "subtotal": 499900,
+    "total_estimate": 499900,
+    "member_discount": 0,
+    "discount_source": None,
+    "promo_code": None,
+    "organization": None,
+    "participants": None,
+    "fulfillment": "pickup",
+    "items_json": [{"title": "Подписка на подкаст клуба на 12 месяцев", "qty": 1}],
+}
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_cabinet_podcast_order_skips_pickup_and_waits_for_payments(page, site, enabled):
+    site[1]["/me/orders"] = [PODCAST_ORDER]
+    site[1]["/payments/config"] = {"enabled": enabled}
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk#orders")
+    order = page.locator("#orders article").first
+    expect(order.locator("h3")).to_have_text("Подписка на подкаст клуба на 12 месяцев")
+    expect(order).to_contain_text("Сумма 4 999 ₽")
+    expect(order).not_to_contain_text("самовывоз")
+    expect(order).not_to_contain_text("До скидки")
+    expect(order).not_to_contain_text("× 1")
+    pay = order.get_by_role("button", name="Получить ссылку на оплату", exact=True)
+    if enabled:
+        expect(pay).to_be_visible()
+    else:
+        expect(pay).to_have_count(0)
+        expect(order.locator(".cabinet-order__next")).to_have_text("Мы свяжемся с вами, чтобы подтвердить детали.")
 
 
 @pytest.mark.parametrize("width", [1440, 390])
@@ -3427,7 +3541,7 @@ def test_club_program_without_price_waits_for_agreement(page, site, width):
     page.add_init_script("localStorage.setItem('club_token','member-qa');")
     page.goto("/lk#orders")
     order = page.locator("#orders article").first
-    expect(order.locator("p").first).to_contain_text("Стоимость уточняется")
+    expect(order).to_contain_text("Стоимость уточняется · участников: 3")
     expect(order.locator(".cabinet-chip").nth(1)).to_have_text("Не оплачено")
     expect(order).to_contain_text("До скидки: стоимость уточняется · промокод SPRING-15: 15%")
 

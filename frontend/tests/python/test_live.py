@@ -393,7 +393,7 @@ def test_live_system(name, width, height):
         )
         assert request.get("/api/admin/support", headers=auth(editor)).status == 403
         section_walk(page, office)
-        page.goto("/lk")
+        page.goto("/lk/profile")
         page.get_by_role("button", name="Выйти", exact=True).click()
         expect(page.get_by_role("heading", name="Вход для выпускников", exact=True)).to_be_visible()
         assert page.evaluate("localStorage.getItem('club_token')") is None

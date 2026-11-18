@@ -16,13 +16,12 @@
 <div class="cabinet-head__actions">
 <a href="/lk/profile" class="lux-btn lux-btn--ghost lux-btn--sm" aria-label="Профиль">{{ icon('profile', 18) }}<span class="cabinet-head__label">Профиль</span></a>
 {% if verified and push_enabled %}<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="push-subscribe" aria-label="Включить уведомления">{{ icon('bell', 18) }}<span class="cabinet-head__label">Включить уведомления</span></button>{% endif %}
-<button class="lux-btn lux-btn--ghost lux-btn--sm" data-action="logout" aria-label="Выйти">{{ icon('logout', 18) }}<span class="cabinet-head__label">Выйти</span></button>
 </div>
 </header>
 {% if not verified %}
 <section class="cabinet-card cabinet-status">
 <h2>{{ 'Заявка отклонена' if me.alumni.verification_status=='rejected' else 'Заявка на проверке' }}</h2>
-<p>{{ 'Мы не смогли подтвердить данные заявки. Если это ошибка, напишите в поддержку.' if me.alumni.verification_status=='rejected' else 'Мы проверяем статус выпускника. Кабинет и скидка откроются после подтверждения.' }}</p>
+<p>{{ 'Мы не смогли подтвердить данные заявки. Если это ошибка, напишите в поддержку.' if me.alumni.verification_status=='rejected' else 'Мы проверяем, что вы выпускник факультета. О решении напишем на почту. После проверки откроются баллы, скидка, заявки и однокурсники.' }}</p>
 <div class="site-actions">
 {% if me.alumni.verification_status!='rejected' %}<a href="/lk/profile">Загрузить фото профиля</a>{% endif %}
 <a href="/support">Поддержка</a>
@@ -81,17 +80,17 @@
 {% for notice in notifications %}
 <li>
 {% if notice.kind=='friend_request' %}
-<p>{{ notice.from_fio or 'Выпускник' }} приглашает вас в друзья.</p>
+<p>Заявка в друзья от {{ notice.from_fio or 'выпускника' }}.</p>
 <div class="site-actions">
 <button data-api="/me/friends" data-body='{{ {"alumni_id":notice.from_id}|tojson }}' data-member-action>Принять</button>
 <button data-api="/me/friends/{{ notice.from_id }}" data-method="DELETE" data-member-action>Отклонить</button>
 </div>
 {% elif notice.kind=='friend_accepted' %}
-<p>{{ notice.by_fio or 'Выпускник' }}: приглашение в друзья принято.</p>
+<p>{{ notice.by_fio or 'Выпускник' }} теперь у вас в друзьях.</p>
 {% elif notice.kind=='order_status' %}
 <p>Заявка {{ notice.number }} · {{ order_status_labels.get(notice.status,notice.status) }}{% if notice.paid %} · Оплачено{% endif %}</p>
 {% elif notice.kind=='podcast_expiring' %}
-<p>Дней до окончания подписки на подкаст: {{ notice.days_left }}.</p>
+<p>Подписка на подкасты закончится {{ notice.until|date }}.</p>
 <a href="/podcasts#podcast-subscription">Продлить подписку</a>
 {% endif %}
 </li>
@@ -99,9 +98,9 @@
 </ul>
 </div>
 {% endif %}
-{% if not me.alumni.contacts %}
+{% if not ((me.alumni.contacts or {}).get('phone') or (me.alumni.contacts or {}).get('telegram')) %}
 <div class="cabinet-card cabinet-callout">
-<p>Добавьте контакт, чтобы мы могли связаться с вами по заявкам.</p>
+<p>Добавьте телефон или Telegram, чтобы мы могли быстро связаться с вами по заявкам.</p>
 <a href="/lk/profile">Заполнить профиль</a>
 </div>
 {% endif %}
@@ -111,7 +110,7 @@
 {% if next_event %}
 <p class="cabinet-card__title"><a href="/events/{{ next_event|address }}">{{ next_event.title }}</a></p>
 <p>{{ next_event.starts_at|date }} · {{ next_event.location or format_labels.get(next_event.format,'') }}</p>
-<a href="/events/{{ next_event|address }}">{{ 'Вы записаны. Подробнее о событии' if next_event.my_rsvp else 'Подробнее и запись' }}</a>
+<a href="/events/{{ next_event|address }}">{{ 'Вы записаны. Подробнее о событии' if next_event.my_rsvp else 'Подробнее и регистрация' if next_event.reg_url else 'Подробнее и запись' }}</a>
 {% else %}<p>Ближайших событий пока нет.</p>
 <a href="/events">Все события</a>{% endif %}
 </div>
@@ -130,7 +129,7 @@
 <h3>{{ icon('achievements', 18) }}Ближайшие достижения</h3>
 <a href="#achievements">Все достижения</a>
 </div>
-<ul class="cabinet-badges" aria-label="Ближайшие достижения">
+<ul class="cabinet-badges" tabindex="0" aria-label="Ближайшие достижения">
 {% for achievement in achievement_strip %}
 <li class="cabinet-badge{{ ' is-earned' if achievement.earned else '' }}"><span class="cabinet-badge__title"><span aria-hidden="true">{{ '★' if achievement.earned else '○' }}</span>{{ achievement.title }}</span><small>{{ achievement.current }}/{{ achievement.target }}</small></li>
 {% endfor %}
@@ -150,24 +149,30 @@
 {% for order in orders %}
 <article class="cabinet-card cabinet-order">
 <div class="cabinet-order__head">
-<h3>Заявка {{ order.number }}</h3>
+<div>
+<h3>{{ order_title(order) }}</h3>
+<p class="cabinet-order__number">Заявка {{ order.number }}{% if order.created_at %} от {{ order.created_at|date }}{% endif %}</p>
+</div>
 {% set payment = payment_chip(order.payment_status) %}
 <span class="cabinet-order__chips"><span class="cabinet-chip" data-tone="{{ order.status|order_tone }}">{{ order_status_labels.get(order.status,order.status) }}</span><span class="cabinet-chip" data-tone="{{ payment[1] }}">{{ payment[0] }}</span></span>
 </div>
-<p>{{ order.created_at|date }} · {{ order.total_estimate|price_or_pending if order.type=='portfolio' else order.total_estimate|rub }}</p>
-{% if order.type=='portfolio' %}
-<p>До скидки: {{ order.subtotal|price_or_pending|lower }} · {{ order|discount_label }} · участников: {{ order.participants }}{% if order.organization %} · {{ order.organization }}{% endif %}{% if order.starts_on %} · старт потока {{ order.starts_on|date }}{% endif %}.</p>
-{% else %}
-<p>До скидки: {{ order.subtotal|rub }} · скидка выпускника: {{ order.member_discount or 0 }}% · {{ 'доставка' if order.fulfillment=='delivery' else 'самовывоз' }}.</p>
-{% endif %}
-{% for line in order.items_json or [] %}
+{% for line in order_lines(order) %}
 <p>{{ line.title }} × {{ line.qty }}</p>
 {% endfor %}
+{% if order.type=='portfolio' %}
+<p>{{ ('Сумма ' ~ order.total_estimate|rub) if order.total_estimate else 'Стоимость уточняется' }}{% if order.starts_on %} · старт потока {{ order.starts_on|date }}{% endif %} · участников: {{ order.participants }}{% if order.organization %} · {{ order.organization }}{% endif %}</p>
+{% if order_discounted(order) %}<p>До скидки: {{ order.subtotal|price_or_pending|lower }} · {{ order|discount_label }}</p>{% endif %}
+{% else %}
+<p>Сумма {{ order.total_estimate|rub }}{% if order.type in ('merch','mixed') %} · {{ 'доставка' if order.fulfillment=='delivery' else 'самовывоз' }}{% endif %}</p>
+{% if order_discounted(order) %}<p>До скидки: {{ order.subtotal|rub }} · {{ order|discount_label }}</p>{% endif %}
+{% endif %}
+{% set open = order.status not in ('done','canceled','expired') and order.payment_status != 'succeeded' %}
 {% if order.payment_url|payment_url %}
 <a href="{{ order.payment_url|payment_url }}">Оплатить через ЮKassa</a>
-{% endif %}
-{% if order.status not in ('done','canceled','expired') and order.type!='portfolio' %}
+{% elif open and order.type!='portfolio' and payments.enabled %}
 <button data-api="/orders/{{ order.number }}/pay" data-member-action>Получить ссылку на оплату</button>
+{% elif open %}
+<p class="cabinet-order__next">{{ 'Платить на сайте не нужно. Мы свяжемся с вами, чтобы согласовать договор и оплату.' if order.type=='portfolio' else 'Мы свяжемся с вами, чтобы подтвердить детали.' }}</p>
 {% endif %}
 </article>
 {% else %}{{ empty('Вы еще не оформляли заявки.') }}
@@ -195,10 +200,10 @@
 <span class="cabinet-avatar cabinet-avatar--small" aria-hidden="true">{{ person.fio.split()[:2]|map('first')|join|upper }}</span>
 <div>
 <h3>{{ person.fio }}</h3>
-<p>{{ person.cohort }}{% if person.edu_program %} · {{ person.edu_program }}{% endif %}</p>
+<p>Выпуск {{ person.cohort }}{% if person.edu_program %} · {{ person.edu_program }}{% endif %}</p>
 {% if person.interests %}<p>{{ person.interests|join(' · ') }}</p>{% endif %}
 </div>
-<button data-api="/me/friends{{ '/'+person.id if person.friend_status in ('accepted','pending') else '' }}" data-method="{{ 'DELETE' if person.friend_status in ('accepted','pending') else 'POST' }}" data-body='{{ {"alumni_id":person.id}|tojson }}' data-member-action>{{ 'Отменить приглашение' if person.friend_status=='pending' else 'Убрать из друзей' if person.friend_status=='accepted' else 'Принять приглашение' if person.friend_status=='incoming' else 'Добавить в друзья' }}</button>
+<button data-api="/me/friends{{ '/'+person.id if person.friend_status in ('accepted','pending') else '' }}" data-method="{{ 'DELETE' if person.friend_status in ('accepted','pending') else 'POST' }}" data-body='{{ {"alumni_id":person.id}|tojson }}' data-member-action>{{ 'Отменить заявку в друзья' if person.friend_status=='pending' else 'Убрать из друзей' if person.friend_status=='accepted' else 'Принять заявку в друзья' if person.friend_status=='incoming' else 'Добавить в друзья' }}</button>
 </article>
 </li>
 {% else %}<li>{{ empty('Однокурсники появятся после подтверждения их заявок.') }}</li>{% endfor %}
