@@ -2,7 +2,7 @@
 <label class="site-field">{{ label }}{% if type == 'textarea' %}
 <textarea name="{{ name }}" {% if required %}required{% endif %}>{{ value or '' }}</textarea>
 {% else %}
-<input name="{{ name }}" type="{{ type }}" value="{{ value or '' }}" {% if required %}required{% endif %} {% if type == 'password' %}autocomplete="current-password"{% elif type == 'email' %}autocomplete="email"{% endif %}{% if remember %} data-auth-email{% endif %}>
+<input name="{{ name }}" type="{{ type }}" value="{{ value or '' }}" {% if required %}required{% endif %} {% if type == 'password' %}autocomplete="current-password"{% elif type == 'email' %}autocomplete="email"{% elif type == 'tel' %}autocomplete="tel"{% elif name == 'address' %}autocomplete="street-address"{% endif %}{% if remember %} data-auth-email{% endif %}>
 {% endif %}
 </label>
 {% endmacro %}

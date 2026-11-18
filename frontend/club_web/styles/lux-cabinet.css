@@ -168,7 +168,7 @@ html.lux .club-auth__card .site-actions { justify-content: space-between; margin
 html.lux .club-auth__card details { margin-top: 12px; color: var(--c-text-3); }
 
 html.lux :is(.club-auth__card, .profile-page) fieldset { margin: 8px 0 0; padding: 0; border: 0; }
-html.lux :is(.club-auth__card, .profile-page) legend { margin-bottom: 12px; padding: 0; font-size: 15px; color: var(--c-text-3); }
+html.lux :is(.club-auth__card, .profile-page) legend { margin-bottom: 12px; padding: 0; font-size: inherit; color: inherit; }
 html.lux .site-checkbox { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin: 0 6px 6px 0; padding: 0 14px; border-radius: 999px; background: var(--lux-control); font-size: 14px; cursor: pointer; }
 html.lux .site-checkbox:has(input:checked) { background: var(--c-text); color: var(--c-text-inverse); }
 html.lux .site-checkbox:has(input:focus-visible) { outline: 3px solid var(--c-text); outline-offset: 2px; }
@@ -176,6 +176,16 @@ html.lux .site-checkbox input { accent-color: var(--c-accent); }
 
 html.lux .profile-page { max-width: 720px; }
 html.lux .profile-page .site-masthead { padding-bottom: 24px; }
+html.lux .profile-page .site-masthead h1 { font-size: min(var(--t-h1-page), clamp(32px, 3.4cqi, 48px)); }
+html.lux .profile-page form.profile-avatar { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 20px; margin-bottom: 32px; }
+html.lux .profile-avatar .cabinet-avatar { grid-row: span 2; }
+html.lux .profile-avatar label { justify-self: start; align-self: end; cursor: pointer; }
+html.lux .profile-avatar .profile-avatar__note { align-self: start; }
+html.lux .profile-avatar input:focus-visible + label { outline: 3px solid var(--c-text); outline-offset: 2px; }
+html.lux .profile-avatar .profile-avatar__note { margin: 0; font-size: 13px; color: var(--c-text-3); }
+html.lux .profile-avatar [data-error] { grid-column: 1 / -1; }
+html.lux [data-interest-limit] { margin: -4px 0 12px; font-size: 14px; color: var(--c-danger-text); }
+html.lux [data-interest-limit]:empty { display: none; }
 html.lux .profile-page form { display: grid; gap: 16px; margin-bottom: 8px; }
 html.lux .profile-page form > button { justify-self: start; }
 html.lux .profile-page input[readonly] { color: var(--c-text-2); cursor: default; }

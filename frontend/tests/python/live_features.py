@@ -204,9 +204,12 @@ def friends_after_restart(page, name, other_id):
 def profile_tools(page, request, headers, image):
     page.goto("/lk/profile")
     form = page.locator('form[data-api="/me/avatar"]')
-    form.locator('[name="file"]').set_input_files({"name": "avatar.png", "mimeType": "image/png", "buffer": image})
-    submit(page, form, "/me/avatar")
-    avatar = page.locator("img.site-avatar")
+    with page.expect_response(
+        lambda response: response.url.endswith("/api/me/avatar") and response.request.method == "POST"
+    ) as uploaded:
+        form.locator('[name="file"]').set_input_files({"name": "avatar.png", "mimeType": "image/png", "buffer": image})
+    assert uploaded.value.status == 200
+    avatar = page.locator(".profile-avatar img")
     expect(avatar).to_be_visible()
     expect(avatar).to_have_js_property("naturalWidth", 1)
     path = avatar.get_attribute("src")

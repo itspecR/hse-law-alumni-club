@@ -33,6 +33,7 @@
 </select>
 </label>{{ field('edu_program','Образовательная программа') }}{{ field('password','Пароль, не меньше 8 символов',type='password') }}<fieldset data-max-interests="{{ domain.limits.max_interests }}">
 <legend>Интересы в праве · до {{ domain.limits.max_interests }}</legend>
+<p class="site-field-note" data-interest-limit aria-live="polite"></p>
 {% for interest in domain.legal_interests %}
 <label class="site-checkbox">
 <input type="checkbox" name="interests" value="{{ interest }}">{{ interest }}</label>

@@ -9,19 +9,18 @@
 <header class="site-masthead">
 <h1>Профиль</h1>
 </header>
-{% if me.alumni.avatar %}
-<img class="site-avatar" src="/api/avatars/{{ me.alumni.avatar }}" width="120" height="120" alt="Фото профиля">
-{% endif %}
-<form data-api="/me/avatar" data-file>
-<label class="site-field">Фото профиля<input type="file" name="file" accept="image/jpeg,image/png,image/webp" required>
-</label>
-<button>Загрузить фото</button>
+<form class="profile-avatar" data-api="/me/avatar" data-file>
+{% if me.alumni.avatar %}<img class="cabinet-avatar" src="/api/avatars/{{ me.alumni.avatar }}" width="72" height="72" alt="Фото профиля">{% else %}<span class="cabinet-avatar" aria-hidden="true">{{ initials }}</span>{% endif %}
+<input class="lux-sr" id="profile-photo" type="file" name="file" accept="image/jpeg,image/png,image/webp" required data-auto-submit>
+<label class="lux-btn lux-btn--ghost lux-btn--sm" for="profile-photo">{{ 'Сменить фото' if me.alumni.avatar else 'Загрузить фото' }}</label>
+<p class="profile-avatar__note">JPEG, PNG или WebP</p>
 <p role="alert" data-error hidden>
 </p>
 </form>
 {% if me.alumni.verification_status=='verified' %}
-<form data-api="/me/profile" data-method="PATCH"><label class="site-field">ФИО<input type="text" value="{{ me.alumni.fio }}" readonly aria-describedby="profile-fio-note"></label><p class="profile-fio-note" id="profile-fio-note">ФИО меняет офис клуба. Если нужно исправить, <a href="/support">напишите в поддержку</a>.</p>{{ field('contacts.email','Почта',me.alumni.contacts.get('email',''),type='email',required=false) }}{{ field('contacts.phone','Телефон',me.alumni.contacts.get('phone',''),type='tel',required=false) }}{{ field('contacts.telegram','Telegram',me.alumni.contacts.get('telegram',''),required=false) }}<fieldset data-max-interests="{{ domain.limits.max_interests }}">
-<legend>Интересы в праве</legend>
+<form data-api="/me/profile" data-method="PATCH"><label class="site-field">ФИО<input type="text" value="{{ me.alumni.fio }}" readonly aria-describedby="profile-fio-note"></label><p class="profile-fio-note" id="profile-fio-note">ФИО меняем мы. Если в нем ошибка, <a href="/support">напишите в поддержку</a>.</p>{{ field('contacts.email','Почта',me.alumni.contacts.get('email',''),type='email',required=false) }}{{ field('contacts.phone','Телефон',me.alumni.contacts.get('phone',''),type='tel',required=false) }}{{ field('contacts.telegram','Telegram',me.alumni.contacts.get('telegram',''),required=false) }}<fieldset data-max-interests="{{ domain.limits.max_interests }}">
+<legend>Интересы в праве · до {{ domain.limits.max_interests }}</legend>
+<p class="site-field-note" data-interest-limit aria-live="polite"></p>
 {% for interest in domain.legal_interests %}
 <label class="site-checkbox">
 <input type="checkbox" name="interests" value="{{ interest }}" {% if interest in me.alumni.interests %}checked{% endif %}>{{ interest }}</label>
@@ -35,8 +34,8 @@
 <h2>Ваши данные</h2>
 <details>
 <summary>Удалить профиль</summary>
-<p>Данные профиля будут обезличены, доступ к кабинету и скидке выпускника закроется.</p>
-<form data-api="/me/delete" data-delete-profile>{{ field('confirm','Введите УДАЛИТЬ') }}<button class="site-danger">Удалить профиль</button>
+<p>Мы удалим ваши личные данные: ФИО, контакты, фото и интересы. Войти в кабинет больше не получится, баллы и скидка пропадут. Заявки останутся в клубе без ваших данных.</p>
+<form data-api="/me/delete" data-delete-profile>{{ field('confirm','Чтобы удалить профиль, введите слово УДАЛИТЬ заглавными буквами') }}<button class="site-danger">Удалить профиль</button>
 <p role="alert" data-error hidden>
 </p>
 </form>

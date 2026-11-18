@@ -44,6 +44,21 @@ function prefillEmail() {
   document.querySelectorAll("input[data-auth-email]").forEach(input => { if (!input.value) input.value = saved; });
 }
 
+const CONTACT_FIELDS = { contact_fio: me => me.alumni?.fio, contact_email: me => me.alumni?.contacts?.email, contact_phone: me => me.alumni?.contacts?.phone };
+
+async function prefillContacts() {
+  const forms = [...document.querySelectorAll("form[data-checkout], form[data-application]")];
+  if (!forms.length || !token(false)) return;
+  let me;
+  try { me = await request("/me"); } catch { return; }
+  for (const form of forms) {
+    for (const [name, pick] of Object.entries(CONTACT_FIELDS)) {
+      const input = form.elements.namedItem(name);
+      if (input && !input.value && pick(me)) input.value = pick(me);
+    }
+  }
+}
+
 function showStaffCode(form, email, sent) {
   const step = form.parentElement.querySelector("form[data-staff-code]");
   if (!step) throw new Error("Не удалось открыть ввод кода. Обновите страницу.");
@@ -645,6 +660,7 @@ function setupPage() {
   }
   renderReading();
   prefillEmail();
+  void prefillContacts();
   document.querySelectorAll("[data-member-link]").forEach(link => {
     link.dataset.guestLabel ||= link.textContent;
     link.dataset.guestHref ||= link.getAttribute("href");
@@ -940,13 +956,18 @@ function choosePointsReason(select) {
 document.addEventListener("change", event => {
   if (event.target.matches("[data-person] input[type='checkbox']")) event.target.closest("[data-person]").querySelector("select").disabled = !event.target.checked;
   if (event.target.matches("[data-image-upload]")) void uploadPhoto(event.target);
+  if (event.target.matches("input[data-auto-submit]") && event.target.files.length) event.target.form.requestSubmit();
   if (event.target.matches("[data-points-reason]")) choosePointsReason(event.target);
   if (event.target.matches("[data-audio-rate]")) event.target.closest(".site-player").querySelector("audio").playbackRate = Number(event.target.value);
   if (event.target.matches("[data-unread-filter],[data-reading-kind]")) renderReading();
   if (event.target.matches("[data-applicant]")) { toggleApplicant(event.target); showQuote(event.target.form, ""); }
   if (event.target.matches("input[name='interests']")) {
     const selected = event.target.form.querySelectorAll("input[name='interests']:checked");
-    if (selected.length > Number(event.target.closest("fieldset").dataset.maxInterests)) { event.target.checked = false; notice("Выбрано максимальное число интересов."); }
+    const fieldset = event.target.closest("fieldset");
+    const limit = fieldset.querySelector("[data-interest-limit]");
+    const full = selected.length > Number(fieldset.dataset.maxInterests);
+    if (full) event.target.checked = false;
+    if (limit) limit.textContent = full ? "Можно выбрать не больше " + fieldset.dataset.maxInterests + " интересов." : "";
   }
 });
 document.addEventListener("keydown", event => {

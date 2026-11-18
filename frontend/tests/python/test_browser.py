@@ -3473,6 +3473,48 @@ def test_cabinet_pending_review_names_what_opens(page, site):
     )
 
 
+def test_profile_uploads_photo_on_choice_and_names_interest_limit(page, site):
+    alumni = {**PROFILE["alumni"], "verification_status": "verified", "interests": []}
+    site[1]["/me"] = {**PROFILE, "alumni": alumni}
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk/profile")
+    photo = page.locator("form.profile-avatar")
+    expect(photo.locator(".cabinet-avatar")).to_be_visible()
+    expect(photo.get_by_text("Загрузить фото", exact=True)).to_be_visible()
+    expect(photo.locator("button")).to_have_count(0)
+    with page.expect_request("**/api/me/avatar") as sent:
+        photo.locator("input[type=file]").set_input_files(
+            {"name": "photo.png", "mimeType": "image/png", "buffer": PHOTO_PNG}
+        )
+    assert sent.value.method == "POST"
+    form = page.locator('form[data-api="/me/profile"]')
+    fieldset = form.locator("fieldset[data-max-interests]")
+    limit = int(fieldset.get_attribute("data-max-interests"))
+    expect(fieldset.locator("legend")).to_have_text(f"Интересы в праве · до {limit}")
+    boxes = fieldset.locator("input[name=interests]")
+    for index in range(limit):
+        boxes.nth(index).check()
+    boxes.nth(limit).click()
+    expect(boxes.nth(limit)).not_to_be_checked()
+    expect(fieldset.locator("[data-interest-limit]")).to_have_text(f"Можно выбрать не больше {limit} интересов.")
+    expect(form.get_by_label("Телефон", exact=True)).to_have_attribute("autocomplete", "tel")
+    heading = page.locator("main h1").bounding_box()
+    assert heading["height"] <= 64
+
+
+def test_cart_prefills_member_contacts(page, site):
+    alumni = {**PROFILE["alumni"], "contacts": {"email": "graduate@example.test", "phone": "+70000000001"}}
+    site[1]["/me"] = {**PROFILE, "alumni": alumni}
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/merch/" + PRODUCT["slug"])
+    page.get_by_role("button", name="В корзину", exact=True).click()
+    page.goto("/cart")
+    form = page.locator("form[data-checkout]")
+    expect(form.get_by_label("ФИО", exact=True)).to_have_value(alumni["fio"])
+    expect(form.get_by_label("Почта", exact=True)).to_have_value("graduate@example.test")
+    expect(form.get_by_label("Телефон", exact=True)).to_have_value("+70000000001")
+
+
 PODCAST_ORDER = {
     **CLUB_ORDER,
     "number": "ALU-2026-000105",
