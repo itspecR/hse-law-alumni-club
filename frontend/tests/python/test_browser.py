@@ -4393,3 +4393,37 @@ def test_office_program_list_shows_cards_with_key_facts(page, site, width):
     expect(unpublished.locator(".office-meta")).to_have_text("Тренеры не выбраны")
     expect(page.get_by_role("link", name="Новая программа")).to_have_attribute("href", "/admin/portfolio?id=new")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_audit_log_speaks_in_words_and_hides_reads(page, site, width):
+    site[1]["/admin/audit"] = [
+        {
+            "id": "a1",
+            "event": "support.read",
+            "actor": "admin:1",
+            "subject": "ticket:1",
+            "detail": None,
+            "created_at": "2026-11-18T10:00:00Z",
+        },
+        {
+            "id": "a2",
+            "event": "order.created",
+            "actor": "web",
+            "subject": "order:ALU-1",
+            "detail": {"total": 4500000},
+            "created_at": "2026-11-18T11:00:00Z",
+        },
+    ]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/audit")
+    rows = page.locator("article.site-audit")
+    expect(rows).to_have_count(1)
+    expect(rows.first.locator("strong")).to_have_text("Новая заявка")
+    expect(rows.first.locator("pre")).to_be_hidden()
+    rows.first.get_by_text("Подробности", exact=True).click()
+    expect(rows.first.locator("pre")).to_contain_text("4500000")
+    page.goto("/admin/audit?reads=1")
+    expect(rows).to_have_count(2)
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")

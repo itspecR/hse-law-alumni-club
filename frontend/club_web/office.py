@@ -477,3 +477,85 @@ METRICS = {
     "support_created": "Новые обращения",
     "verified_ratio": "Доля проверенных выпускников",
 }
+
+
+AUDIT_EVENTS = {
+    "admin.login.code": "Код для входа в панель отправлен",
+    "admin.login.code_fail": "Неверный код входа в панель",
+    "admin.login.ok": "Вход в панель",
+    "admin.logout": "Выход из панели",
+    "admin.member.anonymize": "Выпускник обезличен",
+    "alumni.self_delete": "Выпускник удалил профиль",
+    "analytics.export": "Выгрузка аналитики",
+    "avatar.reject": "Фото профиля отклонено",
+    "avatar.upload": "Фото профиля загружено",
+    "catalog.dpo_sync": "Каталог ДПО обновлен",
+    "donation.created": "Новое пожертвование",
+    "donation.invited": "Приглашение дарителю отправлено",
+    "donation.transfer_received": "Перевод пожертвования получен",
+    "donations.export": "Выгрузка пожертвований",
+    "education.remove": "Документ об образовании удален",
+    "education.upload": "Документ об образовании загружен",
+    "education.view": "Документ об образовании просмотрен",
+    "email.confirm": "Почта подтверждена",
+    "event.attended": "Участие в событии отмечено",
+    "event.rsvp": "Запись на событие",
+    "event.unattended": "Отметка участия снята",
+    "login.code": "Код для входа в кабинет отправлен",
+    "login.code_fail": "Неверный код входа в кабинет",
+    "login.fail": "Неудачный вход в кабинет",
+    "login.locked": "Вход в кабинет заблокирован",
+    "login.ok": "Вход в кабинет",
+    "media.upload": "Файл загружен",
+    "member.patch": "Карточка выпускника изменена",
+    "member.points": "Баллы начислены или списаны",
+    "news.settings": "Настройки новостей изменены",
+    "news.source.refresh": "Новости факультета обновлены",
+    "order.cohort": "Заявка перенесена в другой поток",
+    "order.created": "Новая заявка",
+    "order.discount": "Скидка в заявке изменена",
+    "order.status": "Статус заявки изменен",
+    "order.transfer_received": "Оплата заявки получена",
+    "order.transfer_sent": "Реквизиты по заявке отправлены",
+    "orders.export": "Выгрузка заявок",
+    "page.patch": "Страница изменена",
+    "password.forgot": "Запрос восстановления пароля",
+    "password.reset": "Пароль изменен",
+    "payment.unmatched": "Платеж без заявки",
+    "payment.webhook.badip": "Уведомление об оплате с чужого адреса",
+    "podcast.sub.grant": "Подписка на подкасты выдана",
+    "podcast.sub.request": "Заявка на подписку на подкасты",
+    "push.broadcast": "Рассылка уведомлений",
+    "push.sub.reassign": "Подписка на уведомления перенесена",
+    "register.concealed": "Повторная заявка на вступление",
+    "support.read": "Обращение открыто",
+    "support.update": "Обращение изменено",
+}
+AUDIT_SUBJECTS = {
+    "news": ("Новость", "f"),
+    "product": ("Товар", "m"),
+    "campaign": ("Сбор", "m"),
+    "podcast": ("Выпуск подкаста", "m"),
+    "portfolio": ("Программа клуба", "f"),
+    "event": ("Событие", "n"),
+    "media": ("Файл", "m"),
+    "promo": ("Промокод", "m"),
+    "cohort": ("Поток", "m"),
+}
+AUDIT_ACTIONS = {"create": "создан", "patch": "изменен", "delete": "удален"}
+AUDIT_ENDINGS = {"m": "", "f": "а", "n": "о"}
+AUDIT_READ_SUFFIX = ".read"
+
+
+def audit_label(event):
+    if event in AUDIT_EVENTS:
+        return AUDIT_EVENTS[event]
+    subject, _, action = (event or "").rpartition(".")
+    if subject in AUDIT_SUBJECTS and action in AUDIT_ACTIONS:
+        name, gender = AUDIT_SUBJECTS[subject]
+        return f"{name} {AUDIT_ACTIONS[action]}{AUDIT_ENDINGS[gender]}"
+    return event or ""
+
+
+def audit_rows(rows, show_reads):
+    return [row for row in rows if show_reads or not str(row.get("event") or "").endswith(AUDIT_READ_SUFFIX)]

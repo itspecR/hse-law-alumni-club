@@ -1,10 +1,14 @@
+<form class="site-filters">
+<label class="site-checkbox"><input type="checkbox" name="reads" value="1" {% if query.get('reads')=='1' %}checked{% endif %}>Показывать просмотры обращений</label>
+<button>Показать</button>
+</form>
 <div class="office-list">
 {% for entry in rows %}
 <article class="site-audit">
 <time>{{ entry.created_at|date(true) }}</time>
-<strong>{{ entry.event }}</strong>
-<p>{{ entry.actor or '' }} · {{ entry.subject or '' }}</p>
-<pre>{{ entry.detail|tojson }}</pre>
+<strong>{{ audit_label(entry.event) }}</strong>
+<p class="office-meta">{{ [entry.actor, entry.subject]|select|join(' · ') }}</p>
+{% if entry.detail %}<details><summary>Подробности</summary><pre>{{ entry.detail|tojson }}</pre><p class="office-meta">{{ entry.event }}</p></details>{% endif %}
 </article>
 {% else %}{{ empty('Записей пока нет.') }}{% endfor %}
 </div>

@@ -23,7 +23,7 @@ from club_web.formatting import (
 )
 from club_web.icons import ICONS
 from club_web.main import create_app
-from club_web.office import filter_content
+from club_web.office import audit_label, audit_rows, filter_content
 from club_web.pages import (
     ACHIEVEMENT_STRIP,
     NAV,
@@ -428,11 +428,19 @@ async def test_guest_cannot_load_private_fragment(browser_client):
     assert "Вход для выпускников" in response.text
 
 
-async def test_analytics_keeps_financial_and_engagement_sections(browser_client):
+async def test_analytics_keeps_financial_and_engagement_sections(browser_client, dpo):
     response = await browser_client.get("/views/admin/analytics", headers={"authorization": "Bearer admin-test"})
     assert response.status_code == 200
-    for text in ("2 500", "Программа в аналитике", "Встреча в аналитике", "Выпуск в аналитике", "80%", "Регистрация"):
+    for text in ("2 500", "Программа в аналитике", "Встреча в аналитике", "Выпуск в аналитике", "80 %", "Регистрация"):
         assert text in response.text.replace("\xa0", " ").replace("\u202f", " ")
+    assert "<meter" not in response.text and 'class="office-chart"' in response.text
+    assert '<th scope="row">01.10</th><td>2</td>' in response.text
+    assert "За период нет заявок." in response.text
+
+
+async def test_analytics_hides_dpo_programs_when_dpo_is_off(browser_client):
+    response = await browser_client.get("/views/admin/analytics", headers={"authorization": "Bearer admin-test"})
+    assert "<h3>Программы ДПО</h3>" not in response.text and "Программа в аналитике" not in response.text
 
 
 async def test_member_fragment_and_cart(browser_client):
@@ -1818,6 +1826,8 @@ async def test_editor_has_no_donations_section(browser_client):
     donations = (await browser_client.get("/views/admin/donations", headers=EDITOR)).text
     assert "Нужен доступ администратора" in donations and "DON-2026" not in donations
     assert 'class="site-errors"' not in donations
+    assert 'class="office-refresh"' not in donations and 'class="site-empty office-access"' in donations
+    assert 'role="alert"><h2>Нужен доступ' not in donations
 
 
 def test_rubles_input_keeps_exact_kopecks():
@@ -2284,3 +2294,11 @@ async def test_site_offers_no_install_button(browser_client):
     for path in ("/", "/about", "/give"):
         page = (await browser_client.get(path)).text
         assert "Установить приложение" not in page and 'id="install-app"' not in page, path
+
+
+def test_audit_labels_name_events_in_words():
+    assert audit_label("order.created") == "Новая заявка"
+    assert audit_label("news.delete") == "Новость удалена" and audit_label("event.patch") == "Событие изменено"
+    assert audit_label("unknown.thing") == "unknown.thing"
+    rows = [{"event": "support.read"}, {"event": "login.ok"}]
+    assert audit_rows(rows, False) == [{"event": "login.ok"}] and audit_rows(rows, True) == rows
