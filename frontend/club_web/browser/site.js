@@ -9,6 +9,7 @@ import { hideSkeleton, prepareSkeleton } from "./skeleton.js";
 import { focusHeading, focusMark, focusPageStart, restoreFocus } from "./focus.js";
 import { clearInvalid, fieldMessage, invalidControl, markInvalid } from "./field-errors.js";
 import { closeMenus, dismissLoginHint, restoreLoginHint, toggleMenu } from "./menus.js";
+import { focusVision, renderVision } from "./vision.js";
 
 const base = document.body.dataset.base || "/";
 const memberKey = "club_token";
@@ -847,13 +848,19 @@ document.addEventListener("click", async event => {
 
 function vision(action) {
   const html = document.documentElement;
-  if (action === "vision") { html.classList.toggle("vis"); document.querySelector("#vision").hidden = !html.classList.contains("vis"); }
+  if (action === "vision") {
+    const on = html.classList.toggle("vis");
+    document.querySelector("#vision").hidden = !on;
+    closeMenus();
+    focusVision(on);
+  }
   else if (action === "vision-size") { const current = Number(html.style.getPropertyValue("--vis-zoom") || "1"); html.style.setProperty("--vis-zoom", String(current >= 1.4 ? 1 : Math.round((current + 0.2) * 10) / 10)); }
   else if (action === "vision-scheme") { const schemes = ["bw", "wb", "bb"]; html.dataset.visScheme = schemes[(schemes.indexOf(html.dataset.visScheme || "bw") + 1) % 3]; }
   else if (action === "vision-images") html.classList.toggle("vis-noimg");
   else if (action === "vision-serif") html.classList.toggle("vis-serif");
   else if (action === "vision-spacing") html.classList.toggle("vis-spacing");
   store("club_vision", JSON.stringify({ on: html.classList.contains("vis"), zoom: html.style.getPropertyValue("--vis-zoom") || "1", scheme: html.dataset.visScheme || "bw", images: !html.classList.contains("vis-noimg"), serif: html.classList.contains("vis-serif"), spacing: html.classList.contains("vis-spacing") }));
+  renderVision(html);
   document.dispatchEvent(new Event("club-vision-change"));
 }
 
@@ -945,6 +952,7 @@ try {
   for (const [key, css] of [["images", "vis-noimg"], ["serif", "vis-serif"], ["spacing", "vis-spacing"]]) html.classList.toggle(css, key === "images" ? settings.images === false : !!settings[key]);
   document.querySelector("#vision").hidden = !settings.on;
 } catch {}
+renderVision();
 const cookieBanner = document.querySelector("#cookie-banner");
 if (cookieBanner) cookieBanner.hidden = ["all", "essential", "0", "1"].includes(stored("club_cookie_consent"));
 prepareMini(currentPath(), url);

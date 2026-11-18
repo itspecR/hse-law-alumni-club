@@ -58,13 +58,13 @@
 <span data-offline-message>Нет подключения к интернету. Открытые раньше страницы можно читать, вход и отправка заявок недоступны.</span>
 <button type="button" data-action="reload-online" hidden>Обновить</button>
 </aside>
-<div class="vis-bar" id="vision" hidden>
+<div class="vis-bar" id="vision" role="group" aria-label="Настройки для слабовидящих" hidden>
 <strong>Версия для слабовидящих</strong>
-<button data-action="vision-size">Размер текста</button>
-<button data-action="vision-scheme">Цвета</button>
-<button data-action="vision-images">Изображения</button>
-<button data-action="vision-serif">Шрифт</button>
-<button data-action="vision-spacing">Интервалы</button>
+<button data-action="vision-size">Размер текста: 100%</button>
+<button data-action="vision-scheme">Цвета: черный на белом</button>
+<button data-action="vision-images">Скрыть изображения</button>
+<button data-action="vision-serif" aria-pressed="false">Шрифт с засечками</button>
+<button data-action="vision-spacing" aria-pressed="false">Широкие интервалы</button>
 <button data-action="vision">Обычная версия</button>
 </div>
 {% if not path.startswith('/admin') %}

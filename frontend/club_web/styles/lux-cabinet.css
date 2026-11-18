@@ -77,6 +77,9 @@ html.lux .cabinet-notices ul { display: grid; gap: 12px; margin: 0; padding: 0; 
 html.lux .cabinet-notices li { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--c-line); }
 html.lux .cabinet-notices li:first-child { padding-top: 0; border-top: 0; }
 html.lux .cabinet-invite strong { color: var(--c-text); font-weight: 500; letter-spacing: 0.04em; }
+html.lux .cabinet-invite { min-width: 0; }
+html.lux .cabinet-invite :is(strong, code) { overflow-wrap: anywhere; }
+html.lux .cabinet-invite .lux-btn { max-width: 100%; white-space: normal; text-align: center; line-height: 1.2; }
 html.lux .cabinet-order__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
 html.lux .cabinet-order__head h3 { margin: 0; }
 html.lux .cabinet-chip { display: inline-flex; align-items: center; }
@@ -177,7 +180,7 @@ html.lux .profile-page section > h2 { margin: 0 0 12px; }
 html.lux .profile-page section > p { color: var(--c-text-3); }
 html.lux .profile-page details summary { margin-top: 20px; color: var(--c-danger-text); }
 html.lux .site-avatar { border-radius: 50%; }
-html.lux input[type="file"] { font-size: 15px; color: var(--c-text-3); }
+html.lux input[type="file"] { min-width: 0; max-width: 100%; font-size: 15px; color: var(--c-text-3); }
 html.lux input[type="file"]::file-selector-button { min-height: 44px; margin-right: 12px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--lux-control); color: var(--c-text); font: 500 15px/1 var(--f-body); cursor: pointer; }
 
 html.lux .cart-page .site-cart-row { gap: 12px 20px; padding: 24px 0; border-color: var(--c-line); }

@@ -553,6 +553,7 @@ def test_cabinet_order_chips_show_status_and_payment_tones(page, site, width):
     page.add_init_script("localStorage.setItem('club_token','member-qa');")
     page.goto("/lk#orders")
     orders = page.locator("#orders article")
+    expect(orders.locator(".cabinet-chip")).to_have_count(6)
     chips = [
         [(chip.text_content(), chip.get_attribute("data-tone")) for chip in order.locator(".cabinet-chip").all()]
         for order in orders.all()
@@ -2037,6 +2038,32 @@ def test_header_keeps_menu_button_on_screen_when_zoomed(page):
     page.set_viewport_size({"width": 187, "height": 600})
     page.goto("/news")
     assert page.locator("[data-action=menu]").bounding_box()["x"] + HEADER_TARGET <= 187
+
+
+def test_vision_panel_shows_values_and_moves_focus(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto("/news")
+    page.locator("[data-action=menu]").click()
+    page.locator("#club-menu [data-action=vision]").click()
+    panel = page.get_by_role("group", name="Настройки для слабовидящих")
+    size = panel.get_by_role("button", name="Размер текста: 100%", exact=True)
+    expect(page.locator("#club-menu")).to_be_hidden()
+    expect(size).to_be_focused()
+    assert panel.evaluate("node => getComputedStyle(node).position") != "sticky"
+    size.click()
+    expect(panel.get_by_role("button", name="Размер текста: 120%", exact=True)).to_be_visible()
+    panel.get_by_role("button", name="Скрыть изображения", exact=True).click()
+    expect(panel.get_by_role("button", name="Показать изображения", exact=True)).to_be_visible()
+    serif = panel.get_by_role("button", name="Шрифт с засечками", exact=True)
+    serif.click()
+    expect(serif).to_have_attribute("aria-pressed", "true")
+    expect(serif).to_have_css("background-color", "rgb(0, 0, 0)")
+    assert (
+        page.locator(".mobile-tabs").evaluate("node => getComputedStyle(node).backgroundColor") == "rgb(255, 255, 255)"
+    )
+    panel.get_by_role("button", name="Обычная версия", exact=True).click()
+    expect(panel).to_be_hidden()
+    expect(page.locator("[data-action=menu]")).to_be_focused()
 
 
 TAB_MIN_HEIGHT = 44
