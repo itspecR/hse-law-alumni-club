@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import login,field,empty,unavailable %}
+{% from 'macros.html' import icon as site_icon %}
 {% from 'office/forms.html' import content_form with context %}
 {% from 'office/components.html' import icon,status,filters,more with context %}
 {% block content %}
@@ -12,7 +13,7 @@
 <aside class="office-sidebar">
 <div class="office-brand-row">
 <a href="/" class="office-brand"><img src="{{ base }}assets/themis-club.svg" width="32" height="32" alt=""><span>Клуб выпускников<small>факультета права НИУ&nbsp;ВШЭ</small></span></a>
-<button class="office-menu-toggle" data-action="office-menu" aria-expanded="false" aria-controls="office-navigation" aria-label="Разделы панели">{{ icon('menu') }}</button>
+<button class="office-menu-toggle" data-action="office-menu" aria-expanded="false" aria-controls="office-navigation" aria-label="Разделы панели">{{ site_icon('menu', cls='office-icon menu-icon menu-icon--open') }}{{ site_icon('close', cls='office-icon menu-icon menu-icon--close') }}</button>
 </div>
 <nav id="office-navigation" class="office-navigation" aria-label="Панель управления" data-open="false">
 {% set names=dict(office_nav) %}

@@ -8,6 +8,7 @@ import { prepareProgramEditor } from "./program-editor.js";
 import { hideSkeleton, prepareSkeleton } from "./skeleton.js";
 import { focusHeading, focusMark, focusPageStart, restoreFocus } from "./focus.js";
 import { clearInvalid, fieldMessage, invalidControl, markInvalid } from "./field-errors.js";
+import { closeMenus, dismissLoginHint, restoreLoginHint, toggleMenu } from "./menus.js";
 
 const base = document.body.dataset.base || "/";
 const memberKey = "club_token";
@@ -760,17 +761,9 @@ document.addEventListener("click", async event => {
     else if (action.startsWith("module-")) moduleAction(target, action);
     else if (action === "add-person") await addPerson(target);
     else if (action === "quote") await quotePromo(target);
-    else if (action === "office-menu") {
-      const open = target.getAttribute("aria-expanded") !== "true";
-      target.setAttribute("aria-expanded", String(open));
-      document.querySelector("#office-navigation").dataset.open = String(open);
-      if (open) alignOfficeNavigation();
-    } else if (action === "menu") {
-      const on = target.getAttribute("aria-expanded") !== "true";
-      target.setAttribute("aria-expanded", String(on));
-      target.setAttribute("aria-label", on ? "Закрыть меню" : "Открыть меню");
-      document.querySelector("#club-menu").dataset.open = String(on);
-    } else if (action === "logout" || action === "logout-office") {
+    else if (action === "office-menu") { if (toggleMenu(target)) alignOfficeNavigation(); }
+    else if (action === "menu") toggleMenu(target);
+    else if (action === "logout" || action === "logout-office") {
       let failure;
       try { if (action === "logout-office" && token(true)) await request("/auth/admin-logout", "POST", {}); }
       catch (error) { failure = error; }
@@ -932,12 +925,14 @@ document.addEventListener("change", event => {
   }
 });
 document.addEventListener("keydown", event => {
-  if (event.key === "Escape") {
-    const button = document.querySelector("[data-action='office-menu']");
-    if (button?.getAttribute("aria-expanded") === "true") { button.click(); button.focus(); }
-  }
-  if (event.key === "Escape") { const button = document.querySelector("[data-action='menu']"); if (button?.getAttribute("aria-expanded") === "true") button.click(); }
+  if (event.key !== "Escape") return;
+  closeMenus();
+  dismissLoginHint(event.target);
 });
+for (const join of document.querySelectorAll(".club-header__join")) {
+  join.addEventListener("focusout", restoreLoginHint);
+  join.addEventListener("mouseleave", restoreLoginHint);
+}
 document.addEventListener("club-reading-refresh", renderReading);
 window.addEventListener("storage", event => { if (event.key === readingKey) renderReading(); });
 window.addEventListener("beforeinstallprompt", event => event.preventDefault());

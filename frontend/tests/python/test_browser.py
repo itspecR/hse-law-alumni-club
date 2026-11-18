@@ -296,15 +296,19 @@ def test_office_navigation_keyboard_and_screen_sizes(page, width):
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
     page.goto("/admin/news")
     navigation = page.get_by_role("navigation", name="Панель управления", exact=True)
-    button = page.get_by_role("button", name="Разделы панели", exact=True)
+    button = page.locator("[data-action=office-menu]")
     if width <= 900:
         expect(navigation).to_be_hidden()
         expect(page.get_by_role("heading", name="Новости", exact=True)).to_be_in_viewport()
         button.focus()
         page.keyboard.press("Enter")
         expect(button).to_have_attribute("aria-expanded", "true")
+        expect(button).to_have_attribute("aria-label", "Закрыть разделы")
         expect(navigation).to_be_visible()
+        expect(navigation.locator("a[aria-current=page]")).to_be_focused()
+        assert page.locator(".site-office-content").evaluate("node => node.inert")
         page.keyboard.press("Escape")
+        assert not page.locator(".site-office-content").evaluate("node => node.inert")
         expect(navigation).to_be_hidden()
         expect(button).to_be_focused()
         button.click()
@@ -1980,6 +1984,59 @@ def test_event_roster_undoes_attendance_after_confirmation(page, site, width):
     assert dialogs == ["Снять отметку участия? Баллы за событие будут списаны."]
     assert any(row["path"] == "/admin/events/rsvp/rsvp-1/unattend" for row in site[2])
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+HEADER_TARGET = 44
+
+
+def test_phone_menu_holds_focus_and_returns_it_to_the_button(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto("/news")
+    burger = page.locator("[data-action=menu]")
+    burger.focus()
+    page.keyboard.press("Enter")
+    expect(burger).to_have_attribute("aria-label", "Закрыть меню")
+    expect(burger.locator(".menu-icon--close")).to_be_visible()
+    expect(burger.locator(".menu-icon--open")).to_be_hidden()
+    expect(page.locator("#club-menu").get_by_role("link", name="Поиск по сайту", exact=True)).to_be_focused()
+    assert page.evaluate(
+        "['#page', '.club-footer', '.mobile-tabs'].every(selector => document.querySelector(selector).inert)"
+    )
+    for _ in range(20):
+        page.keyboard.press("Tab")
+        assert not page.evaluate("Boolean(document.activeElement.closest('#page, .club-footer, .mobile-tabs'))")
+    page.keyboard.press("Escape")
+    expect(page.locator("#club-menu")).to_be_hidden()
+    expect(burger).to_be_focused()
+    expect(burger).to_have_attribute("aria-label", "Открыть меню")
+    assert not page.evaluate("document.querySelector('#page').inert")
+
+
+def test_header_tools_are_full_size_and_login_hint_closes_on_escape(page):
+    page.set_viewport_size({"width": 1280, "height": 900})
+    page.goto("/news")
+    tools = page.locator(".club-header__tools .club-chrome-icon-btn")
+    assert all(tools.nth(index).bounding_box()["width"] >= HEADER_TARGET for index in range(tools.count()))
+    expect(page.get_by_role("button", name="Аа, версия для слабовидящих", exact=True)).to_be_visible()
+    login = page.locator(".club-header__login")
+    page.locator(".club-header__cta").focus()
+    expect(login).to_be_visible()
+    page.keyboard.press("Escape")
+    expect(login).to_be_hidden()
+
+
+def test_phone_footer_lists_sit_in_two_columns(page):
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto("/news")
+    lists = page.locator(".club-footer ul")
+    assert lists.nth(0).bounding_box()["x"] < lists.nth(1).bounding_box()["x"]
+    assert lists.nth(0).bounding_box()["y"] == lists.nth(1).bounding_box()["y"]
+
+
+def test_header_keeps_menu_button_on_screen_when_zoomed(page):
+    page.set_viewport_size({"width": 187, "height": 600})
+    page.goto("/news")
+    assert page.locator("[data-action=menu]").bounding_box()["x"] + HEADER_TARGET <= 187
 
 
 TAB_MIN_HEIGHT = 44

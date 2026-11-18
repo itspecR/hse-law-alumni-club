@@ -291,7 +291,7 @@ async def test_app_manifest_and_chrome_do_not_promise_hidden_sections():
         "./podcasts?source=pwa",
         "./merch?source=pwa",
     ]
-    assert 'aria-label="Версия для слабовидящих"><span aria-hidden="true">Аа</span></button>' in page
+    assert 'aria-label="Аа, версия для слабовидящих"><span aria-hidden="true">Аа</span></button>' in page
     assert 'id="give-transfer-save" data-transfer-save download>' in page
 
 
