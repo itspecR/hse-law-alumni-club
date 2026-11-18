@@ -288,6 +288,7 @@ async def test_app_manifest_and_chrome_do_not_promise_hidden_sections():
         manifest = (await client.get("/manifest.webmanifest")).json()
         page = (await client.get("/give")).text
     assert "ДПО" not in manifest["description"]
+    assert "orientation" not in manifest
     assert [item["url"] for item in manifest["shortcuts"]] == [
         "./lk?source=pwa",
         "./portfolio?source=pwa",
