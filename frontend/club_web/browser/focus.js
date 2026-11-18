@@ -41,3 +41,7 @@ export function restoreFocus(mark) {
 export function focusHeading(container) {
   placeholder(container?.querySelector("h1,h2"))?.focus();
 }
+
+export function focusPageStart() {
+  placeholder(document.querySelector(PAGE_HEADING) || document.querySelector("main"))?.focus({ preventScroll: true });
+}

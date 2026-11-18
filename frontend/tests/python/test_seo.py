@@ -328,6 +328,14 @@ async def test_cookie_banner_role_fits_its_element():
     assert '<div class="club-cookie-banner" id="cookie-banner" role="dialog"' in page
 
 
+async def test_cookie_banner_follows_skip_link_and_stays_out_of_office():
+    async with site() as client:
+        page = (await client.get("/give")).text
+        office = (await client.get("/admin")).text
+    assert page.index('class="skip"') < page.index('id="cookie-banner"') < page.index('id="site-shell"')
+    assert 'id="site-shell"' in office and 'id="cookie-banner"' not in office
+
+
 NAMED_EVENT = {**DETAILED_EVENT, "slug": "vstrecha-kluba"}
 NAMED_EPISODE = {**EPISODE, "slug": "pravovaya-gramotnost"}
 NAMED = {"/events": [NAMED_EVENT], "/podcasts": {"items": [NAMED_EPISODE], "subscribed": False}}

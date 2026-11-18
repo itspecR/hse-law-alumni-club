@@ -42,6 +42,16 @@
 </head>
 <body data-base="{{ base }}" data-offline-reading="{{ 'true' if offline_reading else 'false' }}">
 <a href="#main" class="skip">К содержанию страницы</a>
+{% if not path.startswith('/admin') %}
+<div class="club-cookie-banner" id="cookie-banner" role="dialog" aria-label="Согласие на использование cookies" hidden>
+<p class="club-cookie-banner__text">Сайт хранит в браузере данные для входа и корзины. С вашего согласия мы также считаем обезличенные просмотры страниц. <a href="{{ legal.documents.policy.file }}" target="_blank" rel="noopener">Подробнее</a>
+</p>
+<div class="club-cookie-banner__actions">
+<button type="button" data-action="cookies-essential" class="lux-btn lux-btn--ghost lux-btn--sm club-cookie-banner__btn">Только необходимые</button>
+<button type="button" data-action="cookies-all" class="lux-btn lux-btn--ghost lux-btn--sm club-cookie-banner__btn">Принять все</button>
+</div>
+</div>
+{% endif %}
 <div id="site-shell">
 <div id="site-stage">
 <aside id="offline-notice" class="offline-notice" role="status" hidden>
@@ -228,14 +238,6 @@
 <div id="dialog-content">
 </div>
 </dialog>
-<div class="club-cookie-banner" id="cookie-banner" role="dialog" aria-label="Согласие на использование cookies" hidden>
-<p class="club-cookie-banner__text">Сайт хранит в браузере данные для входа и корзины. С вашего согласия мы также считаем обезличенные просмотры страниц. <a href="{{ legal.documents.policy.file }}" target="_blank" rel="noopener">Подробнее</a>
-</p>
-<div class="club-cookie-banner__actions">
-<button data-action="cookies-essential" class="club-cookie-banner__btn club-cookie-banner__btn--secondary">Только необходимые</button>
-<button data-action="cookies-all" class="club-cookie-banner__btn club-cookie-banner__btn--primary">Принять все</button>
-</div>
-</div>
 </body>
 </html>
 {% endif %}
