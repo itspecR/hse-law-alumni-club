@@ -149,24 +149,30 @@
 {% for order in orders %}
 <article class="cabinet-card cabinet-order">
 <div class="cabinet-order__head">
-<h3>Заявка {{ order.number }}</h3>
+<div>
+<h3>{{ order_title(order) }}</h3>
+<p class="cabinet-order__number">Заявка {{ order.number }}{% if order.created_at %} от {{ order.created_at|date }}{% endif %}</p>
+</div>
 {% set payment = payment_chip(order.payment_status) %}
 <span class="cabinet-order__chips"><span class="cabinet-chip" data-tone="{{ order.status|order_tone }}">{{ order_status_labels.get(order.status,order.status) }}</span><span class="cabinet-chip" data-tone="{{ payment[1] }}">{{ payment[0] }}</span></span>
 </div>
-<p>{{ order.created_at|date }} · {{ order.total_estimate|price_or_pending if order.type=='portfolio' else order.total_estimate|rub }}</p>
-{% if order.type=='portfolio' %}
-<p>До скидки: {{ order.subtotal|price_or_pending|lower }} · {{ order|discount_label }} · участников: {{ order.participants }}{% if order.organization %} · {{ order.organization }}{% endif %}{% if order.starts_on %} · старт потока {{ order.starts_on|date }}{% endif %}.</p>
-{% else %}
-<p>До скидки: {{ order.subtotal|rub }} · скидка выпускника: {{ order.member_discount or 0 }}% · {{ 'доставка' if order.fulfillment=='delivery' else 'самовывоз' }}.</p>
-{% endif %}
-{% for line in order.items_json or [] %}
+{% for line in order_lines(order) %}
 <p>{{ line.title }} × {{ line.qty }}</p>
 {% endfor %}
+{% if order.type=='portfolio' %}
+<p>{{ ('Сумма ' ~ order.total_estimate|rub) if order.total_estimate else 'Стоимость уточняется' }}{% if order.starts_on %} · старт потока {{ order.starts_on|date }}{% endif %} · участников: {{ order.participants }}{% if order.organization %} · {{ order.organization }}{% endif %}</p>
+{% if order_discounted(order) %}<p>До скидки: {{ order.subtotal|price_or_pending|lower }} · {{ order|discount_label }}</p>{% endif %}
+{% else %}
+<p>Сумма {{ order.total_estimate|rub }}{% if order.type in ('merch','mixed') %} · {{ 'доставка' if order.fulfillment=='delivery' else 'самовывоз' }}{% endif %}</p>
+{% if order_discounted(order) %}<p>До скидки: {{ order.subtotal|rub }} · {{ order|discount_label }}</p>{% endif %}
+{% endif %}
+{% set open = order.status not in ('done','canceled','expired') and order.payment_status != 'succeeded' %}
 {% if order.payment_url|payment_url %}
 <a href="{{ order.payment_url|payment_url }}">Оплатить через ЮKassa</a>
-{% endif %}
-{% if order.status not in ('done','canceled','expired') and order.type!='portfolio' %}
+{% elif open and order.type!='portfolio' and payments.enabled %}
 <button data-api="/orders/{{ order.number }}/pay" data-member-action>Получить ссылку на оплату</button>
+{% elif open %}
+<p class="cabinet-order__next">{{ 'Платить на сайте не нужно. Мы свяжемся с вами, чтобы согласовать договор и оплату.' if order.type=='portfolio' else 'Мы свяжемся с вами, чтобы подтвердить детали.' }}</p>
 {% endif %}
 </article>
 {% else %}{{ empty('Вы еще не оформляли заявки.') }}

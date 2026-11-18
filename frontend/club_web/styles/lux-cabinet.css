@@ -82,6 +82,8 @@ html.lux .cabinet-invite :is(strong, code) { overflow-wrap: anywhere; }
 html.lux .cabinet-invite .lux-btn { max-width: 100%; white-space: normal; text-align: center; line-height: 1.2; }
 html.lux .cabinet-order__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
 html.lux .cabinet-order__head h3 { margin: 0; }
+html.lux .cabinet-card .cabinet-order__number { margin-top: 2px; font-size: 14px; }
+html.lux .cabinet-card .cabinet-order__next { color: var(--c-text-2); }
 html.lux .cabinet-chip { display: inline-flex; align-items: center; }
 html.lux .cabinet-order__chips { display: flex; flex-wrap: wrap; gap: 8px; }
 html.lux .cabinet-people { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }

@@ -629,6 +629,7 @@ async def cabinet_page(page):
             load("notifications", "/me/events", []),
             load("club_events", "/events", []),
             load("club_news", "/news?limit=3", []),
+            load("payments", "/payments/config", {"enabled": False}),
         )
         now = datetime.now(UTC)
         upcoming = sorted(
