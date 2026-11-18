@@ -331,8 +331,11 @@ def section_walk(page, office):
 def order_form(office, order_id):
     office.goto("/admin/orders")
     form = office.locator(f'form[data-api="/admin/orders/{order_id}"]')
-    form.locator('[name="status"]').select_option("in_progress")
-    submit(office, form, "/admin/orders/" + order_id, "PATCH")
+    with office.expect_response(
+        lambda response: response.url.endswith("/api/admin/orders/" + order_id) and response.request.method == "PATCH"
+    ) as changed:
+        form.locator('[name="status"]').select_option("in_progress")
+    assert changed.value.status == 200
     expect(office.locator(f'form[data-api="/admin/orders/{order_id}"] [name="status"]')).to_have_value("in_progress")
 
 
