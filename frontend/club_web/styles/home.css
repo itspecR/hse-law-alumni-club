@@ -7,7 +7,6 @@
   --lux-h2: clamp(34px, 4.4cqi, 64px);
   --lux-h3: clamp(24px, 2.2cqi, 32px);
   --lux-lede: clamp(19px, 1.6cqi, 23px);
-  --lux-tile-pad: clamp(24px, 3.4cqi, 44px);
   --fig-h: min(64svh, 600px);
   --fig-w: calc(var(--fig-h) * var(--fig-ratio));
   --word-gap: clamp(20px, 3cqi, 48px);
@@ -90,7 +89,7 @@ html.vis .lux-calc__levels { position: static; }
 html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px solid var(--vis-fg); outline-offset: -2px; font-weight: 700; }
 .lux-calc__sub { margin: 40px 0 0; font: 600 15px/1.3 var(--f-body); color: var(--c-text-3); letter-spacing: 0; }
 .lux-progs { margin: 8px -16px 0; padding: 0; list-style: none; }
-.lux-prog__link { display: grid; grid-template-columns: 150px 1fr auto; align-items: baseline; gap: 24px; padding: 16px; border-radius: 12px; color: inherit; text-decoration: none; transition: background-color 160ms ease; }
+.lux-prog__link { display: grid; grid-template-columns: 150px 1fr auto; align-items: baseline; gap: 24px; padding: 16px; border-radius: var(--r-sm); color: inherit; text-decoration: none; transition: background-color 160ms ease; }
 .lux-prog__date { font-size: 15px; color: var(--c-text-3); }
 .lux-prog__main { display: grid; gap: 4px; }
 .lux-prog__name { font-size: 19px; line-height: 1.3; letter-spacing: -0.01em; text-wrap: balance; }
@@ -146,7 +145,7 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
 
 .lux-last { text-align: center; }
 .lux-last__inner { display: grid; justify-items: center; }
-.lux-last__mark { width: 64px; height: 64px; margin-bottom: 32px; border-radius: 14px; }
+.lux-last__mark { width: 64px; height: 64px; margin-bottom: 32px; border-radius: var(--r-mark); }
 .lux-last .lux-h2 { font-size: clamp(40px, 5.4cqi, 80px); }
 .lux-last .lux-lede { margin-inline: auto; text-wrap: balance; }
 .lux-last .lux-btn { margin-top: 36px; }
@@ -170,7 +169,6 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
 }
 
 @media (max-width: 760px) {
-  .lux-home { --r-tile: 22px; }
   .lux-hero__acts { flex-direction: column; gap: 0; }
   .lux-split, .lux-pair, .lux-voice, .lux-bento { grid-template-columns: 1fr; }
   .lux-voice { grid-template-areas: "photo" "quote" "cap"; }

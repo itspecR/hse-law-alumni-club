@@ -1,4 +1,4 @@
-.lux-camp { --camp-warm: #ea6806; --camp-glow: #ffb347; --camp-cool: #6f9bd8; }
+.lux-camp { --camp-warm: #ea6806; --camp-glow: #ffb347; }
 .camp-eyebrow { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 20px; font-size: 14px; letter-spacing: 0.01em; color: var(--c-accent-text); }
 .camp-eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c-accent); }
 

@@ -4,8 +4,6 @@
 .podcast-artwork__type > span { font-size: 10px; line-height: 1.4; }
 .podcast-artwork__type strong { font-family: var(--f-display); font-size: clamp(24px, 3.1vw, 38px); line-height: .98; font-weight: 400; }
 .podcast-artwork__symbol { position: absolute; right: 10px; bottom: 10px; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--c-bg-inverse); color: var(--c-text-inverse); }
-.podcast-artwork--locked { background: #d7d5d1; color: #3b3b3b; box-shadow: none; }
-.podcast-artwork--locked img { filter: grayscale(1) brightness(.65); }
 .podcast-row__meta > a { display: block; width: 150px; text-decoration: none; }
 .podcast-member-panel { display: flex; align-items: center; gap: 18px; padding: 24px; background: var(--c-bg-inverse); color: var(--c-text-inverse); border-radius: var(--r-sm); }
 .podcast-member-panel svg { color: var(--c-accent); flex-shrink: 0; }

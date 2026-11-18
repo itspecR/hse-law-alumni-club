@@ -18,7 +18,6 @@
 .changes-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:11px 18px;border:1px solid var(--c-line-control);border-radius:var(--r-md);background:var(--c-bg);color:var(--c-text);font:500 14px/1.4 var(--f-body);text-decoration:none;text-align:center;cursor:pointer}
 .changes-button--primary{background:var(--c-accent);color:var(--c-on-accent);border-color:var(--c-accent)}
 .changes-button:disabled{opacity:.4;cursor:default}.changes-button:not(:disabled):active{transform:scale(.98)}
-.changes-page :focus-visible{outline:2px solid var(--c-accent-text);outline-offset:4px}
 .changes-result-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0;font-size:13px;color:var(--c-text-2)}
 .changes-result-bar select{border:0;padding:8px;font-size:13px}.changes-result-bar label{display:flex;align-items:center;gap:6px}
 .changes-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.changes-chips button{min-height:44px;border:1px solid var(--c-line);border-radius:var(--r-sm);background:var(--c-bg-raised);color:var(--c-text);padding:8px 12px;cursor:pointer}

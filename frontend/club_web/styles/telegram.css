@@ -28,9 +28,9 @@ html.telegram-mini { --mini-top: 0px; --mini-bottom: 0px; }
 .mini-membership h2 { font: 400 25px/1.2 var(--f-display); margin: 0 0 6px; }
 .mini-membership p { margin: 0 0 14px; font-size: 12px; line-height: 1.5; }
 .mini-membership .club-btn { width: 100%; text-align: center; text-decoration: none; display: block; white-space: normal; }
-.mini-membership small { display: block; margin-top: 10px; font-size: 10px; color: #d1d5db; line-height: 1.5; }
+.mini-membership small { display: block; margin-top: 10px; font-size: 10px; color: var(--c-text-3); line-height: 1.5; }
 .mini-email { display: block; color: white; margin-top: 16px; text-align: center; }
-.mini-membership .mini-error { color: #fecaca; margin-top: 14px; }
+.mini-membership .mini-error { color: var(--c-danger-text); margin-top: 14px; }
 .mini-shortcuts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 20px; margin: 20px 0; }
 .mini-shortcuts a { min-width: 0; padding: 16px 0; border-bottom: 1px solid var(--c-line); color: inherit; text-decoration: none; }
 .mini-shortcuts h2 { display: flex; justify-content: space-between; gap: 6px; font-size: 15px; margin: 0 0 6px; overflow-wrap: anywhere; }
