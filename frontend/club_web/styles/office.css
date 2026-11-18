@@ -166,7 +166,7 @@
 }
 @media(max-width:900px) {
   .site-office { grid-template-rows:auto 1fr; align-content:start; }
-  .site-office { grid-template-columns:minmax(0,1fr); }
+  .site-office { grid-template-columns:minmax(0,1fr); --office-bar-h:69px; }
   .office-sidebar { position:sticky; height:auto; z-index:150; border-right:0; border-bottom:1px solid var(--c-line); }
   .office-brand-row { justify-content:space-between; padding:12px 20px; }
   .office-menu-toggle { display:inline-flex; }
@@ -178,6 +178,10 @@
   .office-nav-group a { font-size:16px; }
   .office-topbar { min-height:60px; }
   .office-page-header { padding:24px 0; }
+}
+@media(max-width:900px) and (max-height:480px) {
+  html .office-sidebar { position:static; }
+  html .site-office { --office-bar-h:0px; }
 }
 @media(max-width:640px) {
   .site-office-content { padding:0 16px 96px; }
