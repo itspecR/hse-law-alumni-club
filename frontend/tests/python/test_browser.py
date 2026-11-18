@@ -3161,7 +3161,8 @@ def test_club_program_without_price_waits_for_agreement(page, site, width):
     page.add_init_script("localStorage.setItem('club_token','member-qa');")
     page.goto("/lk#orders")
     order = page.locator("#orders article").first
-    expect(order).to_contain_text("Стоимость уточняется · Не оплачено")
+    expect(order.locator("p").first).to_contain_text("Стоимость уточняется")
+    expect(order.locator(".cabinet-chip").nth(1)).to_have_text("Не оплачено")
     expect(order).to_contain_text("До скидки: стоимость уточняется · промокод SPRING-15: 15%")
 
 
