@@ -1880,6 +1880,8 @@ def test_cabinet_head_keeps_profile_beside_name_and_even_tiles(page, site, width
     current = page.locator(".cabinet-tabs a[aria-current=true]").bounding_box()
     assert strip["x"] <= current["x"] and current["x"] + current["width"] <= strip["x"] + strip["width"] + 1
     expect(page.locator(".cabinet-badges")).to_have_attribute("tabindex", "0")
+    expect(page.locator("#points")).to_contain_text("Баллов пока нет. Их начисляют за участие в событиях")
+    expect(page.locator("#points").get_by_role("link", name="Ближайшие события")).to_have_attribute("href", "/events")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
