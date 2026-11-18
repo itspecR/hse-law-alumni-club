@@ -3788,8 +3788,10 @@ def test_give_transfer_shows_qr_requisites_and_saves_code(chromium, site, width)
     expect(save).to_have_attribute("href", QR_PNG)
     expect(save).to_have_attribute("download", "DON-2026-000002.png")
     expect(block.locator("dt")).to_have_text(["Получатель", "Расчетный счет", "Сумма", "Назначение платежа"])
-    expect(block.locator("dd").nth(1)).to_have_text("40703810000000000006")
-    expect(block.locator("dd").last).to_have_text(TRANSFER_REPLY["transfer"]["purpose"])
+    expect(block.locator("dd > span").nth(1)).to_have_text("40703810000000000006")
+    expect(block.locator("dd > span").last).to_have_text(TRANSFER_REPLY["transfer"]["purpose"])
+    expect(block.get_by_role("button", name="Скопировать: Сумма", exact=True)).to_be_visible()
+    assert block.bounding_box()["y"] >= 0
     expect(block.locator("[data-transfer-number]")).to_have_text("DON-2026-000002")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     [sent] = [write["body"] for write in site[2] if write["path"] == "/donations"]
