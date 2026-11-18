@@ -336,7 +336,7 @@ FIELDS = {
     "cohorts": [
         ("program_id", "Программа", "program"),
         ("starts_on", "Старт", "date"),
-        ("price", "Цена потока в копейках. Пусто - цена программы", "optional"),
+        ("price", "Цена потока, ₽. Пусто - как у программы", "rubles-optional"),
         ("capacity", "Лимит мест. Пусто - без лимита", "limit"),
         ("enrollment", "Набор", "actual|nonactual"),
     ],
@@ -362,10 +362,10 @@ FIELDS = {
     "products": [
         ("title", "Название", "text"),
         ("category", "Категория", "text"),
-        ("price", "Цена, копейки", "number"),
+        ("price", "Цена, ₽", "rubles"),
         ("stock", "Остаток", "number"),
         ("description", "Описание", "textarea"),
-        ("images", "Ссылки на фотографии, JSON", "json"),
+        ("images", "Фотографии: ссылки, каждая с новой строки", "lines"),
         ("variants_json", "Размеры, цвета и остатки, JSON", "json"),
         ("status", "Статус", "published|draft|archived"),
     ],

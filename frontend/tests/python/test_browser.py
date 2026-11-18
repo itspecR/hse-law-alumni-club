@@ -1473,8 +1473,8 @@ def test_product_editor_retains_gallery_during_title_edit(page, site, width):
     page.goto("/admin/products")
     row = page.locator(".office-record").filter(has=page.get_by_role("heading", name=PRODUCT["title"], exact=True))
     row.get_by_text("Изменить", exact=True).click()
-    gallery = row.get_by_label("Ссылки на фотографии, JSON", exact=True)
-    assert json.loads(gallery.input_value()) == images
+    gallery = row.get_by_label("Фотографии: ссылки, каждая с новой строки", exact=True)
+    assert gallery.input_value().split("\n") == images
     row.get_by_label("Название", exact=True).fill("Новое название товара")
     with page.expect_response("**/api/admin/products/" + PRODUCT["id"]):
         row.get_by_role("button", name="Сохранить", exact=True).click()
@@ -3448,7 +3448,7 @@ def test_office_cohorts_list_edit_and_create(page, site, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     rows.first.get_by_text("Изменить", exact=True).click()
     expect(rows.first.get_by_label("Программа")).to_have_value("club-1")
-    rows.first.get_by_label("Цена потока в копейках. Пусто - цена программы").fill("3500000")
+    rows.first.get_by_label("Цена потока, ₽. Пусто - как у программы").fill("35000")
     rows.first.get_by_role("button", name="Сохранить", exact=True).click()
     expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
     write = site[2][-1]
@@ -4427,3 +4427,17 @@ def test_audit_log_speaks_in_words_and_hides_reads(page, site, width):
     page.goto("/admin/audit?reads=1")
     expect(rows).to_have_count(2)
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+def test_product_price_is_entered_in_rubles(page, site):
+    site[1]["/admin/products"] = [{**PRODUCT, "price": 420000, "stock": 5, "variants_json": [], "images": []}]
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/products")
+    row = page.locator(".office-record").first
+    row.get_by_text("Изменить", exact=True).click()
+    price = row.get_by_label("Цена, ₽", exact=True)
+    expect(price).to_have_value("4200")
+    price.fill("4500.5")
+    with page.expect_response("**/api/admin/products/" + PRODUCT["id"]):
+        row.get_by_role("button", name="Сохранить", exact=True).click()
+    assert site[2][-1]["body"]["price"] == 450050

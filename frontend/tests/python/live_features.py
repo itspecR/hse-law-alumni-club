@@ -22,7 +22,7 @@ def submit(page, form, path, method="POST", status=200):
 
 def content_forms(office, request, headers, name):
     definitions = {
-        "products": {"category": "Одежда", "price": "0", "stock": "5", "images": "[]", "variants_json": "[]"},
+        "products": {"category": "Одежда", "price": "0", "stock": "5", "images": "", "variants_json": "[]"},
         "news": {"excerpt": "Краткое описание", "body": "Текст новости для проверки"},
         "events": {"starts_at": (datetime.now(UTC) + timedelta(days=2)).strftime("%Y-%m-%dT%H:%M"), "points": "0"},
         "podcasts": {"duration": "15 минут", "sort": "0"},

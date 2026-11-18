@@ -132,6 +132,8 @@
 <input name="{{ name }}" type="number" min="{{ 1 if kind=='limit' else 0 }}" data-nullable value="{{ value if value is not none else '' }}">
 {% elif kind=='image' %}
 {{ image_input(label,value,name=name) }}
+{% elif kind=='rubles-optional' %}
+<input name="{{ name }}" type="number" min="0" step="0.01" inputmode="decimal" data-kopecks data-nullable value="{{ value|rubles_input if value is not none else '' }}">
 {% elif kind=='rubles' %}
 <input name="{{ name }}" type="number" min="0" step="0.01" inputmode="decimal" data-kopecks value="{{ value|rubles_input }}">
 {% else %}
