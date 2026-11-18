@@ -15,6 +15,9 @@ from club_web.formatting import (
     local_datetime,
     media,
     open_cohorts,
+    order_discounted,
+    order_lines,
+    order_title,
     page_items,
     payment_url,
     plain_title,
@@ -77,6 +80,9 @@ def environment(**options):
         price_pending=PRICE_PENDING,
         icons=ICONS,
         payment_chip=payment_chip,
+        order_discounted=order_discounted,
+        order_lines=order_lines,
+        order_title=order_title,
     )
     return renderer
 

@@ -44,6 +44,21 @@ function prefillEmail() {
   document.querySelectorAll("input[data-auth-email]").forEach(input => { if (!input.value) input.value = saved; });
 }
 
+const CONTACT_FIELDS = { contact_fio: me => me.alumni?.fio, contact_email: me => me.alumni?.contacts?.email, contact_phone: me => me.alumni?.contacts?.phone };
+
+async function prefillContacts() {
+  const forms = [...document.querySelectorAll("form[data-checkout], form[data-application]")];
+  if (!forms.length || !token(false)) return;
+  let me;
+  try { me = await request("/me"); } catch { return; }
+  for (const form of forms) {
+    for (const [name, pick] of Object.entries(CONTACT_FIELDS)) {
+      const input = form.elements.namedItem(name);
+      if (input && !input.value && pick(me)) input.value = pick(me);
+    }
+  }
+}
+
 function showStaffCode(form, email, sent) {
   const step = form.parentElement.querySelector("form[data-staff-code]");
   if (!step) throw new Error("Не удалось открыть ввод кода. Обновите страницу.");
@@ -540,6 +555,20 @@ function emptyState(title) {
   return box;
 }
 
+const READING_KINDS = { portfolio: "Тренинг", program: "Программа ДПО", news: "Новость", change: "Изменение в праве", podcast: "Подкаст", event: "Событие", merch: "Мерч" };
+const savedDate = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Moscow" });
+
+function readingRow(item, removable) {
+  const row = element("div", undefined, { class: "site-reading-row" });
+  const meta = [READING_KINDS[item.kind], item.at ? (removable ? "сохранено " : "открыто ") + savedDate.format(item.at).replace(" г.", "") : ""].filter(Boolean).join(" · ");
+  const text = element("div", undefined, { class: "site-reading-row__text" });
+  if (meta) text.append(element("span", meta, { class: "site-reading-row__meta" }));
+  text.append(element("a", item.title, { href: url(item.path), class: "site-reading-item" }));
+  row.append(text);
+  if (removable) row.append(element("button", "Убрать", { class: "lux-link", "data-action": "remove-saved", "data-href": item.path, "aria-label": "Убрать «" + item.title + "»" }));
+  return row;
+}
+
 function renderReading() {
   const data = reading();
   document.querySelectorAll("[data-action='save']").forEach(button => {
@@ -558,12 +587,7 @@ function renderReading() {
     const query = (document.querySelector("[data-reading-search]")?.value || "").toLocaleLowerCase("ru").replace(/ё/g, "е").trim();
     const items = list.dataset.readingList === "recent" ? data.recent.slice(0, 4) : data.saved.filter(item => (!kind || item.kind === kind) && item.title.toLocaleLowerCase("ru").replace(/ё/g, "е").includes(query));
     if (!items.length) list.append(emptyState(list.dataset.readingList === "saved" && data.saved.length ? "По выбранным условиям ничего не найдено" : "Материалов пока нет"));
-    for (const item of items) {
-      const row = element("div", undefined, { class: "site-actions" });
-      row.append(element("a", item.title, { href: url(item.path), class: "site-reading-item" }));
-      if (list.dataset.readingList === "saved") row.append(element("button", "Удалить", { "data-action": "remove-saved", "data-href": item.path, "aria-label": "Удалить «" + item.title + "»" }));
-      list.append(row);
-    }
+    for (const item of items) list.append(readingRow(item, list.dataset.readingList === "saved"));
   });
   document.querySelectorAll("[data-reading-path]").forEach(article => { article.hidden = !!document.querySelector("[data-unread-filter]")?.checked && data.read.includes(article.dataset.readingPath); });
 }
@@ -585,10 +609,17 @@ function cabinetTabs() {
   return currentPath() === "/lk" ? document.querySelector(".cabinet-tabs") : null;
 }
 
+function revealTab(link) {
+  const strip = link.parentElement;
+  const left = link.offsetLeft - strip.offsetLeft;
+  if (left < strip.scrollLeft || left + link.offsetWidth > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = left - (strip.clientWidth - link.offsetWidth) / 2;
+}
+
 function showCabinetSection(section) {
   for (const link of cabinetTabs()?.querySelectorAll("a[href^='#']") || []) {
-    if (link.hash.slice(1) === section) link.setAttribute("aria-current", "true");
-    else link.removeAttribute("aria-current");
+    if (link.hash.slice(1) !== section) { link.removeAttribute("aria-current"); continue; }
+    link.setAttribute("aria-current", "true");
+    revealTab(link);
   }
   for (const panel of document.querySelectorAll(".cabinet-panel")) panel.hidden = panel.id !== section;
 }
@@ -638,6 +669,7 @@ function setupPage() {
   }
   renderReading();
   prefillEmail();
+  void prefillContacts();
   document.querySelectorAll("[data-member-link]").forEach(link => {
     link.dataset.guestLabel ||= link.textContent;
     link.dataset.guestHref ||= link.getAttribute("href");
@@ -933,13 +965,18 @@ function choosePointsReason(select) {
 document.addEventListener("change", event => {
   if (event.target.matches("[data-person] input[type='checkbox']")) event.target.closest("[data-person]").querySelector("select").disabled = !event.target.checked;
   if (event.target.matches("[data-image-upload]")) void uploadPhoto(event.target);
+  if (event.target.matches("input[data-auto-submit]") && event.target.files.length) event.target.form.requestSubmit();
   if (event.target.matches("[data-points-reason]")) choosePointsReason(event.target);
   if (event.target.matches("[data-audio-rate]")) event.target.closest(".site-player").querySelector("audio").playbackRate = Number(event.target.value);
   if (event.target.matches("[data-unread-filter],[data-reading-kind]")) renderReading();
   if (event.target.matches("[data-applicant]")) { toggleApplicant(event.target); showQuote(event.target.form, ""); }
   if (event.target.matches("input[name='interests']")) {
     const selected = event.target.form.querySelectorAll("input[name='interests']:checked");
-    if (selected.length > Number(event.target.closest("fieldset").dataset.maxInterests)) { event.target.checked = false; notice("Выбрано максимальное число интересов."); }
+    const fieldset = event.target.closest("fieldset");
+    const limit = fieldset.querySelector("[data-interest-limit]");
+    const full = selected.length > Number(fieldset.dataset.maxInterests);
+    if (full) event.target.checked = false;
+    if (limit) limit.textContent = full ? "Можно выбрать не больше " + fieldset.dataset.maxInterests + " интересов." : "";
   }
 });
 document.addEventListener("keydown", event => {

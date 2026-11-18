@@ -177,7 +177,7 @@ def member_points_discount(office, request, headers, member_headers, member_id):
 def friends_after_restart(page, name, other_id):
     page.goto("/lk?section=community")
     row = page.locator("#community article").filter(has=page.locator(f'[data-body*="{other_id}"]'))
-    action = "Добавить в друзья" if name == "desktop" else "Принять приглашение"
+    action = "Добавить в друзья" if name == "desktop" else "Принять заявку в друзья"
     with page.expect_response(
         lambda response: response.url.endswith("/api/me/friends") and response.request.method == "POST"
     ) as sent:
@@ -186,7 +186,9 @@ def friends_after_restart(page, name, other_id):
     assert sent.value.json()["status"] == ("pending" if name == "desktop" else "accepted")
     row = page.locator("#community article").filter(has=page.locator(f'[data-body*="{other_id}"]'))
     expect(
-        row.get_by_role("button", name="Отменить приглашение" if name == "desktop" else "Убрать из друзей", exact=True)
+        row.get_by_role(
+            "button", name="Отменить заявку в друзья" if name == "desktop" else "Убрать из друзей", exact=True
+        )
     ).to_be_visible()
     if name == "mobile":
         with page.expect_response(
@@ -202,9 +204,12 @@ def friends_after_restart(page, name, other_id):
 def profile_tools(page, request, headers, image):
     page.goto("/lk/profile")
     form = page.locator('form[data-api="/me/avatar"]')
-    form.locator('[name="file"]').set_input_files({"name": "avatar.png", "mimeType": "image/png", "buffer": image})
-    submit(page, form, "/me/avatar")
-    avatar = page.locator("img.site-avatar")
+    with page.expect_response(
+        lambda response: response.url.endswith("/api/me/avatar") and response.request.method == "POST"
+    ) as uploaded:
+        form.locator('[name="file"]').set_input_files({"name": "avatar.png", "mimeType": "image/png", "buffer": image})
+    assert uploaded.value.status == 200
+    avatar = page.locator(".profile-avatar img")
     expect(avatar).to_be_visible()
     expect(avatar).to_have_js_property("naturalWidth", 1)
     path = avatar.get_attribute("src")

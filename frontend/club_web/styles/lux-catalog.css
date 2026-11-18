@@ -75,3 +75,13 @@ html.lux .program-card .site-price.site-price--pending { font-size: 16px; color:
 @media (max-width: 640px) {
   html.lux .program-card > .program-card__tile { flex-direction: row; align-items: center; justify-content: flex-start; gap: 12px; min-height: 64px; padding: 16px 18px; }
 }
+
+html.lux .site-reading-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 16px; padding: 14px 0; border-top: 1px solid var(--c-line); }
+html.lux .site-reading-row__text { display: grid; gap: 4px; min-width: 0; }
+html.lux .site-reading-row__meta { font-size: 13px; color: var(--c-text-3); }
+html.lux .site-reading-row .site-reading-item { padding: 0; border: 0; color: var(--c-text); font-size: 17px; text-decoration: none; overflow-wrap: anywhere; }
+html.lux .site-reading-row button.lux-link { padding: 0; border: 0; background: none; border-radius: 0; }
+@media (max-width: 640px) {
+  html.lux .site-reading-row { grid-template-columns: minmax(0, 1fr); }
+  html.lux .site-reading-row button.lux-link { justify-self: start; }
+}

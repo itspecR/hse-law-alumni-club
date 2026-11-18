@@ -21,6 +21,7 @@ MONTHS = (
     "декабря",
 )
 FORMAT_LABELS = {"online": "онлайн", "offline": "очно", "blended": "смешанный"}
+PORTFOLIO_ORDER = "portfolio"
 ORDER_STATUS_LABELS = {
     "new": "Новая",
     "confirmed": "Подтверждена",
@@ -90,6 +91,21 @@ def discount_label(order, automatic=False):
     if order.get("discount_source") == "promo":
         return f"промокод {order.get('promo_code') or ''}: {percent}%"
     return f"скидка выпускника: {percent}%" if percent else "без скидки"
+
+
+def order_title(order):
+    items = order.get("items_json") or []
+    first = items[0].get("title") if items else ""
+    return first or "Заявка " + str(order.get("number") or "")
+
+
+def order_lines(order):
+    items = [] if order.get("type") == PORTFOLIO_ORDER else order.get("items_json") or []
+    return items if len(items) > 1 or any((item.get("qty") or 1) > 1 for item in items) else []
+
+
+def order_discounted(order):
+    return order.get("office_discount") is not None or bool(order.get("member_discount"))
 
 
 def moscow_time(value):

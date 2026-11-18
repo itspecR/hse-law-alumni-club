@@ -102,7 +102,7 @@ async def upload_avatar(request: HttpRequest):
     state = request.services
     try:
         if upload.content_type not in ("image/jpeg", "image/png", "image/webp"):
-            raise ApiError(400, "Поддерживаются JPEG, PNG или WebP.")
+            raise ApiError(400, "Выберите фото в формате JPEG, PNG или WebP.")
         try:
             file = await state.media.save(
                 upload, filename="avatar-" + alumni["id"], kind="avatar", max_bytes=3 * 1024 * 1024

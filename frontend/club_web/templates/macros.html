@@ -2,7 +2,7 @@
 <label class="site-field">{{ label }}{% if type == 'textarea' %}
 <textarea name="{{ name }}" {% if required %}required{% endif %}>{{ value or '' }}</textarea>
 {% else %}
-<input name="{{ name }}" type="{{ type }}" value="{{ value or '' }}" {% if required %}required{% endif %} {% if type == 'password' %}autocomplete="current-password"{% elif type == 'email' %}autocomplete="email"{% endif %}{% if remember %} data-auth-email{% endif %}>
+<input name="{{ name }}" type="{{ type }}" value="{{ value or '' }}" {% if required %}required{% endif %} {% if type == 'password' %}autocomplete="current-password"{% elif type == 'email' %}autocomplete="email"{% elif type == 'tel' %}autocomplete="tel"{% elif name == 'address' %}autocomplete="street-address"{% endif %}{% if remember %} data-auth-email{% endif %}>
 {% endif %}
 </label>
 {% endmacro %}
@@ -33,7 +33,7 @@
 </section>
 {% endmacro %}
 {% macro save(path,title,kind) %}
-<button type="button" class="save-material lux-btn lux-btn--ghost lux-btn--sm" data-action="save" data-href="{{ path }}" data-title="{{ title }}" data-kind="{{ kind }}" aria-pressed="false">Сохранить</button>
+<button type="button" class="save-material lux-btn lux-btn--ghost lux-btn--sm" data-action="save" data-href="{{ path }}" data-title="{{ title }}" data-kind="{{ kind }}" aria-label="Сохранить" aria-pressed="false">Сохранить</button>
 {% endmacro %}
 {% macro unavailable(title) %}
 <section class="session-unavailable" role="status">
