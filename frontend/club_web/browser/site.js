@@ -555,6 +555,20 @@ function emptyState(title) {
   return box;
 }
 
+const READING_KINDS = { portfolio: "Тренинг", program: "Программа ДПО", news: "Новость", change: "Изменение в праве", podcast: "Подкаст", event: "Событие", merch: "Мерч" };
+const savedDate = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Moscow" });
+
+function readingRow(item, removable) {
+  const row = element("div", undefined, { class: "site-reading-row" });
+  const meta = [READING_KINDS[item.kind], item.at ? (removable ? "сохранено " : "открыто ") + savedDate.format(item.at).replace(" г.", "") : ""].filter(Boolean).join(" · ");
+  const text = element("div", undefined, { class: "site-reading-row__text" });
+  if (meta) text.append(element("span", meta, { class: "site-reading-row__meta" }));
+  text.append(element("a", item.title, { href: url(item.path), class: "site-reading-item" }));
+  row.append(text);
+  if (removable) row.append(element("button", "Убрать", { class: "lux-link", "data-action": "remove-saved", "data-href": item.path, "aria-label": "Убрать «" + item.title + "»" }));
+  return row;
+}
+
 function renderReading() {
   const data = reading();
   document.querySelectorAll("[data-action='save']").forEach(button => {
@@ -573,12 +587,7 @@ function renderReading() {
     const query = (document.querySelector("[data-reading-search]")?.value || "").toLocaleLowerCase("ru").replace(/ё/g, "е").trim();
     const items = list.dataset.readingList === "recent" ? data.recent.slice(0, 4) : data.saved.filter(item => (!kind || item.kind === kind) && item.title.toLocaleLowerCase("ru").replace(/ё/g, "е").includes(query));
     if (!items.length) list.append(emptyState(list.dataset.readingList === "saved" && data.saved.length ? "По выбранным условиям ничего не найдено" : "Материалов пока нет"));
-    for (const item of items) {
-      const row = element("div", undefined, { class: "site-actions" });
-      row.append(element("a", item.title, { href: url(item.path), class: "site-reading-item" }));
-      if (list.dataset.readingList === "saved") row.append(element("button", "Удалить", { "data-action": "remove-saved", "data-href": item.path, "aria-label": "Удалить «" + item.title + "»" }));
-      list.append(row);
-    }
+    for (const item of items) list.append(readingRow(item, list.dataset.readingList === "saved"));
   });
   document.querySelectorAll("[data-reading-path]").forEach(article => { article.hidden = !!document.querySelector("[data-unread-filter]")?.checked && data.read.includes(article.dataset.readingPath); });
 }

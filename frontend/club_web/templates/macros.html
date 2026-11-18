@@ -33,7 +33,7 @@
 </section>
 {% endmacro %}
 {% macro save(path,title,kind) %}
-<button type="button" class="save-material lux-btn lux-btn--ghost lux-btn--sm" data-action="save" data-href="{{ path }}" data-title="{{ title }}" data-kind="{{ kind }}" aria-pressed="false">Сохранить</button>
+<button type="button" class="save-material lux-btn lux-btn--ghost lux-btn--sm" data-action="save" data-href="{{ path }}" data-title="{{ title }}" data-kind="{{ kind }}" aria-label="Сохранить" aria-pressed="false">Сохранить</button>
 {% endmacro %}
 {% macro unavailable(title) %}
 <section class="session-unavailable" role="status">
