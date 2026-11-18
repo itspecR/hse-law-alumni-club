@@ -276,6 +276,7 @@
     "podcast_year_price": 499900,
     "manual_points_max": 2000,
     "points_comment_max": 300,
-    "person_name_max": 100
+    "person_name_max": 100,
+    "password_min": 8
   }
 }

@@ -65,7 +65,7 @@
 </div>
 <div class="office-module__body"{% if not open %} hidden{% endif %}>
 {% for key,title,kind,wide,hint in shape.fields %}
-<label class="site-field{{ ' office-module__wide' if wide }}">{{ title }}{% if kind=='lines' %}<textarea data-module-field="{{ key }}" data-module-lines>{{ (row[key] or [])|join('\n') }}</textarea>{% elif kind=='textarea' %}<textarea data-module-field="{{ key }}">{{ row[key] or '' }}</textarea>{% else %}<input data-module-field="{{ key }}" value="{{ row[key] or '' }}"{% if key in shape.meta %} data-module-meta{% endif %}{% if hint %} placeholder="{{ hint }}"{% endif %}>{% endif %}</label>
+<label class="site-field{{ ' office-module__wide' if wide }}">{{ title }}{% if kind=='lines' %}<textarea data-module-field="{{ key }}" data-module-lines>{{ (row[key] or [])|join('\n') }}</textarea>{% elif kind=='textarea' %}<textarea data-module-field="{{ key }}">{{ row[key] or '' }}</textarea>{% elif kind=='number' %}<input type="number" min="0" step="1" inputmode="numeric" data-module-field="{{ key }}" data-module-number value="{{ row[key] if row[key] is not none else '' }}" placeholder="{{ hint }}">{% else %}<input data-module-field="{{ key }}" value="{{ row[key] or '' }}"{% if key in shape.meta %} data-module-meta{% endif %}{% if hint %} placeholder="{{ hint }}"{% endif %}>{% endif %}</label>
 {% endfor %}
 <button type="button" class="site-danger" data-action="module-remove">{{ shape.remove }}</button>
 </div>

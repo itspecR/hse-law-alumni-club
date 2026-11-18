@@ -1,8 +1,8 @@
-{% macro field(name,label,value='',type='text',required=true,remember=false) %}
+{% macro field(name,label,value='',type='text',required=true,remember=false,autocomplete='',minlength='') %}
 <label class="site-field">{{ label }}{% if type == 'textarea' %}
 <textarea name="{{ name }}" {% if required %}required{% endif %}>{{ value or '' }}</textarea>
 {% else %}
-<input name="{{ name }}" type="{{ type }}" value="{{ value or '' }}" {% if required %}required{% endif %} {% if type == 'password' %}autocomplete="current-password"{% elif type == 'email' %}autocomplete="email"{% elif type == 'tel' %}autocomplete="tel"{% elif name == 'address' %}autocomplete="street-address"{% endif %}{% if remember %} data-auth-email{% endif %}>
+<input name="{{ name }}" type="{{ type }}" value="{{ value or '' }}" {% if required %}required{% endif %} {% if minlength %}minlength="{{ minlength }}" {% endif %}{% if autocomplete %}autocomplete="{{ autocomplete }}"{% elif type == 'password' %}autocomplete="current-password"{% elif type == 'email' %}autocomplete="email"{% elif type == 'tel' %}autocomplete="tel"{% elif name == 'address' %}autocomplete="street-address"{% endif %}{% if remember %} data-auth-email{% endif %}>
 {% endif %}
 </label>
 {% endmacro %}
@@ -10,7 +10,7 @@
 <label class="site-field">{{ label }}<input name="{{ name }}" type="text" value="{{ value or '' }}" {% if required %}required{% endif %} autocomplete="name" minlength="2" maxlength="{{ domain.limits.person_name_max }}" pattern="[\p{L}\-'’. ]+" title="Буквы, пробел, дефис, апостроф и точка после инициала"></label>
 {% endmacro %}
 {% macro code_field() %}
-<label class="site-field">Код из письма<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label>
+<label class="site-field">Код из письма, 6 цифр<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" title="Введите 6 цифр из письма." required></label>
 {% endmacro %}
 {% macro course_modules(items,title) %}
 <section>
@@ -35,10 +35,10 @@
 {% macro save(path,title,kind) %}
 <button type="button" class="save-material lux-btn lux-btn--ghost lux-btn--sm" data-action="save" data-href="{{ path }}" data-title="{{ title }}" data-kind="{{ kind }}" aria-label="Сохранить" aria-pressed="false">Сохранить</button>
 {% endmacro %}
-{% macro unavailable(title) %}
+{% macro unavailable(title,place='кабинете') %}
 <section class="session-unavailable" role="status">
 <h1>{{ title }}</h1>
-<p>Не удалось проверить вход. Вход сохранен, повторите через минуту.</p>
+<p>Не удалось связаться с сервером. Вы остаетесь в {{ place }}, повторите через минуту.</p>
 <button data-action="refresh">Повторить</button>
 </section>
 {% endmacro %}
@@ -91,8 +91,8 @@
 <aside class="cabinet-gate__intro club-dark">
 <a href="/">Клуб выпускников<small>факультета права НИУ&nbsp;ВШЭ</small>
 </a>
-<h2>{% if office %}Панель <br>управления{% else %}Кабинет <br><em>выпускника</em>{% endif %}
-</h2>
+<p class="cabinet-gate__title">{% if office %}Панель <br>управления{% else %}Кабинет <br><em>выпускника</em>{% endif %}
+</p>
 <div class="cabinet-gate__benefits">
 {% if office %}<span>Заявки и проверка выпускников</span><span>Программы, события и публикации</span><span>Поддержка и показатели клуба</span>{% else %}<span>Скидка выпускника на программы</span><span>Запись на события</span><span>Заявки и баллы</span>{% endif %}
 </div>
@@ -102,7 +102,11 @@
 <p>{{ 'Только для сотрудников клуба.' if office else 'Скидка выпускника и все разделы кабинета откроются, когда мы подтвердим ваш статус.' }}</p>{{ field('email','Почта',type='email') }}{{ field('password','Пароль',type='password') }}<p role="alert" data-error hidden>
 </p>
 <button class="site-primary">{{ 'Войти' if office else 'Войти в кабинет' }}</button>
-{% if not office %}
+{% if office %}
+<div class="site-actions">
+<a href="/lk">Я выпускник: войти в кабинет</a>
+</div>
+{% else %}
 <div class="site-actions">
 <a href="/join">Вступить в клуб</a>
 <a href="/forgot{{ '?next='+next|urlencode if next=='/podcasts#podcast-subscription' else '' }}">Забыли пароль?</a>
