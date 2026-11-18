@@ -911,6 +911,13 @@ def test_feed_calendar_events_and_headings(page, width):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
+def test_support_without_form_points_to_club_mail(page):
+    page.goto("/support")
+    section = page.locator("section").filter(has=page.get_by_role("heading", name="Написать в поддержку"))
+    expect(section).to_contain_text("Форма обращений временно не работает. Напишите нам на club@pravohse.ru.")
+    expect(section.get_by_role("link", name="club@pravohse.ru")).to_have_attribute("href", "mailto:club@pravohse.ru")
+
+
 @pytest.mark.parametrize("width", [390, 1440])
 def test_search_page_row_and_support_questions(page, width):
     page.set_viewport_size({"width": width, "height": 900})

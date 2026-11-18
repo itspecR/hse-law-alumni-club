@@ -104,7 +104,7 @@ async def create_ticket(request: HttpRequest):
     state = request.services
     cfg = support_config(state.settings)
     if not cfg["enabled"]:
-        raise ApiError(503, "Поддержка пока не принимает обращения.")
+        raise ApiError(503, "Форма обращений временно не работает. Напишите на почту клуба со страницы поддержки.")
     if body.consentVersion != cfg["version"]:
         raise ApiError(409, "Условия изменились. Обновите страницу и ознакомьтесь с согласием.")
     request_hash = digest(
