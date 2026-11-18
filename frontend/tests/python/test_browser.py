@@ -2082,6 +2082,23 @@ def test_calendar_marks_today_and_event_card_reads_once(page):
     expect(page.get_by_text("Файл для календаря (.ics)", exact=True)).to_have_count(0)
 
 
+FIELD_STEP = 16
+
+
+def test_form_fields_keep_one_step(page):
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.goto("/lk")
+    fields = page.locator(".cabinet-gate__form .site-field")
+    expect(fields.first).to_be_visible()
+    assert (
+        round(
+            fields.nth(1).bounding_box()["y"]
+            - (fields.nth(0).bounding_box()["y"] + fields.nth(0).bounding_box()["height"])
+        )
+        == FIELD_STEP
+    )
+
+
 ARTICLE_TITLE_MAX = 48
 
 

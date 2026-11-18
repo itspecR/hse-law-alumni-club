@@ -159,6 +159,7 @@ html.lux .club-auth__card .site-panel { width: 100%; padding: clamp(28px, 4cqi, 
 html.lux .club-auth__card h1 { margin: 0 0 12px; }
 html.lux .club-auth__card .site-panel > p { color: var(--c-text-3); }
 html.lux .club-auth__card form { display: grid; gap: 16px; }
+html.lux :is(.club-auth__card form, .cabinet-gate__form, .profile-page form, .cart-page .site-two-col > aside.site-panel form) .site-field { margin: 0; }
 html.lux .club-auth__card .site-actions { justify-content: space-between; margin-top: 20px; }
 html.lux .club-auth__card details { margin-top: 12px; color: var(--c-text-3); }
 
