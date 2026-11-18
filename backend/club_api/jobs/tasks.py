@@ -5,7 +5,7 @@ from club_api.core.models import parse_date
 from club_api.modules.catalog import center
 from club_api.modules.donations.service import forget_expired_donors
 from club_api.modules.news.schedule import CHECK_MINUTE, scheduled_news
-from club_api.modules.notifications.mail import MAIL_RETENTION_DAYS
+from club_api.modules.notifications.mail import CLUB_NAME, MAIL_RETENTION_DAYS, club_subject
 from club_api.modules.portfolio.captcha import forget_expired
 
 EXPIRED_NAME = "срок хранения истек"
@@ -81,8 +81,8 @@ async def podcast_reminders(state):
             until = parse_date(row["podcast_sub_until"]).astimezone(ZoneInfo("Europe/Moscow")).strftime("%d.%m.%Y")
             await state.notifications.send_email(
                 to,
-                "Подписка на подкасты клуба заканчивается",
-                f"{row['fio'] or 'Здравствуйте'}!\n\nВаша подписка на подкасты клуба выпускников действует до {until}.\nПосле этой даты выпуски снова закроются.\n\nПродлить можно в разделе «Подкасты» на сайте клуба.",
+                club_subject("Подписка на подкасты заканчивается"),
+                f"Здравствуйте{', ' + row['fio'] if row['fio'] else ''}!\n\nВаша подписка на подкасты клуба действует до {until}.\nПосле этой даты выпуски снова закроются.\n\nПродлить можно в разделе «Подкасты» на сайте клуба: {state.settings.PUBLIC_URL}/podcasts\n\n{CLUB_NAME}",
             )
         await state.store.update("alumni", {"podcast_reminder_sent": True}, id=row["id"])
 

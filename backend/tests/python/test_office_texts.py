@@ -62,6 +62,15 @@ async def test_office_notices_name_office_sections_without_emoji():
     assert re.findall(EMOJI, order_text) == [] and re.findall(STYLE, order_text) == []
 
 
+async def test_order_notice_names_discount_only_when_applied():
+    sent = []
+    service = notifications(sent)
+    await service.order_notice("A-1", "Худи ×1", 420000, 0)
+    await service.order_notice("A-2", "Худи ×1", 420000, 10)
+    (_, plain), (_, discounted) = sent
+    assert "скидка" not in plain and "(скидка 10%)" in discounted
+
+
 def test_join_notices_point_to_members_section_without_emoji():
     assert routes.OFFICE_REVIEW == "Проверьте ее в панели управления, раздел «Выпускники»."
     assert re.findall(EMOJI, Path(routes.__file__).read_text()) == []

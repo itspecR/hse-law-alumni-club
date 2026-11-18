@@ -338,7 +338,7 @@ def test_live_system(name, width, height):
         order = result(submitted.value)
         assert order["total_estimate"] == 100000
         assert order["notified"]["ok"]
-        expect(page.get_by_role("heading", name="Заявка отправлена")).to_be_visible()
+        expect(page.get_by_role("heading", name=re.compile(r"^Заявка .+ принята$"))).to_be_visible()
         page.goto("/lk?section=orders")
         expect(page.locator("#orders")).to_contain_text(order["number"])
         orders = result(request.get("/api/admin/orders", headers=headers))["items"]
@@ -379,6 +379,7 @@ def test_live_system(name, width, height):
         ) as granted:
             grant = office.locator(f'[data-api="/admin/members/{member["id"]}/podcast-sub"]')
             office.locator(".office-more", has=grant).evaluate("node => { node.open = true; }")
+            office.once("dialog", lambda dialog: dialog.accept())
             grant.click()
         result(granted.value)
         assert result(request.get("/api/podcasts", headers=auth(previous_token)))["subscribed"]

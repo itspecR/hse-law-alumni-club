@@ -17,7 +17,11 @@ const officeKey = "club_admin_token";
 const readingKey = "club-reading-v1";
 const KOPECKS = 100;
 const TOAST_MS = 6000;
-const notNotifiedText = "Заявка сохранена, но мы не получили уведомление. Сообщите номер заявки в поддержку.";
+const notNotifiedText = "Заявка сохранена, но сотрудники клуба могли не получить оповещение. Если мы не свяжемся с вами, напишите в поддержку и укажите номер заявки.";
+
+function notNotifiedNote() {
+  return element("p", notNotifiedText, { class: "lux-warning" });
+}
 let pendingCart = 0;
 let pendingCheckout = false;
 let readingPageSaved = false;
@@ -339,12 +343,12 @@ async function updateCartCount() {
 
 function checkoutReceipt(result) {
   const section = element("main", undefined, { id: "main", class: "site-article" });
-  const heading = element("h1", "Заявка отправлена", { tabindex: "-1" });
-  section.append(heading, element("p", "Номер заявки: " + result.number), element("p", "Мы проверим состав и сумму заявки и свяжемся с вами по указанным контактам."), element("p", "Предварительная сумма " + rubles(result.total_estimate)));
-  if (!result.notified?.ok) section.append(element("p", notNotifiedText, { role: "alert" }));
+  const heading = element("h1", "Заявка " + result.number + " принята", { tabindex: "-1" });
+  section.append(heading, element("p", "Мы проверим состав и сумму заявки и свяжемся с вами по указанным контактам."), element("p", "Предварительная сумма " + rubles(result.total_estimate)));
+  if (!result.notified?.ok) section.append(notNotifiedNote());
   const payment = safeLink(result.payment_url, true);
   if (payment) section.append(element("a", "Оплатить через ЮKassa", { href: payment, class: "site-primary" }));
-  section.append(element("a", token() ? "К моим заявкам" : "Войти в кабинет", { href: url("lk#orders") }));
+  section.append(token() ? element("a", "Мои заявки", { href: url("lk#orders") }) : element("a", "Вернуться в мерч", { href: url("merch") }));
   document.querySelector("#page").replaceChildren(section);
   heading.focus();
   window.scrollTo(0, 0);
@@ -358,14 +362,32 @@ function estimateText(form, total) {
   return total ? "Предварительная сумма " + rubles(total) : form.querySelector("[data-quote]").dataset.pricePending;
 }
 
+let dockWatch;
+
+function watchApplicationDock() {
+  dockWatch?.disconnect();
+  const dock = document.querySelector(".portfolio-dock");
+  const application = document.querySelector("#application");
+  if (!dock || !application || !("IntersectionObserver" in window)) return;
+  dockWatch = new IntersectionObserver(([entry]) => dock.classList.toggle("is-hidden", entry.isIntersecting));
+  dockWatch.observe(application);
+}
+
+function markApplicationSent() {
+  document.querySelector(".portfolio-dock")?.remove();
+  const button = document.querySelector(".portfolio-buy a[href='#application']");
+  if (button) button.replaceWith(element("button", "Заявка отправлена", { class: "site-primary", type: "button", disabled: "" }));
+}
+
 function applicationReceipt(form, result) {
   const receipt = element("div", undefined, { role: "status", class: "portfolio-receipt", tabindex: "-1" });
   receipt.append(element("h3", "Заявка " + result.number + " принята"), element("p", "Участников: " + result.participants + " · " + estimateText(form, result.total_estimate).toLowerCase()));
   if (result.starts_on) receipt.append(element("p", "Старт потока: " + (form.querySelector("[name='cohort_id']:checked")?.dataset.start || result.starts_on)));
   if (result.message) receipt.append(element("p", result.message));
   receipt.append(element("p", "Мы свяжемся с вами по указанным контактам, чтобы согласовать договор и оплату."));
-  if (!result.notified?.ok) receipt.append(element("p", notNotifiedText, { role: "alert" }));
+  if (!result.notified?.ok) receipt.append(notNotifiedNote());
   form.replaceWith(receipt);
+  markApplicationSent();
   receipt.focus();
 }
 
@@ -435,8 +457,9 @@ async function perform(target, body) {
   if (buttons.some(unavailable)) return;
   const mark = focusMark();
   buttons.forEach(button => { button.setAttribute("aria-disabled", "true"); });
-  const oldText = buttons.map(button => button.textContent);
-  buttons.forEach(button => { button.textContent = "Подождите…"; });
+  const labelled = buttons.filter(button => !button.children.length && !button.hasAttribute("data-keep-label"));
+  const oldText = labelled.map(button => button.textContent);
+  labelled.forEach(button => { button.textContent = "Подождите…"; });
   const fields = checkout || application ? [...target.querySelectorAll("input,select,textarea")].map(input => ({ input, disabled: input.disabled })) : [];
   fields.forEach(({ input }) => { input.disabled = true; });
   let headers = {};
@@ -526,7 +549,8 @@ async function perform(target, body) {
     if (checkout) pendingCheckout = false;
     fields.forEach(({ input, disabled }) => { input.disabled = disabled; });
     if (cart) pendingCart--;
-    buttons.forEach((button, index) => { button.removeAttribute("aria-disabled"); button.textContent = oldText[index]; });
+    buttons.forEach(button => { button.removeAttribute("aria-disabled"); });
+    labelled.forEach((button, index) => { button.textContent = oldText[index]; });
     restoreFocus(mark);
   }
 }
@@ -670,6 +694,7 @@ function setupPage() {
   renderReading();
   prefillEmail();
   void prefillContacts();
+  watchApplicationDock();
   document.querySelectorAll("[data-member-link]").forEach(link => {
     link.dataset.guestLabel ||= link.textContent;
     link.dataset.guestHref ||= link.getAttribute("href");

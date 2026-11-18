@@ -13,11 +13,11 @@ from club_api.core.views import api_view, parse_body
 from club_api.domain import effective_discount, order_totals, rubles
 from club_api.modules.auth.routes import EmailBody, RegisterBody
 from club_api.modules.auth.service import require_alumni
-from club_api.modules.catalog.lookup import lookup_catalog
+from club_api.modules.catalog.lookup import lookup_catalog, variant_label
 from club_api.modules.checkout.cart import cart_session, load_cart
 from club_api.modules.checkout.payments import secure_payment_url
 from club_api.modules.checkout.store import digest
-from club_api.modules.notifications.mail import club_subject
+from club_api.modules.notifications.mail import CLUB_NAME, club_subject
 from club_api.modules.portfolio.captcha import RETRY_MESSAGE, CaptchaBody, require_captcha
 from club_api.modules.portfolio.cohorts import with_starts
 from club_api.observability.audit import audit
@@ -72,7 +72,8 @@ def priced_items(catalog, items):
         if not info:
             unavailable.append(item["title"] or item["ref_id"])
         else:
-            priced.append({**item, "price": info["price"], "title": info["title"]})
+            label = variant_label(info, item.get("variant_sku"))
+            priced.append({**item, "price": info["price"], "title": info["title"], "variant_label": label})
     return priced, list(dict.fromkeys(unavailable))
 
 
@@ -129,7 +130,9 @@ def order_base(body, alumni, priced, totals, discount, payments_enabled):
 
 def order_summary(priced):
     return "; ".join(
-        item["title"] + (f" ({item['variant_sku']})" if item.get("variant_sku") else "") + f" ×{item['qty']}"
+        item["title"]
+        + (f" ({item.get('variant_label') or item['variant_sku']})" if item.get("variant_sku") else "")
+        + f" ×{item['qty']}"
         for item in priced
     )
 
@@ -147,6 +150,14 @@ async def start_payment(state, number, total, email, receipt):
         logger.error("Не удалось создать платёж по заявке")
 
 
+def receipt_line(body, priced):
+    if not any(item["type"] == "merch" for item in priced):
+        return ""
+    if body.fulfillment == "delivery":
+        return f"Получение: доставка по адресу {body.address.strip()}.\n"
+    return "Получение: самовывоз.\n"
+
+
 async def notify_order(state, body, number, priced, totals, discount):
     summary = order_summary(priced)
     notified = await state.notifications.order_notice(number, summary, totals["total"], discount)
@@ -154,7 +165,8 @@ async def notify_order(state, body, number, priced, totals, discount):
         body.contact_email,
         club_subject(f"Заявка {number} принята"),
         f"Здравствуйте, {body.contact_fio}!\n\nВаша заявка {number} принята.\n{summary}\n"
-        f"Предварительная сумма {rubles(totals['total'])}.\n\nМы свяжемся с Вами, чтобы подтвердить детали.",
+        f"Предварительная сумма {rubles(totals['total'])}.\n{receipt_line(body, priced)}"
+        f"\nМы свяжемся с Вами, чтобы подтвердить детали.\n\n{CLUB_NAME}",
     )
     return notified
 

@@ -139,14 +139,21 @@ def news_sources(office, request, headers, name, directory):
 
 
 def member_form(office, member_id):
-    return office.locator(f'form[data-api="/admin/members/{member_id}"]:has([name="verification_status"])')
+    form = office.locator(f'form[data-api="/admin/members/{member_id}"]:has([name="verification_status"])')
+    office.locator("details.office-member-edit", has=form).evaluate("node => { node.open = true; }")
+    return form
 
 
 def member_verification(office, member_id):
     office.goto("/admin/members")
-    form = member_form(office, member_id)
-    form.locator('[name="verification_status"]').select_option("verified")
-    submit(office, form, "/admin/members/" + member_id, "PATCH")
+    row = office.locator("article.office-record").filter(
+        has=office.locator(f'form[data-api="/admin/members/{member_id}"]')
+    )
+    with office.expect_response(
+        lambda response: response.url.endswith("/api/admin/members/" + member_id) and response.request.method == "PATCH"
+    ) as confirmed:
+        row.get_by_role("button", name=re.compile("^Подтвердить «")).click()
+    assert confirmed.value.status == 200
     expect(member_form(office, member_id).locator('[name="verification_status"]')).to_have_value("verified")
 
 
@@ -165,10 +172,11 @@ def member_points_discount(office, request, headers, member_headers, member_id):
         row = office.locator("article.site-panel").filter(
             has=office.locator(f'form[data-api="/admin/members/{member_id}"]')
         )
+        row.locator("details.office-member-edit").evaluate("node => { node.open = true; }")
         row.get_by_text("Начислить или списать баллы", exact=True).click()
         form = row.locator(f'form[data-api="/admin/members/{member_id}/points"]')
         form.get_by_label("Изменение баллов", exact=True).fill(str(delta))
-        form.get_by_label("Комментарий", exact=True).fill("Проверка начисления")
+        form.get_by_label("Комментарий увидит выпускник", exact=True).fill("Проверка начисления")
         submit(office, form, "/admin/members/" + member_id + "/points")
         members = request.get("/api/admin/members", headers=headers).json()["items"]
         assert next(item for item in members if item["id"] == member_id)["points_cached"] == total

@@ -894,8 +894,7 @@ async def test_root_fragment_can_refresh_home_and_remains_uncacheable(browser_cl
 
 async def test_cart_forms_send_catalog_type(browser_client):
     response = await browser_client.get("/views/cart", headers={"x-cart-session": "test-session"})
-    assert '<input type="hidden" name="type" value="merch">' in response.text
-    assert '"type": "merch"' in response.text
+    assert response.text.count('"type": "merch"') == 3
 
 
 async def test_versioned_assets_are_cached_for_a_year(browser_client):

@@ -26,20 +26,29 @@
 </section>
 {% endif %}
 <div class="office-toolbar"><p>Выпускников на странице: {{ rows|length }}</p></div>
+{% if role not in ('admin','Administrator') %}<p class="office-meta">Проверку статуса, скидку и баллы меняет администратор клуба.</p>{% endif %}
 {% if point_programs %}<template id="point-programs">{% for label, programs in point_programs %}{% if programs %}<optgroup label="{{ label }}">{% for program in programs %}<option value="{{ program.id }}">{{ program.title }}</option>{% endfor %}</optgroup>{% endif %}{% endfor %}</template>{% endif %}
 <div class="office-list">
-{% for member in rows %}
+{% for member in rows|selectattr('verification_status','equalto','pending')|list + rows|rejectattr('verification_status','equalto','pending')|list %}
 <article class="site-panel office-record">
 <div class="office-record-head">
 <h2>{{ member.fio }}</h2>
 {{ status(member.verification_status) }}
-{% if role in ('admin','Administrator') %}{% call more(member.fio) %}<button data-api="/admin/members/{{ member.id }}/podcast-sub" aria-label="Выдать подписку на подкасты «{{ member.fio }}»">Выдать подписку на подкасты</button><button class="site-danger" data-api="/admin/members/{{ member.id }}/anonymize" data-confirm="Обезличить профиль выпускника и закрыть ему доступ?" aria-label="Обезличить «{{ member.fio }}»">Обезличить</button>{% endcall %}{% endif %}</div>
-<p class="office-meta">{{ member.email or '' }} · {{ member.cohort }} · {{ member.edu_program or '' }}</p>
-<p>{{ member.points_cached }} баллов{% if role in ('admin','Administrator') %} · <a href="/admin/members?id={{ member.id }}">История баллов</a>{% endif %}</p>
+{% if role in ('admin','Administrator') %}{% call more(member.fio) %}<button data-api="/admin/members/{{ member.id }}/podcast-sub" data-confirm="Выдать «{{ member.fio }}» подписку на подкасты на 12 месяцев?" aria-label="Выдать подписку на подкасты на год «{{ member.fio }}»">Выдать подписку на подкасты на год</button><button class="site-danger" data-api="/admin/members/{{ member.id }}/anonymize" data-confirm="Обезличить профиль выпускника и закрыть ему доступ?" aria-label="Обезличить «{{ member.fio }}»">Обезличить</button>{% endcall %}{% endif %}</div>
+<p class="office-meta">{{ [member.email, member.cohort and 'Выпуск ' ~ member.cohort, member.edu_program]|select|join(' · ') }}</p>
+<p>Баллы: {{ member.points_cached or 0 }}{% if role in ('admin','Administrator') %} · <a href="/admin/members?id={{ member.id }}">История баллов</a>{% endif %}</p>
 {% if member.education_document %}
 <p class="office-meta">Документ об образовании приложен{{ '.' if role in ('admin','Administrator') else ', открыть его может администратор.' }}{% if role in ('admin','Administrator') %} <button data-download="/admin/members/{{ member.id }}/education-document">Скачать документ</button>{% endif %}</p>
 {% endif %}
+{% if role in ('admin','Administrator') and member.verification_status=='pending' %}
+<div class="site-actions office-review">
+<button class="site-primary" data-api="/admin/members/{{ member.id }}" data-method="PATCH" data-body='{"verification_status":"verified"}' aria-label="Подтвердить «{{ member.fio }}»">Подтвердить</button>
+<button data-api="/admin/members/{{ member.id }}" data-method="PATCH" data-body='{"verification_status":"rejected"}' data-confirm="Отклонить заявку «{{ member.fio }}»? Выпускник получит письмо." aria-label="Отклонить «{{ member.fio }}»">Отклонить</button>
+</div>
+{% endif %}
 {% if role in ('admin','Administrator') %}
+<details class="office-member-edit">
+<summary>Изменить</summary>
 <form class="office-edit-grid" data-api="/admin/members/{{ member.id }}" data-method="PATCH">
 <label>Проверка<select aria-label="Проверка" name="verification_status">
 {% for status in ['pending','verified','rejected'] %}
@@ -76,12 +85,13 @@
 </label>
 <label class="site-field" data-points-field="program" hidden>Программа<select name="program_id" required disabled><option value="">Выберите программу</option></select>
 </label>
-<label class="site-field">Комментарий<input name="comment" maxlength="{{ domain.limits.points_comment_max }}">
+<label class="site-field">Комментарий увидит выпускник<input name="comment" maxlength="{{ domain.limits.points_comment_max }}">
 </label>
 <button>Применить</button>
 <p role="alert" data-error hidden>
 </p>
 </form>
+</details>
 </details>
 {% endif %}
 </article>

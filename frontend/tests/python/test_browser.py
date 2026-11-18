@@ -527,7 +527,7 @@ def test_checkout_error_keeps_contacts_and_replay_key(page, site):
     expect(page.get_by_label("ФИО", exact=True)).to_have_value("Тестовый выпускник")
     site[1]["order_failure"] = False
     page.get_by_role("button", name="Отправить заявку", exact=True).click()
-    expect(page.get_by_role("heading", name="Заявка отправлена")).to_be_visible()
+    expect(page.get_by_role("heading", name=re.compile(r"^Заявка .+ принята$"))).to_be_visible()
     orders = [write for write in site[2] if write["path"] == "/orders"]
     assert len(orders) == 2 and orders[0]["headers"]["idempotency-key"] == orders[1]["headers"]["idempotency-key"]
     assert all(order["body"]["captcha"]["number"] == 7 for order in orders)
@@ -660,8 +660,7 @@ def test_cart_update_preserves_checkout_draft(page, site, width):
     form.get_by_label("ФИО", exact=True).fill("Тестовое имя")
     form.get_by_label("Почта", exact=True).fill("test@example.test")
     form.locator("[name=consent_pdn]").check()
-    page.locator("form[data-cart] [name=qty]").fill("2")
-    page.locator("form[data-cart] button").click()
+    page.get_by_role("button", name="Увеличить количество: " + PRODUCT["title"], exact=True).click()
     expect(page.locator("#toast")).to_contain_text("Корзина обновлена")
     expect(form.get_by_label("ФИО", exact=True)).to_have_value("Тестовое имя")
     expect(form.get_by_label("Почта", exact=True)).to_have_value("test@example.test")
@@ -698,8 +697,8 @@ def test_checkout_blocks_cart_mutation_and_restores_fields_on_error(page, site):
     page.route("**/api/orders", lambda route: pending.append(route))
     form.get_by_role("button", name="Отправить заявку", exact=True).click()
     expect(form.get_by_label("ФИО", exact=True)).to_be_disabled()
-    page.locator("form[data-cart] button").click()
-    expect(page.locator("form[data-cart] [data-error]")).to_contain_text("Дождитесь отправки заявки")
+    page.get_by_role("button", name="Увеличить количество: " + PRODUCT["title"], exact=True).click()
+    expect(page.locator("#toast-error")).to_contain_text("Дождитесь отправки заявки")
     assert len([write for write in site[2] if write["path"] == "/cart"]) == 1
     assert len(pending) == 1
     pending[0].fulfill(status=503, json={"error": "Сервис временно недоступен"})
@@ -1420,15 +1419,47 @@ def test_cart_changes_include_type_when_slugs_match(page, site, width):
     records["/cart"] = {"items": items, "subtotal": 20000, "count": 2}
     page.goto("/cart")
     row = page.locator(".site-cart-row").filter(has=page.get_by_role("heading", name=PRODUCT["title"], exact=True))
-    row.get_by_role("spinbutton", name="Количество").fill("3")
+    expect(page.locator(".site-cart-row").first.locator(".cart-stepper button")).to_have_count(0)
     with page.expect_response(is_cart_change):
-        row.get_by_role("button", name="Обновить", exact=True).click()
-    assert writes[-1]["body"] == {"type": "merch", "ref_id": PROGRAM["slug"], "variant_sku": None, "qty": 3}
+        row.get_by_role("button", name="Увеличить количество: " + PRODUCT["title"], exact=True).click()
+    assert writes[-1]["body"] == {"type": "merch", "ref_id": PROGRAM["slug"], "variant_sku": None, "qty": 2}
     records["/cart"] = {"items": items, "subtotal": 20000, "count": 2}
     page.goto("/cart")
     with page.expect_response(is_cart_change):
-        row.get_by_role("button", name="Удалить из корзины: " + PRODUCT["title"], exact=True).click()
+        row.get_by_role("button", name="Удалить «" + PRODUCT["title"] + "»", exact=True).click()
     assert writes[-1]["body"] == {"type": "merch", "ref_id": PROGRAM["slug"], "variant_sku": None, "qty": 0}
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_cart_names_variant_and_keeps_total_white(page, site, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    item = {
+        "type": "merch",
+        "ref_id": PRODUCT["slug"],
+        "title": PRODUCT["title"],
+        "price": 420000,
+        "qty": 1,
+        "variant_sku": "hoodie-graphite-M",
+        "variant_label": "Размер M, графит",
+    }
+    site[1]["/cart"] = {"items": [item], "subtotal": 420000, "count": 1}
+    page.goto("/cart")
+    row = page.locator(".site-cart-row")
+    expect(row).to_contain_text("Размер M, графит · 4 200 ₽")
+    expect(row).not_to_contain_text("hoodie-graphite-M")
+    expect(row.locator(".cart-stepper__value")).to_have_text("1 шт.")
+    remove = row.get_by_role("button", name="Удалить «" + PRODUCT["title"] + "»", exact=True)
+    box = remove.bounding_box()
+    assert box["width"] >= 44 and box["height"] >= 44
+    price = page.locator("aside.site-panel .site-price")
+    assert price.evaluate("node => getComputedStyle(node).color") == page.locator("body").evaluate(
+        "node => getComputedStyle(node).color"
+    )
+    assert page.locator("aside.site-panel").evaluate("node => getComputedStyle(node).position") != "sticky"
+    expect(page.get_by_role("button", name="Очистить корзину", exact=True)).to_have_attribute(
+        "data-confirm", "Очистить корзину?"
+    )
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
@@ -1919,6 +1950,7 @@ def test_member_points_reason_switches_fields_and_sends_program(page, site, widt
     page.set_viewport_size({"width": width, "height": 900})
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
     page.goto("/admin/members")
+    page.get_by_text("Изменить", exact=True).click()
     page.get_by_text("Начислить или списать баллы", exact=True).click()
     form = page.locator("form.office-points")
     programs = form.locator("[name='program_id']")
@@ -1934,6 +1966,33 @@ def test_member_points_reason_switches_fields_and_sends_program(page, site, widt
         form.get_by_role("button", name="Применить", exact=True).click()
     write = next(row for row in site[2] if row["path"] == "/admin/members/member-1/points")
     assert write["body"] == {"reason": "program", "program_id": "dpo-program", "comment": ""}
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_pending_members_lead_with_review_buttons(page, site, width):
+    verified = {"id": "member-1", "fio": "Вымышленный Выпускник", "verification_status": "verified", "points_cached": 1}
+    pending = {
+        "id": "member-2",
+        "fio": "Вымышленная Заявительница",
+        "verification_status": "pending",
+        "points_cached": 0,
+        "cohort": 2024,
+    }
+    site[1]["/admin/members"] = {"items": [verified, pending], "total": 2}
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/members")
+    rows = page.locator("article.office-record")
+    expect(rows.first.locator("h2")).to_have_text(pending["fio"])
+    expect(rows.first.locator(".office-meta").first).to_have_text("Выпуск 2024")
+    expect(rows.nth(1)).to_contain_text("Баллы: 1")
+    expect(rows.first.locator("form.office-edit-grid").first).to_be_hidden()
+    expect(rows.nth(1).get_by_role("button", name=re.compile("^Подтвердить"))).to_have_count(0)
+    with page.expect_response(lambda response: response.url.endswith("/api/admin/members/member-2")):
+        rows.first.get_by_role("button", name="Подтвердить «" + pending["fio"] + "»", exact=True).click()
+    write = next(row for row in site[2] if row["path"] == "/admin/members/member-2")
+    assert write["method"] == "PATCH" and write["body"] == {"verification_status": "verified"}
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
@@ -3112,6 +3171,28 @@ def test_portfolio_promo_preview_and_application(page, site, width):
     receipt = page.locator(".portfolio-receipt")
     expect(receipt).to_contain_text("Промокод применен, скидка 15%.")
     assert site[2][-1]["body"]["promo_code"] == "spring-15"
+    expect(page.locator(".portfolio-buy").get_by_role("button", name="Заявка отправлена", exact=True)).to_be_disabled()
+    expect(page.locator(".portfolio-dock")).to_have_count(0)
+
+
+def test_portfolio_dock_hides_over_application_form(page, site):
+    page.set_viewport_size({"width": 390, "height": 800})
+    page.goto("/portfolio/club-one")
+    dock = page.locator(".portfolio-dock")
+    expect(dock).to_be_visible()
+    page.locator("#application").scroll_into_view_if_needed()
+    expect(dock).to_have_class(re.compile("is-hidden"))
+    expect(dock).to_be_hidden()
+
+
+def test_closed_program_hides_promo_line_and_names_next_intake(page, site):
+    site[1]["/portfolio/club-one"] = {**PORTFOLIO, "enrollment": "nonactual", "dates": {}}
+    page.goto("/portfolio/club-one")
+    panel = page.locator(".portfolio-buy")
+    expect(panel).to_contain_text("Набор закрыт")
+    expect(panel).not_to_contain_text("Промокод")
+    expect(page.locator(".program-facts")).to_contain_text("Следующий набор")
+    expect(page.locator(".program-facts")).not_to_contain_text("По мере набора")
 
 
 def test_portfolio_quote_keeps_kopecks(page, site):

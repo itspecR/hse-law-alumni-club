@@ -5,6 +5,7 @@ from test_portfolio_applications import FORM, GROUP, PRICE, apply, client_for, m
 from test_portfolio_cohorts import COHORT_PRICE, cohort
 
 from club_api.domain import rubles
+from club_api.modules.notifications.mail import CLUB_NAME
 from club_api.modules.portfolio.dates import display_date
 from club_api.modules.portfolio.orders import CONTACT_LINE
 
@@ -57,7 +58,9 @@ async def test_office_moves_application_and_recalculates_total(database_app, mai
         total,
     )
     assert f"со стартом {display_date(second['starts_on'])}" in mails[-1]["text"]
-    assert f"Предварительная сумма {rubles(total)}." in mails[-1]["text"] and mails[-1]["text"].endswith(CONTACT_LINE)
+    assert f"Предварительная сумма {rubles(total)}." in mails[-1]["text"] and mails[-1]["text"].endswith(
+        CONTACT_LINE + "\n\n" + CLUB_NAME
+    )
     assert (
         mails[-1]["subject"]
         == f"Заявка {row['number']} перенесена в другой поток - Клуб выпускников факультета права НИУ ВШЭ"

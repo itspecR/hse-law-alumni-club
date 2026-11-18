@@ -11,7 +11,7 @@ from club_api.core.schemas import Body
 from club_api.core.views import api_view, parse_body
 from club_api.db.queries import acquire_lock
 from club_api.domain import MAX_CART_LINES, MAX_LINE_QTY, effective_discount, order_totals, same_line, summarize_cart
-from club_api.modules.catalog.lookup import lookup_catalog
+from club_api.modules.catalog.lookup import lookup_catalog, variant_label
 
 ROUTE_LIMITS = {("POST", "/cart"): 40}
 
@@ -85,7 +85,11 @@ async def cart(request: HttpRequest):
     )
     catalog = await lookup_catalog(state.store, items) if items else {}
     priced = [
-        {**item, "price": catalog.get(item["type"] + ":" + item["ref_id"], {}).get("price", item["price"])}
+        {
+            **item,
+            "price": catalog.get(item["type"] + ":" + item["ref_id"], {}).get("price", item["price"]),
+            "variant_label": variant_label(catalog.get(item["type"] + ":" + item["ref_id"]), item.get("variant_sku")),
+        }
         for item in items
     ]
     return {

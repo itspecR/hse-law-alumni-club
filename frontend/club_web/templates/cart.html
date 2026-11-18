@@ -2,6 +2,7 @@
 {% from 'macros.html' import field,empty %}
 {% from 'macros.html' import consent with context %}
 {% from 'macros.html' import name_field with context %}
+{% from 'macros.html' import icon with context %}
 {% block content %}
 <main id="main" class="site-container cart-page">
 <header class="site-masthead">
@@ -15,22 +16,18 @@
 <article class="site-cart-row">
 <div>
 <h2>{{ item.title }}</h2>
-<p>{{ [item.variant_sku, item.price|rub]|select|join(' · ') }}</p>
+<p>{{ [item.variant_label or item.variant_sku, item.price|rub]|select|join(' · ') }}</p>
 </div>
-<form data-api="/cart" data-method="PATCH" data-cart>
-<input type="hidden" name="type" value="{{ item.type }}">
-<input type="hidden" name="ref_id" value="{{ item.ref_id }}">
-<input type="hidden" name="variant_sku" value="{{ item.variant_sku or '' }}">
-<label>Количество<input type="number" name="qty" min="0" max="99" value="{{ item.qty }}">
-</label>
-<button>Обновить</button>
-<p role="alert" data-error hidden>
-</p>
-</form>
-<button data-api="/cart" data-method="PATCH" data-body='{{ {"type":item.type,"ref_id":item.ref_id,"variant_sku":item.get("variant_sku"),"qty":0}|tojson }}' data-cart aria-label="Удалить из корзины: {{ item.title }}">Удалить из корзины</button>
+{% set line = {"type":item.type,"ref_id":item.ref_id,"variant_sku":item.get("variant_sku")} %}
+<div class="cart-stepper" role="group" aria-label="Количество: {{ item.title }}">
+{% if item.type == 'merch' %}<button class="cart-stepper__button" data-keep-label data-api="/cart" data-method="PATCH" data-body='{{ dict(line, qty=item.qty - 1)|tojson }}' data-cart aria-label="Уменьшить количество: {{ item.title }}">−</button>{% endif %}
+<span class="cart-stepper__value" aria-live="polite">{{ item.qty }} шт.</span>
+{% if item.type == 'merch' %}<button class="cart-stepper__button" data-keep-label data-api="/cart" data-method="PATCH" data-body='{{ dict(line, qty=item.qty + 1)|tojson }}' data-cart aria-label="Увеличить количество: {{ item.title }}" {% if item.qty >= domain.limits.max_line_qty %}disabled{% endif %}>+</button>{% endif %}
+</div>
+<button class="cart-remove" data-api="/cart" data-method="PATCH" data-body='{{ dict(line, qty=0)|tojson }}' data-cart aria-label="Удалить «{{ item.title }}»">{{ icon('close', 20) }}</button>
 </article>
 {% endfor %}
-<button data-api="/cart" data-method="DELETE" data-cart>Очистить корзину</button>
+<button class="lux-link cart-clear" data-api="/cart" data-method="DELETE" data-cart data-confirm="Очистить корзину?">Очистить корзину</button>
 </div>
 <aside class="site-panel">
 <h2>Оформить заявку</h2>

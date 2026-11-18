@@ -15,7 +15,7 @@ from club_api.domain import PORTFOLIO_CATALOG, order_totals
 from club_api.modules.auth.routes import EmailBody, RegisterBody
 from club_api.modules.catalog.scope import PUBLISHED_PORTFOLIO
 from club_api.modules.checkout.store import PENDING_NOTICE, digest
-from club_api.modules.notifications.mail import club_subject
+from club_api.modules.notifications.mail import CLUB_NAME, club_subject
 from club_api.modules.portfolio.captcha import RETRY_MESSAGE, CaptchaBody, require_captcha
 from club_api.modules.portfolio.cohorts import canonical_id, chosen_cohort, cohort_price
 from club_api.modules.portfolio.dates import display_date
@@ -212,7 +212,7 @@ async def notify(state, number, base, starts_on):
         club_subject(f"Заявка {number} принята"),
         f"Здравствуйте, {base['contact_fio']}!\n\nВаша заявка {number} принята.\n{text}\n"
         f"{estimate_line(base['total_estimate'])}\n\n"
-        "Платить на сайте не нужно. " + CONTACT_LINE,
+        "Платить на сайте не нужно. " + CONTACT_LINE + "\n\n" + CLUB_NAME,
     )
     return notified
 

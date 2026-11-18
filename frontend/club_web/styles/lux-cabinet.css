@@ -205,8 +205,20 @@ html.lux input[type="file"]::file-selector-button { min-height: 44px; margin-rig
 html.lux .cart-page .site-cart-row { gap: 12px 20px; padding: 24px 0; border-color: var(--c-line); }
 html.lux .cart-page .site-cart-row h2 { margin: 0 0 8px; font: 400 21px/1.3 var(--f-body); letter-spacing: -0.015em; }
 html.lux .cart-page .site-cart-row p { margin: 0; color: var(--c-text-3); font-variant-numeric: tabular-nums; }
-html.lux .cart-page .site-cart-row form label { font-size: 13px; color: var(--c-text-3); }
-html.lux .cart-page .site-two-col > div > button { margin-top: 16px; }
+html.lux .cart-page .site-cart-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; }
+html.lux .cart-stepper { display: inline-flex; justify-self: start; align-items: center; gap: 4px; padding: 0; border-radius: 999px; background: var(--lux-control); }
+html.lux .cart-stepper__button, html.lux .cart-remove { display: inline-grid; place-items: center; width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--c-text); font-size: 20px; }
+html.lux .cart-stepper__value { min-width: 48px; text-align: center; font-variant-numeric: tabular-nums; }
+html.lux .cart-stepper:not(:has(button)) { padding: 0 16px; min-height: 44px; }
+html.lux .cart-remove { color: var(--c-text-3); }
+html.lux .cart-page .site-two-col > div > button.cart-clear { margin-top: 12px; padding: 0; border: 0; background: none; border-radius: 0; }
+@media (hover: hover) and (pointer: fine) {
+  html.lux :is(.cart-stepper__button, .cart-remove):not(:disabled):hover { background: var(--lux-hover); color: var(--c-text); }
+}
+@media (max-width: 480px) {
+  html.lux .cart-page .site-cart-row { grid-template-columns: minmax(0, 1fr) auto; }
+  html.lux .cart-page .site-cart-row > div:first-child { grid-column: 1 / -1; }
+}
 html.lux .cart-page .site-two-col > aside.site-panel { display: grid; gap: 12px; }
 html.lux .cart-page .site-two-col > aside.site-panel h2 { margin: 0; }
 html.lux .cart-page .site-two-col > aside.site-panel .site-price { margin: 4px 0; }
