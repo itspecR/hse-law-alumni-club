@@ -28,36 +28,36 @@
 <p>Заполните анкету. Когда мы подтвердим ваш статус, откроется кабинет со скидкой выпускника.</p>
 <form data-api="/auth/register" data-registration>{{ name_field('fio','ФИО') }}{{ field('email','Почта',type='email') }}{{ field('cohort','Год выпуска') }}<label class="site-field">Уровень образования<select name="edu_level">
 {% for level in ['бакалавриат','магистратура','специалитет','аспирантура'] %}
-<option>{{ level }}</option>
+<option value="{{ level }}">{{ level|capitalize }}</option>
 {% endfor %}
 </select>
-</label>{{ field('edu_program','Образовательная программа') }}{{ field('password','Пароль, не меньше 8 символов',type='password') }}<fieldset data-max-interests="{{ domain.limits.max_interests }}">
+</label>{{ field('edu_program','Образовательная программа') }}{{ field('password','Пароль, не меньше 8 символов',type='password',autocomplete='new-password',minlength=domain.limits.password_min) }}<fieldset data-max-interests="{{ domain.limits.max_interests }}">
 <legend>Интересы в праве · до {{ domain.limits.max_interests }}</legend>
 <p class="site-field-note" data-interest-limit aria-live="polite"></p>
 {% for interest in domain.legal_interests %}
 <label class="site-checkbox">
 <input type="checkbox" name="interests" value="{{ interest }}">{{ interest }}</label>
 {% endfor %}
-</fieldset><p>Как работают кабинет и проверка выпуска, описано в <a href="/terms">пользовательском соглашении</a>.</p>{{ consent() }}{{ mailing_field('consent_mailing') }}<button class="site-primary">Отправить заявку</button>
+</fieldset><p>Как мы проверяем статус выпускника и что есть в кабинете, описано в <a href="/terms">пользовательском соглашении</a>.</p>{{ consent() }}{{ mailing_field('consent_mailing') }}<button class="site-primary">Отправить заявку</button>
 <p role="alert" data-error hidden>
 </p>
 </form>
 {% elif path=='/forgot' %}
-<p>Пришлем код на почту выпускника. Сотрудники клуба восстанавливают доступ через оператора.</p>
+<p>Введите почту, с которой вы входите в кабинет. Пришлем на нее код для нового пароля.</p>
 <form data-api="/auth/forgot" data-continue="reset">{{ field('email','Почта',type='email') }}<button class="site-primary">Получить код</button>
 <p role="alert" data-error hidden>
 </p>
 </form>
 {% elif path=='/reset' %}
 <p>Если аккаунт с этой почтой есть, мы отправили на нее код. Введите код из письма и новый пароль.</p>
-<form data-api="/auth/reset" data-success="Пароль изменен. Войдите в кабинет с новым паролем.">{{ field('email','Почта',type='email',remember=true) }}{{ code_field() }}{{ field('password','Новый пароль, не меньше 8 символов',type='password') }}{{ field('repeat_password','Повторите пароль',type='password') }}<button class="site-primary">Сохранить пароль</button>
+<form data-api="/auth/reset" data-success="Пароль изменен. Войдите в кабинет с новым паролем.">{{ field('email','Почта',type='email',remember=true) }}{{ code_field() }}{{ field('password','Новый пароль, не меньше 8 символов',type='password',autocomplete='new-password',minlength=domain.limits.password_min) }}{{ field('repeat_password','Повторите пароль',type='password',autocomplete='new-password',minlength=domain.limits.password_min) }}<button class="site-primary">Сохранить пароль</button>
 <p role="alert" data-error hidden>
 </p>
 </form>
 <p>Код не пришел или устарел? <a href="/forgot{{ '?next='+query.get('next')|urlencode if query.get('next')=='/podcasts#podcast-subscription' else '' }}">Получить новый код</a></p>
 {% else %}
 <p>Мы отправили код на почту из заявки. Введите его, чтобы подтвердить почту.</p>
-<form data-api="/auth/confirm" data-success="Почта подтверждена. Мы проверим заявку.">{{ field('email','Почта',type='email',remember=true) }}{{ code_field() }}<button class="site-primary">Подтвердить почту</button>
+<form data-api="/auth/confirm" data-replace-with="confirmed">{{ field('email','Почта',type='email',remember=true) }}{{ code_field() }}<button class="site-primary">Подтвердить почту</button>
 <p role="alert" data-error hidden>
 </p>
 </form>
@@ -66,9 +66,10 @@
 <a href="/lk{{ '?next='+query.get('next')|urlencode if query.get('next')=='/podcasts#podcast-subscription' else '' }}">Войти в кабинет</a>
 <a href="/">На главную</a>
 </div>
-{% if path!='/join' or joining %}
+{% if path=='/confirm' %}
+<template id="confirmed"><section class="site-empty" role="status"><h2 class="site-empty__title">Почта подтверждена</h2><p>Теперь мы проверим, что вы выпускник факультета. Обычно это 1-2 рабочих дня, о решении напишем на почту. Пока можно войти в кабинет и добавить фото.</p><a class="site-primary" href="/lk">Войти в кабинет</a></section></template>
 <details>
-<summary>Отправить код подтверждения еще раз</summary>
+<summary>Код подтверждения не пришел?</summary>
 <form data-api="/auth/resend-confirmation" data-success="Если заявка с этой почтой ожидает подтверждения, новый код придет на этот адрес. Повторно код можно запросить через минуту.">{{ field('email','Почта для нового кода',type='email',remember=true) }}<button>Отправить код</button>
 <p role="alert" data-error hidden>
 </p>

@@ -96,7 +96,7 @@ def login(page, email, password, office=False):
         page.get_by_role("button", name="Войти" if office else "Войти в кабинет", exact=True).click()
     if result(response.value).get("code_required"):
         code = mail_code(page.context.request, email, STAFF_CODE_SUBJECT)
-        page.get_by_label("Код из письма", exact=True).fill(code)
+        page.get_by_label("Код из письма, 6 цифр", exact=True).fill(code)
         with page.expect_response(
             lambda response: response.url.endswith("/api/auth/admin-code") and response.request.method == "POST"
         ) as confirmed:
@@ -271,7 +271,9 @@ def test_live_system(name, width, height):
         assert registration.value.status == 200, registration.value.status
         expect(page.get_by_role("heading", name="Подтвердить почту", exact=True)).to_be_visible()
         expect(page.get_by_label("Почта", exact=True)).to_have_value(email)
-        page.get_by_label("Код из письма", exact=True).fill(mail_code(request, email, "Код подтверждения почты"))
+        page.get_by_label("Код из письма, 6 цифр", exact=True).fill(
+            mail_code(request, email, "Код подтверждения почты")
+        )
         with page.expect_response(
             lambda response: response.url.endswith("/api/auth/confirm") and response.request.method == "POST"
         ) as confirmed:
@@ -407,7 +409,9 @@ def test_live_system(name, width, height):
             page.get_by_role("button", name="Получить код", exact=True).click()
         expect(page.get_by_role("heading", name="Новый пароль", exact=True)).to_be_visible()
         expect(page.get_by_label("Почта", exact=True)).to_have_value(email)
-        page.get_by_label("Код из письма", exact=True).fill(mail_code(request, email, "Код для восстановления пароля"))
+        page.get_by_label("Код из письма, 6 цифр", exact=True).fill(
+            mail_code(request, email, "Код для восстановления пароля")
+        )
         page.get_by_label("Новый пароль, не меньше 8 символов", exact=True).fill(value("E2E_LIVE_NEW_PASSWORD"))
         page.get_by_label("Повторите пароль", exact=True).fill(value("E2E_LIVE_NEW_PASSWORD"))
         with page.expect_response(

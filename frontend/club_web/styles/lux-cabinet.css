@@ -2,8 +2,8 @@ html.lux .cabinet-gate { max-width: 1040px; margin: clamp(32px, 5cqi, 72px) auto
 html.lux .cabinet-gate__intro { display: grid; align-content: start; padding: clamp(28px, 4cqi, 56px); background: none; }
 html.lux .cabinet-gate__intro > a { display: inline-flex; flex-direction: column; min-height: 44px; color: var(--c-text); font-size: 15px; font-weight: 600; text-decoration: none; }
 html.lux .cabinet-gate__intro > a small { margin-top: 2px; font-size: 13px; font-weight: 400; color: var(--c-text-3); }
-html.lux .cabinet-gate__intro h2 { margin: clamp(32px, 5cqi, 64px) 0 16px; font: 200 clamp(36px, 4cqi, 52px)/1.04 var(--f-display); letter-spacing: -0.04em; font-kerning: none; }
-html.lux .cabinet-gate__intro h2 em, html.lux .club-auth__aside h2 em { font-style: normal; color: inherit; }
+html.lux .cabinet-gate__intro .cabinet-gate__title { margin: clamp(32px, 5cqi, 64px) 0 16px; font: 200 clamp(36px, 4cqi, 52px)/1.04 var(--f-display); letter-spacing: -0.04em; font-kerning: none; }
+html.lux .cabinet-gate__intro .cabinet-gate__title em, html.lux .club-auth__aside h2 em { font-style: normal; color: inherit; }
 html.lux .cabinet-gate__intro p { color: var(--c-text-3); font-size: 17px; }
 html.lux .cabinet-gate__benefits span { padding: 16px 0; border-color: var(--c-line); font-size: 15px; color: var(--c-text-2); }
 html.lux .cabinet-gate__form[hidden] { display: none; }
@@ -11,6 +11,10 @@ html.lux .cabinet-gate__form { display: grid; align-content: start; gap: 16px; p
 html.lux .cabinet-gate__form h1 { margin: 0; font-size: clamp(28px, 3cqi, 36px); }
 html.lux .cabinet-gate__form > p { margin: 0 0 8px; color: var(--c-text-3); }
 html.lux .cabinet-gate__form > label { font-size: 15px !important; letter-spacing: 0 !important; text-transform: none !important; color: var(--c-text-3); }
+html.lux .cabinet-gate__form > label :is(input, select, textarea) { font-size: 16px; }
+@media (max-width: 600px) {
+  html.lux .cabinet-gate__intro > a { display: none; }
+}
 html.lux .cabinet-gate__form .site-primary { margin-top: 8px; }
 html.lux .cabinet-gate__form .site-actions { justify-content: space-between; margin: 4px 0 0; }
 

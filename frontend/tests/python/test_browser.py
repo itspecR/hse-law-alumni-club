@@ -2703,12 +2703,24 @@ def test_block_spacing_follows_grid(dpo, page, site, path, selector):
         assert value == "normal" or float(value.removesuffix("px")) % SPACING_STEP == 0
 
 
+def test_login_error_hides_when_fields_change(page):
+    page.goto("/lk")
+    form = page.locator("form[data-api='/auth/login']")
+    form.evaluate(
+        "node => { const box = node.querySelector('[data-error]'); box.textContent = 'Ошибка'; box.hidden = false; }"
+    )
+    form.get_by_label("Почта", exact=True).fill("graduate@example.test")
+    expect(form.locator("[data-error]")).to_be_hidden()
+
+
 @pytest.mark.parametrize("width", [390, 1440])
 def test_login_and_join_layout(page, width):
     page.set_viewport_size({"width": width, "height": 900})
     page.goto("/lk")
     expect(page.get_by_text("Почта", exact=True)).to_have_css("text-transform", "none")
-    expect(page.get_by_role("heading", name="Кабинет выпускника", exact=True)).to_be_visible()
+    expect(page.locator(".cabinet-gate__title")).to_have_text("Кабинет выпускника")
+    expect(page.get_by_role("heading", level=1)).to_have_text("Вход для выпускников")
+    expect(page.get_by_label("Почта", exact=True)).to_have_css("font-size", "16px")
     page.goto("/join")
     photo = page.locator(".club-auth__aside img").bounding_box()
     copy = page.locator(".club-auth__aside-copy").bounding_box()
@@ -2754,7 +2766,7 @@ def test_office_login_asks_for_code_from_mail(page, site, width):
     page.get_by_label("Почта", exact=True).fill("office@example.test")
     page.get_by_label("Пароль", exact=True).fill("synthetic-office-password")
     page.get_by_role("button", name="Войти", exact=True).click()
-    code = page.get_by_label("Код из письма", exact=True)
+    code = page.get_by_label("Код из письма, 6 цифр", exact=True)
     expect(code).to_be_focused()
     expect(page.get_by_role("heading", name="Вход в панель", exact=True)).to_be_hidden()
     expect(page.locator("[data-staff-code-note]")).to_have_text(
@@ -2787,7 +2799,7 @@ def test_member_login_asks_for_code_after_many_failures(page, site, width):
     site[1]["member_code"] = True
     page.set_viewport_size({"width": width, "height": 900})
     page.goto("/lk")
-    code = page.get_by_label("Код из письма", exact=True)
+    code = page.get_by_label("Код из письма, 6 цифр", exact=True)
     expect(code).to_be_hidden()
     page.get_by_label("Почта", exact=True).fill("member@example.test")
     page.get_by_label("Пароль", exact=True).fill("synthetic-member-password")
@@ -2814,7 +2826,7 @@ def test_office_login_explains_operator_code_when_mail_fails(page, site):
     page.get_by_label("Пароль", exact=True).fill("synthetic-office-password")
     page.get_by_role("button", name="Войти", exact=True).click()
     expect(page.locator("[data-staff-code-note]")).to_have_text(
-        "Письмо с кодом не отправилось. Попросите оператора сервера выдать код командой admin-code."
+        "Письмо с кодом не отправилось. Попросите код у администратора сайта."
     )
 
 
@@ -2835,12 +2847,14 @@ def test_registration_leads_to_code_with_remembered_email(page, site, width):
     assert next(row for row in site[2] if row["path"] == "/auth/register")["body"]["consent_mailing"] is True
     expect(page.get_by_label("Почта", exact=True)).to_have_value("graduate@example.test")
     expect(page.get_by_label("Почта для нового кода", exact=True)).to_have_value("graduate@example.test")
-    code = page.get_by_label("Код из письма", exact=True)
+    code = page.get_by_label("Код из письма, 6 цифр", exact=True)
     expect(code).to_have_attribute("autocomplete", "one-time-code")
     expect(code).to_have_attribute("inputmode", "numeric")
     code.fill("123456")
     page.get_by_role("button", name="Подтвердить почту", exact=True).click()
-    expect(page.locator("#toast")).to_contain_text("Почта подтверждена")
+    expect(page.get_by_role("heading", name="Почта подтверждена", exact=True)).to_be_focused()
+    expect(page.get_by_role("link", name="Войти в кабинет", exact=True).first).to_be_visible()
+    expect(page.locator("form[data-api='/auth/confirm']")).to_have_count(0)
     write = next(row for row in site[2] if row["path"] == "/auth/confirm")
     assert write["body"] == {"email": "graduate@example.test", "code": "123456"}
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
@@ -2871,7 +2885,7 @@ def test_password_recovery_keeps_email_and_subscription_return(page, site, width
     expect(page.get_by_role("link", name="Получить новый код", exact=True)).to_have_attribute(
         "href", "/forgot?next=/podcasts%23podcast-subscription"
     )
-    page.get_by_label("Код из письма", exact=True).fill("654321")
+    page.get_by_label("Код из письма, 6 цифр", exact=True).fill("654321")
     page.get_by_label("Новый пароль, не меньше 8 символов", exact=True).fill("synthetic-new-password")
     page.get_by_label("Повторите пароль", exact=True).fill("synthetic-new-password")
     page.get_by_role("button", name="Сохранить пароль", exact=True).click()
