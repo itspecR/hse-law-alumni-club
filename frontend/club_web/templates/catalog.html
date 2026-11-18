@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'macros.html' import save %}
+{% from 'macros.html' import empty,save %}
 {% block content %}
 {% set filter_labels={'direction':'Направление','format':'Формат','document':'Документ','enrollment':'Набор','category':'Категория'} %}
 <main id="main" class="site-container catalog-page">
@@ -34,7 +34,8 @@
 </section>
 <script type="application/json" id="program-data">{{ program_data|tojson }}</script>
 {% endif %}
-<form class="site-filters" method="get" id="program-list">
+{% set catalog_empty = not items and not query %}
+{% if not catalog_empty %}<form class="site-filters" method="get" id="program-list">
 {% if kind=='dpo' %}<input type="hidden" name="compare" value="{{ query.get('compare','') }}">{% endif %}
 <label>Поиск<input type="search" name="q" value="{{ query.get('q','') }}" placeholder="Название">
 </label>
@@ -56,12 +57,13 @@
 <button>Показать</button>
 <a href="{{ path }}">Сбросить</a>
 </form>
+{% endif %}
 {% if kind=='dpo' %}<aside id="program-compare" class="dpo-compare-bar site-panel" aria-label="Выбранные программы" hidden>
 <p data-compare-count role="status"></p><div data-compare-selected></div>
 <button data-action="show-compare">Сравнить выбранные программы</button>
 <button data-action="clear-compare">Очистить</button>
 </aside>{% endif %}
-<p role="status">Найдено: {{ items|length }}</p>
+{% if catalog_empty %}{{ empty('Программ пока нет' if kind=='dpo' else 'Товаров пока нет', ('Программы появятся здесь.' if kind=='dpo' else 'Мерч клуба появится здесь.') + ' Анонсы публикуем в Telegram-канале клуба.', telegram_channel, 'Канал клуба в Telegram') }}{% else %}<p role="status">Найдено: {{ items|length }}</p>{% endif %}
 <div class="site-catalog">
 {% for item in items %}
 <article class="site-catalog-card" data-reveal data-catalog-row>

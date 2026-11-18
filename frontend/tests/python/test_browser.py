@@ -1423,7 +1423,7 @@ def test_cart_changes_include_type_when_slugs_match(page, site, width):
     records["/cart"] = {"items": items, "subtotal": 20000, "count": 2}
     page.goto("/cart")
     with page.expect_response(is_cart_change):
-        row.get_by_role("button", name="Удалить", exact=True).click()
+        row.get_by_role("button", name="Удалить из корзины: " + PRODUCT["title"], exact=True).click()
     assert writes[-1]["body"] == {"type": "merch", "ref_id": PROGRAM["slug"], "variant_sku": None, "qty": 0}
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 

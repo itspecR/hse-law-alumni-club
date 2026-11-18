@@ -534,6 +534,12 @@ function writeReading(data) {
   renderReading();
 }
 
+function emptyState(title) {
+  const box = element("div", undefined, { class: "site-empty", role: "status" });
+  box.append(element("p", title, { class: "site-empty__title" }));
+  return box;
+}
+
 function renderReading() {
   const data = reading();
   document.querySelectorAll("[data-action='save']").forEach(button => {
@@ -551,7 +557,7 @@ function renderReading() {
     const kind = document.querySelector("[data-reading-kind]")?.value;
     const query = (document.querySelector("[data-reading-search]")?.value || "").toLocaleLowerCase("ru").replace(/ё/g, "е").trim();
     const items = list.dataset.readingList === "recent" ? data.recent.slice(0, 4) : data.saved.filter(item => (!kind || item.kind === kind) && item.title.toLocaleLowerCase("ru").replace(/ё/g, "е").includes(query));
-    if (!items.length) list.append(element("p", list.dataset.readingList === "saved" && data.saved.length ? "По выбранным условиям ничего не найдено." : "Материалов пока нет.", { role: "status" }));
+    if (!items.length) list.append(emptyState(list.dataset.readingList === "saved" && data.saved.length ? "По выбранным условиям ничего не найдено" : "Материалов пока нет"));
     for (const item of items) {
       const row = element("div", undefined, { class: "site-actions" });
       row.append(element("a", item.title, { href: url(item.path), class: "site-reading-item" }));

@@ -31,7 +31,7 @@
 </h2>
 <p>{{ item.description or '' }}</p>{{ save('/podcasts/'+(item|address),item.title,'podcasts') }}</div>
 </article>
-{% else %}{{ empty('Выпуски пока не опубликованы.') }}{% endfor %}
+{% else %}{{ empty('Выпусков пока нет', 'Первый выпуск появится на этой странице. Анонсы публикуем в Telegram-канале клуба.', telegram_channel, 'Канал клуба в Telegram') }}{% endfor %}
 </div>
 </main>
 {% endblock %}
