@@ -53,6 +53,8 @@ html.lux .site-article { max-width: 760px; }
 html.lux .site-article > .lux-back { margin-top: 0; }
 html.lux .site-article > time { display: block; margin-top: 20px; font-size: 15px; }
 html.lux .site-article > h1 { margin: 12px 0 20px; }
+html.lux .site-article[data-reading-kind] > h1 { font-size: clamp(32px, 4cqi, 48px); }
+html.lux .site-article :is(p, li) { max-width: 68ch; }
 html.lux .site-lead { font-size: clamp(19px, 1.6cqi, 23px); line-height: 1.45; letter-spacing: -0.015em; }
 html.lux .site-article .site-prose { margin-top: 28px; font-size: 18px; line-height: 1.65; color: var(--c-text-2); }
 html.lux .site-article .site-prose p { margin: 0 0 1em; }

@@ -14,7 +14,7 @@ html.lux, html.lux .club-dark {
   --lux-hover: #1d1d1f;
   --lux-header: 52px;
   --lux-form: 480px;
-  --lux-section-size: clamp(26px, 2.6cqi, 34px);
+  --lux-section-size: clamp(30px, 2.6cqi, 34px);
   --lux-arrow: 44px;
   --c-bg: var(--lux-black);
   --c-bg-raised: var(--lux-raised);

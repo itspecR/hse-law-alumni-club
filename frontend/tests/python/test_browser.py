@@ -2069,6 +2069,35 @@ def test_vision_panel_shows_values_and_moves_focus(page):
 TAB_MIN_HEIGHT = 44
 
 
+ARTICLE_TITLE_MAX = 48
+
+
+@pytest.mark.parametrize("width", [390, 620, 768])
+def test_page_edges_follow_one_gutter(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    for path in ("/news", "/merch", "/lk"):
+        page.goto(path)
+        brand = page.locator(".club-header__brand").bounding_box()["x"]
+        assert round(
+            page.locator("main").first.evaluate("node => node.firstElementChild.getBoundingClientRect().left")
+        ) >= round(brand)
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), path
+    page.goto("/news")
+    assert round(page.locator("main h1").bounding_box()["x"]) == round(
+        page.locator(".club-header__brand").bounding_box()["x"]
+    )
+
+
+def test_news_title_stays_compact_on_desktop(page):
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.goto("/news/" + NEWS["slug"])
+    assert (
+        float(page.locator("main h1").evaluate("node => parseFloat(getComputedStyle(node).fontSize)"))
+        <= ARTICLE_TITLE_MAX
+    )
+
+
 BUTTON_LOOK = (
     "node => { const s = getComputedStyle(node); return [s.borderRadius, s.fontSize, s.fontWeight, s.minHeight]; }"
 )
