@@ -176,7 +176,8 @@ def media(office, request, token, name):
             response.url.endswith("/api/admin/media/" + image["id"]) and response.request.method == "DELETE"
         )
     ) as blocked:
-        row.get_by_role("button", name="Удалить", exact=True).click()
+        row.locator(".office-more").evaluate("node => { node.open = true; }")
+        row.get_by_role("button", name=re.compile(r"^Удалить «")).click()
     assert blocked.value.status == 409
     expect(office.locator("#toast-error")).to_contain_text("Файл используется")
     expect(row).to_be_visible()
@@ -187,7 +188,8 @@ def media(office, request, token, name):
             response.url.endswith("/api/admin/media/" + image["id"]) and response.request.method == "DELETE"
         )
     ) as deleted:
-        row.get_by_role("button", name="Удалить", exact=True).click()
+        row.locator(".office-more").evaluate("node => { node.open = true; }")
+        row.get_by_role("button", name=re.compile(r"^Удалить «")).click()
     result(deleted.value)
     expect(row).to_have_count(0)
     assert request.get(f"/api/admin/media/{image['id']}/content", headers=headers).status == 404

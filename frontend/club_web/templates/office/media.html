@@ -13,14 +13,16 @@
 <div class="office-list">
 {% for file in rows %}
 <article class="site-panel office-record">
+<div class="office-record-head">
 <h2>{{ file.title or file.filename_download }}</h2>
+{% call more(file.title or file.filename_download) %}<button class="site-danger" data-api="/admin/media/{{ file.id }}" data-method="DELETE" data-confirm="Удалить этот файл?" aria-label="Удалить «{{ file.title or file.filename_download }}»">Удалить</button>{% endcall %}
+</div>
 <p class="office-meta">{{ file.type }} · {{ file.filesize }} байт</p><p class="office-media-id">{{ file.id }}</p>
 <label>Ссылка на файл<input readonly value="/api/media/{{ file.id }}">
 </label>
 <div class="site-actions"><button data-action="media-preview" data-file-id="{{ file.id }}" data-file-type="{{ file.type }}" data-title="{{ file.title or file.filename_download }}">Предпросмотр</button>
 <button data-action="copy" data-value="{{ file.id }}">Скопировать ID</button>
 <button data-download="/admin/media/{{ file.id }}/content" data-filename="{{ file.filename_download }}">Скачать</button>
-<button class="site-danger" data-api="/admin/media/{{ file.id }}" data-method="DELETE" data-confirm="Удалить этот файл?">Удалить</button>
 </div>
 </article>
 {% else %}{{ empty('Файлов пока нет.') }}{% endfor %}

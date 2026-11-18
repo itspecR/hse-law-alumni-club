@@ -736,6 +736,18 @@ document.addEventListener("submit", async event => {
 
 document.addEventListener("click", switchCabinetSection);
 
+document.addEventListener("click", event => {
+  for (const menu of document.querySelectorAll(".office-more[open]")) if (!menu.contains(event.target)) menu.open = false;
+});
+
+document.addEventListener("keydown", event => {
+  if (event.key !== "Escape") return;
+  const menu = event.target.closest?.(".office-more[open]");
+  if (!menu) return;
+  menu.open = false;
+  menu.querySelector("summary").focus();
+});
+
 document.addEventListener("click", async event => {
   const target = event.target.closest("[data-action],button[data-api],[data-download]");
   if (!target) return;
