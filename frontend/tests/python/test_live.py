@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 
 import pytest
 from live_features import (
+    accept_confirm,
     campaign_from_template,
     content_forms,
     event_attendance,
@@ -170,7 +171,6 @@ def media(office, request, token, name):
     assert published.body() == IMAGE
     assert request.get("/assets/" + image["id"]).status == 200
     assert request.get("/api/media/" + audio["id"]).status == 404
-    office.once("dialog", lambda dialog: dialog.accept())
     with office.expect_response(
         lambda response: (
             response.url.endswith("/api/admin/media/" + image["id"]) and response.request.method == "DELETE"
@@ -178,11 +178,11 @@ def media(office, request, token, name):
     ) as blocked:
         row.locator(".office-more").evaluate("node => { node.open = true; }")
         row.get_by_role("button", name=re.compile(r"^Удалить «")).click()
+        accept_confirm(office)
     assert blocked.value.status == 409
     expect(office.locator("#toast-error")).to_contain_text("Файл используется")
     expect(row).to_be_visible()
     result(request.delete("/api/admin/news/" + news["id"], headers=headers))
-    office.once("dialog", lambda dialog: dialog.accept())
     with office.expect_response(
         lambda response: (
             response.url.endswith("/api/admin/media/" + image["id"]) and response.request.method == "DELETE"
@@ -190,6 +190,7 @@ def media(office, request, token, name):
     ) as deleted:
         row.locator(".office-more").evaluate("node => { node.open = true; }")
         row.get_by_role("button", name=re.compile(r"^Удалить «")).click()
+        accept_confirm(office)
     result(deleted.value)
     expect(row).to_have_count(0)
     assert request.get(f"/api/admin/media/{image['id']}/content", headers=headers).status == 404
@@ -379,8 +380,8 @@ def test_live_system(name, width, height):
         ) as granted:
             grant = office.locator(f'[data-api="/admin/members/{member["id"]}/podcast-sub"]')
             office.locator(".office-more", has=grant).evaluate("node => { node.open = true; }")
-            office.once("dialog", lambda dialog: dialog.accept())
             grant.click()
+            accept_confirm(office)
         result(granted.value)
         assert result(request.get("/api/podcasts", headers=auth(previous_token)))["subscribed"]
         editor = office_token(request, value("TEST_EDITOR_EMAIL"), value("TEST_EDITOR_PASSWORD"))

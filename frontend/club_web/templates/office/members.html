@@ -21,7 +21,7 @@
 {% for entry in point_history['items'] %}
 {% set label = reason_labels.get(entry.reason, entry.reason) %}
 <li><span class="office-meta">{{ entry.created_at|date(true) }} · {{ label }}</span><span>{{ entry.comment if entry.comment and entry.comment != label else '' }}</span><strong>{{ '+' if entry.delta > 0 else '' }}{{ entry.delta }}</strong></li>
-{% else %}<li>Записей пока нет.</li>{% endfor %}
+{% else %}<li>Начислений и списаний пока нет.</li>{% endfor %}
 </ul>
 </section>
 {% endif %}
