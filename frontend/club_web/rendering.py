@@ -29,6 +29,7 @@ from club_web.formatting import (
     safe_url,
 )
 from club_web.icons import ICONS
+from club_web.office import audit_label
 from club_web.rich_text import rich_text
 from club_web.status_tones import office_tone, order_tone, payment_chip
 
@@ -80,6 +81,7 @@ def environment(**options):
         price_pending=PRICE_PENDING,
         icons=ICONS,
         payment_chip=payment_chip,
+        audit_label=audit_label,
         order_discounted=order_discounted,
         order_lines=order_lines,
         order_title=order_title,
