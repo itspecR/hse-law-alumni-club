@@ -141,6 +141,7 @@ html.lux .club-header__tools { gap: 0; margin-left: 4px; }
 html.lux .club-header__tools .club-chrome-icon-btn { width: 44px; height: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--lux-mute); transition: color 160ms ease; }
 html.lux .club-header__cta { position: relative; min-height: 32px; margin-left: 4px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--c-accent); color: var(--c-on-accent); font: 600 14px/1 var(--f-body); letter-spacing: -0.01em; text-transform: none; box-shadow: none; transition: transform 160ms var(--ease-out), background-color 160ms ease; }
 html.lux .club-header__cta::after { content: ""; position: absolute; inset: -6px -2px; }
+html.lux .club-header__cta--ghost { background: transparent; color: var(--c-text); box-shadow: inset 0 0 0 1px var(--c-line-control); }
 html.lux .club-header__cta:active { transform: scale(0.97); }
 html.lux .club-header__join { position: relative; display: flex; }
 html.lux .club-header__login { position: absolute; top: 100%; left: 4px; right: 0; display: flex; align-items: center; justify-content: center; min-height: 32px; margin-top: 8px; border-radius: 999px; background: var(--lux-control); color: var(--c-text); font: 600 14px/1 var(--f-body); letter-spacing: -0.01em; text-decoration: none; opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), visibility 0s linear 160ms, background-color 160ms ease; }
@@ -180,6 +181,7 @@ html.lux #toast { border-radius: 999px; background: var(--lux-ink); color: var(-
   html.lux .club-header__tools .club-chrome-icon-btn:hover,
   html.lux .club-footer :is(a, button):hover { color: var(--lux-ink); text-decoration: none; }
   html.lux .club-header__cta:hover { background: var(--p-ohra-hover); }
+  html.lux .club-header__cta--ghost:hover { background: var(--lux-hover); }
   .lux-btn:hover, html.lux .site-primary:hover { background: var(--p-ohra-hover); }
   html.lux .lux-link:hover { color: var(--c-text); text-decoration-color: currentColor; }
   .lux-btn--ghost:hover { background: var(--lux-hover); }

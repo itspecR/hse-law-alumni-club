@@ -40,6 +40,7 @@ from club_web.office import (
     visible_groups,
 )
 from club_web.pricing import discount_tiers, member_prices
+from club_web.registration import registration_open
 from club_web.schema import TELEGRAM_CHANNEL
 from club_web.search import search_groups
 from club_web.tabs import mobile_tabs
@@ -370,14 +371,6 @@ async def page_texts(api, slug):
     except ApiFailure:
         return {}
     return reply if isinstance(reply, dict) else {}
-
-
-async def join_page(page):
-    try:
-        reply = await page.api.get("/auth/registration")
-    except ApiFailure:
-        reply = {}
-    page.data["registration_open"] = isinstance(reply, dict) and reply.get("enabled") is True
 
 
 async def about_texts(api):
@@ -798,7 +791,6 @@ PAGE_ROUTES = (
     (lambda page: page.path == "/cart" and "x-cart-session" in page.api.headers, cart_page),
     (lambda page: page.path == "/support", support_page),
     (lambda page: page.path == "/about", about_page),
-    (lambda page: page.path == "/join", join_page),
     (lambda page: page.path == "/give", give_page),
     (lambda page: page.template == "campaign.html", campaign_page),
     (lambda page: page.path.startswith("/admin"), office_page),
@@ -853,6 +845,8 @@ async def context(api, path, params, authorized=False):
     }
     data["point_values"] = {rule["reason"]: rule["points"] for rule in data["domain"]["point_rules"]}
 
+    if not path.startswith("/admin"):
+        data["registration_open"] = await registration_open(api)
     page = Page(api, path, params, authorized, template, data)
     handler = next((handler for matches, handler in PAGE_ROUTES if matches(page)), None)
     if handler:

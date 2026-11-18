@@ -22,11 +22,14 @@
 <div class="club-auth__card">
 <div class="site-panel">
 <h1>{{ title }}</h1>
+{% if path=='/join' %}
+<section class="site-empty" data-member-only hidden><h2 class="site-empty__title">Вы уже в клубе</h2><p>Вы вошли в кабинет. Там видны статус проверки, скидка выпускника и ваши заявки.</p><a class="site-primary" href="/lk">Открыть кабинет</a></section>
+{% endif %}
 {% if path=='/join' and not joining %}
-<p data-join-paused>Раздел в&nbsp;разработке. Скоро здесь можно будет вступить в&nbsp;клуб и&nbsp;открыть личный кабинет. Следите за&nbsp;новостями в&nbsp;<a href="{{ telegram_channel }}" target="_blank" rel="noopener noreferrer">нашем канале в&nbsp;Telegram</a>.</p>
+<p data-join-paused data-guest-only>Раздел в&nbsp;разработке. Скоро здесь можно будет вступить в&nbsp;клуб и&nbsp;открыть личный кабинет. Следите за&nbsp;новостями в&nbsp;<a href="{{ telegram_channel }}" target="_blank" rel="noopener noreferrer">нашем канале в&nbsp;Telegram</a>.</p>
 {% elif joining %}
-<p>Заполните анкету. Когда мы подтвердим ваш статус, откроется кабинет со скидкой выпускника.</p>
-<form data-api="/auth/register" data-registration>{{ name_field('fio','ФИО') }}{{ field('email','Почта',type='email') }}{{ field('cohort','Год выпуска') }}<label class="site-field">Уровень образования<select name="edu_level">
+<p data-guest-only>Заполните анкету. Когда мы подтвердим ваш статус, откроется кабинет со скидкой выпускника.</p>
+<form data-api="/auth/register" data-registration data-guest-only>{{ name_field('fio','ФИО') }}{{ field('email','Почта',type='email') }}{{ field('cohort','Год выпуска') }}<label class="site-field">Уровень образования<select name="edu_level">
 {% for level in ['бакалавриат','магистратура','специалитет','аспирантура'] %}
 <option value="{{ level }}">{{ level|capitalize }}</option>
 {% endfor %}

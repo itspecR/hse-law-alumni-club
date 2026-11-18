@@ -2703,6 +2703,24 @@ def test_block_spacing_follows_grid(dpo, page, site, path, selector):
         assert value == "normal" or float(value.removesuffix("px")) % SPACING_STEP == 0
 
 
+@pytest.mark.parametrize("width", [390, 1440])
+def test_join_for_signed_in_member_points_to_cabinet(page, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/join")
+    tile = page.locator("[data-member-only]")
+    expect(tile.get_by_role("heading", name="Вы уже в клубе", exact=True)).to_be_visible()
+    expect(tile.get_by_role("link", name="Открыть кабинет", exact=True)).to_have_attribute("href", "/lk")
+    expect(page.locator("form[data-registration]")).to_be_hidden()
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+def test_join_for_guest_keeps_form(page):
+    page.goto("/join")
+    expect(page.locator("[data-member-only]")).to_be_hidden()
+    expect(page.locator("form[data-registration]")).to_be_visible()
+
+
 def test_login_error_hides_when_fields_change(page):
     page.goto("/lk")
     form = page.locator("form[data-api='/auth/login']")

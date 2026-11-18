@@ -103,8 +103,8 @@
 </div>
 <a href="/give" class="foc club-header__give" aria-label="Поддержать факультет" {% if path=='/give' %}aria-current="page"{% endif %}>Поддержать</a>
 <div class="club-header__join">
-<a href="/join" class="foc club-header__cta" data-member-link>Вступить</a>
-<a href="/lk" class="foc club-header__login" data-guest-only>Войти</a>
+{% if registration_open %}<a href="/join" class="foc club-header__cta" data-member-link>Вступить</a>
+<a href="/lk" class="foc club-header__login" data-guest-only>Войти</a>{% else %}<a href="/lk" class="foc club-header__cta club-header__cta--ghost" data-member-link>Войти</a>{% endif %}
 </div>
 </nav>
 <button class="foc club-header__burger" data-action="menu" aria-expanded="false" aria-controls="club-menu" aria-label="Открыть меню">{{ tab_icon('menu', 22, 'site-icon menu-icon menu-icon--open') }}{{ tab_icon('close', 22, 'site-icon menu-icon menu-icon--close') }}</button>
@@ -118,8 +118,8 @@
 <a href="/cart">Корзина</a>
 <button data-action="vision">Версия для слабовидящих</button>
 <a href="/give" class="club-menu__give">Поддержать факультет</a>
-<a href="/join" data-member-link>Вступить в клуб</a>
-<a href="/lk" data-guest-only>Войти</a>
+{% if registration_open %}<a href="/join" data-member-link>Вступить в клуб</a>
+{% endif %}<a href="/lk" data-guest-only>Войти</a>
 </nav>
 </header>
 {% endif %}
