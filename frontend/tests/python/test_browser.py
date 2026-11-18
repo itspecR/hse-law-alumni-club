@@ -4648,3 +4648,26 @@ def test_office_filters_fold_behind_button_on_phone(page, site):
     expect(filters.locator("select[name=status]")).to_be_visible()
     page.set_viewport_size({"width": 1440, "height": 900})
     expect(toggle).to_be_hidden()
+
+
+PERSON_CARD = """selector => [...document.querySelectorAll(selector)].map(card => {
+  const photo = card.querySelector('img, .camp-speakers__photo, .portfolio-trainer__initials');
+  return { photo: photo.getBoundingClientRect().width, card: card.getBoundingClientRect().width, list: card.parentElement.getBoundingClientRect().width };
+})"""
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_trainer_and_speaker_cards_show_large_photo_one_per_row(page, site, width):
+    photo = "/assets/teachers/avakyan-elena-georgievna.jpg"
+    trainer = {"id": "trainer-1", "fio": "Анна Ведущая", "photo": photo, "bio": "Практик переговоров."}
+    site[1]["/portfolio/club-one"] = {**PORTFOLIO, "trainers": [trainer, {**trainer, "id": "trainer-2", "photo": ""}]}
+    speaker = {"fio": "Вера Спикер", "bio": "Адвокат.", "photo": photo, "role": "speaker"}
+    site[1]["/campaigns/intensive"] = {**SITE_CAMPAIGN, "speakers": [speaker, {**speaker, "photo": ""}]}
+    page.set_viewport_size({"width": width, "height": 900})
+    for path, selector in (("/portfolio/club-one", ".portfolio-trainer"), ("/give/intensive", ".camp-speakers li")):
+        page.goto(path)
+        page.locator(selector).first.scroll_into_view_if_needed()
+        cards = page.evaluate(PERSON_CARD, selector)
+        assert len(cards) == 2 and all(card["photo"] == pytest.approx(120, abs=1) for card in cards), cards
+        assert all(card["card"] == pytest.approx(card["list"], abs=1) for card in cards), cards
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")

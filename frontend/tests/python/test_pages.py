@@ -998,6 +998,17 @@ async def test_portfolio_program_page_leads_with_facts_and_price():
     assert '<p class="lux-price lux-price--pending">Стоимость уточняется</p>' in closed
 
 
+async def test_coming_program_shows_its_state_without_application():
+    soon = {**PORTFOLIO, "enrollment": "soon", "dates": None}
+    page = await portfolio_page(soon)
+    panel = page[page.index('class="site-panel portfolio-buy"') : page.index('class="portfolio-body"')]
+    assert '<p role="status">Готовится к запуску. Набор откроется позже.</p>' in panel
+    assert "portfolio-dock" not in page and 'id="application"' not in page and "Промокод" not in panel
+    card = (await portfolio_listing([soon])).split('<article class="site-catalog-card program-card"')[1]
+    assert '<p class="program-status">Готовится к запуску</p>' in card
+    assert club_programs_preview([soon, PORTFOLIO], date(2026, 11, 1))[0]["slug"] == PORTFOLIO["slug"]
+
+
 async def test_portfolio_cards_show_enrollment_facts_and_price_without_member_discount():
     cohorts = [{"starts_on": "2026-12-01", "price": 3900000}, {"starts_on": "2027-02-01", "price": 0}]
     closed = {**PORTFOLIO, "slug": "club-two", "direction": "", "enrollment": "nonactual", "price": 0, "dates": None}
@@ -1861,6 +1872,12 @@ async def test_program_editor_pages_for_existing_new_and_missing_program(browser
     assert '<a href="/admin/portfolio">Портфель программ</a>' in existing and "office-page-header--record" in existing
     assert 'data-action="refresh"' not in existing.split('id="main"', 1)[1].split("</header>", 1)[0]
     assert 'data-method="DELETE" data-next="/admin/portfolio"' in existing
+    enrollment = existing.split('name="enrollment"', 1)[1].split("</select>", 1)[0]
+    assert re.findall(r"<option[^>]*>([^<]+)</option>", enrollment) == [
+        "Набор открыт",
+        "Готовится к запуску",
+        "Набор закрыт",
+    ]
     assert [
         block in existing
         for block in ('id="program-main"', 'id="program-about"', 'id="program-course"', 'id="program-publish"')

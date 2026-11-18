@@ -1,5 +1,5 @@
 const UNSAVED = "Есть несохраненные изменения";
-const CLOSED = "nonactual";
+const OPEN = "actual";
 const EDITING_ACTIONS = ["module-add", "module-remove", "module-up", "module-down"].map(action => `[data-action="${action}"]`).join(",");
 
 function selected(form, name) {
@@ -30,7 +30,7 @@ function renderPreview(form, preview) {
   price.textContent = amount > 0 ? rubles(amount) : price.dataset.pending;
   const enrollment = slot(preview, "enrollment");
   enrollment.textContent = selected(form, "enrollment");
-  enrollment.classList.toggle("program-status--open", form.elements.namedItem("enrollment")?.value !== CLOSED);
+  enrollment.classList.toggle("program-status--open", form.elements.namedItem("enrollment")?.value === OPEN);
 }
 
 function markBlocks(root) {

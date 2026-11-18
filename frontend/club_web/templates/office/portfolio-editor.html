@@ -11,7 +11,7 @@
 <article class="program-card office-program-preview" data-program-preview aria-hidden="true">
 <div class="office-program-preview__media">{% if program.cover|media %}<img src="{{ program.cover|media }}" alt="" width="560" height="320">{% else %}<span class="office-program__mark">{{ icon('portfolio') }}</span>{% endif %}</div>
 <div class="office-program-preview__body">
-<p class="program-status{{ ' program-status--open' if program.enrollment!='nonactual' }}" data-preview="enrollment">{{ labels.get(program.enrollment or 'actual') }}</p>
+<p class="program-status{{ ' program-status--open' if program|enrollment_open }}" data-preview="enrollment">{{ labels.get(program.enrollment or 'actual') }}</p>
 <span class="club-caps" data-preview="direction">{{ program.direction or '' }}</span>
 <h3 data-preview="title" data-empty="Название программы">{{ program.title or 'Название программы' }}</h3>
 <p class="office-meta" data-preview="facts">{{ [format_labels.get(program.format,program.format)|capitalize if program.format,program.duration]|select|join(' · ') }}</p>
