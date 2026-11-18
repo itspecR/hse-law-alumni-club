@@ -83,7 +83,7 @@
 <a href="{{ href }}"{{ outside|safe }}>{{ item.title }}</a>
 </h2>
 {% if kind=='dpo' %}
-<p>{{ [(format_labels.get(item.format,item.format) or '')|capitalize, item.duration, 'набор закрыт' if item.enrollment=='nonactual' else 'набор открыт']|select|join(' · ') }}</p>
+<p>{{ [(format_labels.get(item.format,item.format) or '')|capitalize, item.duration, (item|enrollment_label)|lower]|select|join(' · ') }}</p>
 {% endif %}
 <p class="site-price">{{ item.price_label if kind=='dpo' else item.price|rub }}</p>
 {% if item.member_from %}<p>Цена выпускника от&nbsp;{{ item.member_from }}</p>{% endif %}

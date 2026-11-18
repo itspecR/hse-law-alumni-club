@@ -245,14 +245,8 @@ async def test_home_heading_names_the_club_and_skips_hidden_dpo():
         page = (await client.get("/")).text
     heading = re.search(r"<h1[^>]*>(.*?)</h1>", page, re.S)[1]
     assert '<span class="lux-hero__name">Клуб выпускников факультета права НИУ&nbsp;ВШЭ</span>' in heading
-    assert "Свои" in heading and page.count("<h1") == 1
-    assert '<p class="lux-hero__next">Тренинги, события и&nbsp;подкасты.</p>' in page
-
-
-async def test_home_mentions_dpo_when_the_section_is_open(dpo):
-    async with site(**{"/programs": []}) as client:
-        page = (await client.get("/")).text
-    assert "Тренинги, ДПО по&nbsp;цене выпускника, события и&nbsp;подкасты.</p>" in page
+    assert "Традиции," in heading and page.count("<h1") == 1
+    assert "ДПО" not in page.split('<p class="lux-hero__next"')[1].split("</p>")[0]
 
 
 async def test_support_hides_answers_about_closed_sections():
@@ -376,12 +370,13 @@ async def test_record_without_readable_address_keeps_its_old_one():
 
 
 GIVE_LEDE = (
-    "Пожертвование клубу&nbsp;- способ поблагодарить факультет и&nbsp;поучаствовать в&nbsp;его развитии. "
-    "Средства идут на&nbsp;проекты, которые помогают факультету оставаться ведущим центром юридического образования."
+    "Клуб дает выпускникам возможность поддержать факультет и&nbsp;внести вклад в&nbsp;его развитие. "
+    "Участие помогает в&nbsp;реализации проектов, которые способствуют укреплению его статуса как ведущего центра "
+    "юридического образования."
 )
 
 
-async def test_giving_is_told_as_gratitude_and_growth():
+async def test_giving_is_told_as_support_and_contribution():
     async with site(**{"/donations/config": {"enabled": True, "card": True, "transfer": False}}) as client:
         give = (await client.get("/give")).text
         home = (await client.get("/")).text
@@ -390,9 +385,9 @@ async def test_giving_is_told_as_gratitude_and_growth():
     assert "<p>Встречи выпускников, конференции и&nbsp;семинары.</p>" in give
     for old in ("стажировки", "формы обучения", "идут на&nbsp;развитие факультета"):
         assert old not in give and old not in home
+    assert "поблагодарить" not in give and "поблагодарить" not in home
     assert head(give)["description"] == (
-        "Способ поблагодарить факультет права НИУ ВШЭ и поучаствовать в его развитии. "
-        "Пожертвования помогают ему оставаться ведущим центром юридического образования."
+        "Как поддержать факультет права НИУ ВШЭ и внести вклад в развитие ведущего центра юридического образования."
     )
 
 
@@ -407,7 +402,7 @@ async def test_about_page_shows_the_approved_text_until_the_office_changes_it():
         guide = (await client.get("/llms.txt")).text
     page, meta = response.text, head(response.text)
     assert response.status_code == 200 and "<h1>О клубе</h1>" in page and ABOUT_START in page
-    assert '<a href="mailto:club@pravohse.ru"' in page and "оставаться ведущим центром юридического образования" in page
+    assert '<a href="mailto:club@pravohse.ru"' in page and "ведущего центра юридического образования" in page
     for removed in ("подкаст", "формы обучения", "стажировки"):
         assert removed not in page.split('<main id="main"')[1].split("</main>")[0]
     assert meta["title"] == ABOUT_TITLE and meta["canonical"] == SITE + "/about" and meta["robots"] == "index,follow"

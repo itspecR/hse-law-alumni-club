@@ -5,6 +5,7 @@ import { prepareHome } from "./home.js";
 import { prepareGive } from "./give.js";
 import { moduleAction, prepareCourse } from "./course.js";
 import { prepareProgramEditor } from "./program-editor.js";
+import { formatAction, formatKey } from "./format.js";
 import { hideSkeleton, prepareSkeleton } from "./skeleton.js";
 import { focusHeading, focusMark, focusPageStart, restoreFocus } from "./focus.js";
 import { clearInvalid, fieldMessage, invalidControl, markInvalid } from "./field-errors.js";
@@ -857,6 +858,7 @@ document.addEventListener("input", event => {
 });
 
 document.addEventListener("click", switchCabinetSection);
+document.addEventListener("keydown", formatKey);
 
 document.addEventListener("click", event => {
   for (const menu of document.querySelectorAll(".office-more[open]")) if (!menu.contains(event.target)) menu.open = false;
@@ -880,6 +882,7 @@ document.addEventListener("click", async event => {
     if (action === "refresh") await refresh();
     else if (action === "close-toast") target.closest("#toast-error").hidden = true;
     else if (action.startsWith("module-")) moduleAction(target, action);
+    else if (action === "format") formatAction(target);
     else if (action === "add-person") await addPerson(target);
     else if (action === "quote") await quotePromo(target);
     else if (action === "office-menu") { if (toggleMenu(target)) alignOfficeNavigation(); }
@@ -1091,7 +1094,8 @@ const chromeSizes = [[".mobile-tabs", "--tabs-h", 0], ["#cookie-banner", "--cook
 const measureChrome = () => {
   for (const [selector, property, gap] of chromeSizes) {
     const node = document.querySelector(selector);
-    document.documentElement.style.setProperty(property, (node?.getClientRects().length ? node.getBoundingClientRect().height + gap : 0) + "px");
+    const pinned = node?.getClientRects().length && getComputedStyle(node).position === "fixed";
+    document.documentElement.style.setProperty(property, (pinned ? node.getBoundingClientRect().height + gap : 0) + "px");
   }
 };
 const chromeObserver = new ResizeObserver(measureChrome);

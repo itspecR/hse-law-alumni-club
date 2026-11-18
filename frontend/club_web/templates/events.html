@@ -46,7 +46,7 @@
 <a href="/events/{{ event|address }}">{{ event.title }}</a>
 </h2>{% endif %}
 <p>{{ event.location or format_labels.get(event.format,event.format) }}</p>
-<p class="site-prose">{{ event.description or '' }}</p>
+<div class="site-prose site-rich">{{ event.description|rich_text }}</div>
 <p>Баллы за участие: {{ event.points }}</p>
 <div class="site-actions">
 {% if event.past %}

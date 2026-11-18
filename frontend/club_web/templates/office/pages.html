@@ -1,12 +1,30 @@
 <h2>Главная страница</h2>
 {% if record and record.blocks is defined %}
 <form data-api="/admin/pages/home" data-method="PATCH">
-{% for block,names in [('hero',[('title_pre','Начало заголовка'),('title_accent','Выделенная часть'),('subtitle','Строка под заголовком'),('cta_primary','Кнопка вступления')]),('cta',[('title','Заголовок вступления'),('button','Кнопка')])] %}
+{% set hero = record.blocks.get('hero') or {} %}
+{% set cta = record.blocks.get('cta') or {} %}
+{% set slogan = (hero.title_pre ~ ' ' ~ (hero.title_accent or '')).strip() if hero.title_pre else home_defaults.slogans[0] %}
 <fieldset>
-<legend>{{ 'Первый экран' if block=='hero' else 'Вступление' }}</legend>
-{% for name,label in names %}{{ field(block+'.'+name,label,(record.blocks.get(block) or {}).get(name,''),required=false) }}{% endfor %}
+<legend>Первый экран</legend>
+<label class="site-field">Слоган
+<select name="hero.title_pre">
+{% if slogan not in home_defaults.slogans %}<option value="{{ slogan }}" selected>{{ slogan }}</option>{% endif %}
+{% for item in home_defaults.slogans %}<option value="{{ item }}"{% if item == slogan %} selected{% endif %}>{{ item }}</option>{% endfor %}
+</select>
+</label>
+<input type="hidden" name="hero.title_accent" value="">
+{{ field('hero.subtitle','Подпись под Фемидой и строка при прокрутке',hero.subtitle or home_defaults.subtitle,required=false) }}
+{{ field('hero.cta_primary','Кнопка вступления',hero.cta_primary,required=false) }}
 </fieldset>
-{% endfor %}
+<fieldset>
+<legend>Цели клуба</legend>
+{{ rich_area('Цели клуба',record.body or home_defaults.goals,name='body',big=true) }}
+</fieldset>
+<fieldset>
+<legend>Вступление</legend>
+{{ field('cta.title','Заголовок вступления',cta.title,required=false) }}
+{{ field('cta.button','Кнопка',cta.button,required=false) }}
+</fieldset>
 <button class="site-primary">Сохранить</button>
 <p role="alert" data-error hidden>
 </p>
@@ -18,10 +36,7 @@
 <legend>Страница «О клубе»</legend>
 <p class="office-hint">Пустое поле показывает на сайте текст по умолчанию.</p>
 {{ field('title','Заголовок',about_record.title or about_defaults.title,required=false) }}
-<label class="site-field">Текст
-<textarea name="body" aria-label="Текст" class="office-rich">{{ about_record.body or about_defaults.body }}</textarea>
-<small class="office-hint">Пустая строка начинает новый абзац. ## Подзаголовок · **жирный** · *курсив* · - пункт списка · [текст ссылки](https://адрес)</small>
-</label>
+{{ rich_area('Текст',about_record.body or about_defaults.body,name='body',big=true) }}
 {{ field('meta_title','Заголовок в поисковиках',about_record.meta_title or about_defaults.meta_title,required=false) }}
 {{ field('meta_description','Описание в поисковиках',about_record.meta_description or about_defaults.meta_description,type='textarea',required=false) }}
 </fieldset>

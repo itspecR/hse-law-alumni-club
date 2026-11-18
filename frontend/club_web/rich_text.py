@@ -35,8 +35,15 @@ def adjust(tokens):
     return tokens
 
 
+def rendered(value):
+    return PARSER.renderer.render(adjust(PARSER.parse(value)), PARSER.options, {})
+
+
+def plain_text(value):
+    return Markup(" ".join(nh3.clean(rendered(value), tags=set()).split())) if value else Markup("")
+
+
 def rich_text(value):
     if not value:
         return Markup("")
-    html = PARSER.renderer.render(adjust(PARSER.parse(value)), PARSER.options, {})
-    return Markup(nh3.clean(html, tags=TAGS, attributes=ATTRIBUTES, url_schemes=URL_SCHEMES))
+    return Markup(nh3.clean(rendered(value), tags=TAGS, attributes=ATTRIBUTES, url_schemes=URL_SCHEMES))

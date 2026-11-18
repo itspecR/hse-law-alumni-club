@@ -2,7 +2,7 @@ import re
 from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
-from club_web.formatting import FORMAT_LABELS, MONTHS, PRICE_PENDING, program_start, rub
+from club_web.formatting import FORMAT_LABELS, MONTHS, PRICE_PENDING, enrollment_open, program_start, rub
 from club_web.formatting import date as date_label
 
 UPCOMING_LIMIT = 6
@@ -96,7 +96,7 @@ def prepare_catalog(items, params, today=None):
 def preview_order(item, today):
     day = start_day(program_start(item))
     upcoming = day is not None and day >= today
-    return item.get("enrollment") == "nonactual", not upcoming, day if upcoming else date.max
+    return not enrollment_open(item), not upcoming, day if upcoming else date.max
 
 
 def club_programs_preview(items, today=None):

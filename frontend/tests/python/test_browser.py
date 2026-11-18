@@ -2721,6 +2721,21 @@ def test_join_for_guest_keeps_form(page):
     expect(page.locator("form[data-registration]")).to_be_visible()
 
 
+def test_low_window_does_not_pin_header_and_tabs(page):
+    page.set_viewport_size({"width": 844, "height": 390})
+    page.goto("/")
+    page.evaluate("document.documentElement.scrollTop = 1200")
+    page.wait_for_function("() => scrollY > 1000")
+    assert page.evaluate("document.querySelector('.club-header').getBoundingClientRect().bottom") <= 0
+    assert page.evaluate("getComputedStyle(document.querySelector('.mobile-tabs')).position") == "static"
+    assert page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--tabs-h').trim()") == "0px"
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.wait_for_function(
+        "() => getComputedStyle(document.documentElement).getPropertyValue('--tabs-h').trim() !== '0px'"
+    )
+    assert page.evaluate("getComputedStyle(document.querySelector('.mobile-tabs')).position") == "fixed"
+
+
 def test_login_error_hides_when_fields_change(page):
     page.goto("/lk")
     form = page.locator("form[data-api='/auth/login']")
@@ -4401,7 +4416,7 @@ def test_office_editor_bars_stay_clear_of_panel_chrome(page, site, size):
         expect(page.locator("[data-program-editor][data-editor-ready]")).to_have_count(1)
         page.wait_for_load_state("networkidle")
         page.evaluate("document.documentElement.scrollTop = 1600")
-        page.wait_for_function("scrollY > 1000")
+        page.wait_for_function("() => scrollY > 1000")
         assert page.evaluate(
             "() => { const bar = document.querySelector('.office-sidebar').getBoundingClientRect();"
             " const nav = document.querySelector('.program-editor__nav').getBoundingClientRect();"
@@ -4633,3 +4648,54 @@ def test_office_filters_fold_behind_button_on_phone(page, site):
     expect(filters.locator("select[name=status]")).to_be_visible()
     page.set_viewport_size({"width": 1440, "height": 900})
     expect(toggle).to_be_hidden()
+
+
+PERSON_CARD = """selector => [...document.querySelectorAll(selector)].map(card => {
+  const photo = card.querySelector('img, .camp-speakers__photo, .portfolio-trainer__initials');
+  return { photo: photo.getBoundingClientRect().width, card: card.getBoundingClientRect().width, list: card.parentElement.getBoundingClientRect().width };
+})"""
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_trainer_and_speaker_cards_show_large_photo_one_per_row(page, site, width):
+    photo = "/assets/teachers/avakyan-elena-georgievna.jpg"
+    trainer = {"id": "trainer-1", "fio": "Анна Ведущая", "photo": photo, "bio": "Практик переговоров."}
+    site[1]["/portfolio/club-one"] = {**PORTFOLIO, "trainers": [trainer, {**trainer, "id": "trainer-2", "photo": ""}]}
+    speaker = {"fio": "Вера Спикер", "bio": "Адвокат.", "photo": photo, "role": "speaker"}
+    site[1]["/campaigns/intensive"] = {**SITE_CAMPAIGN, "speakers": [speaker, {**speaker, "photo": ""}]}
+    page.set_viewport_size({"width": width, "height": 900})
+    for path, selector in (("/portfolio/club-one", ".portfolio-trainer"), ("/give/intensive", ".camp-speakers li")):
+        page.goto(path)
+        page.locator(selector).first.scroll_into_view_if_needed()
+        cards = page.evaluate(PERSON_CARD, selector)
+        assert len(cards) == 2 and all(card["photo"] == pytest.approx(120, abs=1) for card in cards), cards
+        assert all(card["card"] == pytest.approx(card["list"], abs=1) for card in cards), cards
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_office_text_fields_format_with_buttons_and_tab(page, site, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/news")
+    page.locator(".office-create > summary").click()
+    field = page.locator(".office-create [data-format-field]").filter(has=page.get_by_label("Текст", exact=True))
+    area = field.get_by_label("Текст", exact=True)
+    area.fill("Важно")
+    area.evaluate("node => node.setSelectionRange(0, node.value.length)")
+    field.get_by_role("button", name="Жирный").click()
+    expect(area).to_have_value("**Важно**")
+    area.fill("Первый\nВторой")
+    area.evaluate("node => node.setSelectionRange(0, node.value.length)")
+    field.get_by_role("button", name="Маркированный список").click()
+    expect(area).to_have_value("- Первый\n- Второй")
+    area.evaluate("node => { const start = node.value.indexOf('- Второй'); node.setSelectionRange(start, start); }")
+    page.keyboard.press("Tab")
+    expect(area).to_have_value("- Первый\n    - Второй")
+    expect(area).to_be_focused()
+    page.keyboard.press("Shift+Tab")
+    expect(area).to_have_value("- Первый\n- Второй")
+    area.fill("Абзац")
+    area.press("Tab")
+    expect(area).not_to_be_focused()
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")

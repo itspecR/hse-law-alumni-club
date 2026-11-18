@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 from club_web.calendar import instant
 from club_web.campaigns import PERSON_ROLES
-from club_web.formatting import date, rub
+from club_web.formatting import ENROLLMENT_LABELS, date, rub
 
 GROUPS = [
     ("Работа клуба", ("overview", "orders", "donations", "campaigns", "promo-codes", "members", "subs", "support")),
@@ -339,7 +339,7 @@ FIELDS = {
         ("price", "Цена, ₽", "rubles"),
         ("start", "Начало", "text"),
         ("capacity", "Лимит мест", "limit"),
-        ("enrollment", "Набор", "actual|nonactual"),
+        ("enrollment", "Набор", "actual|soon|nonactual"),
         ("direction", "Направление", "text"),
         ("description", "Описание", "textarea"),
         ("audience", "Для кого, каждый пункт с новой строки", "lines"),
@@ -353,7 +353,7 @@ FIELDS = {
         ("title", "Название", "text"),
         ("subtitle", "Подзаголовок", "text"),
         ("slug", "Адрес страницы: латиница, цифры и дефис. Страница откроется по адресу /give/адрес", "text"),
-        ("lede", "Короткое вступление для первого экрана и блока на главной", "textarea"),
+        ("lede", "Короткое вступление для первого экрана и блока на главной", "plain"),
         ("date_text", "Когда", "text"),
         ("time_text", "Время", "text"),
         ("place_text", "Где", "text"),
@@ -380,7 +380,7 @@ FIELDS = {
         ("note", "Пояснение под формой пожертвования", "textarea"),
         ("payment_purpose", "Назначение платежа после слова «Пожертвование». Пусто - на развитие факультета", "text"),
         ("invite_subject", "Тема письма-приглашения", "text"),
-        ("invite_body", "Текст письма-приглашения", "textarea"),
+        ("invite_body", "Текст письма-приглашения", "plain"),
         ("status", "Статус", "draft|published|archived"),
     ],
     "cohorts": [
@@ -399,7 +399,7 @@ FIELDS = {
         ("per_person_limit", "На одного человека. Пусто - без лимита", "limit"),
         ("all_programs", "Все программы портфеля", "checkbox"),
         ("program_ids", "Программы, если не все", "portfolio"),
-        ("note", "Служебная заметка", "textarea"),
+        ("note", "Служебная заметка", "plain"),
         ("status", "Статус", "active|disabled"),
     ],
     "trainers": [
@@ -422,7 +422,7 @@ FIELDS = {
     "news": [
         ("title", "Заголовок", "text"),
         ("published_at", "Дата и время публикации по Москве. Пусто - сейчас", "datetime-optional"),
-        ("excerpt", "Краткое описание", "textarea"),
+        ("excerpt", "Краткое описание", "plain"),
         ("body", "Текст", "rich"),
         ("cover", "Обложка: номер файла из «Медиа» или ссылка", "text"),
         ("origin", "Откуда новость", "club|faculty"),
@@ -470,8 +470,7 @@ LABELS = {
     "online": "Онлайн",
     "offline": "Очно",
     "blended": "Смешанный",
-    "actual": "Набор открыт",
-    "nonactual": "Набор закрыт",
+    **ENROLLMENT_LABELS,
     "published": "Опубликовано",
     "draft": "Черновик",
     "archived": "В архиве",

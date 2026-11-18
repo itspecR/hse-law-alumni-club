@@ -21,15 +21,15 @@
 <aside class="site-panel portfolio-buy">
 <h2>Стоимость</h2>
 <p class="lux-price{{ ' lux-price--pending' if price==price_pending }}">{{ price }}</p>
-{% if item.enrollment=='nonactual' %}<p role="status">Набор закрыт</p>{% else %}<a href="#application" class="site-primary">Оставить заявку</a>{% endif %}
+{% if item|enrollment_open %}<a href="#application" class="site-primary">Оставить заявку</a>{% else %}<p role="status">{{ item|enrollment_label }}{% if item.enrollment=='soon' %}. Набор откроется позже.{% endif %}</p>{% endif %}
 {{ save(path,item.title,'portfolio') }}
-{% if item.enrollment!='nonactual' %}<p>Промокод на скидку вводится в заявке.</p>{% endif %}
+{% if item|enrollment_open %}<p>Промокод на скидку вводится в заявке.</p>{% endif %}
 </aside>
 <div class="portfolio-body">
 {% if item.description %}
 <section>
 <h2>О программе</h2>
-<p class="site-prose">{{ item.description }}</p>
+<div class="site-prose site-rich">{{ item.description|rich_text }}</div>
 </section>
 {% endif %}
 {% if item.modules %}{{ course_modules(item.modules,'Программа курса') }}{% endif %}
@@ -42,7 +42,7 @@
 {% if trainer.photo|media %}<img class="site-teacher-photo" src="{{ trainer.photo|media }}" alt="{{ trainer.fio }}" width="200" height="200" loading="lazy">{% else %}<span class="portfolio-trainer__initials" aria-hidden="true">{{ trainer.fio|initials }}</span>{% endif %}
 <div>
 <h3>{{ trainer.fio }}</h3>
-{% if trainer.bio %}<p>{{ trainer.bio }}</p>{% endif %}
+{% if trainer.bio %}<div class="site-rich">{{ trainer.bio|rich_text }}</div>{% endif %}
 </div>
 </article>
 {% endfor %}
@@ -72,14 +72,14 @@
 </section>
 {% endif %}
 </div>
-{% if item.enrollment!='nonactual' %}
+{% if item|enrollment_open %}
 <div class="portfolio-dock">
 <p><span>{{ price }}</span></p>
 <a href="#application" class="site-primary">Оставить заявку</a>
 </div>
 {% endif %}
 </div>
-{% if item.enrollment!='nonactual' %}
+{% if item|enrollment_open %}
 <section id="application" class="site-panel portfolio-application" aria-labelledby="application-title">
 <h2 id="application-title">Заявка на программу</h2>
 {% if item.seats_left==0 and not cohorts %}<p role="status">Мест нет. Заявку можно оставить, мы свяжемся с вами, если место освободится.</p>{% endif %}

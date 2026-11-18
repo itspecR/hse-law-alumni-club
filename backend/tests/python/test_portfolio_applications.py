@@ -137,10 +137,13 @@ async def test_invalid_applications_are_rejected(database_app, mails, body, mess
 async def test_only_open_published_club_programs_accept_applications(database_app, mails):
     app = database_app
     closed = await program(app, enrollment="nonactual")
+    soon = await program(app, enrollment="soon")
     draft = await program(app, status="draft")
     dpo = await program(app, catalog="dpo")
     async with client_for(app) as client:
         assert (await apply(client, closed["slug"], FORM)).status_code == 400
+        waiting = await apply(client, soon["slug"], FORM)
+        assert waiting.status_code == 400 and "откроется позже" in waiting.json()["error"]
         for row in (draft, dpo):
             assert (await apply(client, row["slug"], FORM)).status_code == 404
         assert (await apply(client, "missing", FORM)).status_code == 404
