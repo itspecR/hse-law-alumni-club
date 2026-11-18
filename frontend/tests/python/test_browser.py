@@ -520,6 +520,65 @@ def test_checkout_error_keeps_contacts_and_replay_key(page, site):
     assert all(order["body"]["captcha"]["number"] == 7 for order in orders)
 
 
+def tone_color(locator, variable=None):
+    if variable is None:
+        return locator.evaluate("node => getComputedStyle(node).color")
+    return locator.evaluate(
+        "(node, name) => { const probe = document.createElement('span'); probe.style.color = `var(${name})`;"
+        " node.append(probe); const color = getComputedStyle(probe).color; probe.remove(); return color; }",
+        variable,
+    )
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_cabinet_order_chips_show_status_and_payment_tones(page, site, width):
+    site[1]["/me/orders"] = [
+        {**CLUB_ORDER, "status": "confirmed", "payment_status": "succeeded"},
+        {**CLUB_ORDER, "number": "ALU-2026-000102", "status": "new", "payment_status": "pending"},
+        {**CLUB_ORDER, "number": "ALU-2026-000103", "status": "canceled"},
+    ]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_token','member-qa');")
+    page.goto("/lk#orders")
+    orders = page.locator("#orders article")
+    chips = [
+        [(chip.text_content(), chip.get_attribute("data-tone")) for chip in order.locator(".cabinet-chip").all()]
+        for order in orders.all()
+    ]
+    assert chips == [
+        [("Подтверждена", "ok"), ("Оплачено", "ok")],
+        [("Новая", "neutral"), ("Ожидает оплаты", "warn")],
+        [("Отменена", "neutral"), ("Не оплачено", "neutral")],
+    ]
+    assert tone_color(orders.nth(1).locator(".cabinet-chip").nth(1)) == tone_color(
+        page.locator("body"), "--c-status-text"
+    )
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_office_marks_past_published_event_and_closed_enrollment(page, site, width):
+    site[1]["/admin/events"] = [
+        {**EVENT, "id": "event-1"},
+        {**EVENT, "id": "event-2", "title": "Будущая встреча", "starts_at": "2099-01-01T12:00:00Z"},
+    ]
+    site[1]["/admin/portfolio"] = [{**PORTFOLIO_PROGRAM, "enrollment": "nonactual"}]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/events")
+    rows = page.locator("article.office-record")
+    expect(rows).to_have_count(2)
+    assert [row.locator(".office-status").all_text_contents() for row in rows.all()] == [
+        ["Опубликовано", "Прошло"],
+        ["Опубликовано"],
+    ]
+    expect(rows.first.locator(".office-status").nth(1)).to_have_attribute("data-tone", "neutral")
+    page.goto("/admin/portfolio")
+    closed = page.locator("article.office-program .office-status").filter(has_text="Набор закрыт")
+    expect(closed).to_have_attribute("data-tone", "neutral")
+    assert tone_color(closed) == tone_color(page.locator("body"), "--c-text-2")
+
+
 @pytest.mark.parametrize("width", [390, 1440])
 def test_checkout_error_names_and_marks_the_field(page, site, width):
     page.set_viewport_size({"width": width, "height": 900})
@@ -2970,6 +3029,9 @@ def test_office_cohorts_list_edit_and_create(page, site, width):
     rows = page.locator("article.office-record")
     expect(rows.first.get_by_role("heading", level=2)).to_have_text("Переговоры для юристов · старт 1 декабря 2026")
     expect(rows.first.locator(".office-status")).to_have_text("Набор открыт")
+    expect(rows.first.locator(".office-status")).to_have_attribute("data-tone", "ok")
+    expect(rows.nth(1).locator(".office-status")).to_have_attribute("data-tone", "neutral")
+    assert tone_color(rows.first.locator(".office-status")) == tone_color(page.locator("body"), "--c-ok-text")
     expect(rows.first.locator("p.office-meta")).to_have_text("цена программы · подтверждено мест: 5 из 12")
     expect(rows.nth(1).locator(".office-status")).to_have_text("Набор закрыт")
     expect(rows.nth(1).locator("p.office-meta")).to_have_text(
@@ -3099,7 +3161,8 @@ def test_club_program_without_price_waits_for_agreement(page, site, width):
     page.add_init_script("localStorage.setItem('club_token','member-qa');")
     page.goto("/lk#orders")
     order = page.locator("#orders article").first
-    expect(order).to_contain_text("Стоимость уточняется · Не оплачено")
+    expect(order.locator("p").first).to_contain_text("Стоимость уточняется")
+    expect(order.locator(".cabinet-chip").nth(1)).to_have_text("Не оплачено")
     expect(order).to_contain_text("До скидки: стоимость уточняется · промокод SPRING-15: 15%")
 
 
@@ -3748,6 +3811,7 @@ def test_office_program_editor_previews_card_and_marks_changes(page, site, width
     expect(preview.locator('[data-preview="price"]')).to_have_text(re.compile(r"^30\s000\s₽$"))
     expect(preview.locator('[data-preview="enrollment"]')).to_have_text("Набор закрыт")
     expect(state).to_have_text("Есть несохраненные изменения")
+    assert tone_color(state) == tone_color(page.locator("body"), "--c-status-text")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     save = editor.get_by_role("button", name="Сохранить", exact=True)
     expect(save).to_be_in_viewport()

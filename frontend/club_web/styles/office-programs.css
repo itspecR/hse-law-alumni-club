@@ -53,7 +53,7 @@
 .office-program-preview__body .site-price { margin: 4px 0 0; font-size: 22px; }
 .program-editor__save { display: grid; gap: 12px; padding: 18px 20px; border-radius: var(--r-lg); background: var(--c-bg-raised); }
 .program-editor__state { margin: 0; font-size: 14px; color: var(--c-text-3); }
-.program-editor__state[data-dirty] { color: var(--c-accent-text); }
+.program-editor__state[data-dirty] { color: var(--c-status-text); }
 .program-editor__save .site-primary { width: 100%; min-height: 48px; }
 .program-editor__save [data-error] { margin: 0; }
 .program-editor__site { justify-self: start; font-size: 14px; }

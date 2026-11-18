@@ -1,3 +1,6 @@
+from datetime import UTC, datetime
+
+from club_web.calendar import instant
 from club_web.campaigns import PERSON_ROLES
 from club_web.formatting import date, rub
 
@@ -216,7 +219,11 @@ def cohort_record(row, names):
     }
 
 
-RECORDS = {"cohorts": cohort_record}
+def event_record(row, names):
+    return {**row, "past": row.get("status") == "published" and instant(row.get("starts_at")) < datetime.now(UTC)}
+
+
+RECORDS = {"cohorts": cohort_record, "events": event_record}
 STATUS_FILTERS = {"cohorts": ("open", "closed")}
 SECTION_FILTERS = {"news": (("origin", "Откуда", ("club", "faculty")),)}
 FILTER_KEYS = ("status", "origin")
@@ -415,6 +422,7 @@ LABELS = {
     "draft": "Черновик",
     "archived": "В архиве",
     "done": "Завершено",
+    "past": "Прошло",
     "canceled": "Отменено",
     "new": "Новая",
     "confirmed": "Подтверждена",

@@ -27,6 +27,7 @@ from club_web.formatting import (
 )
 from club_web.icons import ICONS
 from club_web.rich_text import rich_text
+from club_web.status_tones import office_tone, order_tone, payment_chip
 
 ROOT = Path(__file__).parent
 VERSION_FILE = "assets/version.txt"
@@ -67,9 +68,15 @@ def environment(**options):
         price_or_pending=price_or_pending,
         rich_text=rich_text,
         campaign_pause=is_pause,
+        office_tone=office_tone,
+        order_tone=order_tone,
     )
     renderer.globals.update(
-        format_labels=FORMAT_LABELS, order_status_labels=ORDER_STATUS_LABELS, price_pending=PRICE_PENDING, icons=ICONS
+        format_labels=FORMAT_LABELS,
+        order_status_labels=ORDER_STATUS_LABELS,
+        price_pending=PRICE_PENDING,
+        icons=ICONS,
+        payment_chip=payment_chip,
     )
     return renderer
 

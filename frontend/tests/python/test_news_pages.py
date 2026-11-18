@@ -151,7 +151,7 @@ async def test_news_sources_panel_shows_checks_states_and_actions(client):
     assert "Следующая проверка 29 октября 2026 · 18:17" in page
     assert 'data-api="/admin/news-sources/refresh"' in page and "Проверить сейчас" in page
     assert "найдено: 2 · добавлено: 1" in page and "Еще не проверялся" in page and "Источник недоступен." in page
-    rows = dict(re.findall(r'<h2>(\w+)</h2>\s*<span class="office-status" data-status="(\w+)">', page))
+    rows = dict(re.findall(r'<h2>(\w+)</h2>\s*<span class="office-status" data-status="(\w+)" data-tone="\w+">', page))
     assert rows == {
         "Опубликованная": "published",
         "Удаленная": "deleted",

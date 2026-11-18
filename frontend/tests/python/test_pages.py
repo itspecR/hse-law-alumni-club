@@ -1580,7 +1580,7 @@ async def test_full_admin_sees_donations_read_only_with_paid_total(browser_clien
     assert 'href="/admin/donations"' in page
     assert (
         "<h2>DON-2026-000007 · 3 000 ₽</h2>" in page
-        and '<span class="office-status" data-status="review">На проверке</span>' in page
+        and '<span class="office-status" data-status="review" data-tone="warn">На проверке</span>' in page
     )
     assert "<p>Вымышленный Даритель · donor@example.test · выпускник</p>" in page and "<p>Без имени · -</p>" in page
     assert "<strong>1</strong><span>Оплачено пожертвований за период</span>" in page
@@ -1643,7 +1643,7 @@ async def test_only_awaiting_transfer_has_received_button():
     page = await office_donations(
         {**DONATIONS_PAGE, "items": [AWAITING_TRANSFER, *DONATIONS_PAGE["items"]], "statuses": statuses}
     )
-    assert '<span class="office-status" data-status="awaiting">Ожидает перевода</span>' in page
+    assert '<span class="office-status" data-status="awaiting" data-tone="warn">Ожидает перевода</span>' in page
     assert page.count(" · перевод по реквизитам") == 1
     assert page.count('data-api="/admin/donations/') == 1
     assert (
