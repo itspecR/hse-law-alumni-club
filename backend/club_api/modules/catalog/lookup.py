@@ -18,3 +18,11 @@ async def lookup_catalog(store, items, connection=None):
         }
         for row in rows
     }
+
+
+def variant_label(info, sku):
+    variant = next((value for value in (info or {}).get("variants", []) if sku and value.get("sku") == sku), None)
+    if not variant:
+        return ""
+    parts = ("Размер " + str(variant["size"]) if variant.get("size") else "", variant.get("color") or "")
+    return ", ".join(part for part in parts if part)

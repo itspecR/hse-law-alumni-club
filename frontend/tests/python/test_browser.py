@@ -660,8 +660,7 @@ def test_cart_update_preserves_checkout_draft(page, site, width):
     form.get_by_label("ФИО", exact=True).fill("Тестовое имя")
     form.get_by_label("Почта", exact=True).fill("test@example.test")
     form.locator("[name=consent_pdn]").check()
-    page.locator("form[data-cart] [name=qty]").fill("2")
-    page.locator("form[data-cart] button").click()
+    page.get_by_role("button", name="Увеличить количество: " + PRODUCT["title"], exact=True).click()
     expect(page.locator("#toast")).to_contain_text("Корзина обновлена")
     expect(form.get_by_label("ФИО", exact=True)).to_have_value("Тестовое имя")
     expect(form.get_by_label("Почта", exact=True)).to_have_value("test@example.test")
@@ -698,8 +697,8 @@ def test_checkout_blocks_cart_mutation_and_restores_fields_on_error(page, site):
     page.route("**/api/orders", lambda route: pending.append(route))
     form.get_by_role("button", name="Отправить заявку", exact=True).click()
     expect(form.get_by_label("ФИО", exact=True)).to_be_disabled()
-    page.locator("form[data-cart] button").click()
-    expect(page.locator("form[data-cart] [data-error]")).to_contain_text("Дождитесь отправки заявки")
+    page.get_by_role("button", name="Увеличить количество: " + PRODUCT["title"], exact=True).click()
+    expect(page.locator("#toast-error")).to_contain_text("Дождитесь отправки заявки")
     assert len([write for write in site[2] if write["path"] == "/cart"]) == 1
     assert len(pending) == 1
     pending[0].fulfill(status=503, json={"error": "Сервис временно недоступен"})
@@ -1420,15 +1419,47 @@ def test_cart_changes_include_type_when_slugs_match(page, site, width):
     records["/cart"] = {"items": items, "subtotal": 20000, "count": 2}
     page.goto("/cart")
     row = page.locator(".site-cart-row").filter(has=page.get_by_role("heading", name=PRODUCT["title"], exact=True))
-    row.get_by_role("spinbutton", name="Количество").fill("3")
+    expect(page.locator(".site-cart-row").first.locator(".cart-stepper button")).to_have_count(0)
     with page.expect_response(is_cart_change):
-        row.get_by_role("button", name="Обновить", exact=True).click()
-    assert writes[-1]["body"] == {"type": "merch", "ref_id": PROGRAM["slug"], "variant_sku": None, "qty": 3}
+        row.get_by_role("button", name="Увеличить количество: " + PRODUCT["title"], exact=True).click()
+    assert writes[-1]["body"] == {"type": "merch", "ref_id": PROGRAM["slug"], "variant_sku": None, "qty": 2}
     records["/cart"] = {"items": items, "subtotal": 20000, "count": 2}
     page.goto("/cart")
     with page.expect_response(is_cart_change):
-        row.get_by_role("button", name="Удалить из корзины: " + PRODUCT["title"], exact=True).click()
+        row.get_by_role("button", name="Удалить «" + PRODUCT["title"] + "»", exact=True).click()
     assert writes[-1]["body"] == {"type": "merch", "ref_id": PROGRAM["slug"], "variant_sku": None, "qty": 0}
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_cart_names_variant_and_keeps_total_white(page, site, width):
+    page.set_viewport_size({"width": width, "height": 900})
+    item = {
+        "type": "merch",
+        "ref_id": PRODUCT["slug"],
+        "title": PRODUCT["title"],
+        "price": 420000,
+        "qty": 1,
+        "variant_sku": "hoodie-graphite-M",
+        "variant_label": "Размер M, графит",
+    }
+    site[1]["/cart"] = {"items": [item], "subtotal": 420000, "count": 1}
+    page.goto("/cart")
+    row = page.locator(".site-cart-row")
+    expect(row).to_contain_text("Размер M, графит · 4 200 ₽")
+    expect(row).not_to_contain_text("hoodie-graphite-M")
+    expect(row.locator(".cart-stepper__value")).to_have_text("1 шт.")
+    remove = row.get_by_role("button", name="Удалить «" + PRODUCT["title"] + "»", exact=True)
+    box = remove.bounding_box()
+    assert box["width"] >= 44 and box["height"] >= 44
+    price = page.locator("aside.site-panel .site-price")
+    assert price.evaluate("node => getComputedStyle(node).color") == page.locator("body").evaluate(
+        "node => getComputedStyle(node).color"
+    )
+    assert page.locator("aside.site-panel").evaluate("node => getComputedStyle(node).position") != "sticky"
+    expect(page.get_by_role("button", name="Очистить корзину", exact=True)).to_have_attribute(
+        "data-confirm", "Очистить корзину?"
+    )
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 

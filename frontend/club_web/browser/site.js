@@ -435,8 +435,9 @@ async function perform(target, body) {
   if (buttons.some(unavailable)) return;
   const mark = focusMark();
   buttons.forEach(button => { button.setAttribute("aria-disabled", "true"); });
-  const oldText = buttons.map(button => button.textContent);
-  buttons.forEach(button => { button.textContent = "Подождите…"; });
+  const labelled = buttons.filter(button => !button.children.length && !button.hasAttribute("data-keep-label"));
+  const oldText = labelled.map(button => button.textContent);
+  labelled.forEach(button => { button.textContent = "Подождите…"; });
   const fields = checkout || application ? [...target.querySelectorAll("input,select,textarea")].map(input => ({ input, disabled: input.disabled })) : [];
   fields.forEach(({ input }) => { input.disabled = true; });
   let headers = {};
@@ -526,7 +527,8 @@ async function perform(target, body) {
     if (checkout) pendingCheckout = false;
     fields.forEach(({ input, disabled }) => { input.disabled = disabled; });
     if (cart) pendingCart--;
-    buttons.forEach((button, index) => { button.removeAttribute("aria-disabled"); button.textContent = oldText[index]; });
+    buttons.forEach(button => { button.removeAttribute("aria-disabled"); });
+    labelled.forEach((button, index) => { button.textContent = oldText[index]; });
     restoreFocus(mark);
   }
 }
