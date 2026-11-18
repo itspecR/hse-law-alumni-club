@@ -23,7 +23,7 @@
 <p class="lux-price{{ ' lux-price--pending' if price==price_pending }}">{{ price }}</p>
 {% if item.enrollment=='nonactual' %}<p role="status">Набор закрыт</p>{% else %}<a href="#application" class="site-primary">Оставить заявку</a>{% endif %}
 {{ save(path,item.title,'portfolio') }}
-<p>Промокод на скидку вводится в заявке.</p>
+{% if item.enrollment!='nonactual' %}<p>Промокод на скидку вводится в заявке.</p>{% endif %}
 </aside>
 <div class="portfolio-body">
 {% if item.description %}

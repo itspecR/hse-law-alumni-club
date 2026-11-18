@@ -527,7 +527,7 @@ def test_checkout_error_keeps_contacts_and_replay_key(page, site):
     expect(page.get_by_label("ФИО", exact=True)).to_have_value("Тестовый выпускник")
     site[1]["order_failure"] = False
     page.get_by_role("button", name="Отправить заявку", exact=True).click()
-    expect(page.get_by_role("heading", name="Заявка отправлена")).to_be_visible()
+    expect(page.get_by_role("heading", name=re.compile(r"^Заявка .+ принята$"))).to_be_visible()
     orders = [write for write in site[2] if write["path"] == "/orders"]
     assert len(orders) == 2 and orders[0]["headers"]["idempotency-key"] == orders[1]["headers"]["idempotency-key"]
     assert all(order["body"]["captcha"]["number"] == 7 for order in orders)
@@ -3143,6 +3143,28 @@ def test_portfolio_promo_preview_and_application(page, site, width):
     receipt = page.locator(".portfolio-receipt")
     expect(receipt).to_contain_text("Промокод применен, скидка 15%.")
     assert site[2][-1]["body"]["promo_code"] == "spring-15"
+    expect(page.locator(".portfolio-buy").get_by_role("button", name="Заявка отправлена", exact=True)).to_be_disabled()
+    expect(page.locator(".portfolio-dock")).to_have_count(0)
+
+
+def test_portfolio_dock_hides_over_application_form(page, site):
+    page.set_viewport_size({"width": 390, "height": 800})
+    page.goto("/portfolio/club-one")
+    dock = page.locator(".portfolio-dock")
+    expect(dock).to_be_visible()
+    page.locator("#application").scroll_into_view_if_needed()
+    expect(dock).to_have_class(re.compile("is-hidden"))
+    expect(dock).to_be_hidden()
+
+
+def test_closed_program_hides_promo_line_and_names_next_intake(page, site):
+    site[1]["/portfolio/club-one"] = {**PORTFOLIO, "enrollment": "nonactual", "dates": {}}
+    page.goto("/portfolio/club-one")
+    panel = page.locator(".portfolio-buy")
+    expect(panel).to_contain_text("Набор закрыт")
+    expect(panel).not_to_contain_text("Промокод")
+    expect(page.locator(".program-facts")).to_contain_text("Следующий набор")
+    expect(page.locator(".program-facts")).not_to_contain_text("По мере набора")
 
 
 def test_portfolio_quote_keeps_kopecks(page, site):

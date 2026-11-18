@@ -116,6 +116,7 @@ html.lux [data-error]:not([hidden])::before { content: "!" / ""; flex: none; dis
 html.lux :is(.office-status, .cabinet-chip) { min-height: 28px; padding: 0 12px; border-radius: 999px; background: var(--lux-control); color: var(--c-text-2); font-size: 13px; font-weight: 500; }
 html.lux :is(.office-status, .cabinet-chip)[data-tone=ok] { color: var(--c-ok-text); background: color-mix(in srgb, var(--c-ok-text) 14%, var(--c-bg-raised)); }
 html.lux :is(.office-status, .cabinet-chip)[data-tone=warn] { color: var(--c-status-text); background: color-mix(in srgb, var(--c-status-text) 14%, var(--c-bg-raised)); }
+html.lux .lux-warning { margin: 0; padding: 12px 16px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--c-status-text) 14%, var(--c-bg-raised)); color: var(--c-status-text); }
 html.lux :is(.office-status, .cabinet-chip)[data-tone=alert] { color: var(--c-danger-text); background: color-mix(in srgb, var(--c-danger-text) 14%, var(--c-bg-raised)); }
 html.lux .site-errors { box-sizing: border-box; width: min(100% - 2 * var(--page-gutter), var(--container) - 2 * var(--page-gutter)); margin: 16px auto; padding: 16px 20px; border-radius: var(--r-tile); background: var(--c-bg-raised); color: var(--c-danger-text); }
 html.lux .site-errors p { margin: 0 0 12px; }
