@@ -217,3 +217,9 @@
   .office-ledger li > span:first-child { grid-column:1 / -1; }
 }
 
+.office-chart { display:flex; align-items:end; gap:2px; height:140px; margin:8px 0 0; padding:0; list-style:none; }
+.office-chart li { flex:1 1 0; min-width:0; height:100%; display:flex; align-items:end; border-radius:4px 4px 0 0; background:var(--lux-control, var(--c-bg-sunken)); }
+.office-chart i { width:100%; height:max(var(--share), 2px); border-radius:4px 4px 0 0; background:var(--c-text-2); }
+.office-chart-days { margin:12px 0 24px; }
+.office-chart-days table { border-collapse:collapse; font-variant-numeric:tabular-nums; }
+.office-chart-days :is(th,td) { padding:4px 16px 4px 0; text-align:left; font-weight:400; color:var(--c-text-2); }

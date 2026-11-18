@@ -25,7 +25,7 @@
 <h2>Участники клуба</h2>
 <div class="site-metrics">
 {% for key,value in snapshot.items() %}
-<article><strong>{{ value }}{{ '%' if key=='verified_ratio' else '' }}</strong><span>{{ metrics.get(key,key) }}</span></article>
+{% if dpo_enabled or not key.startswith('programs_') %}<article><strong>{{ (('%.1f'|format(value)).replace('.0','').replace('.',',') ~ ' %') if key=='verified_ratio' and value is not none else value }}</strong><span>{{ metrics.get(key,key) }}</span></article>{% endif %}
 {% endfor %}
 </div>
 <h2>Заявки и оплата</h2>
@@ -42,10 +42,10 @@
 {{ counts('По типу заявки',orders.by_type) }}
 {{ counts('По статусу заявки',orders.by_status) }}
 </div>
-<h3>Программы ДПО</h3>
+{% if dpo_enabled %}<h3>Программы ДПО</h3>
 {% for row in orders.programs_top or [] %}
 <p>{{ row.title }} · {{ row.qty }} мест · {{ row.orders }} заявок</p>
-{% else %}{{ empty('Заявок на программы за период нет.') }}{% endfor %}
+{% else %}{{ empty('Заявок на программы за период нет.') }}{% endfor %}{% endif %}
 <h2>Сообщество</h2>
 <div class="site-two-col">
 {{ counts('Начисления баллов',community.points_by_reason) }}
@@ -68,13 +68,23 @@
 {{ counts('Статусы обращений',support.by_status,'status') }}
 {{ counts('Темы обращений',support.by_topic,'topic') }}
 </div>
-{% for key,label in [('joins_by_day','Вступления по дням'),('orders_by_day','Заявки по дням'),('pageviews_by_day','Просмотры по дням')] %}
+{% for key,label,empty_text in [('joins_by_day','Вступления по дням','За период нет вступлений.'),('orders_by_day','Заявки по дням','За период нет заявок.'),('pageviews_by_day','Просмотры по дням','За период нет просмотров.')] %}
 <h2>{{ label }}</h2>
-<div class="site-chart">
-{% for point in (records.series or {}).get(key,[]) %}
-<p>
-<time>{{ point.day|date }}</time>
-<meter value="{{ point.count }}" max="{{ (records.series[key]|map(attribute='count')|max) or 1 }}">{{ point.count }}</meter> {{ point.count }}</p>
-{% else %}{{ empty('Данных за период нет.') }}{% endfor %}
-</div>
+{% set points = (records.series or {}).get(key,[]) %}
+{% set peak = (points|map(attribute='count')|max) if points else 0 %}
+{% if peak %}
+<ul class="office-chart" aria-label="{{ label }}">
+{% for point in points %}
+<li style="--share: {{ (point.count * 100 / peak)|round(1) }}%" title="{{ point.day|date }}: {{ point.count }}"><i aria-hidden="true"></i><span class="lux-sr">{{ point.day|date }}: {{ point.count }}</span></li>
+{% endfor %}
+</ul>
+<details class="office-chart-days">
+<summary>Показать по дням</summary>
+<table>
+<tbody>
+{% for point in points %}<tr><th scope="row">{{ point.day[8:10] }}.{{ point.day[5:7] }}</th><td>{{ point.count }}</td></tr>{% endfor %}
+</tbody>
+</table>
+</details>
+{% else %}{{ empty(empty_text) }}{% endif %}
 {% endfor %}

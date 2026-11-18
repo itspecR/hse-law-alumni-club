@@ -428,11 +428,19 @@ async def test_guest_cannot_load_private_fragment(browser_client):
     assert "Вход для выпускников" in response.text
 
 
-async def test_analytics_keeps_financial_and_engagement_sections(browser_client):
+async def test_analytics_keeps_financial_and_engagement_sections(browser_client, dpo):
     response = await browser_client.get("/views/admin/analytics", headers={"authorization": "Bearer admin-test"})
     assert response.status_code == 200
-    for text in ("2 500", "Программа в аналитике", "Встреча в аналитике", "Выпуск в аналитике", "80%", "Регистрация"):
+    for text in ("2 500", "Программа в аналитике", "Встреча в аналитике", "Выпуск в аналитике", "80 %", "Регистрация"):
         assert text in response.text.replace("\xa0", " ").replace("\u202f", " ")
+    assert "<meter" not in response.text and 'class="office-chart"' in response.text
+    assert '<th scope="row">01.10</th><td>2</td>' in response.text
+    assert "За период нет заявок." in response.text
+
+
+async def test_analytics_hides_dpo_programs_when_dpo_is_off(browser_client):
+    response = await browser_client.get("/views/admin/analytics", headers={"authorization": "Bearer admin-test"})
+    assert "<h3>Программы ДПО</h3>" not in response.text and "Программа в аналитике" not in response.text
 
 
 async def test_member_fragment_and_cart(browser_client):
