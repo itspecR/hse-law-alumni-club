@@ -1,6 +1,5 @@
 import asyncio
 import json
-import re
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import quote, urlencode
@@ -45,7 +44,6 @@ from club_web.search import search_groups
 from club_web.tabs import mobile_tabs
 
 HOME_EPISODES = 4
-PARAGRAPH_BREAK = re.compile(r"\n\s*\n")
 HOME_CHANGES = 3
 ACHIEVEMENT_STRIP = 4
 FULL_ADMIN_ROLES = ("admin", "Administrator")
@@ -377,10 +375,6 @@ async def about_texts(api):
     return {name: saved.get(name) or text for name, text in defaults.items()}
 
 
-def first_paragraph(text):
-    return PARAGRAPH_BREAK.split(text.strip(), maxsplit=1)[0]
-
-
 async def about_page(page):
     page.data["about"] = await about_texts(page.api)
     page.data["title"] = page.data["about"]["title"]
@@ -388,7 +382,7 @@ async def about_page(page):
 
 async def home_page(page):
     data, load = page.data, page.load
-    *_, data["campaign"], about = await asyncio.gather(
+    *_, data["campaign"] = await asyncio.gather(
         load("page", "/pages/home", {}),
         load("news", "/news?limit=3", []),
         load("programs", "/programs", []),
@@ -396,9 +390,8 @@ async def home_page(page):
         load("events", "/events", []),
         load("podcasts", "/podcasts", {"items": []}),
         current_campaign(page.api),
-        about_texts(page.api),
     )
-    data["about_intro"] = first_paragraph(about["body"])
+    data["home_texts"] = resource("home-data.json")
     data["campaign_wave"] = WAVE
     data["hero"] = (data["page"].get("blocks") or {}).get("hero") or {}
     data["cta"] = (data["page"].get("blocks") or {}).get("cta") or {}
@@ -723,6 +716,7 @@ async def office_records(page, section):
         await load("record", "/admin/pages/home", {})
         data["about_record"] = await page_texts(page.api, "about")
         data["about_defaults"] = resource("about-data.json")
+        data["home_defaults"] = resource("home-data.json")
     else:
         query = urlencode({key: params[key] for key in OFFICE_QUERY_KEYS if key in params})
         await load("records", OFFICE_ENDPOINTS[section] + ("?" + query if query else ""), [])

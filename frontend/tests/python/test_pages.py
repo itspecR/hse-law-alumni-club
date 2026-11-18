@@ -525,7 +525,7 @@ async def test_failed_home_data_is_not_saved_offline():
 
 @pytest.mark.parametrize(
     "hero,chars",
-    [({}, 8), ({"title_pre": "Клуб выпускников", "title_accent": "факультета права"}, 11)],
+    [({}, 9), ({"title_pre": "Клуб выпускников", "title_accent": "факультета права"}, 11)],
 )
 async def test_home_hero_words_fit_longest_word(hero, chars):
     async def upstream(request):
@@ -563,19 +563,20 @@ async def test_home_uses_only_sourced_photos(browser_client):
     assert photos == {"graduates", "meeting", "conversation", "voice"}
 
 
+HERO_SUBTITLE = "Встречи выпускников, тренинги и обучающие программы, события клуба."
+
+
 async def test_home_texts_follow_glossary(browser_client, dpo):
     page = (await browser_client.get("/")).text
     assert '<a href="/portfolio" class="foc lux-more">Тренинги <span' in page
     assert '<a href="/events" class="foc lux-more">Все события' in page
-    assert (
-        '<p class="lux-hero__lede">Встречи выпускников, тренинги клуба, подкасты и&nbsp;новости факультета.</p>' in page
-    )
+    assert HERO_SUBTITLE in page.split('<p class="lux-hero__lede">')[1].split("</p>")[0]
+    assert '<p class="lux-hero__next" aria-hidden="true">' + HERO_SUBTITLE + "</p>" in page
     assert (
         "Подайте заявку, а&nbsp;мы подтвердим ваш статус выпускника и&nbsp;предоставим доступ к&nbsp;новым возможностям."
         in page
     )
     assert "<h3>Проверка</h3><p>Мы подтверждаем статус выпускника факультета.</p>" in page
-    assert "Тренинги, ДПО по&nbsp;цене выпускника, события и&nbsp;подкасты.</p>" in page
     assert "Скидка 15% с&nbsp;уровня «Знаток», от&nbsp;500&nbsp;баллов. Личная скидка" in page
     assert "Амбассадор" not in page
     home = (Path(club_web.__file__).parent / "templates/home.html").read_text()
@@ -738,6 +739,15 @@ async def test_office_home_form_has_only_fields_shown_on_site(browser_client):
         "cta.title",
         "cta.button",
     ]
+
+
+async def test_office_home_form_switches_slogans_and_edits_goals(browser_client):
+    response = await browser_client.get("/views/admin/pages", headers={"authorization": "Bearer admin-test"})
+    form = response.text.split('<form data-api="/admin/pages/home" data-method="PATCH">')[1].split("</form>")[0]
+    options = re.findall(r'<option value="([^"]+)"', form)
+    assert options[-4:] == resource("home-data.json")["slogans"]
+    assert '<input type="hidden" name="hero.title_accent" value="">' in form
+    assert 'aria-label="Цели клуба" class="office-rich">Объединение выпускников' in form
 
 
 async def test_office_uses_dark_theme(browser_client):
@@ -1892,7 +1902,7 @@ async def test_home_shows_current_campaign_after_hero():
     status, page = await home_with_campaign(httpx.Response(200, json={"campaign": TEASER}))
     assert status == 200
     teaser = page.split('<section class="lux-section camp-teaser-section"', 1)[1].split("</section>", 1)[0]
-    assert page.index("lux-hero") < page.index("camp-teaser-section") < page.index('id="join-steps"')
+    assert page.index("lux-hero") < page.index('id="join-steps"') < page.index("camp-teaser-section")
     assert '<h2 class="camp-teaser__title" id="camp-teaser-title">Искусство влияния</h2>' in teaser
     assert "<b>412 000 ₽</b>" in teaser and "из 1 500 000 ₽" in teaser and 'aria-valuenow="27"' in teaser
     assert '<a href="/give/intensive" class="foc lux-btn">' in teaser
@@ -1918,7 +1928,7 @@ async def test_home_without_campaign_stays_as_is(reply):
 
 async def test_closed_registration_leads_to_give_and_login():
     status, page = await home_with_campaign(httpx.Response(404, json={}), registration=False)
-    assert status == 200 and 'id="join-steps"' not in page and 'href="/join"' not in page
+    assert status == 200 and 'id="join-steps"' in page and 'href="/join"' not in page
     hero = page.split('<div class="lux-hero__acts">', 1)[1].split("</div>", 1)[0]
     assert '<a href="/give" class="foc lux-btn">Поддержать факультет</a>' in hero
     assert '<a href="/lk" class="foc club-header__cta club-header__cta--ghost" data-member-link>Войти</a>' in page
@@ -2234,16 +2244,17 @@ async def test_about_page_says_that_joining_is_paused():
     assert "Отправьте заявку на сайте" not in page
 
 
-ABOUT_INTRO = "Клуб выпускников факультета права НИУ ВШЭ объединяет выпускников в сообщество"
+GOALS_INTRO = "<p>Объединение выпускников факультета права НИУ ВШЭ, создание сообщества интеллектуальной элиты</p>"
+GOALS_ITEM = "<li>Формирование пространства для профессионального развития</li>"
 
 
-async def test_home_tells_about_the_club_right_after_themis():
+async def test_home_shows_club_goals_right_after_themis():
     routes = {"/pages/home": (200, {"blocks": {}}), "/campaigns/current": (200, {"campaign": PUBLIC_CAMPAIGN})}
     page = (await rendered("/", routes)).text
-    block = page[page.index('id="about-club"') :]
-    assert 'id="lux-about-title">О клубе.</h2>' in block and ABOUT_INTRO in block
+    block = page[page.index('id="about-club"') :].split("</section>")[0]
+    assert 'id="lux-about-title">Цели клуба.</h2>' in block and GOALS_INTRO in block
+    assert block.count("<li>") == 3 and GOALS_ITEM in block
     assert 'href="/about" class="foc lux-more">Подробнее о клубе' in block
-    assert "откроем личный кабинет" not in block.split("</section>")[0]
     assert page.index('class="lux-hero"') < page.index('id="about-club"') < page.index("camp-teaser-section")
 
 
@@ -2255,11 +2266,11 @@ async def test_campaign_tile_leads_with_goal_until_first_donation():
     assert 'role="progressbar"' not in block
 
 
-async def test_home_takes_the_first_paragraph_saved_in_the_panel():
-    saved = {"body": "Свой первый абзац.\n\nВторой абзац не нужен на главной."}
-    page = (await rendered("/", {"/pages/home": (200, {"blocks": {}}), "/pages/about": (200, saved)})).text
+async def test_home_goals_come_from_the_panel_when_saved():
+    saved = {"blocks": {}, "body": "Своя цель.\n\n- Первый пункт"}
+    page = (await rendered("/", {"/pages/home": (200, saved)})).text
     block = page[page.index('id="about-club"') :].split("</section>")[0]
-    assert "<p>Свой первый абзац.</p>" in block and "Второй абзац" not in block and ABOUT_INTRO not in block
+    assert "<p>Своя цель.</p>" in block and "<li>Первый пункт</li>" in block and GOALS_INTRO not in block
 
 
 async def test_campaign_speakers_follow_the_description_before_the_program(browser_client):

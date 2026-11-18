@@ -1,36 +1,35 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import empty,program_card %}
 {% block content %}
-{% set title_pre = hero.title_pre or 'Свои люди' %}
-{% set title_accent = hero.title_accent or 'после выпуска.' %}
+{% set slogan = (hero.title_pre ~ ' ' ~ (hero.title_accent or '')).strip() if hero.title_pre else home_texts.slogans[0] %}
+{% set subtitle = hero.subtitle or home_texts.subtitle %}
 {% set join_label = cta.button or 'Вступить в клуб' %}
 {% set hero_word_floor = 8 %}
-{% set hero_chars = ([hero_word_floor] + (title_pre ~ ' ' ~ title_accent).split()|map('length')|list)|max %}
+{% set hero_chars = ([hero_word_floor] + slogan.split()|map('length')|list)|max %}
 <main id="main" class="lux-home">
 <section class="lux-hero" aria-labelledby="lux-hero-title">
 <div class="lux-hero__stage">
 <h1 class="lux-hero__title" id="lux-hero-title" style="--hero-chars:{{ hero_chars }}">
 <span class="lux-hero__name">Клуб выпускников факультета права НИУ&nbsp;ВШЭ</span>
-<span class="lux-hero__word lux-hero__word--l">{% for word in title_pre.split() %}<span class="lux-hero__line"><span style="--i:{{ loop.index0 }}">{{ word }}</span></span> {% endfor %}</span>
-<span class="lux-hero__word lux-hero__word--r">{% for word in title_accent.split() %}<span class="lux-hero__line"><span style="--i:{{ loop.index0 + title_pre.split()|length }}">{{ word }}</span></span> {% endfor %}</span>
+<span class="lux-hero__word lux-hero__word--l">{% for word in slogan.split() %}<span class="lux-hero__line"><span style="--i:{{ loop.index0 }}">{{ word }}</span></span> {% endfor %}</span>
 </h1>
 <div class="lux-hero__figure">{% include 'themis.html' %}</div>
 <div class="lux-hero__foot">
-<p class="lux-hero__lede">{% if hero.subtitle %}{{ hero.subtitle }}{% else %}Встречи выпускников, тренинги клуба, подкасты и&nbsp;новости факультета.{% endif %}</p>
+<p class="lux-hero__lede">{{ subtitle }}</p>
 <div class="lux-hero__acts">
 {% if registration_open %}<a href="/join" class="foc lux-btn" data-member-link>{{ hero.cta_primary or 'Вступить в клуб' }}</a>{% else %}<a href="/give" class="foc lux-btn">Поддержать факультет</a>{% endif %}
 <a href="/portfolio" class="foc lux-more">Тренинги <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </div>
 </div>
-<p class="lux-hero__next">Тренинги{% if dpo_enabled %}, ДПО по&nbsp;цене выпускника{% endif %}, события и&nbsp;подкасты.</p>
+<p class="lux-hero__next" aria-hidden="true">{{ subtitle }}</p>
 </div>
 </section>
 
 <section class="lux-section lux-about" id="about-club" aria-labelledby="lux-about-title">
 <div class="lux-wrap lux-split">
-<h2 class="lux-h2 lux-reveal" id="lux-about-title">О клубе.</h2>
+<h2 class="lux-h2 lux-reveal" id="lux-about-title">Цели клуба.</h2>
 <div class="lux-reveal" style="--d:1">
-<div class="lux-lede">{{ about_intro|rich_text }}</div>
+<div class="lux-lede lux-goals">{{ (page.body or home_texts.goals)|rich_text }}</div>
 <div class="lux-links">
 <a href="/about" class="foc lux-more">Подробнее о клубе <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </div>
@@ -38,8 +37,6 @@
 </div>
 </section>
 
-{% if campaign %}{% include 'campaign-teaser.html' %}{% endif %}
-{% if registration_open %}
 <section class="lux-section lux-join" id="join-steps" aria-labelledby="lux-join-title">
 <div class="lux-wrap lux-join__head">
 <h2 class="lux-h2 lux-reveal" id="lux-join-title">{{ cta.title or 'Три шага, и вы в клубе.' }}</h2>
@@ -53,9 +50,9 @@
 <li class="lux-step lux-reveal" style="--d:1"><h3>Проверка</h3><p>Мы подтверждаем статус выпускника факультета.</p></li>
 <li class="lux-step lux-reveal" style="--d:2"><h3>Кабинет</h3><p>Откроются скидка выпускника, запись на&nbsp;события, подписка на&nbsp;подкасты и&nbsp;раздел однокурсников.</p></li>
 </ol>
-<div class="lux-wrap lux-join__cta lux-reveal"><a href="/join" class="foc lux-btn" data-member-link>{{ join_label }}</a></div>
+{% if registration_open %}<div class="lux-wrap lux-join__cta lux-reveal"><a href="/join" class="foc lux-btn" data-member-link>{{ join_label }}</a></div>{% endif %}
 </section>
-{% endif %}
+{% if campaign %}{% include 'campaign-teaser.html' %}{% endif %}
 
 <section class="lux-section lux-portfolio" id="club-programs" aria-labelledby="lux-portfolio-title">
 <div class="lux-wrap lux-split">
@@ -129,7 +126,7 @@
 
 <section class="lux-section lux-meet" id="meetings" aria-labelledby="lux-meet-title">
 <div class="lux-wrap lux-split">
-<h2 class="lux-h2 lux-reveal" id="lux-meet-title">Встречи выпускников.</h2>
+<h2 class="lux-h2 lux-reveal" id="lux-meet-title">События.</h2>
 <div class="lux-reveal" style="--d:1">
 <p class="lux-lede">Каждый год клуб собирает выпускников разных лет на&nbsp;традиционную встречу.</p>
 <p class="lux-lede">27&nbsp;февраля 2026&nbsp;года на&nbsp;традиционной встрече выпускников обсудили развитие клуба на&nbsp;ближайшие 5-10&nbsp;лет. Лучшие идеи выбрали общим голосованием.</p>
@@ -150,12 +147,6 @@
 <figure class="lux-reveal"><div class="lux-frame"><img src="{{ base }}assets/photos/club/meeting-1083.webp" srcset="{{ base }}assets/photos/club/meeting-800.webp 800w, {{ base }}assets/photos/club/meeting-1083.webp 1083w" sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 760px) calc(100vw - 56px), 552px" width="1083" height="714" alt="Выпускники факультета права на встрече 27 февраля 2026 года" loading="lazy" decoding="async"></div><figcaption>Встреча выпускников, 27&nbsp;февраля 2026</figcaption></figure>
 <figure class="lux-reveal" style="--d:1"><div class="lux-frame"><img src="{{ base }}assets/photos/club/conversation-1280.webp" srcset="{{ base }}assets/photos/club/conversation-800.webp 800w, {{ base }}assets/photos/club/conversation-1280.webp 1280w" sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 760px) calc(100vw - 56px), 552px" width="1280" height="853" alt="Выпускники факультета права общаются на встрече 15 февраля 2025 года" loading="lazy" decoding="async"></div><figcaption>Встреча выпускников, 15&nbsp;февраля 2025</figcaption></figure>
 </div>
-<figure class="lux-wrap lux-voice">
-<div class="lux-frame lux-voice__photo lux-reveal"><img src="{{ base }}assets/photos/club/voice-576.webp" width="576" height="720" alt="Екатерина Салугина-Сороковая, выпускница факультета права 2006 года" loading="lazy" decoding="async"></div>
-<blockquote class="lux-voice__quote lux-reveal" style="--d:1"><p>«Вышка в&nbsp;моей жизни сыграла огромную роль».</p></blockquote>
-<figcaption class="lux-voice__cap lux-reveal" style="--d:2"><p><b>Екатерина Салугина-Сороковая</b>, выпуск 2006&nbsp;года, в&nbsp;2024&nbsp;году первый вице-президент Газпромбанка. В&nbsp;интервью рассказала об&nbsp;учебе в&nbsp;Вышке, профессиональном пути и&nbsp;встречах выпускников.</p>
-<a href="https://pravo.hse.ru/news/894336073.html" class="foc lux-more" target="_blank" rel="noopener noreferrer">Читать интервью <span class="lux-more__arrow" aria-hidden="true">↗</span><span class="lux-sr">, откроется в&nbsp;новой вкладке</span></a></figcaption>
-</figure>
 {% if news %}
 <div class="lux-wrap lux-news">
 <h3 class="lux-reveal">Новости</h3>
@@ -167,6 +158,15 @@
 <a href="/news" class="foc lux-more lux-reveal">Все новости <span class="lux-more__arrow" aria-hidden="true">›</span></a>
 </div>
 {% endif %}
+</section>
+
+<section class="lux-section lux-people" id="people" aria-labelledby="lux-people-title">
+<div class="lux-wrap"><h2 class="lux-h2 lux-reveal" id="lux-people-title">Люди.</h2></div>
+<figure class="lux-wrap lux-voice">
+<div class="lux-frame lux-voice__photo lux-reveal"><img src="{{ base }}assets/photos/club/voice-576.webp" width="576" height="720" alt="Екатерина Салугина-Сороковая, выпускница факультета права 2006 года" loading="lazy" decoding="async"></div>
+<figcaption class="lux-voice__cap lux-reveal" style="--d:1"><p><b>Екатерина Салугина-Сороковая</b>, выпускница 2006&nbsp;года, в&nbsp;2023&nbsp;году заняла должность первого вице-президента Газпромбанка. В&nbsp;интервью рассказала об&nbsp;учебе в&nbsp;Вышке, профессиональном пути и&nbsp;встречах выпускников.</p>
+<a href="https://pravo.hse.ru/news/894336073.html" class="foc lux-more" target="_blank" rel="noopener noreferrer">Читать интервью <span class="lux-more__arrow" aria-hidden="true">↗</span><span class="lux-sr">, откроется в&nbsp;новой вкладке</span></a></figcaption>
+</figure>
 </section>
 
 <section class="lux-section lux-read" id="law" aria-labelledby="lux-read-title">
@@ -218,7 +218,7 @@
 <section class="lux-section lux-last" aria-labelledby="lux-last-title">
 <div class="lux-wrap lux-last__inner">
 <img class="lux-last__mark lux-reveal" src="{{ base }}assets/themis-club.svg" width="64" height="64" alt="">
-<h2 class="lux-h2 lux-reveal" id="lux-last-title" style="--d:1">{{ title_pre }} {{ title_accent }}</h2>
+<h2 class="lux-h2 lux-reveal" id="lux-last-title" style="--d:1">{{ slogan }}</h2>
 <p class="lux-lede lux-reveal" style="--d:2">В&nbsp;кабинете скидка выпускника, запись на&nbsp;события и&nbsp;подписка на&nbsp;подкасты.</p>
 <div class="lux-reveal" style="--d:3">{% if registration_open %}<a href="/join" class="foc lux-btn" data-member-link>{{ join_label }}</a>{% else %}<a href="/lk" class="foc lux-btn lux-btn--ghost" data-member-link>Войти в кабинет</a>{% endif %}</div>
 </div>

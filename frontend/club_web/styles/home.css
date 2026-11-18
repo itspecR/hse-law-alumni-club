@@ -13,6 +13,7 @@
   --hero-glyph: 0.46;
   --far: 0.42;
   --fig-axis: 0.452;
+  --fig-x: 66;
   --fig-ratio: var(--themis-ratio);
   --fig-min: 180px;
   display: block;
@@ -30,6 +31,11 @@
 .lux-split .lux-lede { margin-top: 0; }
 .lux-split .lux-lede + .lux-lede { margin-top: 16px; }
 .lux-lede > p { margin: 0; }
+.lux-about .lux-split { align-items: start; }
+.lux-goals { max-width: 40ch; }
+.lux-goals ul { display: grid; gap: 14px; margin: 24px 0 0; padding: 0; list-style: none; font-size: clamp(17px, 1.3cqi, 19px); line-height: 1.45; letter-spacing: 0; }
+.lux-goals li { position: relative; padding-left: 22px; }
+.lux-goals li::before { content: ""; position: absolute; left: 0; top: 0.6em; width: 8px; height: 8px; border-radius: 50%; background: var(--c-accent); }
 .lux-frame { overflow: clip; border-radius: var(--r-tile); background: var(--c-bg-sunken); }
 .lux-frame img { display: block; width: 100%; height: auto; }
 
@@ -38,15 +44,14 @@
 .lux-hero { position: relative; }
 .lux-hero__stage { position: relative; height: calc(100svh - var(--lux-top)); min-height: 560px; overflow: clip; }
 .lux-hero__figure {
-  position: absolute; left: 50%; top: 3svh; height: var(--fig-h); aspect-ratio: var(--fig-ratio); translate: calc(var(--fig-axis) * -100%) 0;
+  position: absolute; left: calc(var(--fig-x) * 1%); top: 3svh; height: var(--fig-h); aspect-ratio: var(--fig-ratio); translate: calc(var(--fig-axis) * -100%) 0;
   transform: translateY(calc(var(--p) * -2svh)) scale(calc(1 + var(--p) * 0.04)); transform-origin: 50% 42%;
 }
 .lux-hero__figure .lux-themis { width: 100%; height: 100%; }
-.lux-hero__title { --hero-fit: calc((50cqi - var(--fig-w) * (1 - var(--fig-axis)) - var(--word-gap) - var(--lux-gutter)) / (var(--hero-chars) * var(--hero-glyph))); position: absolute; inset: 0; margin: 0; font: 200 min(7.2cqi, 12svh, var(--hero-fit))/0.98 var(--f-display); letter-spacing: -0.045em; pointer-events: none; }
-.lux-hero__name { position: absolute; right: calc(50% + var(--fig-w) * var(--fig-axis) + var(--word-gap)); top: calc(3svh + var(--fig-h) * 0.27 - 34px); font: 500 15px/1.3 var(--f-body); letter-spacing: 0; white-space: nowrap; color: var(--c-text-3); opacity: calc(1 - var(--p) * 1.7); transform: translateX(calc(var(--p) * -9cqi)); }
+.lux-hero__title { --hero-fit: calc((var(--fig-x) * 1cqi - var(--fig-w) * var(--fig-axis) - var(--word-gap) - var(--lux-gutter)) / (var(--hero-chars) * var(--hero-glyph))); position: absolute; inset: 0; margin: 0; font: 200 min(7.2cqi, 12svh, var(--hero-fit))/0.98 var(--f-display); letter-spacing: -0.045em; pointer-events: none; }
+.lux-hero__name { position: absolute; right: calc(100% - var(--fig-x) * 1% + var(--fig-w) * var(--fig-axis) + var(--word-gap)); top: calc(3svh + var(--fig-h) * 0.27 - 34px); font: 500 15px/1.3 var(--f-body); letter-spacing: 0; white-space: nowrap; color: var(--c-text-3); opacity: calc(1 - var(--p) * 1.7); transform: translateX(calc(var(--p) * -9cqi)); }
 .lux-hero__word { position: absolute; top: calc(3svh + var(--fig-h) * 0.27); display: flex; flex-direction: column; opacity: calc(1 - var(--p) * 1.7); }
-.lux-hero__word--l { right: calc(50% + var(--fig-w) * var(--fig-axis) + var(--word-gap)); align-items: flex-end; transform: translateX(calc(var(--p) * -9cqi)); }
-.lux-hero__word--r { left: calc(50% + var(--fig-w) * (1 - var(--fig-axis)) + var(--word-gap)); align-items: flex-start; transform: translateX(calc(var(--p) * 9cqi)); }
+.lux-hero__word--l { right: calc(100% - var(--fig-x) * 1% + var(--fig-w) * var(--fig-axis) + var(--word-gap)); align-items: flex-end; transform: translateX(calc(var(--p) * -9cqi)); }
 .lux-hero__line { display: block; overflow: clip; padding: 0.04em 0.06em 0.12em; margin: -0.04em -0.06em -0.12em; }
 .lux-hero__line > span { display: block; }
 .lux-hero__foot { position: absolute; left: 0; right: 0; bottom: max(4svh, 28px); display: grid; justify-items: center; gap: 16px; padding-inline: var(--lux-gutter); text-align: center; opacity: calc(1 - var(--p) / var(--far)); transform: translateY(calc(var(--p) * 28px)); }
@@ -108,14 +113,12 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
 .lux-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 56px; align-items: start; }
 .lux-pair figure { margin: 0; }
 .lux-pair figcaption { margin-top: 16px; font-size: 15px; color: var(--c-text-3); }
-.lux-voice { display: grid; grid-template-columns: 5fr 7fr; grid-template-areas: "photo quote" "photo cap"; gap: 24px clamp(32px, 6cqi, 96px); align-items: center; margin-top: clamp(88px, 9cqi, 128px); margin-bottom: 0; }
+.lux-voice { display: grid; grid-template-columns: 5fr 7fr; grid-template-areas: "photo cap"; gap: 24px clamp(32px, 6cqi, 96px); align-items: center; margin-top: clamp(40px, 4cqi, 64px); margin-bottom: 0; }
 .lux-voice__photo { grid-area: photo; max-width: 576px; }
-.lux-voice__quote { grid-area: quote; align-self: end; margin: 0; }
-.lux-voice blockquote p { margin: 0; font: 200 clamp(26px, 2.6cqi, 36px)/1.2 var(--f-display); letter-spacing: -0.025em; text-wrap: balance; }
-.lux-voice__cap { grid-area: cap; align-self: start; max-width: 46ch; color: var(--c-text-3); text-wrap: pretty; }
-.lux-voice__cap p { margin: 0; }
-.lux-voice__cap b { color: var(--c-text); font-weight: 600; }
-.lux-voice .lux-more { margin-top: 16px; }
+.lux-voice__cap { grid-area: cap; color: var(--c-text-3); text-wrap: pretty; }
+.lux-voice__cap p { max-width: 26ch; margin: 0; font: 200 clamp(24px, 2.4cqi, 34px)/1.25 var(--f-display); letter-spacing: -0.02em; }
+.lux-voice__cap b { color: var(--c-text); font-weight: 400; }
+.lux-voice .lux-more { margin-top: 24px; }
 .lux-news { margin-top: clamp(72px, 7cqi, 112px); }
 .lux-news h3 { margin: 0 0 8px; font: 600 15px/1.3 var(--f-body); color: var(--c-text-3); letter-spacing: 0; }
 .lux-news ul { margin: 0 0 12px; padding: 0; list-style: none; }
@@ -171,7 +174,7 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
 @media (max-width: 760px) {
   .lux-hero__acts { flex-direction: column; gap: 0; }
   .lux-split, .lux-pair, .lux-voice, .lux-bento { grid-template-columns: 1fr; }
-  .lux-voice { grid-template-areas: "photo" "quote" "cap"; }
+  .lux-voice { grid-template-areas: "photo" "cap"; }
   .lux-join__head, .lux-join__cta { text-align: left; }
   .lux-join__head .lux-lede { margin-inline: 0; }
   .lux-join__photo { margin-top: 40px; }
