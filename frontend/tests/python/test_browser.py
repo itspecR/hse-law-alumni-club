@@ -942,8 +942,9 @@ def test_cookie_banner_is_compact_neutral_and_keeps_focus(page, width, height):
     page.keyboard.press("Enter")
     expect(banner).to_be_hidden()
     expect(page.locator("main h1")).to_be_focused()
-    opener = page.locator(".club-footer").get_by_role("button", name="Cookies", exact=True)
+    opener = page.locator(".club-footer").get_by_role("button", name="Настройки cookies", exact=True)
     opener.click()
+    expect(banner.locator("[data-cookie-choice]")).to_have_text("Сейчас выбрано: только необходимые.")
     expect(essential).to_be_focused()
     accept.click()
     expect(opener).to_be_focused()
@@ -962,7 +963,7 @@ def test_legal_pages_and_separate_form_consent(page, width):
     expect(page.locator(".club-footer").get_by_role("link", name="Документы", exact=True)).to_have_attribute(
         "href", "/documents"
     )
-    page.get_by_role("button", name="Cookies", exact=True).click()
+    page.get_by_role("button", name="Настройки cookies", exact=True).click()
     banner = page.get_by_role("dialog", name="Согласие на использование cookies")
     expect(banner).to_be_visible()
     expect(banner.get_by_role("link", name="Подробнее", exact=True)).to_have_attribute("href", "/docs/politika-pdn.pdf")
@@ -2080,6 +2081,23 @@ def test_calendar_marks_today_and_event_card_reads_once(page):
     expect(page.locator("#main .lux-back")).to_have_attribute("href", "/events")
     expect(page.get_by_role("heading", name=EVENT["title"], exact=True)).to_have_count(1)
     expect(page.get_by_text("Файл для календаря (.ics)", exact=True)).to_have_count(0)
+
+
+FIELD_STEP = 16
+
+
+def test_form_fields_keep_one_step(page):
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.goto("/lk")
+    fields = page.locator(".cabinet-gate__form .site-field")
+    expect(fields.first).to_be_visible()
+    assert (
+        round(
+            fields.nth(1).bounding_box()["y"]
+            - (fields.nth(0).bounding_box()["y"] + fields.nth(0).bounding_box()["height"])
+        )
+        == FIELD_STEP
+    )
 
 
 ARTICLE_TITLE_MAX = 48
@@ -3770,8 +3788,10 @@ def test_give_transfer_shows_qr_requisites_and_saves_code(chromium, site, width)
     expect(save).to_have_attribute("href", QR_PNG)
     expect(save).to_have_attribute("download", "DON-2026-000002.png")
     expect(block.locator("dt")).to_have_text(["Получатель", "Расчетный счет", "Сумма", "Назначение платежа"])
-    expect(block.locator("dd").nth(1)).to_have_text("40703810000000000006")
-    expect(block.locator("dd").last).to_have_text(TRANSFER_REPLY["transfer"]["purpose"])
+    expect(block.locator("dd > span").nth(1)).to_have_text("40703810000000000006")
+    expect(block.locator("dd > span").last).to_have_text(TRANSFER_REPLY["transfer"]["purpose"])
+    expect(block.get_by_role("button", name="Скопировать: Сумма", exact=True)).to_be_visible()
+    assert block.bounding_box()["y"] >= 0
     expect(block.locator("[data-transfer-number]")).to_have_text("DON-2026-000002")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     [sent] = [write["body"] for write in site[2] if write["path"] == "/donations"]

@@ -369,7 +369,7 @@ def test_live_system(name, width, height):
         assert sum(row["reason"] == "event" for row in ledger) == 1
         page.goto("/podcasts")
         with page.expect_response(lambda response: response.url.endswith("/api/podcasts/subscribe")) as subscribed:
-            page.get_by_role("button", name="Оформить подписку", exact=True).click()
+            page.get_by_role("button", name="Отправить заявку на подписку", exact=True).click()
         subscription = result(subscribed.value)
         repeated = result(request.post("/api/podcasts/subscribe", headers=auth(previous_token), data={}))
         assert repeated["number"] == subscription["number"] and repeated["already"]

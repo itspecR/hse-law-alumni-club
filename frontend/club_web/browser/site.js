@@ -871,11 +871,16 @@ function vision(action) {
 }
 
 let cookieOpener = null;
+const COOKIE_CHOICES = { all: "все cookies", "1": "все cookies", essential: "только необходимые", "0": "только необходимые" };
 
 function openCookies(trigger) {
   const banner = document.querySelector("#cookie-banner");
   if (!banner) return;
   cookieOpener = trigger;
+  const choice = banner.querySelector("[data-cookie-choice]");
+  const saved = COOKIE_CHOICES[stored("club_cookie_consent")];
+  choice.hidden = !saved;
+  choice.textContent = saved ? "Сейчас выбрано: " + saved + "." : "";
   banner.hidden = false;
   banner.querySelector("button").focus();
 }

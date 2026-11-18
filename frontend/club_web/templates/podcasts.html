@@ -1,11 +1,6 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import empty,save %}
-{% block content %}
-<main id="main" class="site-container podcasts-page">
-<header class="site-masthead">
-<h1>Правовая грамотность</h1>
-<p>Подкаст клуба. Пробный выпуск открыт всем, остальные доступны по подписке на год.</p>
-</header>
+{% macro subscription() %}
 <section class="site-panel" id="podcast-subscription">
 <h2>Подписка на год</h2>
 <p>{{ domain.limits.podcast_year_price|rub }} · 12 месяцев</p>
@@ -14,10 +9,18 @@
 <p>Продление добавит 12 месяцев к текущему сроку подписки.</p>
 <button class="site-primary" data-api="/podcasts/subscribe" data-member-action>Продлить на год</button>
 {% else %}
-<button class="site-primary" data-api="/podcasts/subscribe" data-member-action>Оформить подписку</button>
-<a href="/lk?next=/podcasts%23podcast-subscription" class="foc lux-link">Войти в кабинет</a>
+<div class="site-actions"><button class="{{ 'site-primary' if items else 'lux-btn lux-btn--ghost' }}" data-api="/podcasts/subscribe" data-member-action>Отправить заявку на подписку</button>
+<a href="/lk?next=/podcasts%23podcast-subscription" class="foc lux-link" data-guest-only>Войти в кабинет</a></div>
 {% endif %}
 </section>
+{% endmacro %}
+{% block content %}
+<main id="main" class="site-container podcasts-page">
+<header class="site-masthead">
+<h1>Правовая грамотность</h1>
+<p>{{ 'Подкаст клуба. Пробный выпуск открыт всем, остальные доступны по подписке на год.' if items else 'Подкаст клуба. Первые выпуски готовятся. Пробный выпуск будет открыт всем, остальные по подписке на год.' }}</p>
+</header>
+{% if items %}{{ subscription() }}{% endif %}
 <div class="site-catalog">
 {% for item in items %}
 <article class="site-catalog-card">
@@ -33,5 +36,6 @@
 </article>
 {% else %}{{ empty('Выпусков пока нет', 'Первый выпуск появится на этой странице. Анонсы публикуем в Telegram-канале клуба.', telegram_channel, 'Канал клуба в Telegram') }}{% endfor %}
 </div>
+{% if not items %}{{ subscription() }}{% endif %}
 </main>
 {% endblock %}

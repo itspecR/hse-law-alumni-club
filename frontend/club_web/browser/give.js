@@ -73,11 +73,22 @@ function donationBody(form, rubles) {
   };
 }
 
+function copyButton(label, value) {
+  const button = document.createElement("button");
+  Object.assign(button, { type: "button", textContent: "Скопировать" });
+  Object.assign(button.dataset, { action: "copy", value });
+  button.className = "lux-link give-copy";
+  button.setAttribute("aria-label", "Скопировать: " + label);
+  return button;
+}
+
 function requisiteRow(list, label, value) {
   const term = document.createElement("dt");
   const detail = document.createElement("dd");
+  const text = document.createElement("span");
   term.textContent = label;
-  detail.textContent = value;
+  text.textContent = value;
+  detail.append(text, copyButton(label, value));
   list.append(term, detail);
 }
 
@@ -98,7 +109,8 @@ function showTransfer(form, number, transfer) {
   requisiteRow(list, "Назначение платежа", String(transfer.purpose));
   form.hidden = true;
   block.hidden = false;
-  block.focus();
+  block.focus({ preventScroll: true });
+  block.scrollIntoView({ block: "start" });
 }
 
 async function pay(form, api, rubles) {
