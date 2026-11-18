@@ -32,7 +32,8 @@
 <article class="site-panel office-record">
 <div class="office-record-head">
 <h2>{{ member.fio }}</h2>
-{{ status(member.verification_status) }}</div>
+{{ status(member.verification_status) }}
+{% if role in ('admin','Administrator') %}{% call more(member.fio) %}<button data-api="/admin/members/{{ member.id }}/podcast-sub" aria-label="Выдать подписку на подкасты «{{ member.fio }}»">Выдать подписку на подкасты</button><button class="site-danger" data-api="/admin/members/{{ member.id }}/anonymize" data-confirm="Обезличить профиль выпускника и закрыть ему доступ?" aria-label="Обезличить «{{ member.fio }}»">Обезличить</button>{% endcall %}{% endif %}</div>
 <p class="office-meta">{{ member.email or '' }} · {{ member.cohort }} · {{ member.edu_program or '' }}</p>
 <p>{{ member.points_cached }} баллов{% if role in ('admin','Administrator') %} · <a href="/admin/members?id={{ member.id }}">История баллов</a>{% endif %}</p>
 {% if member.education_document %}
@@ -82,10 +83,6 @@
 </p>
 </form>
 </details>
-<div class="site-actions">
-<button data-api="/admin/members/{{ member.id }}/podcast-sub">Выдать подписку на подкасты</button>
-<button class="site-danger" data-api="/admin/members/{{ member.id }}/anonymize" data-confirm="Обезличить профиль выпускника и закрыть ему доступ?">Обезличить</button>
-</div>
 {% endif %}
 </article>
 {% else %}{{ empty('Выпускников по выбранным фильтрам нет.') }}{% endfor %}

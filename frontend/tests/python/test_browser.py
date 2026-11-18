@@ -100,6 +100,14 @@ def chromium():
 
 ERROR_COLOR = "rgb(255, 122, 133)"
 TOAST_MS = 6000
+DELETE_NAME = re.compile(r"^Удалить «")
+
+
+def open_more(row):
+    row.locator(".office-more > summary").click()
+    return row.locator(".office-more__menu")
+
+
 ERROR_LOOK = {"color": ERROR_COLOR, "size": "15px", "background": "rgba(0, 0, 0, 0)", "mark": "18px"}
 
 
@@ -334,7 +342,7 @@ def test_office_content_filters_preserve_editing(page, site, width):
     expect(page.locator("[data-office-count]")).to_have_text("Показано: 1 из 2")
     expect(page.get_by_role("heading", name=PRODUCT["title"], exact=True)).to_have_count(0)
     row = page.locator("article.office-record")
-    row.get_by_text("Редактировать", exact=True).click()
+    row.get_by_text("Изменить", exact=True).click()
     row.get_by_label("Категория", exact=True).fill("Сувениры")
 
     def slow_refresh(route):
@@ -354,7 +362,7 @@ def test_office_content_filters_preserve_editing(page, site, width):
     page.get_by_role("link", name="Сбросить", exact=True).click()
     expect(page.locator("article.office-record")).to_have_count(2)
     row = page.locator("article.office-record").last
-    row.get_by_text("Редактировать", exact=True).click()
+    row.get_by_text("Изменить", exact=True).click()
     page.route("**/views/admin/products", lambda route: route.fulfill(status=503))
     row.get_by_role("button", name="Сохранить", exact=True).click()
     alarm = page.locator("#toast-error")
@@ -553,6 +561,37 @@ def test_cabinet_order_chips_show_status_and_payment_tones(page, site, width):
     assert tone_color(orders.nth(1).locator(".cabinet-chip").nth(1)) == tone_color(
         page.locator("body"), "--c-status-text"
     )
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_office_row_keeps_rare_actions_in_more_menu(page, site, width):
+    site[1]["/admin/news"] = [{**NEWS, "id": "news-1", "status": "published", "slug": "news-one"}]
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/news")
+    row = page.locator("article.office-record").first
+    menu = row.locator(".office-more__menu")
+    toggle = row.locator(".office-more > summary")
+    expect(toggle).to_have_attribute("aria-label", "Еще действия: " + NEWS["title"])
+    expect(row.get_by_text("Изменить", exact=True)).to_be_visible()
+    expect(menu).to_be_hidden()
+    toggle.click()
+    expect(menu.get_by_role("link", name="Открыть на сайте ↗")).to_have_attribute("href", "/news/news-one")
+    assert toggle.evaluate(
+        "node => { const box = node.getBoundingClientRect(); const icon = node.querySelector('svg').getBoundingClientRect();"
+        " return Math.abs(icon.x - box.x - (box.right - icon.right)) < 1 && Math.abs(icon.y - box.y - (box.bottom - icon.bottom)) < 1; }"
+    )
+    expect(menu.get_by_role("button", name="Удалить «" + NEWS["title"] + "»")).to_be_visible()
+    page.keyboard.press("Tab")
+    page.keyboard.press("Escape")
+    expect(menu).to_be_hidden()
+    expect(toggle).to_be_focused()
+    toggle.click()
+    page.locator("main h1").click()
+    expect(menu).to_be_hidden()
+    box = toggle.bounding_box()
+    assert box["width"] >= 44 and box["height"] >= 44
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 
@@ -1356,7 +1395,7 @@ def test_product_editor_retains_gallery_during_title_edit(page, site, width):
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
     page.goto("/admin/products")
     row = page.locator(".office-record").filter(has=page.get_by_role("heading", name=PRODUCT["title"], exact=True))
-    row.get_by_text("Редактировать", exact=True).click()
+    row.get_by_text("Изменить", exact=True).click()
     gallery = row.get_by_label("Ссылки на фотографии, JSON", exact=True)
     assert json.loads(gallery.input_value()) == images
     row.get_by_label("Название", exact=True).fill("Новое название товара")
@@ -2685,7 +2724,7 @@ def test_office_trainers_list_and_delete_warning(page, site):
     page.goto("/admin/trainers")
     expect(page.get_by_role("heading", name="Анна Вымышленная", exact=True)).to_be_visible()
     expect(page.locator("article.office-record").last).to_contain_text("Справка не заполнена")
-    delete = page.locator("article.office-record").first.get_by_role("button", name="Удалить", exact=True)
+    delete = open_more(page.locator("article.office-record").first).get_by_role("button", name=DELETE_NAME)
     expect(delete).to_have_attribute("data-confirm", "Удалить тренера? Он исчезнет из всех программ.")
 
 
@@ -2719,11 +2758,11 @@ def test_office_promo_codes_list_edit_and_create_defaults(page, site, width):
         "15% · с 1 октября 2026 по 30 ноября 2026 · использовано: 3 из 10 · на человека: 1 · Переговоры для юристов"
     )
     expect(row.locator("p.office-meta").nth(1)).to_have_text("Весенняя акция")
-    expect(row.get_by_role("button", name="Удалить", exact=True)).to_have_attribute(
+    expect(open_more(row).get_by_role("button", name=DELETE_NAME)).to_have_attribute(
         "data-confirm", "Удалить промокод? В отправленных заявках код сохранится."
     )
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
-    row.get_by_text("Редактировать", exact=True).click()
+    row.get_by_text("Изменить", exact=True).click()
     programs = row.get_by_role("group", name="Программы, если не все")
     expect(programs.get_by_label("Переговоры для юристов")).to_be_checked()
     row.get_by_label("Всего использований. Пусто - без лимита").fill("")
@@ -3037,11 +3076,11 @@ def test_office_cohorts_list_edit_and_create(page, site, width):
     expect(rows.nth(1).locator("p.office-meta")).to_have_text(
         "39\u00a0000 ₽ · без лимита мест, подтверждено: 2 · старт прошел"
     )
-    expect(rows.first.get_by_role("button", name="Удалить", exact=True)).to_have_attribute(
+    expect(open_more(rows.first).get_by_role("button", name=DELETE_NAME)).to_have_attribute(
         "data-confirm", "Удалить поток? Поток с заявками удалить нельзя, вместо этого закройте набор."
     )
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
-    rows.first.get_by_text("Редактировать", exact=True).click()
+    rows.first.get_by_text("Изменить", exact=True).click()
     expect(rows.first.get_by_label("Программа")).to_have_value("club-1")
     rows.first.get_by_label("Цена потока в копейках. Пусто - цена программы").fill("3500000")
     rows.first.get_by_role("button", name="Сохранить", exact=True).click()

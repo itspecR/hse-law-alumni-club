@@ -42,7 +42,7 @@ def content_forms(office, request, headers, name):
         record = submit(office, form, path)
         row = office.locator("article.site-panel").filter(has_text=title)
         expect(row).to_be_visible()
-        row.get_by_text("Редактировать", exact=True).click()
+        row.get_by_text("Изменить", exact=True).click()
         form = row.locator("form")
         for field in ("price", "sort", "points"):
             if field in fields:
@@ -63,7 +63,8 @@ def content_forms(office, request, headers, name):
                 response.url.endswith("/api" + endpoint) and response.request.method == "DELETE"
             )
         ) as deleted:
-            row.get_by_role("button", name="Удалить", exact=True).click()
+            row.locator(".office-more").evaluate("node => { node.open = true; }")
+            row.get_by_role("button", name=re.compile(r"^Удалить «")).click()
         assert deleted.value.status == 200
         expect(row).to_have_count(0)
         assert all(item["id"] != record["id"] for item in request.get("/api" + path, headers=headers).json())
