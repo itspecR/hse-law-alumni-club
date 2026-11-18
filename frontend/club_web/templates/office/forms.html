@@ -54,12 +54,13 @@
 </fieldset>
 {% endmacro %}
 {% macro editor_row(shape,row={},open=false) %}
+{% set name=row[shape.fields[0][0]] or shape.new %}
 <div class="office-module{{ ' is-open' if open }}" data-module>
 <div class="office-module__head">
-<button type="button" class="office-module__toggle" data-action="module-toggle" aria-expanded="{{ 'true' if open else 'false' }}"><span class="office-module__number" aria-hidden="true"></span><span class="office-module__title" data-module-summary="title">{{ row[shape.fields[0][0]] or shape.new }}</span><span class="office-module__meta" data-module-summary="meta">{% set meta=[] %}{% for key in shape.meta %}{% if row[key] %}{% set _=meta.append(row[key]) %}{% endif %}{% endfor %}{{ meta|join(' · ') }}</span></button>
+<button type="button" class="office-module__toggle" data-action="module-toggle" aria-expanded="{{ 'true' if open else 'false' }}"><span class="office-module__number" aria-hidden="true"></span><span class="office-module__title" data-module-summary="title">{{ name }}</span><span class="office-module__meta" data-module-summary="meta">{% set meta=[] %}{% for key in shape.meta %}{% if row[key] %}{% set _=meta.append(row[key]) %}{% endif %}{% endfor %}{{ meta|join(' · ') }}</span></button>
 <div class="office-module__tools">
-<button type="button" class="office-module__tool" data-action="module-up" aria-label="Выше">{{ icon('up') }}</button>
-<button type="button" class="office-module__tool" data-action="module-down" aria-label="Ниже">{{ icon('down') }}</button>
+<button type="button" class="office-module__tool" data-action="module-up" aria-label="Поднять «{{ name }}»">{{ icon('up') }}</button>
+<button type="button" class="office-module__tool" data-action="module-down" aria-label="Опустить «{{ name }}»">{{ icon('down') }}</button>
 </div>
 </div>
 <div class="office-module__body"{% if not open %} hidden{% endif %}>
@@ -73,6 +74,7 @@
 {% macro row_editor(name,label,items,shape) %}
 <fieldset class="office-modules" data-modules="{{ name }}" data-modules-count="{{ shape.count }}" data-modules-new="{{ shape.new }}" data-modules-required="{{ shape.required }}"{% if shape.hours %} data-modules-hours{% endif %}><legend>{{ label }}</legend>
 <p class="office-modules__total" data-modules-total aria-live="polite"></p>
+<p class="lux-sr" data-modules-status role="status"></p>
 {% for row in items %}{{ editor_row(shape,row) }}{% endfor %}
 <template>{{ editor_row(shape,open=true) }}</template>
 <button type="button" data-action="module-add">{{ shape.add }}</button>

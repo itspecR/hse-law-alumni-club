@@ -3029,7 +3029,7 @@ def test_office_portfolio_form_edits_course_modules(page, site, width):
     row = page.locator("[data-program-editor]")
     editor = row.get_by_role("group", name="Программа курса")
     first = editor.locator("[data-module]").first
-    toggle = first.get_by_role("button", name=re.compile("День 1"))
+    toggle = first.locator('[data-action="module-toggle"]')
     expect(toggle).to_have_attribute("aria-expanded", "false")
     expect(first.get_by_label("Тема")).to_be_hidden()
     toggle.click()
@@ -4242,8 +4242,8 @@ def test_office_campaign_editor_saves_amounts_and_lists(page, site):
     faq = root.get_by_role("group", name="Вопросы и ответы")
     faq.get_by_role("button", name="Добавить вопрос").click()
     added = faq.locator("[data-module]").nth(1)
-    added.get_by_label("Вопрос").fill("Можно пожертвовать меньше?")
-    added.get_by_label("Ответ").fill("Да, от 100 ₽.")
+    added.get_by_label("Вопрос", exact=True).fill("Можно пожертвовать меньше?")
+    added.get_by_label("Ответ", exact=True).fill("Да, от 100 ₽.")
     expect(added.locator(".office-module__title")).to_have_text("Можно пожертвовать меньше?")
     expect(faq.locator("[data-modules-total]")).to_have_text("Вопросов: 2")
     numbers = root.get_by_role("group", name="Цифры")
@@ -4329,6 +4329,57 @@ def test_office_campaign_editor_reports_wrong_amounts_and_unnamed_rows(page, sit
     assert len(site[2]) == writes
 
 
+def test_office_course_module_removal_moves_focus_to_next(page, site):
+    modules = [
+        {"title": "Введение", "points": [], "hours": None, "format": None},
+        {"title": "Итоги", "points": [], "hours": None, "format": None},
+    ]
+    site[1]["/admin/trainers"] = TRAINERS
+    site[1]["/admin/portfolio"] = [{**PORTFOLIO_PROGRAM, "modules": modules}]
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/portfolio?id=club-1")
+    editor = page.locator("[data-program-editor]").get_by_role("group", name="Программа курса")
+    first = editor.locator("[data-module]").first
+    first.locator('[data-action="module-toggle"]').click()
+    first.locator('[data-action="module-remove"]').click()
+    expect(editor.locator(".office-module__title")).to_have_text(["Итоги"])
+    expect(editor.locator('[data-action="module-toggle"]')).to_be_focused()
+    expect(editor.locator("[data-modules-status]")).to_have_text("Удалено: «Введение».")
+    editor.locator("[data-module]").first.locator('[data-action="module-toggle"]').click()
+    editor.locator('[data-action="module-remove"]').click()
+    expect(editor.locator('[data-action="module-add"]')).to_be_focused()
+
+
+@pytest.mark.parametrize("size", [(390, 844), (812, 375), (1000, 800)])
+def test_office_editor_bars_stay_clear_of_panel_chrome(page, site, size):
+    site[1]["/admin/trainers"] = TRAINERS
+    site[1]["/admin/portfolio"] = [PORTFOLIO_PROGRAM]
+    page.set_viewport_size({"width": size[0], "height": size[1]})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/portfolio?id=club-1")
+    if size[0] <= 900:
+        expect(page.locator("[data-program-editor][data-editor-ready]")).to_have_count(1)
+        page.wait_for_load_state("networkidle")
+        page.evaluate("document.documentElement.scrollTop = 1600")
+        page.wait_for_function("scrollY > 1000")
+        assert page.evaluate(
+            "() => { const bar = document.querySelector('.office-sidebar').getBoundingClientRect();"
+            " const nav = document.querySelector('.program-editor__nav').getBoundingClientRect();"
+            " return scrollY > 1000 && Math.abs(nav.top - Math.max(bar.bottom, 0)) <= 1; }"
+        )
+        assert (
+            page.locator(".program-editor__nav a").first.evaluate("node => node.getBoundingClientRect().height") >= 44
+        )
+    else:
+        box = page.get_by_role("button", name="Выйти", exact=True).bounding_box()
+        hit = page.evaluate(
+            "([x, y]) => document.elementFromPoint(x, y)?.closest('button')?.getAttribute('aria-label')",
+            [box["x"] + box["width"] / 2, box["y"] + box["height"] / 2],
+        )
+        assert hit == "Выйти"
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
 def test_office_course_modules_reorder_and_count_hours(page, site):
     modules = [
         {"title": "Введение", "points": [], "hours": "0,5 ак. ч.", "format": "Лекция"},
@@ -4345,13 +4396,19 @@ def test_office_course_modules_reorder_and_count_hours(page, site):
     expect(total).to_have_text("Модулей: 3 · часов: 2,5 · часы указаны не у всех модулей")
     titles = editor.locator(".office-module__title")
     expect(titles).to_have_text(["Введение", "Практикум", "Итоги"])
-    expect(editor.get_by_role("button", name="Выше").first).to_be_disabled()
-    expect(editor.get_by_role("button", name="Ниже").last).to_be_disabled()
-    editor.locator("[data-module]").nth(2).get_by_role("button", name="Выше").click()
+    expect(editor.get_by_role("button", name="Поднять «Введение»")).to_be_disabled()
+    expect(editor.get_by_role("button", name="Опустить «Итоги»")).to_be_disabled()
+    editor.get_by_role("button", name="Поднять «Итоги»").click()
     expect(titles).to_have_text(["Введение", "Итоги", "Практикум"])
-    expect(editor.locator("[data-module]").nth(1).get_by_role("button", name="Выше")).to_be_focused()
+    expect(editor.get_by_role("button", name="Поднять «Итоги»")).to_be_focused()
+    expect(editor.locator("[data-modules-status]")).to_have_text("«Итоги»: место 2 из 3.")
+    editor.get_by_role("button", name="Поднять «Итоги»").click()
+    expect(titles).to_have_text(["Итоги", "Введение", "Практикум"])
+    expect(editor.get_by_role("button", name="Опустить «Итоги»")).to_be_focused()
+    editor.get_by_role("button", name="Опустить «Итоги»").click()
+    expect(titles).to_have_text(["Введение", "Итоги", "Практикум"])
     last = editor.locator("[data-module]").nth(1)
-    last.get_by_role("button", name=re.compile("Итоги")).click()
+    last.locator('[data-action="module-toggle"]').click()
     last.get_by_label("Часы").fill("1 ак. ч.")
     last.get_by_label("Тема").fill("Итоги и рефлексия")
     expect(last.locator(".office-module__title")).to_have_text("Итоги и рефлексия")
