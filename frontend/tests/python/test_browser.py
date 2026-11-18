@@ -3677,6 +3677,7 @@ def test_profile_uploads_photo_on_choice_and_names_interest_limit(page, site):
             {"name": "photo.png", "mimeType": "image/png", "buffer": PHOTO_PNG}
         )
     assert sent.value.method == "POST"
+    page.wait_for_load_state("networkidle")
     form = page.locator('form[data-api="/me/profile"]')
     fieldset = form.locator("fieldset[data-max-interests]")
     limit = int(fieldset.get_attribute("data-max-interests"))
