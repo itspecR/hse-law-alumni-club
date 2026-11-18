@@ -1950,6 +1950,7 @@ def test_member_points_reason_switches_fields_and_sends_program(page, site, widt
     page.set_viewport_size({"width": width, "height": 900})
     page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
     page.goto("/admin/members")
+    page.get_by_text("Изменить", exact=True).click()
     page.get_by_text("Начислить или списать баллы", exact=True).click()
     form = page.locator("form.office-points")
     programs = form.locator("[name='program_id']")
@@ -1965,6 +1966,33 @@ def test_member_points_reason_switches_fields_and_sends_program(page, site, widt
         form.get_by_role("button", name="Применить", exact=True).click()
     write = next(row for row in site[2] if row["path"] == "/admin/members/member-1/points")
     assert write["body"] == {"reason": "program", "program_id": "dpo-program", "comment": ""}
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_pending_members_lead_with_review_buttons(page, site, width):
+    verified = {"id": "member-1", "fio": "Вымышленный Выпускник", "verification_status": "verified", "points_cached": 1}
+    pending = {
+        "id": "member-2",
+        "fio": "Вымышленная Заявительница",
+        "verification_status": "pending",
+        "points_cached": 0,
+        "cohort": 2024,
+    }
+    site[1]["/admin/members"] = {"items": [verified, pending], "total": 2}
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/members")
+    rows = page.locator("article.office-record")
+    expect(rows.first.locator("h2")).to_have_text(pending["fio"])
+    expect(rows.first.locator(".office-meta").first).to_have_text("Выпуск 2024")
+    expect(rows.nth(1)).to_contain_text("Баллы: 1")
+    expect(rows.first.locator("form.office-edit-grid").first).to_be_hidden()
+    expect(rows.nth(1).get_by_role("button", name=re.compile("^Подтвердить"))).to_have_count(0)
+    with page.expect_response(lambda response: response.url.endswith("/api/admin/members/member-2")):
+        rows.first.get_by_role("button", name="Подтвердить «" + pending["fio"] + "»", exact=True).click()
+    write = next(row for row in site[2] if row["path"] == "/admin/members/member-2")
+    assert write["method"] == "PATCH" and write["body"] == {"verification_status": "verified"}
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
 
 

@@ -379,6 +379,7 @@ def test_live_system(name, width, height):
         ) as granted:
             grant = office.locator(f'[data-api="/admin/members/{member["id"]}/podcast-sub"]')
             office.locator(".office-more", has=grant).evaluate("node => { node.open = true; }")
+            office.once("dialog", lambda dialog: dialog.accept())
             grant.click()
         result(granted.value)
         assert result(request.get("/api/podcasts", headers=auth(previous_token)))["subscribed"]
