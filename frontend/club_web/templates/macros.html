@@ -13,12 +13,16 @@
 <label class="site-field">Код из письма, 6 цифр<input name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" title="Введите 6 цифр из письма." required></label>
 {% endmacro %}
 {% macro course_modules(items,title) %}
-<section>
+<section class="course-modules">
 <h2>{{ title }}</h2>
 {% for module in items %}
+{% set heading = module if module is string else module.title %}
+{% set text = '' if module is string else module.description or module.content %}
+{% set meta = [] if module is string else [(('Часов: ' ~ module.hours) if module.hours is number else module.hours) if module.hours else none, module.format]|select|list %}
+{% if text or meta or (module is not string and module.points) %}
 <details class="lux-disclosure">
-<summary>{{ module if module is string else module.title }}</summary>
-{% if module.description or module.content %}<p class="site-prose">{{ module.description or module.content }}</p>{% endif %}
+<summary>{{ heading }}</summary>
+{% if text %}<p class="site-prose">{{ text }}</p>{% endif %}
 {% if module.points %}
 <ul>
 {% for point in module.points %}
@@ -26,9 +30,11 @@
 {% endfor %}
 </ul>
 {% endif %}
-{% set meta = [(('Часов: ' ~ module.hours) if module.hours is number else module.hours) if module.hours else none, module.format]|select|list %}
 {% if meta %}<p>{{ meta|join(' · ') }}</p>{% endif %}
 </details>
+{% else %}
+<div class="course-module"><p class="course-module__title">{{ heading }}</p></div>
+{% endif %}
 {% endfor %}
 </section>
 {% endmacro %}
