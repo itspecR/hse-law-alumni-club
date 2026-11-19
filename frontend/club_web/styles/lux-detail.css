@@ -11,6 +11,10 @@ html.lux .program-page .site-program-cover { border-radius: var(--r-lg); }
 html.lux :is(.program-page, .support-page) details:last-of-type { border-bottom: 1px solid var(--c-line); }
 html.lux :is(.program-page, .support-page) details summary { justify-content: space-between; gap: 16px; min-height: 56px; padding: 8px 0; font-size: 17px; font-weight: 500; }
 html.lux :is(.program-page, .support-page) details > :not(summary) { color: var(--c-text-3); }
+html.lux .program-page .course-module { padding: 14px 0; border-top: 1px solid var(--c-line); }
+html.lux .program-page .course-modules > .course-module:last-child { border-bottom: 1px solid var(--c-line); }
+html.lux .program-page .course-modules > details:last-of-type:not(:last-child) { border-bottom: 0; }
+html.lux .program-page .course-module__title { display: flex; align-items: center; min-height: 56px; margin: 0; padding: 8px 0; font-size: 17px; font-weight: 500; }
 
 html.lux .lux-teachers { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 32px 24px; }
 html.lux .lux-teachers article { display: grid; align-content: start; gap: 8px; }

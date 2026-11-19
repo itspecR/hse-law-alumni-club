@@ -2,7 +2,7 @@ import re
 from datetime import UTC, datetime
 from urllib.parse import urljoin
 
-from bs4 import BeautifulSoup, NavigableString, Tag
+from bs4 import BeautifulSoup, Comment, NavigableString, Tag
 
 from club_api.db.store import normalize
 
@@ -25,6 +25,9 @@ HEADINGS = {"h1": "## ", "h2": "## ", "h3": "### ", "h4": "#### ", "h5": "#### "
 LISTS = {"ul", "ol"}
 TEXT_TAGS = frozenset((*HEADINGS, *LISTS, "blockquote", "table"))
 MARKS = {"strong": "**", "b": "**", "em": "*", "i": "*"}
+INLINE = frozenset(("a", "span", "strong", "b", "em", "i", "u", "sup", "sub", "small", "br", "abbr", "mark", "time"))
+LINE_BLOCKS = frozenset(("div", "p"))
+DATE_LABEL = "Дата"
 REMOVED = ".annotation, .lead-in, .head-picture, .articleMeta, .tag-set, .post-meta, .print, .share"
 ESCAPED = re.compile(r"([\\`*_\[\]<>])")
 LINE_START = re.compile(r"^(\s*)([#>+-]|\d+[.)])")
@@ -54,14 +57,22 @@ def link(node, base, text):
 
 
 def inline(node, base):
+    return inline_nodes(node.children, base)
+
+
+def inline_nodes(nodes, base):
     parts = []
-    for child in node.children:
+    for child in nodes:
+        if isinstance(child, Comment):
+            continue
         if isinstance(child, NavigableString):
             parts.append(escape(re.sub(r"\s+", " ", str(child))))
         elif child.name == "br":
             parts.append("\n")
         elif child.name in SKIPPED or child.name == "img":
             continue
+        elif child.name in LINE_BLOCKS:
+            parts.append("\n" + inline(child, base) + "\n")
         else:
             parts.append(wrapped(child, inline(child, base), base))
     return "".join(parts)
@@ -107,7 +118,7 @@ def present(text):
 
 def text_block(child, base):
     if child.name in HEADINGS:
-        return paragraph(clean(inline(child, base)), HEADINGS[child.name])
+        return paragraph(inline(child, base).strip(), HEADINGS[child.name])
     if child.name in LISTS:
         return list_block(child, base)
     if child.name == "blockquote":
@@ -115,11 +126,28 @@ def text_block(child, base):
     return table_block(child, base)
 
 
+def is_inline(child):
+    return isinstance(child, NavigableString) or child.name in INLINE
+
+
+def inline_run(run, base):
+    yield from present(paragraph(inline_nodes(run, base).strip()))
+    for child in run:
+        if isinstance(child, Tag):
+            yield from images(child, base)
+
+
 def blocks(node, base):
+    run = []
     for child in node.children:
-        if isinstance(child, NavigableString):
-            yield from present(paragraph(escape(clean(str(child)))))
-        elif child.name in SKIPPED:
+        if isinstance(child, Comment):
+            continue
+        if is_inline(child):
+            run.append(child)
+            continue
+        yield from inline_run(run, base)
+        run = []
+        if child.name in SKIPPED:
             continue
         elif child.name == "img":
             yield from images(child, base)
@@ -130,6 +158,7 @@ def blocks(node, base):
             yield from present(text_block(child, base))
         elif isinstance(child, Tag):
             yield from blocks(child, base)
+    yield from inline_run(run, base)
 
 
 def russian_date(value):
@@ -142,9 +171,16 @@ def russian_date(value):
         return None
 
 
+def is_date_item(item):
+    label = item.select_one(".articleMetaItem__label")
+    return bool(label) and (
+        "articleMetaItem__label--date" in label.get("class", []) or clean(label.get_text(" ")) == DATE_LABEL
+    )
+
+
 def article_date(document):
     for item in document.select(".articleMetaItem"):
-        if item.select_one(".articleMetaItem__label--date"):
+        if is_date_item(item):
             return russian_date(item.get_text(" "))
     return None
 

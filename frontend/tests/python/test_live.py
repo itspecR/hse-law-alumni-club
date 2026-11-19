@@ -385,10 +385,13 @@ def test_live_system(name, width, height):
             result(request.post(f"/api/admin/events/rsvp/{roster[0]['id']}/attend", headers=headers, data={}))
         ledger = result(request.get("/api/me/ledger", headers=auth(previous_token)))
         assert sum(row["reason"] == "event" for row in ledger) == 1
+        episode = {"title": f"Выпуск для подписки {name}", "status": "published", "is_free": True}
+        episode_id = result(request.post("/api/admin/podcasts", headers=headers, data=episode))["id"]
         page.goto("/podcasts")
         with page.expect_response(lambda response: response.url.endswith("/api/podcasts/subscribe")) as subscribed:
             page.get_by_role("button", name="Отправить заявку на подписку", exact=True).click()
         subscription = result(subscribed.value)
+        result(request.delete(f"/api/admin/podcasts/{episode_id}", headers=headers))
         repeated = result(request.post("/api/podcasts/subscribe", headers=auth(previous_token), data={}))
         assert repeated["number"] == subscription["number"] and repeated["already"]
         office.goto("/admin/members")

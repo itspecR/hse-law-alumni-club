@@ -610,7 +610,7 @@ async def test_home_shows_club_programs_after_join_steps(browser_client, dpo):
     assert '<h2><a href="/portfolio/club-one">' in (await browser_client.get("/portfolio")).text
 
 
-async def test_podcast_subscription_waits_below_empty_list():
+async def test_podcasts_without_episodes_announce_them_instead_of_subscription():
     async def upstream(request):
         if request.url.path == "/podcasts":
             return httpx.Response(200, json={"items": [], "subscribed": False})
@@ -621,9 +621,10 @@ async def test_podcast_subscription_waits_below_empty_list():
             transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
         ) as client:
             page = (await client.get("/podcasts")).text
-    assert page.index("Выпусков пока нет") < page.index('id="podcast-subscription"')
-    assert 'class="lux-btn lux-btn--ghost" data-api="/podcasts/subscribe"' in page
-    assert ">Отправить заявку на подписку</button>" in page and "Первые выпуски готовятся" in page
+    assert "<h1>Подкасты клуба и факультета</h1>" in page and "Правовая грамотность" not in page
+    assert '<p class="site-empty__title">Скоро первые выпуски</p>' in page
+    assert 'id="podcast-subscription"' not in page and "/podcasts/subscribe" not in page
+    assert "Первые выпуски готовятся" not in page
 
 
 async def test_empty_sections_show_tile_with_next_step():
@@ -646,7 +647,7 @@ async def test_empty_sections_show_tile_with_next_step():
         in pages["/portfolio"]
     )
     assert '<p class="site-empty__title">Новостей пока нет</p>' in pages["/news"]
-    assert '<p class="site-empty__title">Выпусков пока нет</p>' in pages["/podcasts"]
+    assert '<p class="site-empty__title">Скоро первые выпуски</p>' in pages["/podcasts"]
     assert '<p class="site-empty__title">Ближайших событий пока нет</p>' in pages["/events"]
     assert "site-calendar-grid" not in pages["/events"]
     assert '<p class="site-empty__title">Товаров пока нет</p>' in pages["/merch"]
@@ -1059,8 +1060,11 @@ async def test_portfolio_card_shows_course_modules():
             "format": "Лекция",
         },
         {"title": "Самостоятельная работа", "points": [], "hours": "2 ак. ч.", "format": None},
+        {"title": "Перерыв", "points": [], "hours": "", "format": None},
     ]
     page = await portfolio_page({**PORTFOLIO, "modules": modules})
+    assert '<div class="course-module"><p class="course-module__title">Перерыв</p></div>' in page
+    assert "<summary>Перерыв</summary>" not in page and "<summary>Самостоятельная работа</summary>" in page
     assert "<h2>Программа курса</h2>" in page and "<summary>День 1. Архитектура конфликта</summary>" in page
     assert "<li>Юридический спор</li>" in page and "<p>6 ак. ч. · Лекция</p>" in page and "<p>2 ак. ч.</p>" in page
     assert "Программа курса" not in await portfolio_page(PORTFOLIO)
@@ -1190,7 +1194,8 @@ async def test_events_podcasts_news_search_saved_texts_follow_glossary(browser_c
         path: (await browser_client.get(path)).text for path in ("/events", "/podcasts", "/news", "/search", "/saved")
     }
     assert "<p>Баллы за участие: 60</p>" in pages["/events"] and "Файл для календаря (.ics)</a>" not in pages["/events"]
-    assert "Подкаст клуба. Пробный выпуск открыт всем, остальные доступны по подписке на год." in pages["/podcasts"]
+    assert "<p>Пробный выпуск открыт всем, остальные доступны по подписке на год.</p>" in pages["/podcasts"]
+    assert 'id="podcast-subscription"' in pages["/podcasts"]
     assert '<span class="club-caps">Пробный выпуск · 30:00</span>' in pages["/podcasts"]
     assert "<p>Новости факультета и клуба.</p>" in pages["/news"]
     assert "<h1>Поиск по сайту</h1>" in pages["/search"] and "<h1>Сохраненное</h1>" in pages["/saved"]
