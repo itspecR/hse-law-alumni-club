@@ -33,6 +33,7 @@
 .camp-story { display: grid; gap: clamp(64px, 7cqi, 104px); }
 .camp-support { display: grid; gap: 24px; align-items: start; margin-top: clamp(64px, 7cqi, 104px); padding-bottom: clamp(64px, 7cqi, 104px); }
 .camp-support .give-panel { position: static; grid-area: auto; }
+.camp-support .camp-panel-head__goal { display: none; }
 .camp-block { min-width: 0; }
 .camp-text { max-width: 60ch; margin: 0; font-size: clamp(17px, 1.5cqi, 20px); line-height: 1.5; color: var(--c-text-2); text-wrap: pretty; }
 .camp-goal { display: grid; gap: 0; }
@@ -109,9 +110,10 @@ img.camp-speakers__photo { object-fit: cover; }
 
 @media (min-width: 901px) {
   .camp-hero__grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 56px; }
-  .camp-support { grid-template-columns: minmax(0, 1fr) minmax(360px, 420px); gap: 56px; }
-  .camp-support > .give-panel:only-child { grid-column: 2; }
-  .camp-support > .camp-goal { position: sticky; top: calc(var(--lux-header) + 24px); }
+  .camp-support .give-form { --camp-form-gap: clamp(20px, 2.5cqi, 36px); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .camp-support .give-form__part { display: grid; align-content: start; min-width: 0; padding-right: var(--camp-form-gap); }
+  .camp-support .give-form__part + .give-form__part { padding-right: 0; padding-left: var(--camp-form-gap); border-left: 1px solid var(--c-line); }
+  .camp-support .give-form__part + .give-form__part > :first-child { margin-top: 0; }
 }
 
 @media (max-width: 900px) {

@@ -45,11 +45,13 @@
 <figure class="lux-wrap lux-frame lux-join__photo lux-reveal" style="--d:2">
 <img src="{{ base }}assets/photos/club/graduates-1440.webp" srcset="{{ base }}assets/photos/club/graduates-900.webp 900w, {{ base }}assets/photos/club/graduates-1440.webp 1440w" sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 1180px) calc(100vw - 56px), 1124px" width="1440" height="960" alt="Выпускники факультета права на выпускном 2026 года" loading="lazy" decoding="async">
 </figure>
-<ol class="lux-wrap lux-steps">
-<li class="lux-step lux-reveal"><h3>Заявка</h3><p>Анкета с&nbsp;годом выпуска и&nbsp;образовательной программой.</p></li>
-<li class="lux-step lux-reveal" style="--d:1"><h3>Проверка</h3><p>Мы подтверждаем статус выпускника факультета.</p></li>
-<li class="lux-step lux-reveal" style="--d:2"><h3>Кабинет</h3><p>Откроются скидка выпускника, запись на&nbsp;события, подписка на&nbsp;подкасты и&nbsp;раздел однокурсников.</p></li>
+<div class="lux-wrap">
+<ol class="lux-tile lux-steps lux-reveal">
+<li class="lux-step" style="--i:0"><span class="lux-step__mark" aria-hidden="true"><span class="lux-step__num">01</span><span class="lux-step__line"></span></span><h3>Заявка</h3><p>Анкета с&nbsp;годом выпуска и&nbsp;образовательной программой.</p></li>
+<li class="lux-step" style="--i:1"><span class="lux-step__mark" aria-hidden="true"><span class="lux-step__num">02</span><span class="lux-step__line"></span></span><h3>Проверка</h3><p>Мы подтверждаем статус выпускника факультета.</p></li>
+<li class="lux-step" style="--i:2"><span class="lux-step__mark" aria-hidden="true"><span class="lux-step__num">03</span></span><h3>Кабинет</h3><p>Откроются скидка выпускника, запись на&nbsp;события, подписка на&nbsp;подкасты и&nbsp;раздел однокурсников.</p></li>
 </ol>
+</div>
 {% if registration_open %}<div class="lux-wrap lux-join__cta lux-reveal"><a href="/join" class="foc lux-btn" data-member-link>{{ join_label }}</a></div>{% endif %}
 </section>
 {% if campaign %}{% include 'campaign-teaser.html' %}{% endif %}
@@ -169,6 +171,7 @@
 </figure>
 </section>
 
+{% if home_read_enabled %}
 <section class="lux-section lux-read" id="law" aria-labelledby="lux-read-title">
 <div class="lux-wrap"><h2 class="lux-h2 lux-reveal" id="lux-read-title">Право и&nbsp;подкасты.</h2></div>
 <div class="lux-wrap lux-bento">
@@ -200,6 +203,7 @@
 </article>
 </div>
 </section>
+{% endif %}
 
 <section class="lux-section lux-give-cta" aria-labelledby="lux-give-title">
 <div class="lux-wrap">
