@@ -2,7 +2,7 @@ from club_web import features
 from club_web.formatting import address, date, media, program_start, safe_url
 
 SITE_NAME = "Клуб выпускников факультета права НИУ ВШЭ"
-PODCAST_NAME = "подкаст «Правовая грамотность»"
+PODCAST_NAME = "подкасты клуба и факультета"
 PROGRAM_SUFFIX = "программа клуба выпускников факультета права НИУ ВШЭ"
 MERCH_SUFFIX = "мерч клуба выпускников факультета права НИУ ВШЭ"
 SEPARATOR = " - "
