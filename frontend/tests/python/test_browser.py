@@ -4752,3 +4752,56 @@ def test_join_steps_form_one_plate_with_arrows(chromium, site, width, motion):
     expect(page.locator(".lux-step__mark").first).to_have_attribute("aria-hidden", "true")
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
     context.close()
+
+
+HOME_SPECS = [
+    {"key": key, "title": key != "campaign", "lede": key in ("join", "trainings", "events", "give")}
+    for key in ("goals", "join", "campaign", "trainings", "dpo", "events", "people", "read", "give")
+]
+HOME_LAYOUT = [
+    {"key": spec["key"], "visible": spec["key"] != "read", "title": None, "lede": None} for spec in HOME_SPECS
+]
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_office_arranges_home_sections(page, site, width):
+    site[1]["/admin/pages/home"] = {
+        "blocks": {"cta": {"title": "Старый заголовок"}},
+        "sections": HOME_LAYOUT,
+        "section_specs": HOME_SPECS,
+    }
+    page.set_viewport_size({"width": width, "height": 900})
+    page.add_init_script("localStorage.setItem('club_admin_token','admin-qa');")
+    page.goto("/admin/pages")
+    editor = page.get_by_role("group", name="Разделы главной")
+    expect(editor.locator("[data-module]")).to_have_count(len(HOME_SPECS))
+    editor.get_by_role("button", name="Поднять «Люди»").click()
+    expect(editor.get_by_role("button", name="Поднять «Люди»")).to_be_focused()
+    rows = editor.locator("[data-module]")
+    expect(rows.nth(5)).to_contain_text("Люди")
+    goals = rows.nth(0)
+    goals.locator('[data-action="module-toggle"]').click()
+    goals.get_by_label("Показывать на главной").uncheck()
+    join = rows.nth(1)
+    join.locator('[data-action="module-toggle"]').click()
+    expect(join.get_by_label("Заголовок")).to_have_value("Старый заголовок")
+    trainings = rows.nth(3)
+    trainings.locator('[data-action="module-toggle"]').click()
+    trainings.get_by_label("Заголовок").fill("Наши тренинги.")
+    trainings.get_by_label("Вводный текст").fill("Короткие практические курсы.")
+    expect(rows.nth(2).get_by_label("Заголовок")).to_have_count(0)
+    page.locator('form[data-api="/admin/pages/home"]').get_by_role("button", name="Сохранить").click()
+    expect(page.locator("#toast")).to_contain_text("Изменения сохранены")
+    write = site[2][-1]
+    sections = write["body"]["sections"]
+    assert write["path"] == "/admin/pages/home" and [item["key"] for item in sections][5:7] == ["people", "events"]
+    assert sections[0] == {"key": "goals", "visible": False, "title": None}
+    assert sections[1]["title"] == "Старый заголовок" and write["body"]["cta"]["title"] == ""
+    assert sections[3] == {
+        "key": "trainings",
+        "visible": True,
+        "title": "Наши тренинги.",
+        "lede": "Короткие практические курсы.",
+    }
+    assert sections[2] == {"key": "campaign", "visible": True}
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")

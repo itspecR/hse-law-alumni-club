@@ -1,0 +1,46 @@
+{% from 'macros.html' import text_or %}
+{% if dpo_enabled %}
+<section class="lux-section lux-dpo" id="dpo-prices" aria-labelledby="lux-dpo-title">
+<div class="lux-wrap lux-split">
+<h2 class="lux-h2 lux-reveal" id="lux-dpo-title">{% call text_or(section.title) %}ДПО по&nbsp;цене выпускника.{% endcall %}</h2>
+<p class="lux-lede lux-reveal" style="--d:1">{% if 'programs' not in load_errors %}Программ в&nbsp;каталоге: {{ programs_total }}, набор открыт на&nbsp;{{ programs_open }}. {% endif %}Скидка растет вместе с&nbsp;уровнем в&nbsp;клубе, от&nbsp;{{ levels[0].discount_percent }} до&nbsp;{{ levels[-1].discount_percent }}%.</p>
+</div>
+<div class="lux-wrap">
+<div class="lux-tile lux-calc lux-reveal" style="--d:2">
+<fieldset class="lux-calc__levels">
+<legend class="lux-calc__label">Уровень в&nbsp;клубе</legend>
+<div class="lux-seg" style="--seg-n:{{ levels|length }}">
+<span class="lux-seg__thumb" aria-hidden="true"></span>
+{% for level in levels %}
+<label class="lux-seg__opt"><input type="radio" name="member-level" value="{{ level.key }}" data-level-title="{{ level.title }}" data-level-discount="{{ level.discount_percent }}"{% if loop.first %} checked{% endif %}><span>{{ level.title }} <b>{{ level.discount_percent }}%</b></span></label>
+{% endfor %}
+</div>
+</fieldset>
+{% if 'programs' in load_errors %}
+<p class="lux-calc__error" role="status">Программы не&nbsp;загрузились. Обновите страницу или откройте каталог.</p>
+{% else %}
+<h3 class="lux-calc__sub">{{ 'Ближайшие старты' if home_starts else 'Программы с открытым набором' }}</h3>
+{% if home_programs %}
+<ul class="lux-progs">
+{% for program in home_programs %}
+<li class="lux-prog"{% if home_starts and program.start_day %} data-program-start="{{ program.start_day }}"{% endif %} data-member-prices='{{ program.member_price_map|tojson }}'>
+<a class="foc lux-prog__link" href="{{ program.source_url|safe_url }}" target="_blank" rel="noopener noreferrer">
+<span class="lux-prog__date">{{ program.start_label if home_starts else program.direction }}</span>
+<span class="lux-prog__main"><span class="lux-prog__name">{{ program.title }}</span><span class="lux-prog__meta">{{ program.format_label|capitalize }}{% if program.duration %} · {{ program.duration }}{% endif %}</span></span>
+<span class="lux-prog__price"><s><span class="lux-sr">Цена каталога: </span>{{ program.price|rub }}</s><span class="lux-sr">Цена выпускника: </span><span class="lux-prog__member" data-member-price>{{ program.member_prices[0].price|rub }}</span><span class="lux-sr">, на сайте Центра ДПО, откроется в новой вкладке</span></span>
+</a>
+</li>
+{% endfor %}
+</ul>
+{% endif %}
+<p data-starts-empty {% if home_programs %}hidden{% endif %}>Ближайшие даты пока не объявлены. Программы с&nbsp;открытым набором есть в&nbsp;каталоге.</p>
+{% endif %}
+<p class="lux-sr" role="status" data-level-status></p>
+<div class="lux-calc__foot">
+<p>{% for level in levels[1:] %}Скидка {{ level.discount_percent }}% с&nbsp;уровня «{{ level.title }}», от&nbsp;{{ level.min_points }}&nbsp;баллов. {% endfor %}Личная скидка добавляет еще до&nbsp;{{ domain.limits.personal_discount_max }}%, всего не&nbsp;больше {{ domain.limits.member_discount_cap }}%. Подробности при&nbsp;оформлении на&nbsp;сайте Центра ДПО.</p>
+<a href="/dpo" class="foc lux-more">Весь каталог <span class="lux-more__arrow" aria-hidden="true">›</span></a>
+</div>
+</div>
+</div>
+</section>
+{% endif %}

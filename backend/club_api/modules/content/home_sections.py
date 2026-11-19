@@ -3,10 +3,11 @@ from typing import Literal
 from pydantic import Field, model_validator
 
 from club_api.core.schemas import Body
+from club_api.domain import DOMAIN
 
 HOME_SLUG = "home"
-SECTION_TITLE_LIMIT = 120
-SECTION_LEDE_LIMIT = 600
+SECTION_TITLE_LIMIT = DOMAIN["limits"]["home_section_title_max"]
+SECTION_LEDE_LIMIT = DOMAIN["limits"]["home_section_lede_max"]
 SECTIONS = {
     "goals": {"title": True, "lede": False, "visible": True},
     "join": {"title": True, "lede": True, "visible": True},
@@ -24,8 +25,8 @@ SectionKey = Literal[*SECTIONS]
 class HomeSection(Body):
     key: SectionKey
     visible: bool = True
-    title: str = Field(default=None, max_length=SECTION_TITLE_LIMIT)
-    lede: str = Field(default=None, max_length=SECTION_LEDE_LIMIT)
+    title: str | None = Field(default=None, max_length=SECTION_TITLE_LIMIT)
+    lede: str | None = Field(default=None, max_length=SECTION_LEDE_LIMIT)
 
     @model_validator(mode="after")
     def editable_texts_only(self):

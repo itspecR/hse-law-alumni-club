@@ -1,0 +1,26 @@
+{% from 'macros.html' import empty,program_card,text_or %}
+<section class="lux-section lux-portfolio" id="club-programs" aria-labelledby="lux-portfolio-title">
+<div class="lux-wrap lux-split">
+<h2 class="lux-h2 lux-reveal" id="lux-portfolio-title">{% call text_or(section.title) %}Тренинги.{% endcall %}</h2>
+<div class="lux-reveal" style="--d:1">
+{% if section.lede %}<p class="lux-lede">{{ section.lede }}</p>{% else %}
+<p class="lux-lede">Тренинги по&nbsp;развитию навыков.</p>
+<p class="lux-lede">{% include 'trainings-lede.html' %}</p>
+{% endif %}
+</div>
+</div>
+<div class="lux-wrap">
+{% if 'portfolio' in load_errors %}
+<p class="lux-portfolio__note" role="status">Тренинги не&nbsp;загрузились. Обновите страницу или откройте раздел тренингов.</p>
+{% elif club_programs %}
+<div class="site-catalog">
+{% for item in club_programs %}
+{{ program_card(item,'h3') }}
+{% endfor %}
+</div>
+{% else %}
+{{ empty('Тренингов пока нет', 'Когда откроется набор, программа появится в разделе тренингов.') }}
+{% endif %}
+{% if club_programs or 'portfolio' in load_errors %}<a href="/portfolio" class="foc lux-more">Все тренинги <span class="lux-more__arrow" aria-hidden="true">›</span></a>{% endif %}
+</div>
+</section>

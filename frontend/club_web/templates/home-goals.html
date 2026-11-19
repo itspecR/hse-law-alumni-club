@@ -1,0 +1,12 @@
+{% from 'macros.html' import text_or %}
+<section class="lux-section lux-about" id="about-club" aria-labelledby="lux-about-title">
+<div class="lux-wrap lux-split">
+<h2 class="lux-h2 lux-reveal" id="lux-about-title">{% call text_or(section.title) %}Цели клуба.{% endcall %}</h2>
+<div class="lux-reveal" style="--d:1">
+<div class="lux-lede lux-goals">{{ (page.body or home_texts.goals)|rich_text }}</div>
+<div class="lux-links">
+<a href="/about" class="foc lux-more">Подробнее о клубе <span class="lux-more__arrow" aria-hidden="true">›</span></a>
+</div>
+</div>
+</div>
+</section>
