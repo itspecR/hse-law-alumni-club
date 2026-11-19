@@ -61,6 +61,22 @@ def test_page_body_rejects_wrong_sections(sections):
         PageBody.model_validate({"sections": sections})
 
 
+def test_page_body_accepts_the_layout_the_office_sends():
+    sent = [
+        {"key": "goals", "visible": False, "title": None},
+        {"key": "join", "visible": True, "title": "Шаги", "lede": None},
+        {"key": "campaign", "visible": True},
+        {"key": "read", "visible": True, "title": None},
+    ]
+    body = PageBody.model_validate({"sections": sent, "cta": {"title": "", "button": ""}})
+    assert [section.model_dump() for section in body.sections][0] == {
+        "key": "goals",
+        "visible": False,
+        "title": None,
+        "lede": None,
+    }
+
+
 def test_page_body_accepts_texts_up_to_limits():
     body = PageBody.model_validate(
         {"sections": [{"key": "join", "title": "а" * SECTION_TITLE_LIMIT, "lede": "а" * SECTION_LEDE_LIMIT}]}
