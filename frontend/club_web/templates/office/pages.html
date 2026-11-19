@@ -1,3 +1,4 @@
+{% from 'office/forms.html' import section_editor with context %}
 <h2>Главная страница</h2>
 {% if record and record.blocks is defined %}
 <form data-api="/admin/pages/home" data-method="PATCH">
@@ -16,13 +17,14 @@
 {{ field('hero.subtitle','Подпись под Фемидой и строка при прокрутке',hero.subtitle or home_defaults.subtitle,required=false) }}
 {{ field('hero.cta_primary','Кнопка вступления',hero.cta_primary,required=false) }}
 </fieldset>
+{% if record.sections %}{{ section_editor(record,home_defaults.section_labels,cta) }}{% endif %}
 <fieldset>
 <legend>Цели клуба</legend>
 {{ rich_area('Цели клуба',record.body or home_defaults.goals,name='body',big=true) }}
 </fieldset>
 <fieldset>
 <legend>Вступление</legend>
-{{ field('cta.title','Заголовок вступления',cta.title,required=false) }}
+{% if record.sections %}<input type="hidden" name="cta.title" value="">{% else %}{{ field('cta.title','Заголовок вступления',cta.title,required=false) }}{% endif %}
 {{ field('cta.button','Кнопка',cta.button,required=false) }}
 </fieldset>
 <button class="site-primary">Сохранить</button>

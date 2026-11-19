@@ -726,6 +726,7 @@ class Pages(models.Model):
     body = models.TextField(null=True)
     meta_title = models.CharField(max_length=255, null=True)
     meta_description = models.CharField(max_length=300, null=True)
+    sections = models.JSONField(null=True)
 
     class Meta:
         db_table = "pages"

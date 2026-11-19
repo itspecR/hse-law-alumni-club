@@ -1,0 +1,32 @@
+{% from 'macros.html' import text_or %}
+<section class="lux-section lux-read" id="law" aria-labelledby="lux-read-title">
+<div class="lux-wrap"><h2 class="lux-h2 lux-reveal" id="lux-read-title">{% call text_or(section.title) %}Право и&nbsp;подкасты.{% endcall %}</h2></div>
+<div class="lux-wrap lux-bento">
+<article class="lux-tile lux-law lux-reveal" aria-labelledby="lux-law-title">
+<div class="lux-tile__media lux-cover lux-cover--law" aria-hidden="true"><span>§</span></div>
+<h3 class="lux-tile__title" id="lux-law-title">Изменения в&nbsp;праве</h3>
+{% if changes_enabled %}
+<p class="lux-tile__lede">Справки, обзоры и&nbsp;опубликованные правовые акты.</p>
+<ul class="lux-acts">
+{% for item in recent_changes %}
+<li><a class="foc" href="/changes/{{ item.id }}"><time>{{ item.published|date }}</time><span class="lux-acts__text"><b>{{ item.title|plain_title }}</b>{% if item.summary %}<span>{{ item.summary|plain_title }}</span>{% endif %}</span></a></li>
+{% endfor %}
+</ul>
+<a href="/changes" class="foc lux-more lux-tile__end">Все изменения <span class="lux-more__arrow" aria-hidden="true">›</span></a>
+{% else %}
+<p class="lux-tile__lede">Раздел в&nbsp;разработке.</p>
+{% endif %}
+</article>
+<article class="lux-tile lux-pod lux-reveal" style="--d:1" id="podcasts-preview" aria-labelledby="lux-pod-title">
+<div class="lux-tile__media lux-cover"><img src="{{ base }}assets/themis-figure.svg" width="313" height="549" alt="" loading="lazy" decoding="async"></div>
+<h3 class="lux-tile__title" id="lux-pod-title">Подкасты клуба</h3>
+<p class="lux-tile__lede">Пробный выпуск открыт всем, остальные доступны по&nbsp;подписке за&nbsp;<span class="lux-nobr">{{ domain.limits.podcast_year_price|rub }}</span> на&nbsp;12&nbsp;месяцев.</p>
+<ul class="lux-eps">
+{% for episode in episodes %}
+<li><a class="foc" href="/podcasts/{{ episode|address }}"><span>{{ episode.title }}</span><span>{{ episode.duration or '' }}{% if episode.is_free %} · открыт{% endif %}</span></a></li>
+{% endfor %}
+</ul>
+<a href="/podcasts" class="foc lux-btn lux-btn--ghost lux-tile__end">Все выпуски</a>
+</article>
+</div>
+</section>

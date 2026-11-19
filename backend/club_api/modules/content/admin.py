@@ -11,6 +11,14 @@ from club_api.core.schemas import Body
 from club_api.core.views import api_view, endpoint, parse_body
 from club_api.modules.auth.service import require_admin
 from club_api.modules.catalog.scope import DPO_PROGRAMS
+from club_api.modules.content.home_sections import (
+    HOME_SLUG,
+    SECTIONS,
+    HomeSection,
+    resolve_sections,
+    section_specs,
+    unique_sections,
+)
 from club_api.modules.content.routes import PAGE_TEXTS
 from club_api.observability.audit import audit
 
@@ -265,6 +273,12 @@ class PageBody(Body):
     body: str = Field(default=None, max_length=PAGE_BODY_LIMIT)
     meta_title: str = Field(default=None, max_length=PAGE_TITLE_LIMIT)
     meta_description: str = Field(default=None, max_length=PAGE_META_DESCRIPTION_LIMIT)
+    sections: list[HomeSection] = Field(default=None, max_length=len(SECTIONS))
+
+    @field_validator("sections")
+    @classmethod
+    def sections_once(cls, value):
+        return unique_sections(value)
 
 
 async def page(store, slug, *, connection=None):
@@ -276,6 +290,7 @@ async def page(store, slug, *, connection=None):
             "slug",
             "title",
             *PAGE_TEXTS,
+            "sections",
             "blocks.collection",
             "blocks.item:block_hero.*",
             "blocks.item:block_cta.*",
@@ -296,6 +311,7 @@ async def admin_page(request: HttpRequest, slug: str):
         "slug": row["slug"],
         "title": row["title"],
         **{name: row[name] for name in PAGE_TEXTS},
+        **home_layout(row),
         "blocks": {
             block["collection"].removeprefix("block_"): block["item"]
             for block in row["blocks"]
@@ -304,10 +320,18 @@ async def admin_page(request: HttpRequest, slug: str):
     }
 
 
+def home_layout(row):
+    if row["slug"] != HOME_SLUG:
+        return {}
+    return {"sections": resolve_sections(row.get("sections")), "section_specs": section_specs()}
+
+
 @api_view(body=PageBody, permission=require_admin)
 async def patch_page(request: HttpRequest, slug: str):
     admin = await require_admin(request)
     body = parse_body(request, PageBody)
+    if body.sections is not None and slug != HOME_SLUG:
+        raise ApiError(400, "Разделы настраиваются только у главной страницы.")
     state = request.services
     async with state.database.transaction() as connection:
         row = await page(state.store, slug, connection=connection)
@@ -326,7 +350,7 @@ async def patch_page(request: HttpRequest, slug: str):
                     id=block["item"]["id"],
                     connection=connection,
                 )
-        texts = body.model_dump(exclude_unset=True, include={"title", *PAGE_TEXTS})
+        texts = body.model_dump(exclude_unset=True, include={"title", "sections", *PAGE_TEXTS})
         if texts:
             await state.store.update("pages", texts, id=row["id"], connection=connection)
     await audit(

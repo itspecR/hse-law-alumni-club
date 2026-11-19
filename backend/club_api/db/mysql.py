@@ -40,6 +40,7 @@ JSON_FIELDS = frozenset(
         "theme_light_overrides",
         "theme_dark_overrides",
         "sources",
+        "sections",
     }
 )
 
