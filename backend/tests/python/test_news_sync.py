@@ -1,5 +1,5 @@
 import io
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import httpx
@@ -88,6 +88,27 @@ def test_article_becomes_lead_cover_and_safe_markdown():
     assert parse_article("<p>Нет текста</p>", FIRST) is None
 
 
+SUBSITE_ARTICLE = (
+    '<div class="articleMeta"><div class="articleMetaItem is-mobile"><div class="articleMetaItem__label">'
+    '<span class="small">Дата</span></div><div class="articleMetaItem__content"><span class="small grey">22 июля '
+    "\t\t 2025</span></div></div></div>"
+    '<div class="post__text"><div class="builder-section c"><div><a href="//www.hse.ru/org/persons/1">Иванов Иван</a>, '
+    '<br><span class="i smaller">Декан факультета</span></div></div>'
+    '<h4 class="c"><a href="https://www.hse.ru/org/persons/2/">Петров Петр</a><div class="i">Руководитель</div></h4>'
+    "<p>Итог</p></div>"
+)
+
+
+def test_subsite_article_keeps_its_date_and_name_with_role_in_one_paragraph():
+    result = parse_article(SUBSITE_ARTICLE, SUBSITE)
+    assert result["published_at"].startswith("2025-07-22")
+    assert result["blocks"] == [
+        "[Иванов Иван](https://www.hse.ru/org/persons/1),\nДекан факультета",
+        "#### [Петров Петр](https://www.hse.ru/org/persons/2/)\nРуководитель",
+        "Итог",
+    ]
+
+
 @pytest.fixture
 def faculty(database_app):
     calls, broken = [], {SECOND}
@@ -171,6 +192,17 @@ async def test_deleted_or_dismissed_news_never_return(faculty):
     assert set(await faculty_news(app)) == {SECOND}
     assert (await inbox(app))[FIRST]["state"] == "imported"
     assert str((await inbox(app))[FIRST]["published_at"]).startswith("2024-02-01")
+
+
+async def test_copy_of_published_news_on_another_page_is_skipped(faculty):
+    app, _, broken = faculty
+    broken.clear()
+    original = {"title": "Новость 1", "slug": "novost-1", "status": "published", "origin": "faculty"}
+    await app.state.store.create("news", {**original, "published_at": datetime(2024, 2, 1, 12, tzinfo=UTC)})
+    await sync_news(app.state, delay=0)
+    assert (await inbox(app))[FIRST]["state"] == "dismissed"
+    titles = [row["title"] for row in await app.state.store.read("news", fields=("title",), limit=-1)]
+    assert titles.count("Новость 1") == 1
 
 
 def moscow(day, hour, minute):
