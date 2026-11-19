@@ -1969,8 +1969,8 @@ async def test_campaign_page_shows_story_meter_and_campaign_form(browser_client)
         ("Время", "10:00-17:00"),
         ("Формат", "6 часов"),
     ]
-    assert page.count("<b>412 000 ₽</b>") == 2 and page.count("из 1 500 000 ₽") == 2
-    assert page.count('aria-valuenow="27"') == 2 and page.count('style="--camp-fill:27%"') == 2
+    assert page.count("<b>412 000 ₽</b>") == 1 and page.count("из 1 500 000 ₽") == 1
+    assert page.count('aria-valuenow="27"') == 1 and page.count('style="--camp-fill:27%"') == 1
     assert '<li class="camp-day__pause lux-reveal"><span>Перерыв 15 минут</span></li>' in page
     assert page.count('<details class="lux-disclosure camp-day__body"') == 1
     assert '<div class="camp-day__body"><span class="camp-day__head"><b>Разбор</b></span></div>' in page
@@ -1990,7 +1990,11 @@ async def test_campaign_page_shows_story_meter_and_campaign_form(browser_client)
         form.replace("&nbsp;", " ")
     )
     assert '<input type="hidden" name="campaign" value="intensive">' in form
-    assert page.index('class="give-story camp-story"') < page.index('id="camp-support"')
+    story, support = page.index('id="camp-story"'), page.index('id="camp-support"')
+    assert story < page.index('id="camp-faq-title"') < support < page.index('id="camp-goal-title"')
+    hero = page.split('<div class="camp-hero__acts">', 1)[1].split("</div>", 1)[0]
+    assert '<a href="#camp-story" class="foc lux-btn">О тренинге</a>' in hero
+    assert '<a href="#camp-support" class="foc lux-btn lux-btn--ghost">Поддержать сбор</a>' in hero
     assert 'content="index,follow"' in page
 
 
