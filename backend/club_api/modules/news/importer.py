@@ -81,6 +81,9 @@ async def import_item(state, pacer, source, item):
         article = await asyncio.to_thread(parse_article, html, item["source_url"])
         if not article:
             raise ApiError(502, "Текст новости не найден.")
+        if await already_published(state, item["title"], article["published_at"]):
+            await remember(state.database, source, item, "dismissed", None, None)
+            return False
         cover = await save_image(state, pacer, article["cover"], saved)
         body = await render_body(state, pacer, article["blocks"], saved)
         await publish(state, source, item, {**article, "cover": cover, "body": body})
@@ -91,6 +94,14 @@ async def import_item(state, pacer, source, item):
             await state.media.delete(id)
         await remember(state.database, source, item, "new", None, None)
         return False
+
+
+async def already_published(state, title, published_at):
+    if not published_at:
+        return False
+    day = parse_date(published_at).date()
+    rows = await state.store.read("news", filters={"title": {"_eq": title}}, fields=("published_at",), limit=-1)
+    return any(row["published_at"] and parse_date(row["published_at"]).date() == day for row in rows)
 
 
 async def save_image(state, pacer, url, saved):

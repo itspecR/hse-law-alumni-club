@@ -116,7 +116,7 @@ async def test_program_without_price_has_no_offer():
 async def test_podcast_series_and_episode():
     listing = await graph("/podcasts")
     nodes = await graph("/podcasts/episode-1")
-    assert listing["PodcastSeries"]["name"] == "Правовая грамотность"
+    assert listing["PodcastSeries"]["name"] == "Подкасты клуба и факультета"
     assert listing["PodcastSeries"]["url"] == SITE + "/podcasts"
     episode = nodes["PodcastEpisode"]
     assert episode["partOfSeries"] == {"@id": nodes["PodcastSeries"]["@id"]} and episode["duration"] == "PT30M0S"
