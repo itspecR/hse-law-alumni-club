@@ -1,0 +1,38 @@
+{% from 'macros.html' import text_or %}
+<section class="lux-section lux-meet" id="meetings" aria-labelledby="lux-meet-title">
+<div class="lux-wrap lux-split">
+<h2 class="lux-h2 lux-reveal" id="lux-meet-title">{% call text_or(section.title) %}События.{% endcall %}</h2>
+<div class="lux-reveal" style="--d:1">
+{% if section.lede %}<p class="lux-lede">{{ section.lede }}</p>{% else %}
+<p class="lux-lede">Каждый год клуб собирает выпускников разных лет на&nbsp;традиционную встречу.</p>
+<p class="lux-lede">27&nbsp;февраля 2026&nbsp;года на&nbsp;традиционной встрече выпускников обсудили развитие клуба на&nbsp;ближайшие 5-10&nbsp;лет. Лучшие идеи выбрали общим голосованием.</p>
+{% endif %}
+<div class="lux-links">
+<a href="https://pravo.hse.ru/news/1133936920.html" class="foc lux-more" target="_blank" rel="noopener noreferrer">Репортаж на&nbsp;pravo.hse.ru <span class="lux-more__arrow" aria-hidden="true">↗</span><span class="lux-sr">, откроется в&nbsp;новой вкладке</span></a>
+<a href="/events" class="foc lux-more">Все события <span class="lux-more__arrow" aria-hidden="true">›</span></a>
+</div>
+</div>
+</div>
+{% if upcoming %}
+<ul class="lux-wrap lux-agenda">
+{% for event in upcoming %}
+<li class="lux-reveal" style="--d:{{ loop.index0 }}"><a class="foc" href="/events/{{ event|address }}"><time>{{ event.starts_at|date(true) }}</time><span>{{ event.title }}</span>{% if event.location %}<span class="lux-agenda__place">{{ event.location }}</span>{% endif %}</a></li>
+{% endfor %}
+</ul>
+{% endif %}
+<div class="lux-wrap lux-pair">
+<figure class="lux-reveal"><div class="lux-frame"><img src="{{ base }}assets/photos/club/meeting-1083.webp" srcset="{{ base }}assets/photos/club/meeting-800.webp 800w, {{ base }}assets/photos/club/meeting-1083.webp 1083w" sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 760px) calc(100vw - 56px), 552px" width="1083" height="714" alt="Выпускники факультета права на встрече 27 февраля 2026 года" loading="lazy" decoding="async"></div><figcaption>Встреча выпускников, 27&nbsp;февраля 2026</figcaption></figure>
+<figure class="lux-reveal" style="--d:1"><div class="lux-frame"><img src="{{ base }}assets/photos/club/conversation-1280.webp" srcset="{{ base }}assets/photos/club/conversation-800.webp 800w, {{ base }}assets/photos/club/conversation-1280.webp 1280w" sizes="(max-width: 600px) calc(100vw - 32px), (max-width: 760px) calc(100vw - 56px), 552px" width="1280" height="853" alt="Выпускники факультета права общаются на встрече 15 февраля 2025 года" loading="lazy" decoding="async"></div><figcaption>Встреча выпускников, 15&nbsp;февраля 2025</figcaption></figure>
+</div>
+{% if news %}
+<div class="lux-wrap lux-news">
+<h3 class="lux-reveal">Новости</h3>
+<ul>
+{% for item in news %}
+<li class="lux-reveal" style="--d:{{ loop.index }}"><a class="foc" href="/news/{{ item.slug }}"><time>{{ item.published_at|date }}</time><span>{{ item.title }}</span></a></li>
+{% endfor %}
+</ul>
+<a href="/news" class="foc lux-more lux-reveal">Все новости <span class="lux-more__arrow" aria-hidden="true">›</span></a>
+</div>
+{% endif %}
+</section>

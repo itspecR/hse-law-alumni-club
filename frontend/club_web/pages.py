@@ -380,6 +380,16 @@ async def about_page(page):
     page.data["title"] = page.data["about"]["title"]
 
 
+HOME_SECTION_KEYS = ("goals", "join", "campaign", "trainings", "dpo", "events", "people", "read", "give")
+HOME_HIDDEN_BY_DEFAULT = frozenset({"read"})
+
+
+def home_sections(saved):
+    if not saved:
+        return [{"key": key} for key in HOME_SECTION_KEYS if key not in HOME_HIDDEN_BY_DEFAULT]
+    return [item for item in saved if item.get("key") in HOME_SECTION_KEYS and item.get("visible")]
+
+
 async def home_page(page):
     data, load = page.data, page.load
     *_, data["campaign"] = await asyncio.gather(
@@ -395,6 +405,7 @@ async def home_page(page):
     data["campaign_wave"] = WAVE
     data["hero"] = (data["page"].get("blocks") or {}).get("hero") or {}
     data["cta"] = (data["page"].get("blocks") or {}).get("cta") or {}
+    data["home_sections"] = home_sections(data["page"].get("sections"))
     now = datetime.now(UTC)
     data["upcoming"] = sorted(
         [item for item in data["events"] if instant(item.get("starts_at")) >= now],
@@ -797,7 +808,6 @@ async def context(api, path, params, authorized=False):
         "changes_enabled": features.CHANGES_ENABLED,
         "push_enabled": features.PUSH_ENABLED,
         "dpo_enabled": features.DPO_ENABLED,
-        "home_read_enabled": features.HOME_READ_ENABLED,
         "tabs": mobile_tabs(path),
         "live": live_view(path),
         "office_nav": OFFICE_NAV,
