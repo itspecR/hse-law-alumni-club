@@ -2309,6 +2309,51 @@ async def test_home_goals_come_from_the_panel_when_saved():
     assert "<p>Своя цель.</p>" in block and "<li>Первый пункт</li>" in block and GOALS_INTRO not in block
 
 
+HOME_TITLES = {
+    "goals": 'id="lux-about-title"',
+    "join": 'id="lux-join-title"',
+    "trainings": 'id="lux-portfolio-title"',
+    "events": 'id="lux-meet-title"',
+    "people": 'id="lux-people-title"',
+    "read": 'id="lux-read-title"',
+    "give": 'id="lux-give-title"',
+}
+
+
+def section_order(page):
+    found = {key: page.find(marker) for key, marker in HOME_TITLES.items()}
+    return sorted((key for key, place in found.items() if place >= 0), key=found.get)
+
+
+async def test_home_without_saved_sections_keeps_code_order_and_hides_read():
+    page = (await rendered("/", {"/pages/home": (200, {"blocks": {}})})).text
+    assert section_order(page) == ["goals", "join", "trainings", "events", "people", "give"]
+
+
+async def test_home_follows_saved_order_visibility_and_texts():
+    sections = [
+        {"key": "people", "visible": True, "title": "Наши выпускники", "lede": None},
+        {"key": "events", "visible": True, "title": None, "lede": "Встречаемся каждую зиму."},
+        {"key": "read", "visible": True, "title": None, "lede": None},
+        {"key": "join", "visible": False, "title": None, "lede": None},
+        {"key": "gone", "visible": True, "title": "Чужой", "lede": None},
+        {"key": "give", "visible": True, "title": None, "lede": "Каждый взнос идет факультету."},
+    ]
+    page = (await rendered("/", {"/pages/home": (200, {"blocks": {}, "sections": sections})})).text
+    assert section_order(page) == ["people", "events", "read", "give"]
+    assert 'id="lux-people-title">Наши выпускники</h2>' in page and "Чужой" not in page
+    events = page[page.index('id="lux-meet-title"') :].split("</section>")[0]
+    assert '<p class="lux-lede">Встречаемся каждую зиму.</p>' in events and "традиционную встречу" not in events
+    assert '<p class="lux-lede">Каждый взнос идет факультету.</p>' in page
+    assert 'id="lux-read-title">Право и&nbsp;подкасты.</h2>' in page
+
+
+async def test_home_section_texts_are_escaped():
+    sections = [{"key": "join", "visible": True, "title": "<b>Шаги</b>", "lede": "<script>x</script>"}]
+    page = (await rendered("/", {"/pages/home": (200, {"blocks": {}, "sections": sections})})).text
+    assert "&lt;b&gt;Шаги&lt;/b&gt;" in page and "<script>x</script>" not in page
+
+
 async def test_campaign_speakers_follow_the_description_before_the_program(browser_client):
     page = (await browser_client.get("/give/intensive")).text
     about, speakers = page.index('id="camp-about-title"'), page.index('id="camp-speaker-title"')

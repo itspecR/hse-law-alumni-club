@@ -73,6 +73,32 @@
 </div>
 </div>
 {% endmacro %}
+{% macro section_row(section,spec,label,title) %}
+<div class="office-module" data-module>
+<div class="office-module__head">
+<button type="button" class="office-module__toggle" data-action="module-toggle" aria-expanded="false"><span class="office-module__number" aria-hidden="true"></span><span class="office-module__title" data-module-summary="title">{{ label }}</span><span class="office-module__meta">{{ 'скрыт' if not section.visible else ('выключен на сайте' if section.key == 'dpo' and not dpo_enabled else '') }}</span></button>
+<div class="office-module__tools">
+<button type="button" class="office-module__tool" data-action="module-up" aria-label="Поднять «{{ label }}»">{{ icon('up') }}</button>
+<button type="button" class="office-module__tool" data-action="module-down" aria-label="Опустить «{{ label }}»">{{ icon('down') }}</button>
+</div>
+</div>
+<div class="office-module__body" hidden>
+<input type="hidden" data-module-field="key" value="{{ section.key }}">
+<label class="site-consent"><input type="checkbox" data-module-field="visible" data-module-check{% if section.visible %} checked{% endif %}><span>Показывать на главной</span></label>
+{% if spec.title %}<label class="site-field office-module__wide">Заголовок<input data-module-field="title" value="{{ title or '' }}" maxlength="{{ domain.limits.home_section_title_max }}"></label>{% endif %}
+{% if spec.lede %}<label class="site-field office-module__wide">Вводный текст<textarea data-module-field="lede" maxlength="{{ domain.limits.home_section_lede_max }}">{{ section.lede or '' }}</textarea></label>{% endif %}
+</div>
+</div>
+{% endmacro %}
+{% macro section_editor(record,labels,cta) %}
+{% set specs = {} %}{% for spec in record.section_specs %}{% set _ = specs.update({spec.key: spec}) %}{% endfor %}
+<fieldset class="office-modules" data-modules="sections" data-modules-fixed data-modules-count="Разделов" data-modules-required="Раздел без ключа."><legend>Разделы главной</legend>
+<p class="office-hint">Порядок разделов между первым экраном и последним блоком. Пустой заголовок или текст показывает на сайте текст по умолчанию.</p>
+<p class="office-modules__total" data-modules-total aria-live="polite"></p>
+<p class="lux-sr" data-modules-status role="status"></p>
+{% for section in record.sections if section.key in specs %}{{ section_row(section,specs[section.key],labels.get(section.key,section.key),section.title or (cta.title if section.key == 'join')) }}{% endfor %}
+</fieldset>
+{% endmacro %}
 {% macro row_editor(name,label,items,shape) %}
 <fieldset class="office-modules" data-modules="{{ name }}" data-modules-count="{{ shape.count }}" data-modules-new="{{ shape.new }}" data-modules-required="{{ shape.required }}"{% if shape.hours %} data-modules-hours{% endif %}><legend>{{ label }}</legend>
 <p class="office-modules__total" data-modules-total aria-live="polite"></p>

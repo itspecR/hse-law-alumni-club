@@ -48,6 +48,7 @@
 <button data-action="refresh">Повторить</button>
 </section>
 {% endmacro %}
+{% macro text_or(value) %}{% if value %}{{ value }}{% else %}{{ caller() }}{% endif %}{% endmacro %}
 {% macro empty(title, text='', href='', label='') %}
 <div class="site-empty" role="status"><p class="site-empty__title">{{ title }}</p>{% if text %}<p>{{ text }}</p>{% endif %}{% if href %}<a class="foc lux-more" href="{{ href }}"{% if href.startswith('http') %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ label }} <span class="lux-more__arrow" aria-hidden="true">›</span></a>{% endif %}</div>
 {% endmacro %}

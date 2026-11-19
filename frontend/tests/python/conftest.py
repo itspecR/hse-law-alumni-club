@@ -1,6 +1,6 @@
 import pytest
 
-from club_web import features
+from club_web import features, pages
 
 
 @pytest.fixture
@@ -10,7 +10,7 @@ def changes_section(monkeypatch):
 
 @pytest.fixture
 def home_read_section(monkeypatch):
-    monkeypatch.setattr(features, "HOME_READ_ENABLED", True)
+    monkeypatch.setattr(pages, "HOME_HIDDEN_BY_DEFAULT", frozenset())
 
 
 @pytest.fixture

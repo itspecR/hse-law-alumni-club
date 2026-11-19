@@ -108,7 +108,7 @@ export function prepareCourse() {
     editor.dataset.courseReady = "true";
     editor.addEventListener("input", event => {
       const row = event.target.closest("[data-module]");
-      if (!row) return;
+      if (!row || editor.hasAttribute("data-modules-fixed")) return;
       summarize(row, editor);
       total(editor);
     });
