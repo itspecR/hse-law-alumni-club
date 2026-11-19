@@ -689,7 +689,7 @@ async def test_full_club_name_and_merch_text(browser_client):
     assert "<p>Одежда и аксессуары с символикой клуба и ВШЭ.</p>" in page
 
 
-async def test_hidden_changes_section_shows_stub_and_leaves_menus_and_search(browser_client, dpo):
+async def test_hidden_changes_section_shows_stub_and_leaves_menus_and_search(home_read_section, browser_client, dpo):
     home = (await browser_client.get("/")).text
     assert 'href="/changes"' not in home and "Изменения в&nbsp;праве</h3>" in home
     assert '<p class="lux-tile__lede">Раздел в&nbsp;разработке.</p>' in home
@@ -703,7 +703,13 @@ async def test_hidden_changes_section_shows_stub_and_leaves_menus_and_search(bro
     assert '"change"' not in saved and "Изменения в праве" not in saved.split('<main id="main"', 1)[1]
 
 
-async def test_changes_section_returns_with_one_switch(changes_section, browser_client, dpo):
+async def test_home_hides_law_and_podcasts_section(browser_client, dpo):
+    home = (await browser_client.get("/")).text
+    assert 'id="lux-read-title"' not in home and 'id="podcasts-preview"' not in home
+    assert 'id="join-steps"' in home and 'id="lux-give-title"' in home
+
+
+async def test_changes_section_returns_with_one_switch(changes_section, home_read_section, browser_client, dpo):
     home = (await browser_client.get("/")).text
     assert 'href="/changes"' in home and "Все изменения" in home
     assert "<p>Тренинги, программы ДПО, события, подкасты и изменения в праве.</p>" in home

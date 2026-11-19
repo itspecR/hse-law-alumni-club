@@ -797,6 +797,7 @@ async def context(api, path, params, authorized=False):
         "changes_enabled": features.CHANGES_ENABLED,
         "push_enabled": features.PUSH_ENABLED,
         "dpo_enabled": features.DPO_ENABLED,
+        "home_read_enabled": features.HOME_READ_ENABLED,
         "tabs": mobile_tabs(path),
         "live": live_view(path),
         "office_nav": OFFICE_NAV,

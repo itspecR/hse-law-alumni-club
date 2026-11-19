@@ -70,9 +70,15 @@
 .lux-join__photo { margin-top: 64px; padding-block: 0; }
 .lux-join__photo img { border-radius: var(--r-tile); }
 .lux-join__photo.lux-frame { background: none; }
-.lux-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 48px; margin-top: 64px; margin-bottom: 0; list-style: none; }
-.lux-step h3 { margin: 0; font: 400 var(--lux-h3)/1.1 var(--f-display); letter-spacing: -0.03em; }
-.lux-step p { margin: 12px 0 0; max-width: 28ch; color: var(--c-text-3); text-wrap: pretty; }
+.lux-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 64px 0 0; padding: clamp(32px, 4cqi, 56px); list-style: none; }
+.lux-step { min-width: 0; }
+.lux-step__mark { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
+.lux-step__num { display: grid; flex: none; place-items: center; width: 56px; height: 56px; border: 1px solid var(--c-line-control); border-radius: 50%; font: 400 15px/1 var(--f-data); font-variant-numeric: tabular-nums; color: var(--c-accent-text); }
+.lux-step:last-child .lux-step__num { border-color: var(--c-accent); background: color-mix(in srgb, var(--c-accent) 14%, transparent); }
+.lux-step__line { position: relative; flex: 1; height: 1px; margin-right: 16px; background: linear-gradient(90deg, var(--c-line-control), var(--c-accent)); transform-origin: left center; --line-from: 0 1; }
+.lux-step__line::after { content: ""; position: absolute; top: 50%; right: 0; width: 9px; height: 9px; border-top: 1px solid var(--c-accent); border-right: 1px solid var(--c-accent); transform: translate(-1px, -50%) rotate(45deg); }
+.lux-step h3 { margin: 0; padding-right: 24px; font: 400 var(--lux-h3)/1.1 var(--f-display); letter-spacing: -0.03em; }
+.lux-step p { margin: 12px 0 0; max-width: 28ch; padding-right: 24px; color: var(--c-text-3); text-wrap: pretty; }
 .lux-join__cta { margin-top: 56px; text-align: center; }
 
 html.lux .lux-portfolio .site-catalog { gap: 56px 24px; margin: 64px 0 48px; }
@@ -179,7 +185,15 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
   .lux-join__head, .lux-join__cta { text-align: left; }
   .lux-join__head .lux-lede { margin-inline: 0; }
   .lux-join__photo { margin-top: 40px; }
-  .lux-steps { grid-template-columns: 1fr; gap: 28px; margin-top: 40px; }
+  .lux-steps { grid-template-columns: 1fr; margin-top: 40px; padding: 28px 24px; }
+  .lux-step { display: grid; grid-template-columns: 48px minmax(0, 1fr); column-gap: 20px; }
+  .lux-step:not(:last-child) { padding-bottom: 28px; }
+  .lux-step__mark { grid-row: 1 / span 2; flex-direction: column; gap: 0; margin: 0; }
+  .lux-step__num { width: 48px; height: 48px; font-size: 14px; }
+  .lux-step__line { width: 1px; height: auto; min-height: 32px; margin: 12px 0 0; background: linear-gradient(180deg, var(--c-line-control), var(--c-accent)); transform-origin: center top; --line-from: 1 0; }
+  .lux-step__line::after { top: auto; right: auto; bottom: 0; left: 50%; transform: translate(-50%, -1px) rotate(135deg); }
+  .lux-step h3 { align-self: center; min-height: 48px; display: flex; align-items: center; padding-right: 0; }
+  .lux-step p { margin-top: 4px; padding-right: 0; }
   html.lux .lux-portfolio .site-catalog { gap: 48px; margin: 40px 0 32px; }
   .lux-calc__levels { position: sticky; top: var(--lux-nav); z-index: 2; margin: calc(-1 * var(--lux-tile-pad)) calc(-1 * var(--lux-tile-pad)) 0; padding: var(--lux-tile-pad) var(--lux-tile-pad) 12px; background: var(--c-bg-raised); }
   .lux-seg__opt span { flex-direction: column; gap: 2px; min-width: 0; padding: 8px 2px; font-size: 13px; overflow-wrap: anywhere; hyphens: auto; }
@@ -208,6 +222,8 @@ html.vis .lux-seg__opt input:checked + span { border-radius: 999px; outline: 2px
   .lux-reveal.is-in, .lux-reveal:focus-within { opacity: 1; transform: none; }
   .lux-reveal:focus-within { transition: none; }
   .lux-prog__member.is-swap { animation: lux-swap 180ms var(--ease-out); }
+  .lux-steps .lux-step__line { scale: var(--line-from); transition: scale 700ms var(--ease-out) calc(360ms + var(--i) * 420ms); }
+  .lux-steps.is-in .lux-step__line { scale: none; }
 }
 
 @media (max-width: 1000px) {

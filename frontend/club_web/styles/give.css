@@ -9,6 +9,7 @@
 .give-story { min-width: 0; }
 
 .give-form { display: grid; }
+.give-form__part { display: contents; }
 .give-amount { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; margin: 0 0 28px; font: 200 clamp(60px, 6cqi, 80px)/1 var(--f-display); letter-spacing: -0.045em; font-kerning: none; font-variant-numeric: tabular-nums; }
 .give-amount__unit { font-size: 0.5em; color: var(--c-text-3); letter-spacing: -0.02em; }
 .give-amount__period { font: 400 17px/1 var(--f-body); letter-spacing: 0; color: var(--c-text-3); }

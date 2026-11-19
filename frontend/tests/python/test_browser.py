@@ -4699,3 +4699,56 @@ def test_office_text_fields_format_with_buttons_and_tab(page, site, width):
     area.press("Tab")
     expect(area).not_to_be_focused()
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [390, 1440])
+def test_campaign_goal_sits_above_two_column_donation_form(chromium, site, width):
+    site[1]["/campaigns/intensive"] = SITE_CAMPAIGN
+    context = chromium.new_context(base_url=site[0], viewport={"width": width, "height": 900})
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+    page = context.new_page()
+    page.goto("/give/intensive#camp-support")
+    goal = page.locator(".camp-goal").bounding_box()
+    form = page.locator("[data-give-form]").bounding_box()
+    expect(page.locator(".camp-support .camp-panel-head__goal")).to_be_hidden()
+    sums = page.locator(".give-seg--sums").bounding_box()
+    email = page.get_by_label("Почта").bounding_box()
+    assert goal["y"] + goal["height"] <= form["y"] and abs(goal["width"] - form["width"]) <= 1
+    if width > 900:
+        name = page.get_by_label("Имя, необязательно").bounding_box()
+        head = page.locator(".camp-panel-head").bounding_box()
+        assert email["y"] < sums["y"] and sums["x"] + sums["width"] <= email["x"]
+        assert abs(name["y"] - head["y"]) <= 40
+    else:
+        assert sums["y"] + sums["height"] <= email["y"]
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    context.close()
+
+
+@pytest.mark.parametrize("motion", ["no-preference", "reduce"])
+@pytest.mark.parametrize("width", [390, 1440])
+def test_join_steps_form_one_plate_with_arrows(chromium, site, width, motion):
+    context = chromium.new_context(base_url=site[0], viewport={"width": width, "height": 900}, reduced_motion=motion)
+    context.add_init_script("localStorage.setItem('club_cookie_consent','essential');")
+    page = context.new_page()
+    page.goto("/")
+    steps = page.locator(".lux-steps")
+    steps.scroll_into_view_if_needed()
+    expect(page.locator(".lux-step__line")).to_have_count(2)
+    line = page.locator(".lux-step__line").first
+    drawn = "node => getComputedStyle(node).scale === 'none'"
+    if motion == "reduce":
+        assert line.evaluate(drawn)
+    else:
+        assert line.evaluate("node => getComputedStyle(node).transitionProperty") == "scale"
+        expect(steps).to_have_class(re.compile(r"\bis-in\b"))
+        page.wait_for_function(drawn, arg=line.element_handle())
+        page.wait_for_function("node => getComputedStyle(node).transform === 'none'", arg=steps.element_handle())
+    marks = [page.locator(".lux-step__num").nth(index).bounding_box() for index in range(3)]
+    if width > 760:
+        assert abs(marks[0]["y"] - marks[2]["y"]) <= 1 and marks[0]["x"] < marks[1]["x"] < marks[2]["x"]
+    else:
+        assert abs(marks[0]["x"] - marks[2]["x"]) <= 1 and marks[0]["y"] < marks[1]["y"] < marks[2]["y"]
+    expect(page.locator(".lux-step__mark").first).to_have_attribute("aria-hidden", "true")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    context.close()

@@ -2,6 +2,7 @@
 {% from 'macros.html' import name_field with context %}
 <form class="lux-tile give-form" data-give-form data-min="{{ donation.min }}" data-max="{{ donation.max }}" novalidate>
 <h2 class="lux-sr" id="give-form-title">Пожертвование</h2>
+<div class="give-form__part">
 {% if give_campaign %}{% include 'campaign-meter.html' %}{% endif %}
 <p class="give-amount" aria-hidden="true"><span class="give-amount__value" data-give-value>{{ give_chosen|rub|replace(' ₽','') }}</span><span class="give-amount__unit">₽</span></p>
 <fieldset class="give-group">
@@ -35,6 +36,8 @@
 {% else %}
 <input type="hidden" name="method" value="{{ give_method }}">
 {% endif %}
+</div>
+<div class="give-form__part">
 {{ name_field('name','Имя, необязательно',required=false) }}
 {{ field('email','Почта',type='email') }}
 <p class="give-hint">На&nbsp;почту придет подтверждение с&nbsp;суммой и&nbsp;номером пожертвования.</p>
@@ -51,6 +54,7 @@
 <p class="give-status" role="status">Прием пожертвований на&nbsp;сайте пока не&nbsp;подключен.</p>
 {% endif %}
 <p class="give-status" role="alert" data-error hidden></p>
+</div>
 </form>
 <section class="lux-tile give-transfer" data-give-transfer aria-labelledby="give-transfer-title" tabindex="-1" hidden>
 <h2 class="give-transfer__title" id="give-transfer-title">Переведите <span data-transfer-amount></span></h2>
