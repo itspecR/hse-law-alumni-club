@@ -11,6 +11,8 @@ const LEFT_PAN = 3;
 const RIGHT_PAN = 4;
 const ORIGIN = `vec2(${SOURCE[0]}.,${SOURCE[1]}.)`;
 const SIZE = `vec2(${SOURCE[2]}.,${SOURCE[3]}.)`;
+const BLADE_TINT = "vec3(.55,.78,.90)";
+const BLADE_SHINE = ".40";
 const PARTS = [
   [BODY, SOURCE[0], SOURCE[1], SOURCE[0] + SOURCE[2], SOURCE[1] + SOURCE[3]],
   [1, 814, 534, 861, 580],
@@ -52,7 +54,7 @@ float shine=exp(-pow((p.y-scan)/52.,2.));
 float taper=clamp((1276.-p.y)/112.,0.,1.);
 float left=mix(279.,257.,taper),right=mix(279.,302.,taper);
 float blade=smoothstep(left,left+2.,p.x)*(1.-smoothstep(right-2.,right,p.x))*smoothstep(678.,697.,p.y)*(1.-smoothstep(1265.,1276.,p.y));
-col.rgb+=(col.a-col.rgb)*vec3(.40,.78,1.)*shine*blade*.85;}
+col.rgb+=(col.a-col.rgb)*${BLADE_TINT}*shine*blade*${BLADE_SHINE};}
 gl_FragColor=col;}`;
 
 function compile(gl, type, source) {
