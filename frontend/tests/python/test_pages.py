@@ -1064,9 +1064,13 @@ async def test_portfolio_card_shows_course_modules():
     ]
     page = await portfolio_page({**PORTFOLIO, "modules": modules})
     assert '<div class="course-module"><p class="course-module__title">Перерыв</p></div>' in page
-    assert "<summary>Перерыв</summary>" not in page and "<summary>Самостоятельная работа</summary>" in page
+    assert (
+        '<div class="course-module"><p class="course-module__title">Самостоятельная работа'
+        '<span class="course-module__meta">2 ак. ч.</span></p></div>'
+    ) in page
+    assert "<summary>Перерыв</summary>" not in page and "<summary>Самостоятельная работа</summary>" not in page
     assert "<h2>Программа курса</h2>" in page and "<summary>День 1. Архитектура конфликта</summary>" in page
-    assert "<li>Юридический спор</li>" in page and "<p>6 ак. ч. · Лекция</p>" in page and "<p>2 ак. ч.</p>" in page
+    assert "<li>Юридический спор</li>" in page and "<p>6 ак. ч. · Лекция</p>" in page
     assert "Программа курса" not in await portfolio_page(PORTFOLIO)
 
 

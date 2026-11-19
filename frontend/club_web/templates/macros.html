@@ -19,7 +19,7 @@
 {% set heading = module if module is string else module.title %}
 {% set text = '' if module is string else module.description or module.content %}
 {% set meta = [] if module is string else [(('Часов: ' ~ module.hours) if module.hours is number else module.hours) if module.hours else none, module.format]|select|list %}
-{% if text or meta or (module is not string and module.points) %}
+{% if text or (module is not string and module.points) %}
 <details class="lux-disclosure">
 <summary>{{ heading }}</summary>
 {% if text %}<p class="site-prose">{{ text }}</p>{% endif %}
@@ -33,7 +33,7 @@
 {% if meta %}<p>{{ meta|join(' · ') }}</p>{% endif %}
 </details>
 {% else %}
-<div class="course-module"><p class="course-module__title">{{ heading }}</p></div>
+<div class="course-module"><p class="course-module__title">{{ heading }}{% if meta %}<span class="course-module__meta">{{ meta|join(' · ') }}</span>{% endif %}</p></div>
 {% endif %}
 {% endfor %}
 </section>
