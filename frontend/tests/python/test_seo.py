@@ -339,7 +339,7 @@ NAMED_EPISODE = {**EPISODE, "slug": "pravovaya-gramotnost"}
 NAMED = {"/events": [NAMED_EVENT], "/podcasts": {"items": [NAMED_EPISODE], "subscribed": False}}
 
 
-async def test_lists_link_to_readable_addresses():
+async def test_lists_link_to_readable_addresses(home_read_section):
     async with site(**NAMED) as client:
         events = (await client.get("/events")).text
         podcasts = (await client.get("/podcasts")).text
