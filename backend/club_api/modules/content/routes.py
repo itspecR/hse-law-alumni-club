@@ -3,6 +3,7 @@ from django.http import HttpRequest
 from club_api.core.errors import ApiError
 from club_api.core.views import api_view, query_integer
 from club_api.modules.catalog.scope import PUBLISHED_DPO
+from club_api.modules.content.home_sections import HOME_SLUG, resolve_sections
 
 NEWS_FIELDS = ("id", "slug", "title", "excerpt", "body", "published_at", "source_url", "cover", "origin")
 PROGRAM_FIELDS = (
@@ -84,6 +85,7 @@ async def page(request: HttpRequest, slug: str):
             "slug",
             "title",
             *PAGE_TEXTS,
+            "sections",
             "blocks.collection",
             "blocks.sort",
             "blocks.item:block_hero.*",
@@ -98,4 +100,6 @@ async def page(request: HttpRequest, slug: str):
         for block in page["blocks"]
         if block["collection"] and block["item"]
     }
-    return {"slug": page["slug"], "title": page["title"], **{name: page[name] for name in PAGE_TEXTS}, "blocks": blocks}
+    texts = {name: page[name] for name in PAGE_TEXTS}
+    layout = {"sections": resolve_sections(page.get("sections"))} if page["slug"] == HOME_SLUG else {}
+    return {"slug": page["slug"], "title": page["title"], **texts, **layout, "blocks": blocks}

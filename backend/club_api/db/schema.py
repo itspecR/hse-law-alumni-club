@@ -170,7 +170,7 @@ DATA_COLUMNS = {
         "cohort_id",
         "transfer_sent_at",
     ),
-    "pages": ("id", "slug", "title", "status", "sort", "body", "meta_title", "meta_description"),
+    "pages": ("id", "slug", "title", "status", "sort", "body", "meta_title", "meta_description", "sections"),
     "pages_blocks": ("id", "collection", "item", "sort", "pages_id"),
     "podcast_plays": ("id", "podcast_id", "alumni_id", "created_at"),
     "podcasts": (
