@@ -66,7 +66,7 @@ def prepare(config, destination):
     runtime_path = pathlib.Path(context.values["CLUB_RUNTIME_ENV"])
     runtime_path.write_text(HELPERS["dotenv"](runtime))
     runtime_path.chmod(0o600)
-    context.execute("up", "-d", "--wait", "--force-recreate", "api")
+    context.execute("up", "-d", "--wait", "--force-recreate", "api", "web")
     context.execute("up", "-d", "--wait", "--force-recreate", "nginx")
     context.verify_http()
     staff = {

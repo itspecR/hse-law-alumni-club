@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% from 'macros.html' import icon %}
-{% from 'campaign-art.html' import wave,meter %}
+{% from 'campaign-art.html' import wave %}
 {% block content %}
 {% set campaign=item %}
 <main id="main" class="lux-home lux-give lux-camp">
@@ -11,7 +11,7 @@
 <h1 class="camp-hero__title lux-reveal" id="camp-title" style="--d:1">{{ campaign.title }}</h1>
 {% if campaign.subtitle %}<p class="camp-hero__sub lux-reveal" style="--d:2">{{ campaign.subtitle }}</p>{% endif %}
 {% if campaign.lede %}<p class="lux-lede camp-hero__lede lux-reveal" style="--d:3">{{ campaign.lede }}</p>{% endif %}
-<a href="#camp-support" class="foc lux-btn camp-hero__cta lux-reveal" style="--d:4">Поддержать сбор</a>
+<div class="camp-hero__acts"><a href="#camp-story" class="foc lux-btn">О тренинге</a><a href="#camp-support" class="foc lux-btn lux-btn--ghost">Поддержать сбор</a></div>
 </div>
 <div class="camp-hero__art lux-reveal" style="--d:2">{{ wave(campaign_wave,'camp-hero-wave') }}</div>
 </div>
@@ -24,17 +24,8 @@
 {% endif %}
 </section>
 
-<div class="lux-wrap give-layout camp-layout">
-<div class="give-story camp-story">
-{% if campaign.goal_title or campaign.goal_text %}
-<section class="camp-block camp-goal lux-tile lux-reveal" aria-labelledby="camp-goal-title">
-<p class="camp-eyebrow">На что собираем</p>
-<h2 class="give-h2" id="camp-goal-title">{{ campaign.goal_title or 'Цель сбора' }}</h2>
-{% if campaign.goal_text %}<div class="camp-text site-rich">{{ campaign.goal_text|rich_text }}</div>{% endif %}
-{{ meter(campaign,'camp-goal-meter') }}
-</section>
-{% endif %}
-
+<div class="lux-wrap">
+<div class="camp-story" id="camp-story">
 {% if campaign.about or campaign.highlights %}
 <section class="camp-block" aria-labelledby="camp-about-title">
 <h2 class="give-h2 lux-reveal" id="camp-about-title">{{ campaign.about_title or 'О мероприятии' }}</h2>
@@ -121,10 +112,20 @@
 </section>
 {% endif %}
 </div>
-<aside class="give-panel" id="camp-support" aria-labelledby="give-form-title">
+</div>
+
+<section class="lux-wrap camp-support" id="camp-support" aria-labelledby="give-form-title">
+{% if campaign.goal_title or campaign.goal_text %}
+<section class="camp-block camp-goal lux-tile lux-reveal" aria-labelledby="camp-goal-title">
+<p class="camp-eyebrow">На что собираем</p>
+<h2 class="give-h2" id="camp-goal-title">{{ campaign.goal_title or 'Цель сбора' }}</h2>
+{% if campaign.goal_text %}<div class="camp-text site-rich">{{ campaign.goal_text|rich_text }}</div>{% endif %}
+</section>
+{% endif %}
+<div class="give-panel">
 {% include 'give-form.html' %}
 {% if campaign.note %}<div class="camp-panel-note site-rich">{{ campaign.note|rich_text }}</div>{% endif %}
-</aside>
 </div>
+</section>
 </main>
 {% endblock %}
