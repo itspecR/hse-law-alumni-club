@@ -33,7 +33,8 @@
 .lux-lede > p { margin: 0; }
 .lux-about .lux-split { align-items: start; }
 .lux-goals { max-width: 40ch; }
-.lux-goals ul { display: grid; gap: 14px; margin: 24px 0 0; padding: 0; list-style: none; font-size: clamp(17px, 1.3cqi, 19px); line-height: 1.45; letter-spacing: 0; }
+.lux-goals ul { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; font-size: clamp(17px, 1.3cqi, 19px); line-height: 1.45; letter-spacing: 0; }
+.lux-goals p + ul { margin-top: 24px; }
 .lux-goals li { position: relative; padding-left: 22px; }
 .lux-goals li::before { content: ""; position: absolute; left: 0; top: 0.6em; width: 8px; height: 8px; border-radius: 50%; background: var(--c-accent); }
 .lux-frame { overflow: clip; border-radius: var(--r-tile); background: var(--c-bg-sunken); }

@@ -747,7 +747,7 @@ async def test_office_home_form_switches_slogans_and_edits_goals(browser_client)
     options = re.findall(r'<option value="([^"]+)"', form)
     assert options[-4:] == resource("home-data.json")["slogans"]
     assert '<input type="hidden" name="hero.title_accent" value="">' in form
-    assert 'aria-label="Цели клуба" data-rich class="office-rich">Объединение выпускников' in form
+    assert 'aria-label="Цели клуба" data-rich class="office-rich">- Объединение выпускников' in form
 
 
 async def test_office_uses_dark_theme(browser_client):
@@ -2261,7 +2261,7 @@ async def test_about_page_says_that_joining_is_paused():
     assert "Отправьте заявку на сайте" not in page
 
 
-GOALS_INTRO = "<p>Объединение выпускников факультета права НИУ ВШЭ, создание сообщества интеллектуальной элиты</p>"
+GOALS_INTRO = "<li>Объединение выпускников факультета права НИУ ВШЭ, создание сообщества интеллектуальной элиты</li>"
 GOALS_ITEM = "<li>Формирование пространства для профессионального развития</li>"
 
 
@@ -2270,7 +2270,7 @@ async def test_home_shows_club_goals_right_after_themis():
     page = (await rendered("/", routes)).text
     block = page[page.index('id="about-club"') :].split("</section>")[0]
     assert 'id="lux-about-title">Цели клуба.</h2>' in block and GOALS_INTRO in block
-    assert block.count("<li>") == 3 and GOALS_ITEM in block
+    assert block.count("<li>") == 4 and GOALS_ITEM in block and "<p>" not in block
     assert 'href="/about" class="foc lux-more">Подробнее о клубе' in block
     assert page.index('class="lux-hero"') < page.index('id="about-club"') < page.index("camp-teaser-section")
 
