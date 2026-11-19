@@ -9,6 +9,11 @@ def changes_section(monkeypatch):
 
 
 @pytest.fixture
+def home_read_section(monkeypatch):
+    monkeypatch.setattr(features, "HOME_READ_ENABLED", True)
+
+
+@pytest.fixture
 def push_notifications(monkeypatch):
     monkeypatch.setattr(features, "PUSH_ENABLED", True)
 
