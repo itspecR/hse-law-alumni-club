@@ -25,8 +25,8 @@ SectionKey = Literal[*SECTIONS]
 class HomeSection(Body):
     key: SectionKey
     visible: bool = True
-    title: str = Field(default=None, max_length=SECTION_TITLE_LIMIT)
-    lede: str = Field(default=None, max_length=SECTION_LEDE_LIMIT)
+    title: str | None = Field(default=None, max_length=SECTION_TITLE_LIMIT)
+    lede: str | None = Field(default=None, max_length=SECTION_LEDE_LIMIT)
 
     @model_validator(mode="after")
     def editable_texts_only(self):

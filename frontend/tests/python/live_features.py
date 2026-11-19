@@ -76,20 +76,30 @@ def content_forms(office, request, headers, name):
         assert all(item["id"] != record["id"] for item in request.get("/api" + path, headers=headers).json())
 
 
+def join_title(form):
+    row = form.locator("[data-module]").filter(has=form.page.locator('input[data-module-field="key"][value="join"]'))
+    row.locator('[data-action="module-toggle"]').click()
+    return row.get_by_label("Заголовок")
+
+
 def home_form(office, name):
     office.goto("/admin/pages")
     form = office.locator('form[data-api="/admin/pages/home"]')
-    original = {field.get_attribute("name"): field.input_value() for field in form.locator("input").all()}
-    form.locator('[name="cta.title"]').fill("Проверка главной " + name)
+    fields = form.locator('input[name]:not([type="hidden"])')
+    original = {field.get_attribute("name"): field.input_value() for field in fields.all()}
+    title = join_title(form)
+    before = title.input_value()
+    title.fill("Проверка главной " + name)
     form.locator('[name="hero.subtitle"]').fill("Строка главной " + name)
     submit(office, form, "/admin/pages/home", "PATCH")
     office.goto("/")
-    expect(office.locator("#main")).to_contain_text("Проверка главной " + name)
+    expect(office.locator("#lux-join-title")).to_have_text("Проверка главной " + name)
     expect(office.locator(".lux-hero__lede")).to_have_text("Строка главной " + name)
     office.goto("/admin/pages")
     form = office.locator('form[data-api="/admin/pages/home"]')
     for field, value in original.items():
         form.locator(f'[name="{field}"]').fill(value)
+    join_title(form).fill(before)
     submit(office, form, "/admin/pages/home", "PATCH")
 
 
