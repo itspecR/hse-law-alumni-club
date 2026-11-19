@@ -298,6 +298,7 @@ function lines(text) {
 }
 
 function moduleValue(input, primary) {
+  if (input.hasAttribute("data-module-check")) return input.checked;
   const text = input.value.trim();
   if (input.hasAttribute("data-module-lines")) return lines(text);
   if (input.hasAttribute("data-module-number")) return Number(text || 0);
