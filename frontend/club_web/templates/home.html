@@ -4,13 +4,18 @@
 {% set subtitle = hero.subtitle or home_texts.subtitle %}
 {% set join_label = cta.button or 'Вступить в клуб' %}
 {% set hero_word_floor = 8 %}
-{% set hero_chars = ([hero_word_floor] + slogan.split()|map('length')|list)|max %}
+{% set hero_words = slogan.split() %}
+{% set hero_words_right = hero_words[2:] if hero_words|length == 4 else [] %}
+{% set hero_words_left = hero_words[:2] if hero_words_right else hero_words %}
+{% set hero_chars = ([hero_word_floor] + hero_words|map('length')|list)|max %}
 <main id="main" class="lux-home">
-<section class="lux-hero" aria-labelledby="lux-hero-title">
+<section class="lux-hero{{ ' lux-hero--split' if hero_words_right }}" aria-labelledby="lux-hero-title">
 <div class="lux-hero__stage">
 <h1 class="lux-hero__title" id="lux-hero-title" style="--hero-chars:{{ hero_chars }}">
 <span class="lux-hero__name">Клуб выпускников факультета права НИУ&nbsp;ВШЭ</span>
-<span class="lux-hero__word lux-hero__word--l">{% for word in slogan.split() %}<span class="lux-hero__line"><span style="--i:{{ loop.index0 }}">{{ word }}</span></span> {% endfor %}</span>
+{% if hero_words_right %}<span class="lux-hero__words">{% endif %}
+<span class="lux-hero__word lux-hero__word--l">{% for word in hero_words_left %}<span class="lux-hero__line"><span style="--i:{{ loop.index0 }}">{{ word }}</span></span> {% endfor %}</span>
+{% if hero_words_right %}<span class="lux-hero__word lux-hero__word--r">{% for word in hero_words_right %}<span class="lux-hero__line"><span style="--i:{{ loop.index0 + 2 }}">{{ word }}</span></span> {% endfor %}</span></span>{% endif %}
 </h1>
 <div class="lux-hero__figure">{% include 'themis.html' %}</div>
 <div class="lux-hero__foot">
