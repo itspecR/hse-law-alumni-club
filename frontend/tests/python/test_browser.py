@@ -291,6 +291,37 @@ def test_all_sections_in_browser(page, width):
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1"), path
 
 
+def select_four_word_slogan(site):
+    site[1]["/pages/home"] = {"blocks": {"hero": {"title_pre": "Объединяем людей, сохраняем традиции."}}}
+
+
+@pytest.mark.parametrize("width", [1024, 1440])
+def test_four_word_slogan_surrounds_centered_themis(page, site, width):
+    select_four_word_slogan(site)
+    page.set_viewport_size({"width": width, "height": 1000})
+    page.goto("/")
+    figure = page.locator(".lux-hero__figure").bounding_box()
+    left = page.locator(".lux-hero__word--l").bounding_box()
+    right = page.locator(".lux-hero__word--r").bounding_box()
+    axis = float(page.locator(".lux-home").evaluate("node => getComputedStyle(node).getPropertyValue('--fig-axis')"))
+    assert abs(figure["x"] + figure["width"] * axis - width / 2) < 1
+    assert left["x"] + left["width"] < figure["x"]
+    assert right["x"] > figure["x"] + figure["width"]
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
+@pytest.mark.parametrize("width", [320, 390, 768])
+def test_four_word_slogan_stays_above_themis_on_small_screens(page, site, width):
+    select_four_word_slogan(site)
+    page.set_viewport_size({"width": width, "height": 900})
+    page.goto("/")
+    title = page.locator(".lux-hero__title").bounding_box()
+    figure = page.locator(".lux-hero__figure").bounding_box()
+    assert title["y"] + title["height"] < figure["y"]
+    assert page.locator(".lux-hero__word--r").evaluate("node => getComputedStyle(node).position") == "static"
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+
 @pytest.mark.parametrize("width", [320, 768, 1024, 1440])
 def test_office_navigation_keyboard_and_screen_sizes(page, width):
     page.set_viewport_size({"width": width, "height": 900})

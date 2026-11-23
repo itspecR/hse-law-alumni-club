@@ -541,6 +541,42 @@ async def test_home_hero_words_fit_longest_word(hero, chars):
     assert f'style="--hero-chars:{chars}"' in response.text
 
 
+async def test_home_four_word_slogan_surrounds_centered_themis():
+    async def upstream(request):
+        if request.url.path == "/pages/home":
+            return httpx.Response(
+                200,
+                json={"blocks": {"hero": {"title_pre": "Объединяем людей, сохраняем традиции."}}},
+            )
+        return httpx.Response(200, json=[])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            page = (await client.get("/")).text
+    assert '<section class="lux-hero lux-hero--split"' in page
+    title = page.split('<h1 class="lux-hero__title"', 1)[1].split("</h1>", 1)[0]
+    left, right = title.split('<span class="lux-hero__word lux-hero__word--r">', 1)
+    assert re.findall(r'lux-hero__line"><span[^>]*>([^<]+)', left) == ["Объединяем", "людей,"]
+    assert re.findall(r'lux-hero__line"><span[^>]*>([^<]+)', right) == ["сохраняем", "традиции."]
+
+
+async def test_home_three_word_slogan_keeps_single_side():
+    async def upstream(request):
+        if request.url.path == "/pages/home":
+            return httpx.Response(200, json={"blocks": {}})
+        return httpx.Response(200, json=[])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(upstream), base_url="http://api.test") as api:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=create_app(api)), base_url="http://web.test"
+        ) as client:
+            page = (await client.get("/")).text
+    assert '<section class="lux-hero" aria-labelledby="lux-hero-title">' in page
+    assert "lux-hero__word--r" not in page
+
+
 async def test_home_hero_line_comes_from_the_office():
     async def upstream(request):
         if request.url.path == "/pages/home":
